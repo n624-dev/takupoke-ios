@@ -224,7 +224,7 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
-| R424 | P05 | `Strictの時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L19) |
+| R424 | P05 | `Strictの時限・時刻がUnicode十進数字の途中から始まる、または数字・追加の時刻成分の途中で終わる` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L19) |
 | R407 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L28) |
 | R406 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L42) |
 | R405 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Times.swift#L49) |
@@ -590,7 +590,7 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R245 | P05 | `guard (1...8).contains(count) else { throw` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L6) |
-| R425 | P05 | `復旧用の時限・時刻がUnicode十進数字の途中から始まる、または途中で終わる` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L18) |
+| R425 | P05 | `復旧用の時限・時刻がUnicode十進数字の途中から始まる、または数字・追加の時刻成分の途中で終わる` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L18) |
 | R246 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L27) |
 | R247 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L41) |
 | R248 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/SpecialScheduleParser+Times.swift#L48) |

@@ -68,7 +68,10 @@ extension PDF239SpecialScheduleParser {
             let end = NSMaxRange(matches[next - 1].range)
             let startsInNumber = isDecimalDigit(units, at: start - 1)
             let endsInNumber = isDecimalDigit(units, at: end)
-            if !startsInNumber && !endsInNumber {
+            // A colon or decimal point followed by a number extends the clock.
+            let clockContinues = units.indices.contains(end) && (units[end] == 0x3A || units[end] == 0x2E)
+                && isDecimalDigit(units, at: end + 1)
+            if !startsInNumber && !endsInNumber && !clockContinues {
                 for index in first..<next { accepted.insert(matches[index].range) }
             }
             first = next

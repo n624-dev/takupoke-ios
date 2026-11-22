@@ -178,9 +178,14 @@ final class SpecialScheduleTests: XCTestCase {
 
     func testSpecialPeriodHeadingsDoNotTruncateNumericTokens() throws {
         let original = (1...6).map { examPage($0) }
-        for text in ["11時限目8:50~9:35", "1時限目7:00~8:500",
-                     "١1時限目8:50~9:35", "\u{104A1}1時限目8:50~9:35"] {
-            let pages = replacingFirstExamTime(original, with: text)
+        let firstHeadings = ["11時限目8:50~9:35", "1時限目7:00~8:500",
+                             "١1時限目8:50~9:35", "\u{104A1}1時限目8:50~9:35"]
+        let examples = firstHeadings.map { ($0, replacingFirstExamTime(original, with: $0)) }
+            + ["9:50~10:35:30", "9:50~10:35 : 30", "９：５０〜１０：３５．５"].map { invalid in
+                let clocks = ["8:50~9:35", invalid, "10:50~11:35", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+                return (invalid, (1...6).map { examPage($0, timingOverride: clocks) })
+            }
+        for (text, pages) in examples {
             XCTAssertThrowsError(try SpecialScheduleParser.parse(pages, kind: .exam,
                 digest: "fictional", name: "fictional.pdf"), text) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
@@ -189,12 +194,29 @@ final class SpecialScheduleTests: XCTestCase {
                 digest: "fictional", name: "fictional.pdf"), text) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
             }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build(pages, kind: .exam,
+                hash: String(repeating: "a", count: 64)), text) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+            }
+        }
+        let decomposed = (1...6).map { number in
+            var page = examPage(number, timingOverride: ["8:50~9:35", "9:50~10:35:5", "10:50~11:35",
+                                                         "11:50~12:35", "13:20~14:05", "14:20~15:05"])
+            for index in 0..<2 {
+                page.glyphs.append(PDFGlyph(text: "e\u{0301}", x: 12 + Double(index) * 4, y: 485, width: 4, height: 8,
+                                            sourceLine: 9200, sourceOrder: 92000 + index))
+            }
+            return page
+        }
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build(decomposed, kind: .exam,
+            hash: String(repeating: "a", count: 64)), "canonically equal prefix shifts UTF-16 offsets") {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
         }
     }
 
     func testSpecialConsecutiveHeadingsDoNotAdoptNumericSuffix() throws {
         let original = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
-        for text in ["11・2時限連続7:00~8:00", "1・2時限連続7:00~8:500"] {
+        for text in ["11・2時限連続7:00~8:00", "1・2時限連続7:00~8:500", "1・2時限連続8:50~10:20:30"] {
             let pages = replacingFirstExamTime(original, with: text, consecutive: true)
             XCTAssertThrowsError(try SpecialScheduleParser.parse(pages, kind: .exam,
                 digest: "fictional", name: "fictional.pdf"), text) {
@@ -205,6 +227,10 @@ final class SpecialScheduleTests: XCTestCase {
                 digest: "fictional", name: "fictional.pdf"), text) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
                 XCTAssertEqual(($0 as? PDFParseError)?.branch, .b425)
+            }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build(pages, kind: .exam,
+                hash: String(repeating: "a", count: 64)), text) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
             }
         }
     }
@@ -258,11 +284,14 @@ final class SpecialScheduleTests: XCTestCase {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let previous = try encoder.encode(XCTUnwrap(store.records[.exam]))
-        let invalid = replacingFirstExamTime(original, with: "1時限目7:00~8:500")
-        XCTAssertThrowsError(try save(SpecialScheduleParser.parse(invalid, kind: .exam,
-            digest: "invalid", name: "fictional.pdf"))) {
+        let invalidTimes = [replacingFirstExamTime(original, with: "1時限目7:00~8:500"),
+                            replacingFirstExamTime(original, with: "1・2時限連続8:50~10:20:30", consecutive: true)]
+        for invalid in invalidTimes {
+            XCTAssertThrowsError(try save(SpecialScheduleParser.parse(invalid, kind: .exam,
+                digest: "invalid", name: "fictional.pdf"))) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
             }
+        }
         XCTAssertEqual(try encoder.encode(XCTUnwrap(SpecialScheduleStore(root: root).records[.exam])), previous)
     }
 

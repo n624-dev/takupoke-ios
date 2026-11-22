@@ -454,7 +454,17 @@ enum RecoveryDocumentBuilder {
                 let pattern = try NSRegularExpression(pattern:"([1-8](?:[・･][1-8]時限連続|時限目))([0-9]{1,2}:[0-9]{2})[~〜～]([0-9]{1,2}:[0-9]{2})")
                 for row in remaining {
                     let raw = row.map(\.text).joined(), ns = raw as NSString
-                    for match in pattern.matches(in:raw,range:NSRange(location:0,length:ns.length)) {
+                    let matches = pattern.matches(in:raw,range:NSRange(location:0,length:ns.length))
+                    // Match the ordinary parser's boundaries, while retaining raw glyphs for proof.
+                    let normalized = PDFSchoolParser.key(raw)
+                    let boundaryText = normalized as NSString
+                    let normalizedMatches = normalized.utf16.elementsEqual(raw.utf16) ? matches : pattern.matches(in: normalized,
+                        range: NSRange(location: 0, length: boundaryText.length))
+                    guard SpecialScheduleParser.wholeNumericHeadings(normalizedMatches, in: boundaryText).count
+                        == normalizedMatches.count else {
+                        throw PDFParseError(code:.ambiguous,page:number,stage:.periodHeading)
+                    }
+                    for match in matches {
                         let label = ns.substring(with:match.range(at:1)), token = ns.substring(with:NSRange(location:match.range(at:2).location,length:match.range(at:3).upperBound-match.range(at:2).location))
                         let labelGlyphs = try extract(label,row:row), clockGlyphs = try extract(token,row:row)
                         let labelId = try add(labelGlyphs), clockId = try add(clockGlyphs)
