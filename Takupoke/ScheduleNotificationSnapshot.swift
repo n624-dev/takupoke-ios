@@ -14,6 +14,7 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         let className: String
         let period: String
         let fingerprint: String
+        fileprivate var slot: Slot { .init(date:date,className:className,period:period) }
     }
     struct ChangeTarget: Codable, Hashable {
         let date: String
@@ -21,6 +22,21 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         let period: String
         let expectedFingerprints: [String]
         var key: String { [date,className,period].joined(separator: "|") }
+        fileprivate var slot: Slot { .init(date:date,className:className,period:period) }
+    }
+    fileprivate struct Slot: Hashable {
+        let date: String
+        let className: String
+        let period: String
+
+        func isRelevant(today: SchoolDate, classes: Set<String>) -> Bool {
+            guard classes.contains(className), let day = SchoolDate(iso8601:date) else { return false }
+            return day >= today
+        }
+
+        func target(fingerprints: [String]) -> ChangeTarget {
+            ChangeTarget(date:date,className:className,period:period,expectedFingerprints:fingerprints)
+        }
     }
     struct Pending: Codable, Equatable {
         let fingerprint: String
@@ -157,27 +173,45 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     }
 
     func changeTargets(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
-        guard let changes else { return [] }
-        let changed = changes.symmetricDifference(next)
-        let slots = Set(changed.map { ChangeTarget(date:$0.date,className:$0.className,period:$0.period,expectedFingerprints:[]) })
-        return validTargets(slots.map { slot in
-            ChangeTarget(date:slot.date,className:slot.className,period:slot.period,
-                         expectedFingerprints:next.filter { $0.date == slot.date && $0.className == slot.className && $0.period == slot.period }.map(\.fingerprint).sorted())
-        }, in:next,today:today,classes:classes)
+        let slots = changedSlots(comparedWith:next,today:today,classes:classes)
+        let fingerprints = Self.fingerprints(for:slots,in:next)
+        return slots.map { $0.target(fingerprints:fingerprints[$0] ?? []) }.sorted { $0.key < $1.key }
     }
 
     func validTargets(_ targets: [ChangeTarget], in next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
-        targets.filter { target in
-            guard let date = SchoolDate(iso8601:target.date), date >= today, classes.contains(target.className) else { return false }
-            return target.expectedFingerprints == next.filter { $0.date == target.date && $0.className == target.className && $0.period == target.period }.map(\.fingerprint).sorted()
-        }.sorted { $0.key < $1.key }
+        let eligible = targets.filter { $0.slot.isRelevant(today:today,classes:classes) }
+        let fingerprints = Self.fingerprints(for:Set(eligible.map(\.slot)),in:next)
+        return eligible.filter { $0.expectedFingerprints == (fingerprints[$0.slot] ?? []) }.sorted { $0.key < $1.key }
     }
 
     func pendingChangeTargets(in next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
+        let pending = (pending["changes"]?.changeTargets ?? []).filter { $0.slot.isRelevant(today:today,classes:classes) }
+        let changed = changedSlots(comparedWith:next,today:today,classes:classes)
+        let fingerprints = Self.fingerprints(for:changed.union(pending.map(\.slot)),in:next)
         var bySlot = [String:ChangeTarget]()
-        for target in validTargets(pending["changes"]?.changeTargets ?? [],in:next,today:today,classes:classes) { bySlot[target.key] = target }
-        for target in changeTargets(comparedWith:next,today:today,classes:classes) { bySlot[target.key] = target }
+        for target in pending where target.expectedFingerprints == (fingerprints[target.slot] ?? []) {
+            bySlot[target.key] = target
+        }
+        for slot in changed {
+            let target = slot.target(fingerprints:fingerprints[slot] ?? [])
+            bySlot[target.key] = target
+        }
         return bySlot.values.sorted { $0.key < $1.key }
+    }
+
+    private func changedSlots(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> Set<Slot> {
+        guard let changes, !classes.isEmpty else { return [] }
+        return Set(changes.symmetricDifference(next).map(\.slot)).filter { $0.isRelevant(today:today,classes:classes) }
+    }
+
+    private static func fingerprints(for slots: Set<Slot>, in changes: Set<Change>) -> [Slot:[String]] {
+        guard !slots.isEmpty else { return [:] }
+        var result = [Slot:[String]]()
+        for change in changes {
+            let slot = change.slot
+            if slots.contains(slot) { result[slot,default:[]].append(change.fingerprint) }
+        }
+        return result.mapValues { $0.sorted() }
     }
 
     func changeCount(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> Int {

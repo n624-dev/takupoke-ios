@@ -168,6 +168,28 @@ final class ScheduleNotificationTests: XCTestCase {
         XCTAssertTrue(baseline.pendingChangeTargets(in:current,today:today,classes:["3_XY"]).isEmpty)
     }
 
+    func testIndexedChangesRetainAllContentsAndMergeOnlyEligiblePendingSlots() throws {
+        let inside = change("unchanged-content"), removed = change("removed",period:"2")
+        let pending = change("retry-content",period:"3")
+        let past = change("past",date:"2032-10-14"), other = change("other",className:"4_XY")
+        let before: Set = [change("old-content"),inside,removed,pending,past,other]
+        let next: Set = [change("changed-content"),inside,pending,
+                         change("new-past",date:past.date),change("new-other",className:other.className)]
+        func target(_ row: ScheduleNotificationSnapshot.Change, _ fingerprints: [String]) -> ScheduleNotificationSnapshot.ChangeTarget {
+            .init(date:row.date,className:row.className,period:row.period,expectedFingerprints:fingerprints)
+        }
+        let changed = target(inside,["changed-content","unchanged-content"])
+        let cancellation = target(removed,[])
+        let stillPending = target(pending,["retry-content"])
+        let prior = [target(past,["past"]),stillPending,target(inside,["old-content","unchanged-content"]),target(other,["other"])]
+        let baseline = ScheduleNotificationSnapshot(changes:before,pending:["changes":try ScheduleNotificationSnapshot.notice(prior)])
+
+        XCTAssertEqual(baseline.changeTargets(comparedWith:next,today:today,classes:["3_XY"]),[changed,cancellation])
+        XCTAssertEqual(baseline.validTargets(prior,in:next,today:today,classes:["3_XY"]),[stillPending])
+        XCTAssertEqual(baseline.pendingChangeTargets(in:next,today:today,classes:["3_XY"]),[changed,cancellation,stillPending])
+        XCTAssertEqual(baseline.pendingChangeTargets(in:next,today:today,classes:[]),[])
+    }
+
     func testFailedRemovalNoticeRemainsRelevantOnlyWhileSlotIsAbsent() {
         var baseline = ScheduleNotificationSnapshot(changes:[change("removed")])
         let targets = baseline.changeTargets(comparedWith:[],today:today,classes:["3_XY"])
