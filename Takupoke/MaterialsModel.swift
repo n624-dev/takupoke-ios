@@ -328,13 +328,14 @@ extension MaterialsModel {
             }
         }
     }
-    func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
-        guard LocalAIFeaturePolicy.enabled else { return false }
+    func adoptRecovery(_ preview: RecoveryPreview) async -> RecoveryAdoptionResult {
+        guard LocalAIFeaturePolicy.enabled else { return .invalidated }
         let ticket = LocalAIFeaturePolicy.capture()
         let cancelled = AcquisitionControl()
+        let save = RecoverySaveAttempt()
         return await withTaskCancellationHandler {
         await withCheckedContinuation { continuation in
-            perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:$0) }) { worker,control in
+            perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:save.result(saved:$0)) }) { worker,control in
                 guard let library = worker.library, let selected = library.state.record(for:.timetable),
                       selected.storedName == preview.source.storedName, selected.digest == preview.source.digest,
                       let attempt = library.state.pdfParseAttempts?[MaterialKind.timetable.rawValue],
@@ -346,7 +347,7 @@ extension MaterialsModel {
                 let analysis = try RecoveryConversion.timetable(preview)
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
                 try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket)
-                try worker.saveRecoveredTimetable(analysis, in: library)
+                try save.persist { try worker.saveRecoveredTimetable(analysis, in: library) }
             }
         }
         } onCancel: { cancelled.cancel() }

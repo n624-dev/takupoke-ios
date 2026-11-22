@@ -32,6 +32,18 @@ private func functionalPreview(_ document: RecoveryDocument, _ result: RecoveryR
 }
 
 extension PDFParsingTests {
+    func testRecoveryOnlyKeepsPreviewForAnActualStorageFailure() throws {
+        let invalidated = RecoverySaveAttempt()
+        guard case .invalidated = invalidated.result(saved:false) else { return XCTFail("Expected invalidation before save") }
+        let successfulWrite = RecoverySaveAttempt()
+        try successfulWrite.persist {}
+        guard case .saved = successfulWrite.result(saved:true) else { return XCTFail("Expected successful adoption") }
+        guard case .invalidated = successfulWrite.result(saved:false) else { return XCTFail("Expected invalidation after save") }
+        let failedWrite = RecoverySaveAttempt()
+        XCTAssertThrowsError(try failedWrite.persist { throw CocoaError(.fileWriteOutOfSpace) })
+        guard case .retryableFailure = failedWrite.result(saved:false) else { return XCTFail("Expected retryable storage failure") }
+    }
+
     func testFunctionalUnlabeledTeacherAndRoomBlanksReachFormalConversionWithoutShifting() async throws {
         for missingY in [130.0,148.0] {
             var page = recoveryTimetablePage()

@@ -202,21 +202,23 @@ extension SpecialSchedulesModel {
             }
         }
     }
-    func adoptRecovery(_ preview: RecoveryPreview) async -> Bool {
-        guard LocalAIFeaturePolicy.enabled else { return false }
+    func adoptRecovery(_ preview: RecoveryPreview) async -> RecoveryAdoptionResult {
+        guard LocalAIFeaturePolicy.enabled else { return .invalidated }
         let kind: SpecialScheduleKind = preview.document.kind == .exam ? .exam : .examReturn
         let ticket = LocalAIFeaturePolicy.capture()
         let cancelled = AcquisitionControl()
+        let save = RecoverySaveAttempt()
         return await withTaskCancellationHandler {
         await withCheckedContinuation { continuation in
-            perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:$0) }) { store,control,_ in
+            perform(success:"復旧結果を採用しました。",completion:{ continuation.resume(returning:save.result(saved:$0)) }) { store,control,_ in
                 guard let selected = store.sources[kind], selected.attemptParserVersion == SpecialScheduleAnalysis.parserVersion,
                       selected.failure.map(RecoveryPolicy.eligible) == true, selected.recoveryJob?.pdfHash == selected.digest,
                       let selectedURL = store.selectedURL(for:kind), selectedURL == preview.source.url else { throw PDFParseError(code:.storage) }
                 let analysis = try RecoveryConversion.special(preview, selected:selected)
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
-                try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket); try store.saveAnalysis(analysis)
+                try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket)
+                try save.persist { try store.saveAnalysis(analysis) }
             }
         }
         } onCancel: { cancelled.cancel() }

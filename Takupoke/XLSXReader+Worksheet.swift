@@ -141,7 +141,8 @@ extension XLSXReader {
                 if isFormula {
                     formulas.append((number, position.column, !value.isEmpty && ["n", "str", "s", "b", "d"].contains(type)))
                 }
-                if let formula, ["array", "dataTable"].contains(formula.attributes["t"] ?? ""), let ref = formula.attributes["ref"] {
+                if let formula, ["array", "dataTable"].contains(formula.attributes["t"] ?? "") {
+                    guard let ref = formula.attributes["ref"], !ref.isEmpty else { throw ChangeParseError(code: .invalidXML) }
                     let ends = ref.split(separator: ":", omittingEmptySubsequences: false)
                     guard ends.count == 1 || ends.count == 2 else { throw ChangeParseError(code: .invalidXML) }
                     let start = try coordinate(String(ends[0])), end = try coordinate(String(ends[ends.count - 1]))

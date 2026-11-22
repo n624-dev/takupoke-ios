@@ -19,6 +19,10 @@ extension ParsingTests {
                 assertCode(.formula) { _ = try XLSXReader.read(url, defaultYear: 2032) }
                 let editor = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
                 for column in 4...6 { XCTAssertEqual(editor.cellIssues[2]?[column], .formula) }
+                mutate(&files, sheet, #" ref="D2:G2""#, "")
+                let missing = root.appendingPathComponent(kind + "-missing-range.xlsx")
+                try write(files, to: missing)
+                assertCode(.invalidXML) { _ = try XLSXReader.read(missing, defaultYear: 2032) }
             }
             var direct = workbook(rows)
             mutate(&direct, sheet, original, #"<c r="D2" t="str"><f>A2</f><v>月</v></c>"#)
@@ -38,10 +42,10 @@ extension ParsingTests {
                         ["3", "IT", "2032/4/5", "月", "1", "架空科目A"]]
             let sheet = "xl/worksheets/sheet1.xml"
             let original = #"<c r="E1" t="inlineStr"><is><t xml:space="preserve">架空計算</t></is></c>"#
-            for (range, rejects) in [("E1:E3", true), ("E1:E1", false)] {
+            for (range, rejects) in [("E1:E3", true), ("E1:E6", true), ("E1:E1", false)] {
                 var files = workbook(rows)
                 mutate(&files, sheet, original, #"<c r="E1"><f t="array" ref=""# + range + #"">A1</f><v>0</v></c>"#)
-                let url = root.appendingPathComponent("range-\(rejects).xlsx")
+                let url = root.appendingPathComponent("range-\(range.replacingOccurrences(of: ":", with: "-")).xlsx")
                 try write(files, to: url)
                 if rejects { assertCode(.formula) { _ = try XLSXReader.read(url, defaultYear: 2032) } }
                 else { XCTAssertEqual(try XLSXReader.read(url, defaultYear: 2032).count, 3) }

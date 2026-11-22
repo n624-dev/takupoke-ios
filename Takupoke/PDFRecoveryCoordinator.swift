@@ -450,15 +450,16 @@ final class PDFRecoveryCoordinator: ObservableObject {
         task = Task { @MainActor in
             do {
                 try check(operation)
-                let success = preview.document.kind == .timetable ? await ApplicationData.shared.materials.adoptRecovery(preview) : await ApplicationData.shared.specialSchedules.adoptRecovery(preview)
+                let result = preview.document.kind == .timetable ? await ApplicationData.shared.materials.adoptRecovery(preview) : await ApplicationData.shared.specialSchedules.adoptRecovery(preview)
                 try check(operation); running = false
-                if !success, selectedSourceIsCurrent {
-                    failure = "復旧結果を保存できませんでした。確認済みの内容を保持しています。もう一度採用できます。"
+                if case .retryableFailure = result {
+                    status = "確認済みの復旧結果を保存できます。"
+                    failure = "復旧結果を保存できませんでした。確認済みの内容を保持しています。もう一度採用をお試しください。"
                     return
                 }
                 previewRasters = [:]; manualInitialValues = [:]
                 self.preview = nil; source = nil
-                if success {
+                if case .saved = result {
                     pendingDocument = nil; pendingPages = nil; status = "復旧結果を採用しました。"
                 } else {
                     failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。"

@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`66d952ba1bdbdc2e730ccd585c8c7588c52cb687b293329bfd15d4cb7e8fbbee`
+`44ab53d5542d37eeac8b01bb1ec60c8021ef60567c59f974d4355d3ecc5de505`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -146,6 +146,7 @@ bash tools/test-manual-ui.sh
 
 ## [tests/RecoveryFunctionalCoverageTests.swift](../../tests/RecoveryFunctionalCoverageTests.swift)
 
+- `testRecoveryOnlyKeepsPreviewForAnActualStorageFailure`
 - `testFunctionalUnlabeledTeacherAndRoomBlanksReachFormalConversionWithoutShifting`
 - `testFunctionalMergedUnlabeledParallelTuplesRetainSeparatorAndEveryFormalSlot`
 - `testSpecialRecoveryAdoptsSameBytesAfterProviderRename`
