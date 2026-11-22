@@ -109,6 +109,46 @@ struct CountdownReminder: Codable, Equatable, Hashable {
     }
 }
 
+struct CountdownReminderDayEdits {
+    private struct Input {
+        let text: String
+        let days: Int?
+    }
+
+    private var inputs: [Int: Input] = [:]
+
+    var hasInvalidInput: Bool { inputs.values.contains { $0.days == nil } }
+
+    func text(at index: Int) -> String? { inputs[index]?.text }
+
+    mutating func enter(_ text: String, at index: Int, locale: Locale = .current) -> Int? {
+        let format = IntegerFormatStyle<Int>.number.locale(locale)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parsed = try? format.parseStrategy.parse(trimmed)
+        let days: Int?
+        if let parsed, (0...CountdownReminder.maximumDaysBefore).contains(parsed),
+           trimmed.unicodeScalars.allSatisfy({ $0.properties.numericType == .decimal }) ||
+           trimmed == parsed.formatted(format) {
+            days = parsed
+        } else {
+            days = nil
+        }
+        inputs[index] = Input(text: text, days: days)
+        return days
+    }
+
+    mutating func endEditing(at index: Int) {
+        if inputs[index]?.days != nil { inputs.removeValue(forKey: index) }
+    }
+
+    mutating func remove(at index: Int) {
+        inputs.removeValue(forKey: index)
+        inputs = Dictionary(uniqueKeysWithValues: inputs.map { key, input in
+            (key > index ? key - 1 : key, input)
+        })
+    }
+}
+
 struct CountdownPreferences: Codable, Equatable {
     var showsOnHome = true
     var lookahead: CountdownLookahead = .always

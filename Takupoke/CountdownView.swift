@@ -322,6 +322,7 @@ private struct CountdownEditor: View {
     @State private var end: Date
     @State private var hasEnd: Bool
     @State private var preferences: CountdownPreferences
+    @State private var reminderDays = CountdownReminderDayEdits()
 
     init(registration: CountdownRegistration? = nil, copy: CountdownDates? = nil) {
         id = registration?.id ?? UUID()
@@ -364,6 +365,8 @@ private struct CountdownEditor: View {
         return CountdownRegistration(id: id, target: target, preferences: preferences)
     }
 
+    private var canSave: Bool { draft.valid && (!preferences.notifications || !reminderDays.hasInvalidInput) }
+
     var body: some View {
         Form {
             Section("予定") {
@@ -383,7 +386,7 @@ private struct CountdownEditor: View {
                     }
                 }
             }
-            CountdownPreferencesFields(value: $preferences)
+            CountdownPreferencesFields(value: $preferences, reminderDays: $reminderDays)
             if let message = model.message { InlineWarning(message) }
         }
         .environment(\.calendar, SchoolDate.japanCalendar)
@@ -393,14 +396,14 @@ private struct CountdownEditor: View {
             ToolbarItem(placement: .cancellationAction) { Button("キャンセル") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") {
-                    guard model.save(draft) else { return }
+                    guard canSave, model.save(draft) else { return }
                     if preferences.notifications && !oldNotifications {
                         Task { await model.notificationPermission(); model.onChange?() }
                     }
                     dismiss()
                 }
                 .accessibilityIdentifier("countdown-save")
-                .disabled(!draft.valid)
+                .disabled(!canSave)
             }
         }
     }
@@ -410,11 +413,17 @@ private struct CountdownAutomaticEditor: View {
     @EnvironmentObject private var model: CountdownModel
     @Environment(\.dismiss) private var dismiss
     @State var automatic: CountdownAutomatic
+    @State private var reminderDays = CountdownReminderDayEdits()
     private let oldNotifications: Bool
 
     init(automatic: CountdownAutomatic) {
         _automatic = State(initialValue: automatic)
         oldNotifications = automatic.enabled && automatic.preferences.notifications
+    }
+
+    private var canSave: Bool {
+        automatic.preferences.valid &&
+            (!automatic.enabled || !automatic.preferences.notifications || !reminderDays.hasInvalidInput)
     }
 
     var body: some View {
@@ -427,7 +436,9 @@ private struct CountdownAutomaticEditor: View {
                     }
                 }
             }
-            if automatic.enabled { CountdownPreferencesFields(value: $automatic.preferences) }
+            if automatic.enabled {
+                CountdownPreferencesFields(value: $automatic.preferences, reminderDays: $reminderDays)
+            }
             if let message = model.message { InlineWarning(message) }
         }
         .environment(\.calendar, SchoolDate.japanCalendar)
@@ -437,14 +448,14 @@ private struct CountdownAutomaticEditor: View {
             ToolbarItem(placement: .cancellationAction) { Button("キャンセル") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") {
-                    guard model.save(automatic) else { return }
+                    guard canSave, model.save(automatic) else { return }
                     if automatic.enabled && automatic.preferences.notifications && !oldNotifications {
                         Task { await model.notificationPermission(); model.onChange?() }
                     }
                     dismiss()
                 }
                 .accessibilityIdentifier("countdown-save")
-                .disabled(!automatic.preferences.valid)
+                .disabled(!canSave)
             }
         }
     }
@@ -452,6 +463,7 @@ private struct CountdownAutomaticEditor: View {
 
 private struct CountdownPreferencesFields: View {
     @Binding var value: CountdownPreferences
+    @Binding var reminderDays: CountdownReminderDayEdits
     @FocusState private var editingReminder: Int?
     @State private var reminderEditorGeneration = UUID()
 
@@ -475,21 +487,19 @@ private struct CountdownPreferencesFields: View {
             if value.notifications {
                 let generation = reminderEditorGeneration
                 ForEach(value.reminders.indices, id: \.self) { index in
-                    CountdownReminderDayField(days: Binding(get: {
-                        value.reminders.indices.contains(index) ? value.reminders[index].daysBefore : 0
-                    }, set: { days in
-                        guard reminderEditorGeneration == generation, value.reminders.indices.contains(index) else { return }
-                        value.reminders[index].daysBefore = days
-                    }), index: index, editingReminder: $editingReminder)
+                    CountdownReminderDayField(input: reminderText(index, generation: generation),
+                                              index: index, editingReminder: $editingReminder)
                     // An index can refer to another reminder after a deletion.
-                    // Discard the old editor, including its unformatted text.
+                    // Recreate native editors and reject callbacks from the old ones.
                     .id("\(generation.uuidString)-\(index)")
-                    DatePicker("日本時間の通知時刻", selection: reminderTime(index), displayedComponents: .hourAndMinute)
+                    DatePicker("日本時間の通知時刻", selection: reminderTime(index, generation: generation), displayedComponents: .hourAndMinute)
                     if value.reminders.count > 1 {
                         Button("この通知条件を削除", role: .destructive) {
+                            guard reminderEditorGeneration == generation, value.reminders.indices.contains(index) else { return }
                             editingReminder = nil
                             reminderEditorGeneration = UUID()
                             value.reminders.remove(at: index)
+                            reminderDays.remove(at: index)
                         }
                         .accessibilityIdentifier("countdown-delete-reminder-\(index)")
                     }
@@ -502,18 +512,34 @@ private struct CountdownPreferencesFields: View {
                         value.reminders.append(.init(daysBefore: days, hour: 20, minute: 0))
                     }
                 }
-                if !value.valid { InlineWarning("通知の日数・時刻を確認し、同じ条件は一つにしてください。") }
+                if reminderDays.hasInvalidInput || !value.valid {
+                    InlineWarning("通知の日数・時刻を確認し、同じ条件は一つにしてください。")
+                }
             }
+        }
+        .onChange(of: editingReminder) { previous, _ in
+            if let previous { reminderDays.endEditing(at: previous) }
         }
     }
 
-    private func reminderTime(_ index: Int) -> Binding<Date> {
+    private func reminderText(_ index: Int, generation: UUID) -> Binding<String> {
+        Binding(get: {
+            guard value.reminders.indices.contains(index) else { return "" }
+            return reminderDays.text(at: index) ?? value.reminders[index].daysBefore.formatted()
+        }, set: { text in
+            guard reminderEditorGeneration == generation, value.reminders.indices.contains(index) else { return }
+            // Keep the complete text and caret while the user is typing.
+            if let days = reminderDays.enter(text, at: index) { value.reminders[index].daysBefore = days }
+        })
+    }
+
+    private func reminderTime(_ index: Int, generation: UUID) -> Binding<Date> {
         Binding(get: {
             guard value.reminders.indices.contains(index) else { return Date() }
             let reminder = value.reminders[index]
             return SchoolDate.today().dateInJapan(hour: reminder.hour, minute: reminder.minute) ?? Date()
         }, set: {
-            guard value.reminders.indices.contains(index) else { return }
+            guard reminderEditorGeneration == generation, value.reminders.indices.contains(index) else { return }
             let time = SchoolDate.japanCalendar.dateComponents([.hour, .minute], from: $0)
             value.reminders[index].hour = time.hour ?? 20
             value.reminders[index].minute = time.minute ?? 0
@@ -523,21 +549,9 @@ private struct CountdownPreferencesFields: View {
 
 private struct CountdownReminderDayField: View {
     @Environment(\.dynamicTypeSize) private var textSize
-    @Binding var days: Int
-    @State private var typedDigits: String?
+    @Binding var input: String
     let index: Int
     let editingReminder: FocusState<Int?>.Binding
-
-    private var input: Binding<String> {
-        Binding(get: { typedDigits ?? days.formatted() }, set: { text in
-            // Preserve the text and caret while typing. Reformatting the
-            // integer after every digit can interrupt editing when it groups.
-            typedDigits = text
-            if let parsed = try? IntegerFormatStyle<Int>.number.parseStrategy.parse(text) {
-                days = parsed
-            }
-        })
-    }
 
     var body: some View {
         let layout = textSize.isAccessibilitySize
@@ -556,7 +570,7 @@ private struct CountdownReminderDayField: View {
                     .hidden()
                     .accessibilityHidden(true)
                     .overlay {
-                        TextField("", text: input)
+                        TextField("", text: $input)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .focused(editingReminder, equals: index)
@@ -571,9 +585,6 @@ private struct CountdownReminderDayField: View {
             }
             .monospacedDigit()
             .frame(maxWidth: .infinity, alignment: textSize.isAccessibilitySize ? .leading : .trailing)
-        }
-        .onChange(of: editingReminder.wrappedValue) { previous, _ in
-            if previous == index { typedDigits = nil }
         }
     }
 }

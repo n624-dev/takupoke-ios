@@ -247,7 +247,13 @@ extension ApplicationChecks {
         func enterDay(_ value: String, replacingDigitCount count: Int) {
             digits.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
             digits.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: count) + value)
-            XCTAssertEqual(digits.value as? String, value, "Native editor must contain the complete input before saving")
+            XCTAssertEqual(digits.value as? String ?? "", value, "Native editor must contain the complete input before saving")
+        }
+
+        func expectInvalidReminder() {
+            let save = app.navigationBars.buttons["countdown-save"]
+            XCTAssertTrue(save.exists)
+            XCTAssertFalse(save.isEnabled, "An unfinished native input must prevent saving a previous numeric value")
         }
 
         func saveReminderEditor() {
@@ -273,7 +279,11 @@ extension ApplicationChecks {
         screen(automatic)
         showField(in: automatic, expected: "7")
         recoveryScreenshot("countdown-notification-days-standard")
-        changeDay(to: "365000", replacingDigitCount: 1)
+        enterDay("", replacingDigitCount: 1)
+        expectInvalidReminder()
+        enterDay("365001", replacingDigitCount: 0)
+        expectInvalidReminder()
+        changeDay(to: "365000", replacingDigitCount: 6)
         screen(management)
         app.buttons["countdown-automatic"].tap()
         screen(automatic)
@@ -293,7 +303,9 @@ extension ApplicationChecks {
         setTextSize("アクセシビリティ・大")
         showField(in: personal, expected: "7", enlarged: true)
         recoveryScreenshot("countdown-notification-days-accessibility")
-        changeDay(to: "0", replacingDigitCount: 1)
+        enterDay("", replacingDigitCount: 1)
+        expectInvalidReminder()
+        changeDay(to: "0", replacingDigitCount: 0)
         screen("予定の詳細")
         tap("編集")
         screen(personal)

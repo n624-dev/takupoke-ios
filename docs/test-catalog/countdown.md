@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`692662f810b3e2eddfa223e7ccefa8d202645d6d910c00c4a772799a002156c1`
+`45340cf956dc21a693a9982263cb40b2d2638fa13e4e2d19621bbf2fae60c8f1`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -21,6 +21,8 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testJapaneseCalendarPhaseCoversLeapDayYearBoundaryAndSplitRanges`
 - `testHomeFilteringAndProgressDoNotDependOnReservation`
 - `testNotificationDeadlineAndSourcePauseApplyOnlyToTheirOwnTargets`
+- `testReminderDayEditingRequiresACompleteInRangeValue`
+- `testRemovingReminderKeepsTheOtherRowsOwnUnfinishedText`
 - `testRegistrationStoreRejectsInvalidWritesAndSurvivesSchoolDataRetention`
 - `testClassExamUsesAcceptedSlotsVisibilityAndAppliedChanges`
 

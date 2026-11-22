@@ -74,6 +74,42 @@ final class CountdownTests: XCTestCase {
         XCTAssertTrue(CountdownNotice.planned(for: [personal], at: target.start.dateInJapan(hour: 20)!).isEmpty)
     }
 
+    func testReminderDayEditingRequiresACompleteInRangeValue() {
+        let locale = Locale(identifier: "ja_JP")
+        var edits = CountdownReminderDayEdits()
+        for input in ["", " ", "7a", "77.2", "111,2", "365001", "-1", String(repeating: "9", count: 30)] {
+            XCTAssertNil(edits.enter(input, at: 0, locale: locale), input)
+            edits.endEditing(at: 0)
+            XCTAssertEqual(edits.text(at: 0), input)
+            XCTAssertTrue(edits.hasInvalidInput)
+        }
+        for (input, days) in [("0", 0), ("7", 7), ("７", 7), ("365000", 365_000), ("365,000", 365_000)] {
+            XCTAssertEqual(edits.enter(input, at: 0, locale: locale), days)
+            XCTAssertEqual(edits.text(at: 0), input)
+            XCTAssertFalse(edits.hasInvalidInput)
+            edits.endEditing(at: 0)
+            XCTAssertNil(edits.text(at: 0))
+        }
+        let arabic = Locale(identifier: "ar_EG")
+        let grouped = 365_000.formatted(.number.locale(arabic))
+        XCTAssertEqual(edits.enter(grouped, at: 0, locale: arabic), 365_000)
+    }
+
+    func testRemovingReminderKeepsTheOtherRowsOwnUnfinishedText() {
+        var edits = CountdownReminderDayEdits()
+        XCTAssertEqual(edits.enter("0", at: 0), 0)
+        XCTAssertNil(edits.enter("", at: 1))
+        XCTAssertEqual(edits.enter("7", at: 2), 7)
+        edits.remove(at: 0)
+        XCTAssertEqual(edits.text(at: 0), "")
+        XCTAssertEqual(edits.text(at: 1), "7")
+        XCTAssertNil(edits.text(at: 2))
+        XCTAssertTrue(edits.hasInvalidInput)
+        edits.remove(at: 0)
+        XCTAssertEqual(edits.text(at: 0), "7")
+        XCTAssertFalse(edits.hasInvalidInput)
+    }
+
     func testRegistrationStoreRejectsInvalidWritesAndSurvivesSchoolDataRetention() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

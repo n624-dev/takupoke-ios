@@ -32,7 +32,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [リンク・検索・設定保持](test-catalog/links.md) | 18 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [名称対応・パッケージ・認証取得](test-catalog/mapping.md) | 50 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [学校行事API・年度別保存](test-catalog/events.md) | 44 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 29 | Linux Swift／iOS 26.5・27.0シミュレータ |
+| [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 31 | Linux Swift／iOS 26.5・27.0シミュレータ |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 104 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [試験・返却PDF](test-catalog/special.md) | 66 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 120 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
