@@ -22,6 +22,11 @@ protocol ObservableObject: AnyObject {}
 @propertyWrapper struct Published<Value> { var wrappedValue: Value }
 enum MappingError: Error { case authentication, changedDuringDownload, unavailable }
 enum MappingRevisionResult: Equatable { case unchanged, available(String) }
+enum MappingPackage {
+    static func validRevision(_ value: String) -> Bool {
+        preconditionFailure("This lifecycle fixture does not download authenticated links")
+    }
+}
 struct MappingService {
     static var calls = 0
     let baseURL: URL

@@ -152,9 +152,10 @@ final class LinksModel: ObservableObject {
               response.expectedContentLength <= LinksPayload.maximumBytes,
               data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
         if response.statusCode == 401 || response.statusCode == 403 { throw MappingError.authentication }
-        guard response.value(forHTTPHeaderField: "X-Links-Revision") == revision else {
-            throw MappingError.changedDuringDownload
-        }
+        guard response.statusCode == 200 else { throw LinksError.unavailable }
+        guard let receivedRevision = response.value(forHTTPHeaderField: "X-Links-Revision"),
+              MappingPackage.validRevision(receivedRevision) else { throw LinksError.invalidResponse }
+        guard receivedRevision == revision else { throw MappingError.changedDuringDownload }
         var replacement = try LinksResponse.decode(status: response.statusCode, data: data,
             receivedETag: response.value(forHTTPHeaderField: "ETag"), saved: nil)
         replacement.revision = revision

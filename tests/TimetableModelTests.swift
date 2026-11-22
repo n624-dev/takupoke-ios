@@ -34,6 +34,44 @@ private final class LinksRevisionTransport: URLProtocol {
     override func stopLoading() { Self.lock.lock(); Self.pending.removeAll { $0 === self }; Self.lock.unlock() }
 }
 
+private final class LinksDownloadTransport: URLProtocol {
+    static let revision = String(repeating: "N", count: 43)
+    static func payload(digest: String) -> LinksPayload {
+        LinksPayload(version: "v1", linksVersion: "sha256-" + String(repeating: digest, count: 64),
+                     categories: [.init(id: "fictional-category", label: "架空分類", sortOrder: 0, buttons: [])])
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        guard let url = request.url, url.host == "links-download.example.invalid", request.httpMethod == "GET",
+              request.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic-token" else {
+            client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL)); return
+        }
+        let status: Int
+        var headers = ["ETag": "\"fictional-links\""]
+        switch url.path {
+        case "/unavailable": status = 503
+        case "/unavailable-with-revision": status = 503; headers["X-Links-Revision"] = Self.revision
+        case "/unauthorized": status = 401
+        case "/forbidden": status = 403
+        case "/no-revision": status = 200
+        case "/invalid-revision": status = 200; headers["X-Links-Revision"] = "invalid"
+        case "/changed": status = 200; headers["X-Links-Revision"] = String(repeating: "C", count: 43)
+        case "/current": status = 200; headers["X-Links-Revision"] = Self.revision
+        default: client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL)); return
+        }
+        guard let body = status == 200 ? try? JSONEncoder().encode(Self.payload(digest: "b")) : Data(),
+              let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.cannotParseResponse)); return
+        }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+
 @MainActor
 final class TimetableModelTests: XCTestCase {
     func testActualLinksModelSharesOwnedURLSessionAcrossAutomaticAndManualWaiters() async throws {
@@ -119,6 +157,54 @@ final class TimetableModelTests: XCTestCase {
         XCTAssertTrue(model.failed && model.saved == nil)
         XCTAssertEqual(try Data(contentsOf: file), original)
     }
+
+    func testLinkDownloadDistinguishesUnavailableInvalidAndChangedResponses() async throws {
+        let suite = "links-download-status-" + UUID().uuidString
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(suite)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { try? FileManager.default.removeItem(at: root); defaults.removePersistentDomain(forName: suite) }
+        let directory = root.appendingPathComponent("LinksAPI", isDirectory: true)
+        let store = try LinksStore(root: directory)
+        let original = SavedLinks(payload: LinksDownloadTransport.payload(digest: "a"), apiETag: "\"original\"",
+                                  checkedAt: Date(timeIntervalSince1970: 0), revision: String(repeating: "A", count: 43))
+        try store.save(original)
+        let file = directory.appendingPathComponent("links.json")
+        let originalBytes = try Data(contentsOf: file)
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [LinksDownloadTransport.self]
+        let network = URLSession(configuration: config)
+        defer { network.invalidateAndCancel() }
+        func model(_ path: String) throws -> LinksModel {
+            let url = try XCTUnwrap(URL(string: "https://links-download.example.invalid/" + path))
+            let model = LinksModel(preferencesStore: LinkPreferencesStore(defaults: defaults), storeRoot: root, endpoint: url)
+            model.loadIfNeeded()
+            return model
+        }
+        for (path, description) in [
+            ("unavailable", LinksError.unavailable.localizedDescription),
+            ("unavailable-with-revision", LinksError.unavailable.localizedDescription),
+            ("unauthorized", "認証を完了できませんでした。"),
+            ("forbidden", "認証を完了できませんでした。"),
+            ("no-revision", LinksError.invalidResponse.localizedDescription),
+            ("invalid-revision", LinksError.invalidResponse.localizedDescription),
+            ("changed", "取得中に一覧が更新されました。もう一度お試しください。"),
+        ] {
+            let current = try model(path)
+            do {
+                try await current.download(token: "synthetic-token", revision: LinksDownloadTransport.revision, network: network)
+                XCTFail("Unexpectedly accepted \(path)")
+            } catch { current.report(error) }
+            XCTAssertEqual(current.message, description + " 保存済みの一覧を表示しています。", path)
+            XCTAssertEqual(current.saved, original, path)
+            XCTAssertEqual(try Data(contentsOf: file), originalBytes, path)
+        }
+        let current = try model("current")
+        try await current.download(token: "synthetic-token", revision: LinksDownloadTransport.revision, network: network)
+        XCTAssertFalse(current.failed)
+        XCTAssertEqual(try store.load()?.revision, LinksDownloadTransport.revision)
+        XCTAssertEqual(try store.load()?.payload, LinksDownloadTransport.payload(digest: "b"))
+    }
+
     private let revision = String(repeating: "T", count: 43)
     private final class Stub: URLProtocol {
         override class func canInit(with request: URLRequest) -> Bool { true }
