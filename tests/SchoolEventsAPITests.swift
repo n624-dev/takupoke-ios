@@ -378,6 +378,28 @@ final class SchoolEventsAPITests: XCTestCase {
         XCTAssertEqual(restored.apiETag, tag)
     }
 
+    func testAcceptedEventResponseWithUnescapedSlashesSurvivesReload() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SchoolEventsStore(root: root)
+        let entries = (0..<2_000).map { index in
+            SchoolEventsPayload.IdentifiedEvent(eventId: "fictional-\(index)",
+                title: "架空行事 " + String(repeating: "あ", count: 92) + String(repeating: "/", count: 90),
+                tag: "行事",
+                ranges: [.init(startDate: "2032-04-01", endDate: "2032-04-01")])
+        }
+        let original = SchoolEventsPayload(schoolYear: 2032, sourcePdfSha256: String(repeating: "a", count: 64),
+                                           sourcePdfETag: nil, identifiedEvents: entries)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .withoutEscapingSlashes
+        let body = try encoder.encode(original)
+        let accepted = try SchoolEventsPayload.decode(body, requestedYear: 2032, requestedFormat: .v2)
+        XCTAssertGreaterThan(try JSONEncoder().encode(original).count, 1_000_000)
+
+        try store.save(accepted)
+        XCTAssertEqual(try store.loadAll()[2032]?.payload, accepted)
+    }
+
     func testOldSavedResultWithoutResponseETagCanLoad() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

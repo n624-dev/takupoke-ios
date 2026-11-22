@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`92258c35eaa8e0d5292b225a50274b6c30b6fafda470dc78a84866feb4ef3726`
+`ec62719567dd623d8e9918dbeaf39e3581dfbd93acfcc4c063a9ae3e68e77644`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -31,6 +31,7 @@ bash tools/test-parsing.sh
 - `testValidatesYearAndInclusiveDatesBeforeSaving`
 - `testLegacyPayloadWithoutETagLoadsButMalformedValidatorIsRejected`
 - `testSavedResultsSurviveInvalidReplacement`
+- `testAcceptedEventResponseWithUnescapedSlashesSurvivesReload`
 - `testOldSavedResultWithoutResponseETagCanLoad`
 - `testNotModifiedRequiresMatchingSavedValidatorAndEmptyBody`
 - `testWeekdayTagRequiresAnExplicitWeekday`

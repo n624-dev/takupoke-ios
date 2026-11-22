@@ -5772,3 +5772,11 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 [iOS26.5／SDK27.2手動原本変更](https://github.com/n624-dev/takupoke-ios/actions/runs/45017628980/job/137194296982)、source `8b335c9524b45f758b13319f7fbd22e13caecf4a`。11月22日20時59分44秒（日本時間）。`testChangedOriginalCannotSubmitOrReplaceLastGood`（159.445秒）でアプリ起動・fixture-ready、設定タブの中心(320.333,793)の実開始と解放、設定のgearshapeの照会まで成功。11:57:53 UTCに `manual-settings-list` の現Listの実identity列挙に進み、約111秒後に `ManualAssistanceChecks+Navigation.swift:42` がXCTestのUI query timeoutで終了した。以後の設定行・初回訂正・原本変更・送信拒否・前回結果保存は未到達。同じrunのiOS27同ケースは成功。
 
 `manual-settings-list|Timed out while evaluating UI query|CollectionView|N213`でN213のList照会中のSimulator消失、正式43754726270および44486188488の手動原本変更の後半入力／送信照会停止、正式526試行1の同じiOS26原本変更の成功（137133998183）と照合した。今回は最初の設定画面で、実入力が始まる前。Simulator消失や配信取消の証拠はなく、AX応答が返らなかった下位理由は未確定。元のケースと画面、固有Listの照会・期限を維持する。残る正式ジョブを終端まで確認した後、失敗したジョブだけを対象にする。
+
+### #126〜128 修正前のLinux回帰対照（2026-11-23）
+
+基点 `203e407`、Linux x86_64／Swift 6.1.2。架空データで以下の再現を確認した。
+
+- #126の `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload` と `testAcceptedEventResponseWithUnescapedSlashesSurvivesReload` はAPI応答の検証後、保存で `invalidResponse` になった。全666件のうちこの2件。APIのサイズ上限を維持し、保存・再読込用のJSONでスラッシュのエスケープを省く。
+- #127の `testChangeCommonClockChecksApplicableDocumentsWithEmptyPeriod` は時限欄だけが08:50〜09:35を返した。時刻が競合または欠落する8条件すべてで再現し、カードと詳細は期待どおり時刻を返さなかった。索引の `commonPeriodTime|cardTime` でN104を照合した。#90の未取得条件と異なり、今回は両資料が適用される。時限欄にもカードの資料照合を使う。
+- #128の `testNotModifiedRequiresMatchingValidatorForAllPrivateResources` は、不一致または欠落したETagで3経路とも304を変更なしと判定した。実確認メソッドと架空のURLProtocol応答による6件のassertion失敗。通知・UI・学校への通信は実行していない。

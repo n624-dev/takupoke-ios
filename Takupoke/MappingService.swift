@@ -7,12 +7,18 @@ struct MappingService {
     func checkRevision(installed: String?, path: String = "mapping-revision") async throws -> MappingRevisionResult {
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        if let installed { request.setValue("\"\(installed)\"", forHTTPHeaderField: "If-None-Match") }
+        let requestedTag = installed.flatMap { revision in
+            revision.utf8.count == 43 && MappingPackage.validRevision(revision) ? "\"\(revision)\"" : nil
+        }
+        request.setValue(requestedTag, forHTTPHeaderField: "If-None-Match")
         let (data, rawResponse) = try await network.data(for: request)
         guard let response = rawResponse as? HTTPURLResponse, data.isEmpty else { throw MappingError.invalidResponse }
         switch response.statusCode {
         case 304:
-            guard installed != nil else { throw MappingError.invalidResponse }
+            guard let requestedTag, let receivedTag = response.value(forHTTPHeaderField: "ETag"),
+                  receivedTag == requestedTag || receivedTag == "W/\(requestedTag)" else {
+                throw MappingError.invalidResponse
+            }
             return .unchanged
         case 200:
             guard let etag = response.value(forHTTPHeaderField: "ETag"), etag.count == 45,

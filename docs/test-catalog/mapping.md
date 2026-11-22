@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`e4359d568c6896ca0dd37c9fb8605be24dada67fe51e21f46e2d9eceedeb749a`
+`fb53650c31ea22d59bc06937a9b75f605321ec01fbab6626e4c702f6e09873f4`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -61,6 +61,7 @@ bash tools/test-parsing.sh
 - `testDifferentPrivateRevisionCannotBeAdopted`
 - `testBothRevisionEndpointsDistinguishMissingSameAndChangedData`
 - `testRevisionFailureIsNotReportedAsCurrentForEitherEndpoint`
+- `testNotModifiedRequiresMatchingValidatorForAllPrivateResources`
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
@@ -78,5 +79,6 @@ bash tools/test-parsing.sh
 - `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`
 - `test200304AndFailureKeepPreviousResult`
 - `testCacheReplacementOnlyAfterValidSave`
+- `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
 - `testSearchMatchesKanaRomajiAndRanking`

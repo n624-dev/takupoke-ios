@@ -95,6 +95,32 @@ final class TimetableClockEvidenceTests: XCTestCase {
         }
     }
 
+    func testChangeCommonClockChecksApplicableDocumentsWithEmptyPeriod() throws {
+        for populatedKind in SpecialScheduleKind.allCases {
+            let populated = source(populatedKind)
+            let otherKind: SpecialScheduleKind = populatedKind == .exam ? .examReturn : .exam
+            for (periodTimes, expected) in [
+                ([1: "08:50〜09:35"], "08:50〜09:35" as String?),
+                ([1: "09:00〜09:35"], nil),
+                ([:], nil)
+            ] {
+                let emptyPeriod = SpecialScheduleAnalysis(kind: otherKind, sourceDigest: "fictional-other",
+                    sourceName: "fictional-other.pdf", parsedAt: Date(), schoolYear: 2032,
+                    coveredDates: [day.iso8601], coveredClasses: [cls], periodTimes: periodTimes,
+                    lessons: [.init(date: day.iso8601, className: cls, period: 2, spanStart: 2, spanEnd: 2,
+                                    timeRange: nil, lines: ["架空科目C"], page: 1)],
+                    dedicatedTimeDate: otherKind == .examReturn ? day.iso8601 : nil)
+                for sources in [[populated, emptyPeriod], [emptyPeriod, populated]] {
+                    let schedule = schedule(sources, periods: "1")
+                    let block = try XCTUnwrap(schedule.blocks(on: day, className: cls, international: false).first)
+                    XCTAssertEqual(schedule.cardTime(block, on: day, className: cls), expected)
+                    XCTAssertEqual(schedule.changeTimeRanges(schedule.changes!.records[0]), [expected])
+                    XCTAssertEqual(schedule.commonPeriodTime(1, days: [day], classes: [cls], international: false), expected)
+                }
+            }
+        }
+    }
+
     func testWholeSpecialReplacementPreservesRecordedContinuousClockAndDetailBoundaries() throws {
         for kind in SpecialScheduleKind.allCases {
             for teacherOnly in [false, true] {

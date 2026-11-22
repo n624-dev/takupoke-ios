@@ -86,7 +86,13 @@ struct TimetableDaySchedule {
     func slotTime(_ slot: TimetableSchedule.Slot, on day: SchoolDate,
                           className: String, period: Int,
                           visibleSpecialLessons: [TimetableSchedule.SpecialItem]? = nil) -> String? {
-        if !slot.changes.isEmpty && !hasRequiredSpecialSources(on: day, className: className) { return nil }
+        if !slot.changes.isEmpty {
+            guard hasRequiredSpecialSources(on: day, className: className) else { return nil }
+            let applicable = sourceIndex.applicableSpecials(on: day, className: className)
+            if !applicable.isEmpty {
+                return specialChangeTime(on: day, className: className, periods: period...period, sources: applicable)
+            }
+        }
         let specialItems = visibleSpecialLessons ?? slot.specialLessons
         if !specialItems.isEmpty {
             let clocks = specialItems.map { item -> String? in
@@ -120,6 +126,26 @@ struct TimetableDaySchedule {
             (!plan.apiTestReturn || specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) })
     }
 
+    private func specialChangeTime(on day: SchoolDate, className: String, periods: ClosedRange<Int>,
+                                   sources: [SpecialScheduleAnalysis]) -> String? {
+        let ranges = sources.map { source -> String? in
+            var clocks: [String] = []
+            for period in periods {
+                let lessons = source.lessons.filter { $0.date == day.iso8601 && $0.className == className && $0.period == period }
+                let values = lessons.isEmpty ? [source.periodTime(on: day.iso8601, period: period)] :
+                    lessons.map { source.displayTime(for: $0, in: periods) }
+                let confirmed = values.compactMap { $0 }
+                guard confirmed.count == values.count, Set(confirmed).count == 1, let clock = confirmed.first else { return nil }
+                clocks.append(clock)
+            }
+            guard let start = clocks.first?.components(separatedBy: "〜").first,
+                  let end = clocks.last?.components(separatedBy: "〜").last else { return nil }
+            return "\(start)〜\(end)"
+        }
+        let confirmed = ranges.compactMap { $0 }
+        return confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
+    }
+
     func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
                           className: String) -> String? {
         if case .special(let item) = block.content {
@@ -145,25 +171,10 @@ struct TimetableDaySchedule {
         }
         if case .change = block.content {
             guard hasRequiredSpecialSources(on: day, className: className) else { return nil }
-            let applicable = specials.filter { $0.applies(date: day.iso8601, className: className) }
+            let applicable = sourceIndex.applicableSpecials(on: day, className: className)
             if !applicable.isEmpty {
-                let range = block.startPeriod...block.endPeriod
-                let ranges = applicable.map { source -> String? in
-                    var clocks: [String] = []
-                    for period in range {
-                        let lessons = source.lessons.filter { $0.date == day.iso8601 && $0.className == className && $0.period == period }
-                        let values = lessons.isEmpty ? [source.periodTime(on: day.iso8601, period: period)] :
-                            lessons.map { source.displayTime(for: $0, in: range) }
-                        let confirmed = values.compactMap { $0 }
-                        guard confirmed.count == values.count, Set(confirmed).count == 1, let clock = confirmed.first else { return nil }
-                        clocks.append(clock)
-                    }
-                    guard let start = clocks.first?.components(separatedBy: "〜").first,
-                          let end = clocks.last?.components(separatedBy: "〜").last else { return nil }
-                    return "\(start)〜\(end)"
-                }
-                let confirmed = ranges.compactMap { $0 }
-                return confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
+                return specialChangeTime(on: day, className: className,
+                                         periods: block.startPeriod...block.endPeriod, sources: applicable)
             }
         }
         let firstSlot = TimetableSchedule.slot(on: day, period: block.startPeriod, className: className,

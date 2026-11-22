@@ -237,6 +237,26 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(try store.load(), original)
     }
 
+    func testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LinksStore(root: root)
+        let items = (0..<550).map { index in
+            LinkItem(id: "fictional-\(index)", categoryId: "fictional-category", label: "架空リンク",
+                     href: "https://example.invalid/path", color: "sky", visible: true, sortOrder: index,
+                     recommended: false, recommendationOrder: 0, searchAliases: [],
+                     searchTerms: "架空検索|" + String(repeating: "a/", count: 2_450))
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .withoutEscapingSlashes
+        let body = try encoder.encode(payload(items))
+        XCTAssertLessThanOrEqual(body.count, LinksPayload.maximumBytes)
+        let accepted = try LinksResponse.decode(status: 200, data: body, receivedETag: tag, saved: nil)
+
+        try store.save(accepted)
+        XCTAssertEqual(try store.load(), accepted)
+    }
+
     func testPreferencesFollowIDAndRetainMissingItems() throws {
         let suite = "links-tests-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))

@@ -33,6 +33,13 @@ final class SchoolEventsStore {
     private static let maximumSavedBytes = 1_000_000 + 2_048
     private let root: URL
 
+    private static func cacheEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        // Match the compact API representation when applying its payload limit.
+        encoder.outputFormatting = .withoutEscapingSlashes
+        return encoder
+    }
+
     init(root: URL) throws {
         self.root = root
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -82,7 +89,7 @@ final class SchoolEventsStore {
             do {
                 guard data.count <= Self.maximumSavedBytes else { throw SchoolEventsError.invalidResponse }
                 let value = try JSONDecoder().decode(SavedSchoolEvents.self, from: data)
-                let verified = try SchoolEventsPayload.decode(JSONEncoder().encode(value.payload), requestedYear: year)
+                let verified = try SchoolEventsPayload.decode(Self.cacheEncoder().encode(value.payload), requestedYear: year)
                 try Task.checkCancellation()
                 saved[year] = SavedSchoolEvents(fetchedAt: value.fetchedAt, payload: verified,
                                                apiETag: value.apiETag.flatMap {
@@ -108,13 +115,14 @@ final class SchoolEventsStore {
 
     func save(_ value: SavedSchoolEvents) throws {
         let payload = value.payload, apiETag = value.apiETag, responseDataVersion = value.responseDataVersion
-        let checked = try SchoolEventsPayload.decode(JSONEncoder().encode(payload), requestedYear: payload.schoolYear)
+        let encoder = Self.cacheEncoder()
+        let checked = try SchoolEventsPayload.decode(encoder.encode(payload), requestedYear: payload.schoolYear)
         guard (apiETag == nil || SchoolEventsResponse.validETag(apiETag!)),
               responseDataVersion == nil || SchoolEventsSourceStatus.isDataVersion(responseDataVersion!) else {
             throw SchoolEventsError.invalidResponse
         }
         let url = root.appendingPathComponent("events-\(checked.schoolYear).json")
-        let data = try JSONEncoder().encode(value)
+        let data = try encoder.encode(value)
         guard data.count <= Self.maximumSavedBytes else { throw SchoolEventsError.invalidResponse }
         try write(data, to: url)
     }

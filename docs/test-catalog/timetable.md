@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`88a71615e48d4939b22bf675e192e781d6062e020cfe6de8d899136c2de96b11`
+`a9cf41b85179dfe1d2157fd9652eb0b9ffe19136c26971214e84baf150b10cd6`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -160,6 +160,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testIndependentSpecialCellsKeepTheirGapWhenVisuallyMerged`
 - `testHiddenSpecialLessonDoesNotRemoveTheVisibleCommonClock`
 - `testChangeClockRemainsUnknownWhenOneRequiredSpecialKindIsMissing`
+- `testChangeCommonClockChecksApplicableDocumentsWithEmptyPeriod`
 - `testWholeSpecialReplacementPreservesRecordedContinuousClockAndDetailBoundaries`
 - `testPartialReplacementAndUnrecordedWholeRangeUseOnlyVerifiedPeriodClocks`
 - `testWholeReplacementRequiresEveryApplicableDocumentToAgree`

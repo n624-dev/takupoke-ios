@@ -8970,3 +8970,13 @@ Linuxで同一のSwift Packageの664件（失敗0）と候補の配布Python 328
 | takupoke.ipa | 18,060,544 | `cb1bb4f7e0ce9f6c95c11e9f4c9364347e53d362bae18e5205fb86a88719ab70` |
 
 公開URLの4添付を匿名で取得し、サイズとSHA-256、タグおよびIPA内のコミット・バージョン・ビルド・更新文を照合した。[固定AltStore Source](https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json)とタグのSourceがバイト単位で一致することも確認した。変更後の物理iPhoneでの更新と配色は未確認。
+
+## 2026-11-23 バグ調査 #126〜128
+
+基点は `203e407`。架空入力を使った修正前の再現は[失敗索引](ui-test-failures.md#126128-修正前のlinux回帰対照2026-11-23)に記録した。
+
+- [#126](https://github.com/n624-dev/takupoke-ios/issues/126) リンク一覧と学校行事で、既存のAPI上限内の応答を保存し、再読込したときも同じ内容になることを確認した。不正な置換で前回結果を保持する既存ケースも通過した。
+- [#127](https://github.com/n624-dev/takupoke-ios/issues/127) 試験と返却の両方が適用される1限を変更した場合、片方の空欄に対応する時計が一致するときだけ、時限欄・カード・詳細で時刻を使う。時刻の衝突・欠落は未確認とし、資料と順序を入れ替えた計12条件を検査した。
+- [#128](https://github.com/n624-dev/takupoke-ios/issues/128) 一覧・名称・授業時刻で、送信した版と一致するETagだけを304で受け入れる。Linux上で実確認メソッドと架空URLProtocolを用いた5ケースが成功した。ZIP取得はこの限定検査の対象外。
+
+Linux Swift 6.1.2の `tools/test-parsing.sh` は667件・失敗0。Python 328件は失敗0・環境依存skip2。テスト一覧472ファイルと差分の空白検査も通過した。製品の公開・実機の確認はこの作業の対象外。

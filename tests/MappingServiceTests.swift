@@ -15,10 +15,21 @@ final class MappingServiceTests: XCTestCase {
             let body: Data
             switch (request.url?.host ?? "", request.url?.path ?? "") {
             case ("unchanged.example.test", let path)
-                where ["/mapping-revision", "/links-revision"].contains(path) &&
+                where ["/mapping-revision", "/links-revision", "/timetable-times-revision"].contains(path) &&
                       request.value(forHTTPHeaderField: "If-None-Match") == "\"\(revision)\"" &&
                       request.value(forHTTPHeaderField: "Authorization") == nil:
                 status = 304; headers = ["ETag": "\"\(revision)\""]; body = Data()
+            case (let host, let path)
+                where ["wrong-tag.example.test", "missing-tag.example.test", "weak-tag.example.test"].contains(host) &&
+                      ["/mapping-revision", "/links-revision", "/timetable-times-revision"].contains(path) &&
+                      request.value(forHTTPHeaderField: "If-None-Match") == "\"\(revision)\"" &&
+                      request.value(forHTTPHeaderField: "Authorization") == nil:
+                status = 304; body = Data()
+                switch host {
+                case "wrong-tag.example.test": headers = ["ETag": "\"" + String(repeating: "B", count: 43) + "\""]
+                case "weak-tag.example.test": headers = ["ETag": "W/\"\(revision)\""]
+                default: headers = [:]
+                }
             case ("changed.example.test", let path)
                 where ["/mapping-revision", "/links-revision"].contains(path) &&
                       request.value(forHTTPHeaderField: "Authorization") == nil:
@@ -97,6 +108,25 @@ final class MappingServiceTests: XCTestCase {
                 _ = try await service.checkRevision(installed: revision, path: path)
                 XCTFail("A failed check must not clear an available update")
             } catch MappingError.unavailable { }
+        }
+    }
+
+    func testNotModifiedRequiresMatchingValidatorForAllPrivateResources() async throws {
+        for path in ["mapping-revision", "links-revision", "timetable-times-revision"] {
+            for host in ["wrong-tag.example.test", "missing-tag.example.test"] {
+                let (service, network) = service(host: host)
+                defer { network.invalidateAndCancel() }
+                do {
+                    _ = try await service.checkRevision(installed: revision, path: path)
+                    XCTFail("Accepted 304 without the matching revision for \(path) at \(host)")
+                } catch MappingError.invalidResponse { }
+            }
+            for host in ["unchanged.example.test", "weak-tag.example.test"] {
+                let (service, network) = service(host: host)
+                defer { network.invalidateAndCancel() }
+                let matched = try await service.checkRevision(installed: revision, path: path)
+                XCTAssertEqual(matched, .unchanged)
+            }
         }
     }
 

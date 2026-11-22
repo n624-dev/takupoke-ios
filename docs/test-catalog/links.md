@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`b0bd2d31d9612fd4d866fb242929c6f42f98006649965f7ff74accd0a25af7eb`
+`df4d74b0873084db7b1382aace87e09fd60ccc219611bdc5c4be5f9943f98386`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -34,6 +34,7 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 - `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`
 - `test200304AndFailureKeepPreviousResult`
 - `testCacheReplacementOnlyAfterValidSave`
+- `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
 - `testSearchMatchesKanaRomajiAndRanking`
 
