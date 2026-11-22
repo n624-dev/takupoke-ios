@@ -181,7 +181,21 @@ struct SimulatorApplication: App {
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    if SimulatorHomeBoundaryFixture.enabled {
+                    if ProcessInfo.processInfo.arguments.contains("--countdown-notification-route") {
+                        VStack(alignment:.trailing) {
+                            Button("架空通知を開く") {
+                                let id = Self.countdownNoticeID
+                                ApplicationData.shared.notifications.openedCountdown = .init(target:.init(id:id,key:id.uuidString))
+                            }
+                            .accessibilityIdentifier("fixture-countdown-route-existing")
+                            Button("対象のない架空通知を開く") {
+                                let id = Self.secondCountdownNoticeID
+                                ApplicationData.shared.notifications.openedCountdown = .init(target:.init(id:id,key:id.uuidString))
+                            }
+                            .accessibilityIdentifier("fixture-countdown-route-missing")
+                        }.buttonStyle(.bordered).background(.regularMaterial)
+                            .padding(.top,96)
+                    } else if SimulatorHomeBoundaryFixture.enabled {
                         VStack {
                             Button("開始境界で設定変更") { SimulatorHomeBoundaryFixture.changeSettingAcrossBoundary(ending: false) }
                             Button("終了境界で設定変更") { SimulatorHomeBoundaryFixture.changeSettingAcrossBoundary(ending: true) }
@@ -482,7 +496,8 @@ struct SimulatorApplication: App {
         if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") {
             try SimulatorEventsCacheFixture.seed(base)
         }
-        if ProcessInfo.processInfo.arguments.contains("--countdown-notifications"),
+        if (ProcessInfo.processInfo.arguments.contains("--countdown-notifications") ||
+            ProcessInfo.processInfo.arguments.contains("--countdown-notification-route")),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             let date = SchoolDate.today().addingDays(12)!
             let target = CountdownDates(title: "架空の通知予定", ranges: [.init(start: date, end: date)])

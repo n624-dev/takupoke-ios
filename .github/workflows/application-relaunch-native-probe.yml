@@ -17,6 +17,7 @@ on:
           - countdown-calendar
           - countdown-notifications
           - countdown-storage
+          - countdown-notification-route
           - countdown-and-yellow
           - countdown-notification-context
           - countdown

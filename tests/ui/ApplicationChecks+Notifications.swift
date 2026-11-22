@@ -3,6 +3,35 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    func testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList() {
+        tab("設定")
+        tap("カウントダウン")
+        screen("カウントダウン")
+        XCTAssertTrue(app.staticTexts["架空の通知予定"].waitForExistence(timeout:10),app.debugDescription)
+        let existing = app.buttons["fixture-countdown-route-existing"], missing = app.buttons["fixture-countdown-route-missing"]
+        XCTAssertTrue(existing.waitForExistence(timeout:10))
+        XCTAssertTrue(existing.isHittable)
+        existing.tap()
+        let close = app.navigationBars.buttons["閉じる"]
+        XCTAssertTrue(close.waitForExistence(timeout:10),app.debugDescription)
+        XCTAssertTrue(app.staticTexts["開始日"].waitForExistence(timeout:10),app.debugDescription)
+        XCTAssertTrue(app.staticTexts["架空の通知予定"].exists)
+        XCTAssertTrue(close.isHittable)
+        close.tap()
+        XCTAssertTrue(close.waitForNonExistence(timeout:10))
+
+        XCTAssertTrue(missing.waitForExistence(timeout:10))
+        XCTAssertTrue(missing.isHittable)
+        missing.tap()
+        XCTAssertTrue(app.staticTexts["通知の対象は変更または削除されています。現在の予定を表示しています。"]
+            .waitForExistence(timeout:10),app.debugDescription)
+        XCTAssertTrue(app.staticTexts["架空の通知予定"].exists)
+        XCTAssertTrue(close.isHittable)
+        close.tap()
+        XCTAssertTrue(close.waitForNonExistence(timeout:10))
+        XCTAssertEqual(app.state,.runningForeground)
+    }
+
     func testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration() {
         let management = "カウントダウン"
         let warning = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"
