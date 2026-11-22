@@ -89,9 +89,9 @@ final class MaterialLibrary {
         state = next
     }
 
-    func recordFailure(_ kind: MaterialKind, message: String) throws {
+    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
         var next = state
-        next.attempts[kind.rawValue] = AcquisitionAttempt(date: Date(), failure: message)
+        next.attempts[kind.rawValue] = AcquisitionAttempt(date: Date(), failure: message, cancelled: cancelled)
         try persist(next)
     }
 

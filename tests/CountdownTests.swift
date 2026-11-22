@@ -299,6 +299,30 @@ extension CountdownTests {
         XCTAssertTrue(CountdownAvailability.changesUnconfirmed.presentsDatesOnHome)
     }
 
+    func testClassExamHoldsAfterFailedFirstChangeAcquisitionAcrossReopen() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:directory) }
+        let unavailable = MaterialError.providerReadFailed.localizedDescription
+        let oldCancellation = MaterialError.cancelled.localizedDescription
+        func issue(after message: String? = nil, cancelled: Bool? = nil) throws -> CountdownAvailability? {
+            let root = directory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+            do {
+                let library = try LocalMaterialDatabase.openLibrary(root:root)
+                if let message { try library.recordFailure(.changes,message:message,cancelled:cancelled) }
+            }
+            let state = try LocalMaterialDatabase.openLibrary(root:root).state
+            XCTAssertNil(state.record(for:.changes))
+            return CountdownAvailability.classExamChangeIssue(in:state,ready:true,failed:false,schoolYear:2032)
+        }
+
+        XCTAssertNil(try issue())
+        XCTAssertEqual(try issue(after:unavailable),.changesUnavailable)
+        XCTAssertNil(try issue(after:oldCancellation))
+        XCTAssertEqual(try issue(after:oldCancellation,cancelled:false),.changesUnavailable)
+        XCTAssertNil(try issue(after:"fictional-cancellation",cancelled:true))
+    }
+
     func testClassExamUsesAcceptedSlotsVisibilityAndAppliedChanges() throws {
         let schoolDay = day("2032-05-24")
         let date = schoolDay.iso8601

@@ -72,6 +72,7 @@ final class MaterialLibrary {
     enum Failure { case none, duringMigration, afterMigration, commit }
     var failure = Failure.none
     var currentDigest = "v1", migrated = false, checks = 0, commits = 0, acknowledgements = 0, cleanup = 0
+    var recordedCancellation: Bool?
     let control = AcquisitionControl()
     var state: MaterialLibrary { self }
     var digest: String { currentDigest }
@@ -93,7 +94,9 @@ final class MaterialLibrary {
         migrated = legacyChangeSettings != nil
     }
     func recordUnchanged(_ kind: MaterialKind, source: MaterialSource) throws {}
-    func recordFailure(_ kind: MaterialKind, message: String) throws {}
+    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
+        recordedCancellation = cancelled
+    }
 }
 final class MaterialWorker {
     let library: MaterialLibrary? = MaterialLibrary()
@@ -125,6 +128,7 @@ ACQUIRE
             precondition(library.control.acquiredProviderSources.isEmpty)
             precondition(library.checks == 1 && library.cleanup == 1)
             precondition(library.commits == (failure == .commit ? 1 : 0))
+            precondition(library.recordedCancellation == (failure != .commit))
         }
         for digest in ["v1", "v2"] {
             let worker = MaterialWorker(), library = worker.library!
@@ -133,6 +137,7 @@ ACQUIRE
             precondition(library.migrated == (digest == "v2"))
             precondition(library.control.acquiredProviderSources == ["changes"])
             precondition(library.checks == (digest == "v1" ? 0 : 1) && library.commits == 1 && library.cleanup == 1)
+            precondition(library.recordedCancellation == nil)
         }
     }
 }

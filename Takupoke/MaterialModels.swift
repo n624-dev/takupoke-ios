@@ -80,6 +80,13 @@ struct MaterialRecord: Codable {
 struct AcquisitionAttempt: Codable {
     var date: Date
     var failure: String?
+    var cancelled: Bool? = nil
+
+    var failedToAcquire: Bool {
+        guard let failure else { return false }
+        // Older records stored Japanese error text without a cancellation bit.
+        return !(cancelled ?? (failure == MaterialError.cancelled.errorDescription))
+    }
 }
 
 struct MaterialLibraryState: Codable {
