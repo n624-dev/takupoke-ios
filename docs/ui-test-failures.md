@@ -5760,3 +5760,9 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 [iOS26.5／SDK27.2通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/44997934998/job/137162434939)、同source `d37a2ae47a812aa5364345821be7182c4a8c4c97`。試行1・2で止まった週送りは47.310秒で成功。往復の高さ中最大間隔83.225／66.222ms、幾何欠落0で、元の90msを満たした。黄色の設定・時間割・再起動・高コントラストは196.846秒で成功。後続で `testNotificationControlsAndAppearance`（106.706秒）が11月22日19時29分57秒JSTに `ApplicationChecks+Notifications.swift:134` で停止。最初の「時間割変更」は実Allow、許可callback、authorization=2、表示と保存ONまで成功。直後の「試験・返却」で一回の50ms接触を要求し、実UIKitで座標(315.667,243.667)の開始と約185.9ms後のphase=4取消を観測。解放・この操作のBinding・認可要求は発生せず、保存と表示は両方OFF、エラー表示なし。失敗時の画面とシステム画像・AXも採取した。続く実通知予約と再起動のケースは119.588秒で成功した。公開は依存で未実行。全ジョブ終端。
 
 `testNotificationControlsAndAppearance|試験・返却|phase=cancelled|Special notification switch` でN212、N230、N239と公開525通常26 B成功（136921924621）を照合した。N212は最初のスイッチで取消、N230は二つ目でも解放と認可callback到達済み、今回は二つ目で実取消。試行1・2の週送り停止とは別で、元の通知ケース・短接触・通知処理・配布ゲートに公開525から差分なし。基礎原因はこの記録だけでは確定しない。既定色で黄色の分岐も不使用。正式候補をそのまま使い、今回不成功だったiOS26 Bとその公開依存を再実行する。
+
+### #125 正式526・試行4は最初の横到着後216.183ms
+
+[iOS26.5／SDK27.2通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/44997934998/job/137181895048)、source `d37a2ae47a812aa5364345821be7182c4a8c4c97`。11月22日20時00分56秒JSTに `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable`（42.339秒）が `ApplicationChecks+WeekAppearance.swift:442` で停止。実タブ・接触・解放が成立。横到着0.281766秒から次の枠0.497948秒で216.183ms、既存90msを超過。到着と次枠のmain CPU差約211.3ms。スクロール復帰まで約0.70ms、最初の設定0.174ms、着地x16・旧高238.333pt、高さ終了0.685487秒、29実枠、幾何欠落0、実PNG724,014バイトを一回採取。復路・後続ケースは未到達。必須13件成功、公開は依存で未実行、全ジョブ終端。
+
+`0.09|horizontal-arrival|configuration-begin|fixture-week-motion` で試行2の166.470ms、試行3で往復を成功した83.225／66.222ms、旧正式525試行1と44800663590試行1を比較。同じ停止が繰り返され、通常の昇格処理だけでは差を説明できない。試行2・4とも実解放後から横到着付近に座標操作のXCTest側「Wait for … to idle」が並行し、明示的な `fixture-week-motion` の読み取りは高さ完了後だった。座標操作の同期が原因とは未確定。前後の実経路が同じで時計・準備・観測負荷のどこに差が出るかを切り分ける。
