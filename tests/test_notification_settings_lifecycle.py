@@ -967,6 +967,7 @@ EXPIRE
             self.skipTest("Swift required to execute the background and countdown worker")
         app = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
         model = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        schedule = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         background = app[app.index("    func refreshInBackground() async {"):
                          app.index("    private func checkRevisionsInBackground()")]
         workers = model[model.index("    func waitForNotificationReconciliation()"):
@@ -974,24 +975,47 @@ EXPIRE
         marker = "    private func cancelNotificationReconciliation(_ token: UUID) {\n"
         self.assertEqual(workers.count(marker), 1)
         workers = workers.replace(marker, marker + "        cancellations.append(token)\n")
-        wait_operation = "            await withTaskCancellationHandler {\n"
+        wait_operation = "            let finished = await withTaskCancellationHandler {\n"
         self.assertEqual(workers.count(wait_operation), 1)
-        workers = workers.replace(wait_operation, wait_operation + "                waitEntries += 1\n")
+        workers = workers.replace(wait_operation, "            waitEntries += 1\n" + wait_operation)
         program = r'''import Foundation
 @MainActor final class UIApplication {
-    enum State { case background }
+    enum State { case active, background }
     static let shared = UIApplication()
-    let applicationState = State.background
+    var applicationState = State.background
     let isProtectedDataAvailable = true
 }
 @MainActor final class Material {
     let state = 0, records = 0, sources = 0, ready = true
+    let busy = false
+    func setSourceChecksActive(_ active: Bool) {}
+    func loadIfNeeded() {}
+    func refreshAtStartup() {}
+    func checkAtStartup() {}
+    func refresh() async {}
+    func check() async {}
     func refreshInBackground() async -> Bool { true }
 }
 @MainActor final class ScheduleNotices {
     private(set) var finished = false
+    var pausesWrite = false
+    var pending: Int? = nil
+    var reconcileTask: NotificationWork?
+    var waiting: CheckedContinuation<Void, Never>?
     func reconcile(state: Int, records: Int, sources: Int, period: Int,
-                   materialsReady: Bool, specialsReady: Bool) async { finished = true }
+                   materialsReady: Bool, specialsReady: Bool) async {
+        pending = 1
+        await drainPending()
+        finished = true
+    }
+    private func apply(_ input: Int) async {
+        if pausesWrite { await withCheckedContinuation { waiting = $0 } }
+    }
+    func release() {
+        let callback = waiting; waiting = nil
+        callback?.resume()
+    }
+UPDATE_DRAIN
 }
 @MainActor final class Countdown {
     struct NoticePlan { let revision: UUID }
@@ -1021,16 +1045,21 @@ WORKERS
 }
 @MainActor final class App {
     let materials = Material(), specialSchedules = Material(), schoolEvents = Material()
+    let mappings = Material(), times = Material(), links = Material(), account = Material()
     let notifications = ScheduleNotices(), countdown = Countdown()
     var loadedPeriod: Int? = 1
     var backgroundRefresh: Task<Void, Never>?
     var finished = false
+    var ready = true, readyForCurrentPeriod = true
+    var prepareCalls = 0
 
-    func prepare() async -> Bool { true }
-    func setFileMonitoring(_ enabled: Bool) { precondition(!enabled) }
+    func prepare() async -> Bool { prepareCalls += 1; return true }
+    func setFileMonitoring(_ enabled: Bool) { precondition(enabled == (UIApplication.shared.applicationState == .active)) }
     func checkRevisionsInBackground() async {}
-    func updateCountdown() { countdown.enqueue() }
+    func checkNotificationsWhenActive() {}
+    func updateCountdown() { if UIApplication.shared.applicationState == .background { countdown.enqueue() } }
 BACKGROUND
+ACTIVATION
     func start() -> Task<Void, Never> {
         Task { await refreshInBackground(); finished = true }
     }
@@ -1066,6 +1095,7 @@ BACKGROUND
         await observe { app.countdown.waiting != nil }
         app.countdown.release()
         await task.value
+        await observe { app.countdown.applied == [newest] }
         precondition(app.countdown.applied == [newest])
 
         // Join after the previous operation was cancelled but before its OS
@@ -1097,22 +1127,44 @@ BACKGROUND
             }
             countdown.release()
             await join.value
+            await observe { countdown.applied == [restarted] }
             precondition(endedWaiting && countdown.applied == [restarted])
         }
-        print("Verified background waits for countdown, cancels its own work, and preserves a newer plan.")
+        let overlap = App()
+        overlap.notifications.pausesWrite = true
+        let background = overlap.start()
+        await observe { overlap.countdown.waiting != nil && overlap.notifications.waiting != nil }
+        precondition(!overlap.finished && overlap.prepareCalls == 1)
+        let countdownWorker = overlap.countdown.worker, updateWorker = overlap.notifications.reconcileTask
+        UIApplication.shared.applicationState = .active
+        let foreground = Task { await overlap.activate() }
+        await observe {
+            overlap.prepareCalls == 2 && countdownWorker?.task.isCancelled == true && updateWorker?.task.isCancelled == true
+        }
+        precondition(overlap.countdown.waiting != nil && overlap.notifications.waiting != nil)
+        precondition(overlap.countdown.worker === countdownWorker && overlap.notifications.reconcileTask === updateWorker)
+        await foreground.value
+        await background.value
+        precondition(overlap.finished && overlap.backgroundRefresh == nil && overlap.countdown.applied.isEmpty)
+        overlap.countdown.release(); overlap.notifications.release()
+        await countdownWorker?.value; await updateWorker?.value
+        precondition(overlap.countdown.worker == nil && overlap.notifications.reconcileTask == nil)
+        print("Verified exact background and foreground methods, both native worker owners and cancellation handlers.")
     }
 }
 '''.replace("WORKERS", workers).replace("BACKGROUND", background)
-        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
+        program = program.replace("ACTIVATION", block(app, "func activate() async"))
+        program = program.replace("UPDATE_DRAIN", block(schedule, "private func drainPending()"))
+        program += "\n@MainActor\n" + block(schedule, "final class NotificationWork {")
         self.run_probe(compiler, program)
+        self.run_probe(compiler, program, swift_version="6")
 
-    def run_probe(self, compiler, program):
+    def run_probe(self, compiler, program, swift_version="5"):
         with tempfile.TemporaryDirectory(prefix="notification-settings-lifecycle-") as scratch:
             directory = Path(scratch)
             swift = directory / "Probe.swift"
             swift.write_text(program, encoding="utf-8")
-            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+            subprocess.run([compiler, "-swift-version", swift_version, "-parse-as-library",
                             "-module-cache-path", str(directory / "modules"), str(swift),
                             "-o", str(directory / "probe")], check=True, timeout=60)
             subprocess.run([str(directory / "probe")], check=True, timeout=15)

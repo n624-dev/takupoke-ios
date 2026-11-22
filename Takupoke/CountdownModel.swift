@@ -352,12 +352,12 @@ final class CountdownModel: ObservableObject {
     func waitForNotificationReconciliation() async {
         let token = revision
         while let worker {
-            await withTaskCancellationHandler {
-                await worker.value
+            let finished = await withTaskCancellationHandler {
+                await worker.waitForCompletion(timeout:nil)
             } onCancel: {
                 Task { @MainActor [weak self] in self?.cancelNotificationReconciliation(token) }
             }
-            if Task.isCancelled { return }
+            guard finished else { return }
         }
     }
 

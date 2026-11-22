@@ -264,7 +264,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             }
             reconcileTask = task
         }
-        await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        let finished = await withTaskCancellationHandler {
+            await task.waitForCompletion(timeout:nil)
+        } onCancel: { task.cancel() }
+        guard finished else { return }
         // A cancelled send can leave a newer, valid input waiting. A caller
         // still allowed to run drains it after the old task has fully stopped.
         if pending != nil, !Task.isCancelled { await drainPending() }
@@ -402,7 +405,7 @@ final class NotificationWork {
 
     var value: Void { get async { await task.value } }
 
-    func cancel() { task.cancel() }
+    nonisolated func cancel() { task.cancel() }
 
     func stop() async -> Bool {
         cancel()
@@ -410,7 +413,7 @@ final class NotificationWork {
     }
 
     /// A timed-out wait leaves the write with this worker until it finishes.
-    func waitForCompletion(timeout: Duration = .seconds(6)) async -> Bool {
+    func waitForCompletion(timeout: Duration? = .seconds(6)) async -> Bool {
         return await completion.wait(timeout:timeout)
     }
 
@@ -425,17 +428,19 @@ final class NotificationWork {
             waiters.removeAll()
         }
 
-        func wait(timeout: Duration) async -> Bool {
+        func wait(timeout: Duration?) async -> Bool {
             guard !Task.isCancelled else { return false }
             if finished { return true }
             let id = UUID()
             let (stream, continuation) = AsyncStream<Void>.makeStream()
             waiters[id] = continuation
-            let deadline = Task {
-                do { try await Task.sleep(for:timeout) } catch { return }
-                continuation.finish()
+            let deadline = timeout.map { duration in
+                Task {
+                    do { try await Task.sleep(for:duration) } catch { return }
+                    continuation.finish()
+                }
             }
-            defer { deadline.cancel(); waiters.removeValue(forKey:id) }
+            defer { deadline?.cancel(); waiters.removeValue(forKey:id) }
             var iterator = stream.makeAsyncIterator()
             _ = await iterator.next()
             return finished && !Task.isCancelled

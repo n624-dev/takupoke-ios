@@ -5897,3 +5897,15 @@ Linux Swift 6.1.2の初回7件では既存5件が成功し、通知ゲート・�
 `testLinkPreferencesSurviveRelaunch|browser-controller-created|IsPageLoaded` でN161/N236/N242と44499001313の旧iOS26.5を照合。旧の主な比較は実Closeが表示されながらWebViewが未読込だった。今回は同じloopback fixtureで入力とHTTP送信が成立し、失敗末尾にSafari画面自体が見えなかった。実初回読込探索、入力、旧30秒を保ったまま、次の比較には生成アプリで表示側の観測だけを追加する。
 
 Safariの準備APIと実画面をそのまま使い、使い捨ての生成アプリにだけフルスクリーン表示の出現・消失と、既存コントローラの `viewIfLoaded.window` への接続を記録する。画面を新規に読み込ませず、弱参照で取得できる既存値だけを見る。URL・画面内容は記録しない。iOS26.5／SDK27.2の同じリンクケースを比較し、元の一回の接触・30秒の本文・10秒のClose・一覧復帰、お気に入りの再起動後の期待値は維持する。生成Swiftの構文とLinuxのmanifest40件が成功。
+
+## #157・#162 通知ワーカー取消しのactor境界でAppleビルドが停止（2026-11-23）
+
+`86d95eb`、Xcode27.2、[学校全体通知の45065428110／137340384748](https://github.com/n624-dev/takupoke-ios/actions/runs/45065428110/job/137340384748)、[期限処理iOS27.0の45065611705／137340962361](https://github.com/n624-dev/takupoke-ios/actions/runs/45065611705/job/137340962361)、[同iOS26.5／137340962573](https://github.com/n624-dev/takupoke-ios/actions/runs/45065611705/job/137340962573) の試行1が同じ箇所で失敗した。いずれも生成した `ScheduleNotifications.swift:289:81` のキャンセルハンドラからMainActorに隔離した `NotificationWork.cancel()` を同期呼出しして `ActorIsolatedCall`。アプリの起動、操作、通知サービスは未到達。旧iOS27のスイッチ未切替や2003拒否とは異なる。
+
+同じ製品の `drainPending` とワーカーの型を抽出してLinux Swift 6.1.2のSwift 5・6両モードで同じエラーを再現した。元のLinux検査は `CountdownModel` のキャンセルと期限処理を別に実行し、更新通知側のハンドラまで一緒に型検査していなかった。取消しはSendableな `Task` の取消しだけを行うため、その入口だけMainActorから分離する。通知状態、書き込み、完了の待機と後処理は引き続きMainActorに置き、両側で同じ元の処理を使う対照を追加する。通知許可・実予約・期限切替の期待値、端末・SDKは維持する。
+
+### #164 背景の通知処理がキャンセル後も復帰を止める
+
+Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate`、`refreshInBackground`、カウントダウンと時間割通知の待機を同時に実行した。制御したOS追加完了を保留すると、親と両ワーカーにキャンセルを伝えても復帰側の `prepare` はまだ未到達。片方を返しても止まり、両方を返して初めて進んだ。#162が対処する期限切替の手前の待機で、物理iPhoneでの追加無応答は未観測。通知を追加中のワーカーは保持しながら、キャンセル済みの呼出し側だけ完了の待機を解く。通常の背景更新は完了まで待つ。
+
+#164の最初のLinux統合対照では、テスト側がSwiftの暗黙Returnを使う取消し待機クロージャへ計測行を挿入したため、戻り値がVoidと解釈されて型検査が止まった。計測は呼出しの直前に置き、製品のクロージャ本文、Boolの意味と元のテスト条件を保つ。
