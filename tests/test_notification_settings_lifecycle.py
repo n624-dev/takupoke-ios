@@ -127,6 +127,127 @@ METHODS
         program += "\n@MainActor\n" + block(source, "final class NotificationWork {")
         self.run_probe(compiler, program, swift_version="6")
 
+    def test_countdown_only_withdraws_disabled_owners_after_saving(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production countdown save and withdrawal")
+        model = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        planning = (ROOT / "Takupoke/Countdown.swift").read_text(encoding="utf-8")
+        methods = "\n".join(block(model, name) for name in (
+            "private struct NoticePlan", "func save(_ registration:", "func save(_ automatic:", "func delete(_ id:", "private func commit(",
+            "private func removeDisabledNotices(", "private func notificationEnabled(", "private func removeNotices("))
+        program = r'''import Foundation
+struct CountdownReminder { let key: String }
+struct Preferences { var notifications = true; var reminders = [CountdownReminder(key:"7-20-0")] }
+struct Reference { let key: String }
+struct CountdownRegistration {
+    let id: UUID
+    var preferences = Preferences()
+    var reference: Reference?
+}
+struct CountdownAutomatic {
+    static let identity = UUID()
+    var id: UUID { Self.identity }
+    var enabled = true
+    var preferences = Preferences()
+}
+struct CountdownLibrary {
+    var registrations: [CountdownRegistration]
+    var automatic = CountdownAutomatic()
+}
+struct CountdownNoticeTarget: Hashable { let id: UUID; let key: String }
+struct CountdownNotice {
+    static let prefix = "takupoke.countdown."
+    static let privatePrefix = prefix + "private."
+    let identifier: String
+    let targetID: UUID
+IDENTIFIER
+}
+struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; let isPrivate: Bool }
+@MainActor final class Store {
+    var reject = false
+    var saves = 0
+    func save(_ library: CountdownLibrary) throws {
+        if reject { throw CocoaError(.fileWriteOutOfSpace) }
+        saves += 1
+    }
+}
+@MainActor final class Center {
+    var pending = Set<String>(), delivered = Set<String>()
+    func removePendingNotificationRequests(withIdentifiers ids: [String]) { pending.subtract(ids) }
+    func removeDeliveredNotifications(withIdentifiers ids: [String]) { delivered.subtract(ids) }
+}
+@MainActor final class Harness {
+    let center = Center()
+    var store: Store? = Store()
+    var library: CountdownLibrary
+    var message: String?, onChange: (() -> Void)?
+    var notificationCards = [CountdownNoticeTarget:CountdownCard]()
+    var notificationStatuses = [CountdownNoticeTarget:String]()
+    private var request: NoticePlan?, applyingPlan: NoticePlan?
+    var revision = UUID()
+    var queuedIdentifiers: Set<String> { Set(request?.desired.map(\.identifier) ?? []) }
+    var loadingScope: String? { request?.loadingClassScope }
+    var acceptsLegacy: Bool? { request?.acceptsLegacyClassNotice }
+    init(_ initial: CountdownLibrary) { library = initial }
+    func queue(_ pending: [CountdownNotice], applying: [CountdownNotice]) {
+        request = .init(revision: revision, desired: pending, cards: notificationCards,
+                        loadingClassScope: "fictional-scope", activeReminderKeys: ["7-20-0"], acceptsLegacyClassNotice: true)
+        applyingPlan = .init(revision: revision, desired: applying, cards: notificationCards,
+                             loadingClassScope: nil, activeReminderKeys: [], acceptsLegacyClassNotice: false)
+    }
+    func clearQueuedPlan() { request = nil }
+METHODS
+}
+@main struct Probe {
+    @MainActor static func main() {
+        let first = CountdownRegistration(id:UUID(), reference:.init(key:"2032:fictional-registration"))
+        let second = CountdownRegistration(id:UUID())
+        let h = Harness(.init(registrations:[first, second]))
+        let manual = CountdownNoticeTarget(id:first.id,key:first.id.uuidString)
+        let school = CountdownNoticeTarget(id:CountdownAutomatic.identity,key:"2032:fictional-exam")
+        let classExam = CountdownNoticeTarget(id:CountdownAutomatic.identity,key:"fictional-private")
+        let firstKey = "takupoke.countdown.personal.\(first.id.uuidString).7-20-0"
+        let secondKey = "takupoke.countdown.personal.\(second.id.uuidString).7-20-0"
+        let knownSchool = "takupoke.countdown.personal.\(school.id.uuidString).\(school.key).7-20-0"
+        let applyingClass = "takupoke.countdown.private.\(classExam.id.uuidString).\(classExam.key).1-20-0"
+        h.notificationCards[school] = .init(id:school.id,noticeTarget:school,isPrivate:false)
+        h.notificationStatuses = [manual:"予約済み", school:"予約済み"]
+        h.queue([.init(identifier:firstKey,targetID:first.id), .init(identifier:secondKey,targetID:second.id),
+                 .init(identifier:knownSchool,targetID:school.id)], applying:[.init(identifier:applyingClass,targetID:school.id)])
+        h.center.pending = [firstKey, secondKey, knownSchool, applyingClass, "fixture.unrelated"]
+        h.center.delivered = h.center.pending
+        let initial = h.center.pending, token = h.revision
+        var stopped = first
+        stopped.preferences.notifications = false
+        h.store!.reject = true
+        precondition(!h.save(stopped) && h.center.pending == initial && h.center.delivered == initial && h.revision == token)
+        h.store!.reject = false
+        precondition(h.save(stopped) && h.revision != token)
+        precondition(h.queuedIdentifiers == [secondKey,knownSchool] && h.loadingScope == "fictional-scope" && h.acceptsLegacy == true)
+        precondition(h.center.pending == initial.subtracting([firstKey]) && h.center.delivered == h.center.pending)
+        precondition(h.notificationStatuses == [school:"予約済み"])
+        precondition(h.delete(second.id) && !h.library.registrations.contains { $0.id == second.id })
+        precondition(h.center.pending == [knownSchool,applyingClass,"fixture.unrelated"] && h.queuedIdentifiers == [knownSchool])
+        precondition(h.save(CountdownAutomatic(enabled:false)))
+        precondition(h.center.pending == ["fixture.unrelated"] && h.center.delivered == h.center.pending)
+        precondition(h.queuedIdentifiers.isEmpty && h.loadingScope == nil && h.acceptsLegacy == false)
+        precondition(h.notificationStatuses.isEmpty && h.store!.saves == 3)
+
+        for invalidated in [false,true] {
+            let interrupted = Harness(.init(registrations:[first,second]))
+            interrupted.queue([], applying:[.init(identifier:firstKey,targetID:first.id), .init(identifier:secondKey,targetID:second.id)])
+            interrupted.clearQueuedPlan()
+            if invalidated { interrupted.revision = UUID() }
+            interrupted.center.pending = [firstKey,secondKey]
+            precondition(interrupted.save(stopped) && interrupted.center.pending == [secondKey])
+            precondition(interrupted.queuedIdentifiers == (invalidated ? [] : [secondKey]))
+        }
+    }
+}
+'''.replace("IDENTIFIER", block(planning, "static func identifier(for target:")).replace("METHODS", methods)
+        self.run_probe(compiler, program)
+
     def test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
@@ -170,6 +291,7 @@ struct UNNotificationRequest {
 @MainActor final class Center {
     var requests = [String:UNNotificationRequest]()
     var called = [String](), removals = [String]()
+    var deliveredRemovals = [String]()
     var failOnce = Set<String>(), failPermanently = Set<String>()
     var rejectedButAppearsLater: UNNotificationRequest?
     var withheldRead: Int?
@@ -185,6 +307,7 @@ struct UNNotificationRequest {
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
         for id in identifiers { requests.removeValue(forKey:id); removals.append(id) }
     }
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) { deliveredRemovals += identifiers }
     func add(_ request: UNNotificationRequest) async throws {
         let id = request.identifier
         called.append(id)
@@ -203,13 +326,16 @@ struct UNNotificationRequest {
 @MainActor final class Harness {
     struct NoticePlan { let revision: UUID; let desired: [CountdownNotice] }
     var revision = UUID()
+    var disabledTargets = Set<UUID>()
     let center = Center()
+    func notificationEnabled(for id: UUID) -> Bool { !disabledTargets.contains(id) }
     func apply(_ desired: [CountdownNotice], allowed: Bool = true) async -> [String]? {
         let known = Array(center.requests.values)
         return await reserveNotifications(.init(revision:revision,desired:desired),allowed:allowed,startingWith:known)?.map(\.identifier).sorted()
     }
 RESERVE
 MATCH
+REMOVE
 }
 @main struct Probe {
     @MainActor static func waitForRead(_ center: Center) async {
@@ -271,10 +397,33 @@ MATCH
             precondition((stale.center.requests[personal.identifier] == nil) == cancel)
             precondition(stale.center.removals == (cancel ? [personal.identifier] : []))
         }
+
+        for reenabled in [false,true] {
+            let stopped = Harness()
+            stopped.center.pausesAdd = true
+            stopped.center.withheldRead = 1
+            let acceptedLate = CountdownNotice("disabled-during-write")
+            let unrelated = CountdownNotice("verified-other")
+            let task = Task { await stopped.apply([acceptedLate, unrelated]) }
+            let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+            while stopped.center.unfinishedAdd == nil {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            stopped.revision = UUID()
+            stopped.disabledTargets.insert(acceptedLate.targetID)
+            if reenabled { stopped.disabledTargets.remove(acceptedLate.targetID) }
+            stopped.center.unfinishedAdd?.resume(); stopped.center.unfinishedAdd = nil
+            let result = await task.value
+            precondition(result == nil)
+            precondition(stopped.center.called == [acceptedLate.identifier])
+            let removed = reenabled ? [] : [acceptedLate.identifier]
+            precondition(stopped.center.removals == removed && stopped.center.deliveredRemovals == removed)
+            precondition((stopped.center.requests[acceptedLate.identifier] != nil) == reenabled)
+        }
     }
 }
 '''.replace("RESERVE", block(source, "private func reserveNotifications(")).replace(
-    "MATCH", block(source, "private func matches("))
+    "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices("))
         self.run_probe(compiler, program)
 
     def test_explicit_countdown_authorization_starts_without_a_settings_read(self):
@@ -1172,6 +1321,7 @@ UPDATE_DRAIN
 @MainActor final class Countdown {
     struct NoticePlan { let revision: UUID }
     var request: NoticePlan?, worker: NotificationWork?
+    var applyingPlan: NoticePlan?
     var revision = UUID()
     var waiting: CheckedContinuation<Void, Never>?
     var applied: [UUID] = []

@@ -336,6 +336,13 @@ struct CountdownNotice: Equatable {
     var targetID: UUID { target.id }
     var targetKey: String { target.key }
 
+    static func identifier(for target: CountdownNoticeTarget, isPrivate: Bool, reminder: CountdownReminder) -> String {
+        let scope = isPrivate ? privatePrefix : prefix + "personal."
+        let owner = target.id.uuidString
+        let identity = target.id == CountdownAutomatic.identity ? owner + "." + target.key : owner
+        return scope + identity + "." + reminder.key
+    }
+
     static func holdsWhileLoading(identifier: String, storedScope: String?, currentScope: String,
                                   activeReminderKeys: Set<String>, acceptsLegacy: Bool) -> Bool {
         let automaticClassPrefix = privatePrefix + CountdownAutomatic.identity.uuidString + "."
@@ -353,11 +360,8 @@ struct CountdownNotice: Equatable {
             return card.preferences.reminders.compactMap { reminder in
                 guard let fireAt = reminder.fireDate(start: dates.start), fireAt > now,
                       card.expiry.map({ fireAt < $0 && now < $0 }) != false else { return nil }
-                let scope = card.isPrivate ? privatePrefix : prefix + "personal."
                 let target = card.noticeTarget
-                let identity = target.id == CountdownAutomatic.identity
-                    ? target.id.uuidString + "." + target.key : target.id.uuidString
-                return Self(identifier: scope + identity + "." + reminder.key, target: target,
+                return Self(identifier: identifier(for: target, isPrivate: card.isPrivate, reminder: reminder), target: target,
                             title: card.title, fireAt: fireAt, classScope: card.classScope)
             }
         }.sorted { ($0.fireAt, $0.identifier) < ($1.fireAt, $1.identifier) }

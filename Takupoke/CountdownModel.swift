@@ -28,6 +28,7 @@ final class CountdownModel: ObservableObject {
     private let center = UNUserNotificationCenter.current()
     private var request: NoticePlan?
     private var worker: NotificationWork?
+    private var applyingPlan: NoticePlan?
     private var revision = UUID()
     private lazy var initialClassScope = classSelection().scope
     var onChange: (() -> Void)?
@@ -39,6 +40,13 @@ final class CountdownModel: ObservableObject {
         let loadingClassScope: String?
         let activeReminderKeys: Set<String>
         let acceptsLegacyClassNotice: Bool
+
+        func excluding(_ owners: Set<UUID>, revision: UUID) -> NoticePlan {
+            let stopsAutomatic = owners.contains(CountdownAutomatic.identity)
+            return NoticePlan(revision: revision, desired: desired.filter { !owners.contains($0.targetID) },
+                cards: cards.filter { !owners.contains($0.key.id) }, loadingClassScope: stopsAutomatic ? nil : loadingClassScope,
+                activeReminderKeys: activeReminderKeys, acceptsLegacyClassNotice: !stopsAutomatic && acceptsLegacyClassNotice)
+        }
     }
 
     private struct ClassSelection {
@@ -159,14 +167,63 @@ final class CountdownModel: ObservableObject {
         guard let store else { return false }
         do {
             try store.save(next)
+            let previous = library
             library = next
             message = nil
-            if notify { onChange?() }
+            if notify {
+                removeDisabledNotices(from: previous)
+                onChange?()
+            }
             return true
         } catch {
             message = "カウントダウンを保存できません。前の設定を保持しています。"
             return false
         }
+    }
+
+    private func removeDisabledNotices(from previous: CountdownLibrary) {
+        let active = Set(library.registrations.filter { $0.preferences.notifications }.map(\.id))
+        let disabled = previous.registrations.filter { $0.preferences.notifications && !active.contains($0.id) }
+        var owners = Set(disabled.map(\.id))
+        var identifiers = Set(disabled.flatMap { registration in
+            let target = CountdownNoticeTarget(id: registration.id, key: registration.reference?.key ?? registration.id.uuidString)
+            return registration.preferences.reminders.map {
+                CountdownNotice.identifier(for: target, isPrivate: false, reminder: $0)
+            }
+        })
+        let automatic = previous.automatic
+        if automatic.enabled && automatic.preferences.notifications && !notificationEnabled(for: automatic.id) {
+            owners.insert(automatic.id)
+            for card in notificationCards.values where card.id == automatic.id {
+                identifiers.formUnion(automatic.preferences.reminders.map {
+                    CountdownNotice.identifier(for: card.noticeTarget, isPrivate: card.isPrivate, reminder: $0)
+                })
+            }
+        }
+        guard !owners.isEmpty else { return }
+        let activePlan = applyingPlan.flatMap { $0.revision == revision ? $0 : nil }
+        let nextRevision = UUID()
+        revision = nextRevision
+        request = (request ?? activePlan)?.excluding(owners, revision: nextRevision)
+        if let applyingPlan {
+            identifiers.formUnion(applyingPlan.desired.lazy.filter { owners.contains($0.targetID) }.map(\.identifier))
+        }
+        let statuses = notificationStatuses.filter { !owners.contains($0.key.id) }
+        if notificationStatuses != statuses { notificationStatuses = statuses }
+        // Known identifiers can be withdrawn immediately, even while another
+        // reservation is waiting for the system's completion callback.
+        removeNotices(identifiers.sorted())
+    }
+
+    private func notificationEnabled(for id: UUID) -> Bool {
+        if id == library.automatic.id { return library.automatic.enabled && library.automatic.preferences.notifications }
+        return library.registrations.contains { $0.id == id && $0.preferences.notifications }
+    }
+
+    private func removeNotices(_ identifiers: [String]) {
+        guard !identifiers.isEmpty else { return }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
     func update(using app: ApplicationData, at now: Date) {
@@ -374,7 +431,9 @@ final class CountdownModel: ObservableObject {
             guard let self else { return }
             while !Task.isCancelled, let plan = self.request {
                 self.request = nil
+                self.applyingPlan = plan
                 await self.reconcile(plan)
+                self.applyingPlan = nil
             }
             self.worker = nil
             if self.request != nil { self.startNotificationWorker() }
@@ -483,6 +542,10 @@ final class CountdownModel: ObservableObject {
                 do {
                     try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
                 } catch { rejected.insert(notice.identifier) }
+                if revision != plan.revision && !notificationEnabled(for: notice.targetID) {
+                    removeNotices([notice.identifier])
+                    return nil
+                }
                 if Task.isCancelled {
                     center.removePendingNotificationRequests(withIdentifiers: [notice.identifier])
                     return nil

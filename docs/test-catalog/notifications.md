@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`221b3efe8967cfcd563d21a3efbdf6dcb4435116a7c35dc7a5a4e4a94a5e7fc1`
+`6828524487c16c40cb61ce6b1fa2330ef92a5636e6094b95893013df68a5ca12`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -48,6 +48,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 ## [tests/test_notification_settings_lifecycle.py](../../tests/test_notification_settings_lifecycle.py)
 
 - `test_disabling_update_notices_removes_owned_ids_now_and_after_a_late_write`
+- `test_countdown_only_withdraws_disabled_owners_after_saving`
 - `test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current`
 - `test_explicit_countdown_authorization_starts_without_a_settings_read`
 - `test_countdown_storage_actions_remove_only_owned_pending_notifications`
