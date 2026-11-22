@@ -540,6 +540,17 @@ struct SimulatorApplication: App {
                 .init(id: countdownNoticeID, target: .personal(target))
             ]))
         }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-notification-route-unreadable") {
+            let library = try CountdownStore(root: base).load()
+            guard library.registrations.contains(where: { $0.id == countdownNoticeID }) else {
+                throw CocoaError(.fileReadUnknown)
+            }
+            let countdown = base.appendingPathComponent("Countdown.json")
+            let original = base.appendingPathComponent("fixture-countdown-before-unreadable-\(UUID().uuidString).json")
+            try FileManager.default.moveItem(at: countdown, to: original)
+            try Data("{".utf8).write(to: countdown, options: .atomic)
+            FixtureCITrace.mark("countdown-route-store-unreadable")
+        }
         if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorCountdownEventsFixture.seedSchoolNotices(base)

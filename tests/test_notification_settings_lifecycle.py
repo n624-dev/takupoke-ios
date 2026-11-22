@@ -182,7 +182,7 @@ struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; le
     var store: Store? = Store()
     var library: CountdownLibrary
     var message: String?, onChange: (() -> Void)?
-    var notificationCards = [CountdownNoticeTarget:CountdownCard]()
+    var notificationCards: [CountdownNoticeTarget:CountdownCard]?
     var notificationStatuses = [CountdownNoticeTarget:String]()
     private var request: NoticePlan?, applyingPlan: NoticePlan?
     var revision = UUID()
@@ -191,9 +191,9 @@ struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; le
     var acceptsLegacy: Bool? { request?.acceptsLegacyClassNotice }
     init(_ initial: CountdownLibrary) { library = initial }
     func queue(_ pending: [CountdownNotice], applying: [CountdownNotice]) {
-        request = .init(revision: revision, desired: pending, cards: notificationCards,
+        request = .init(revision: revision, desired: pending, cards: notificationCards ?? [:],
                         loadingClassScope: "fictional-scope", activeReminderKeys: ["7-20-0"], acceptsLegacyClassNotice: true)
-        applyingPlan = .init(revision: revision, desired: applying, cards: notificationCards,
+        applyingPlan = .init(revision: revision, desired: applying, cards: notificationCards ?? [:],
                              loadingClassScope: nil, activeReminderKeys: [], acceptsLegacyClassNotice: false)
     }
     func clearQueuedPlan() { request = nil }
@@ -211,7 +211,7 @@ METHODS
         let secondKey = "takupoke.countdown.personal.\(second.id.uuidString).7-20-0"
         let knownSchool = "takupoke.countdown.personal.\(school.id.uuidString).\(school.key).7-20-0"
         let applyingClass = "takupoke.countdown.private.\(classExam.id.uuidString).\(classExam.key).1-20-0"
-        h.notificationCards[school] = .init(id:school.id,noticeTarget:school,isPrivate:false)
+        h.notificationCards = [school:.init(id:school.id,noticeTarget:school,isPrivate:false)]
         h.notificationStatuses = [manual:"予約済み", school:"予約済み"]
         h.queue([.init(identifier:firstKey,targetID:first.id), .init(identifier:secondKey,targetID:second.id),
                  .init(identifier:knownSchool,targetID:school.id)], applying:[.init(identifier:applyingClass,targetID:school.id)])
@@ -1090,7 +1090,7 @@ struct Card { let isPrivate: Bool }
 @MainActor final class Harness {
     let center = UNUserNotificationCenter()
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
-    var notificationCards = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
+    var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
     var revision = UUID()
     var request: Int? = 0
     var worker: NotificationWork?
@@ -1120,7 +1120,7 @@ EXPIRY
         cancelled.cancel()
         let first = await cancelled.value
         precondition(!first && h.worker == nil && h.request == nil)
-        precondition(h.cards.map(\.isPrivate) == [false] && h.notificationCards.keys.sorted() == [1])
+        precondition(h.cards.map(\.isPrivate) == [false] && h.notificationCards?.keys.sorted() == [1])
         precondition(center.removed.isEmpty && center.removedDelivered.isEmpty)
         center.pending?(center.all.map(UNNotificationRequest.init))
 
@@ -1200,7 +1200,7 @@ RESET_UPDATES
 @MainActor final class Countdown {
     let center = Center()
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
-    var notificationCards = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
+    var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
     var revision = UUID(), request: Int? = 1
     var worker: NotificationWork?
     func start(_ identifier: String) {

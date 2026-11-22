@@ -62,6 +62,7 @@ extension ApplicationChecks {
     }
 
     func testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList() {
+        let missingMessage = "通知の対象は変更または削除されています。現在の予定を表示しています。"
         tab("設定")
         tap("カウントダウン")
         screen("カウントダウン")
@@ -87,8 +88,7 @@ extension ApplicationChecks {
         XCTAssertTrue(missing.waitForExistence(timeout:10))
         XCTAssertTrue(missing.isHittable)
         missing.tap()
-        XCTAssertTrue(app.staticTexts["通知の対象は変更または削除されています。現在の予定を表示しています。"]
-            .waitForExistence(timeout:10),app.debugDescription)
+        XCTAssertTrue(app.staticTexts[missingMessage].waitForExistence(timeout:10),app.debugDescription)
         let management = app.navigationBars["カウントダウン"]
         XCTAssertTrue(management.exists)
         XCTAssertTrue(app.buttons.matching(NSPredicate(format:"identifier == %@ AND label CONTAINS %@",
@@ -99,6 +99,23 @@ extension ApplicationChecks {
         XCTAssertTrue(closeManagement.waitForNonExistence(timeout:10))
         screen("たくポケ")
         XCTAssertEqual(app.state,.runningForeground)
+
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        app.launchArguments.append("--countdown-notification-route-unreadable")
+        launchReady()
+        screen("たくポケ")
+        XCTAssertTrue(existing.waitForExistence(timeout:10) && existing.isHittable, app.debugDescription)
+        existing.tap()
+        screen("カウントダウン")
+        let warning = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"
+        XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout:10), app.debugDescription)
+        XCTAssertTrue(app.buttons["読み込みを再試行"].exists, app.debugDescription)
+        XCTAssertFalse(app.staticTexts[missingMessage].exists, app.debugDescription)
+        let closeUnreadable = app.navigationBars["カウントダウン"].buttons["閉じる"]
+        XCTAssertTrue(closeUnreadable.isHittable, app.debugDescription)
+        closeUnreadable.tap()
+        XCTAssertTrue(closeUnreadable.waitForNonExistence(timeout:10), app.debugDescription)
+        screen("たくポケ")
     }
 
     func testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed() {

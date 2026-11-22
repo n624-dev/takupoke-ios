@@ -23,7 +23,7 @@ final class CountdownModel: ObservableObject {
     @Published private(set) var notificationStatuses: [CountdownNoticeTarget: String] = [:]
     @Published private(set) var publicEvents: [PublicEvent] = []
     @Published private(set) var automaticSchoolExams: [PublicEvent] = []
-    @Published private var notificationCards: [CountdownNoticeTarget: CountdownCard] = [:]
+    @Published private var notificationCards: [CountdownNoticeTarget: CountdownCard]?
     private var store: CountdownStore?
     private let center = UNUserNotificationCenter.current()
     private var request: NoticePlan?
@@ -63,7 +63,14 @@ final class CountdownModel: ObservableObject {
     var isConfigured: Bool { !library.registrations.isEmpty || library.automatic.enabled }
     var homeCards: [CountdownCard] { CountdownCard.home(cards, today: day) }
 
-    func notificationCard(for target: CountdownNoticeTarget) -> CountdownCard? { notificationCards[target] }
+    func notificationCard(for target: CountdownNoticeTarget) -> CountdownCard? { notificationCards?[target] }
+
+    func isWaitingForNotificationTarget(_ target: CountdownNoticeTarget) -> Bool {
+        if storageState == .unloaded { return true }
+        guard storageState == .ready else { return false }
+        guard let notificationCards else { return true }
+        return notificationCards.values.contains { $0.id == target.id && $0.availability == .loading }
+    }
 
     func load(reportFailure: Bool = false) {
         guard store == nil, !storageActionInProgress else { return }
@@ -194,7 +201,8 @@ final class CountdownModel: ObservableObject {
         let automatic = previous.automatic
         if automatic.enabled && automatic.preferences.notifications && !notificationEnabled(for: automatic.id) {
             owners.insert(automatic.id)
-            for card in notificationCards.values where card.id == automatic.id {
+            let automaticCards = notificationCards?.values.filter { $0.id == automatic.id } ?? []
+            for card in automaticCards {
                 identifiers.formUnion(automatic.preferences.reminders.map {
                     CountdownNotice.identifier(for: card.noticeTarget, isPrivate: card.isPrivate, reminder: $0)
                 })
@@ -375,7 +383,7 @@ final class CountdownModel: ObservableObject {
 
     func expirePrivateNotices(removeDelivered: Bool) async -> Bool {
         cards.removeAll { $0.isPrivate }
-        notificationCards = notificationCards.filter { !$0.value.isPrivate }
+        notificationCards = notificationCards?.filter { !$0.value.isPrivate }
         // Invalidate the old plan without cancelling an in-flight add. It may
         // be a personal or public reminder that must survive private expiry.
         revision = UUID()

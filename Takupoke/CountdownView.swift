@@ -161,11 +161,16 @@ struct CountdownNotificationDestination: View {
     var body: some View {
         if model.notificationCard(for: destination.target) != nil {
             CountdownDetail(id: destination.target.id, events: events, notificationTarget: destination.target)
+        } else if model.isWaitingForNotificationTarget(destination.target) {
+            LoadingRow(title: "カウントダウンを読み込み中⋯")
+                .task { model.retryStorageLoad() }
         } else {
             CountdownManagementView(events: events)
                 .safeAreaInset(edge: .bottom) {
-                    Text("通知の対象は変更または削除されています。現在の予定を表示しています。")
-                        .font(.footnote).padding().background(.regularMaterial)
+                    if model.storageState == .ready {
+                        Text("通知の対象は変更または削除されています。現在の予定を表示しています。")
+                            .font(.footnote).padding().background(.regularMaterial)
+                    }
                 }
         }
     }
