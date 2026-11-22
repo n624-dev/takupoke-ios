@@ -100,12 +100,19 @@ extension MaterialLibrary {
     }
 
     func recordPDFFailure(_ error: PDFParseError, kind: MaterialKind) throws {
+        let parserVersion = PDFAnalysis.currentVersion(for: kind)
+        let source = state.record(for: kind)
+        if kind == .timetable, error.code == .cancelled, let source,
+           let previous = state.pdfParseAttempts?[kind.rawValue], previous.recoveryJob?.state == .pending,
+           RecoveryPolicy.mayRecover(digest: source.digest, kind: .timetable, parserVersion: parserVersion,
+                                     attemptDigest: previous.sourceDigest, attemptVersion: previous.parserVersion,
+                                     failure: previous.failure, job: previous.recoveryJob) { return }
         var next = state
         var attempts = next.pdfParseAttempts ?? [:]
-        attempts[kind.rawValue] = PDFParseAttempt(date: Date(), sourceDigest: state.record(for: kind)?.digest, failure: error,
-            recoveryJob: kind == .timetable && RecoveryPolicy.eligible(error) && !(state.pdfAnalyses?[kind.rawValue]?.version == PDFAnalysis.currentVersion(for:kind) && RecoveryValidator.previouslyAccepted(state.pdfAnalyses?[kind.rawValue]?.recovery, hash:state.record(for:kind)?.digest ?? "")) ? state.record(for: kind).map {
+        attempts[kind.rawValue] = PDFParseAttempt(date: Date(), sourceDigest: source?.digest, failure: error,
+            recoveryJob: kind == .timetable && RecoveryPolicy.eligible(error) && !(state.pdfAnalyses?[kind.rawValue]?.version == parserVersion && RecoveryValidator.previouslyAccepted(state.pdfAnalyses?[kind.rawValue]?.recovery, hash:source?.digest ?? "")) ? source.map {
                 RecoveryJob(pdfHash: $0.digest, kind: .timetable, state: .pending, createdAt: Date())
-            } : nil, parserVersion: PDFAnalysis.currentVersion(for: kind))
+            } : nil, parserVersion: parserVersion)
         next.pdfParseAttempts = attempts
         try persist(next)
     }

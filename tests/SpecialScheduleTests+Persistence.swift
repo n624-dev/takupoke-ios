@@ -182,6 +182,51 @@ extension SpecialScheduleTests {
         XCTAssertEqual(reopened.records[.exam]?.analysis.sourceDigest, analysis.sourceDigest)
     }
 
+    func testCancellingSpecialReanalysisKeepsOnlyTheSameOriginalRecoveryJob() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("fictional-cancelled-special-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root)
+        for kind in SpecialScheduleKind.allCases {
+            let bytes = Data("%PDF-fictional-\(kind.rawValue)".utf8)
+            func select(_ digest: String, payload: Data) throws {
+                let staged = store.newStagingURL()
+                try payload.write(to: staged)
+                try store.saveSelection(staged: staged, kind: kind, originalName: "fictional.pdf", byteCount: payload.count, digest: digest)
+            }
+            func assertRetryableCancellation(_ source: SpecialScheduleSource) {
+                XCTAssertEqual(source.failure?.code, .cancelled)
+                XCTAssertNil(source.recoveryJob)
+                XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: source.digest, parserVersion: SpecialScheduleAnalysis.parserVersion,
+                    analysisDigest: nil, analysisVersion: nil, attemptDigest: source.digest, failure: source.failure,
+                    attemptVersion: source.attemptParserVersion))
+            }
+            try select("fictional-current", payload: bytes)
+            try store.recordFailure(.init(code: .cancelled), kind: kind)
+            assertRetryableCancellation(try XCTUnwrap(store.sources[kind]))
+            try store.recordFailure(.init(code: .unsupported, stage: .characterMapping), kind: kind)
+            let source = try XCTUnwrap(store.sources[kind])
+            XCTAssertEqual(source.recoveryJob?.state, .pending)
+            XCTAssertEqual(source.recoveryJob?.kind, kind == .exam ? .exam : .return)
+            let file = try XCTUnwrap(store.selectedURL(for: kind))
+            try store.recordFailure(.init(code: .cancelled), kind: kind)
+            let reopened = try SpecialScheduleStore(root: root)
+            XCTAssertEqual(reopened.sources[kind]?.failure, source.failure)
+            XCTAssertEqual(reopened.sources[kind]?.attemptParserVersion, source.attemptParserVersion)
+            XCTAssertEqual(reopened.sources[kind]?.recoveryJob, source.recoveryJob)
+            XCTAssertEqual(reopened.selectedURL(for: kind), file)
+            XCTAssertEqual(try Data(contentsOf: file), bytes)
+            try store.recordFailure(.init(code: .storage), kind: kind)
+            XCTAssertEqual(store.sources[kind]?.failure?.code, .storage)
+            XCTAssertNil(store.sources[kind]?.recoveryJob)
+            try store.recordFailure(.init(code: .unsupported, stage: .characterMapping), kind: kind)
+            let replacement = bytes + Data("-replacement".utf8)
+            try select("fictional-replacement", payload: replacement)
+            try store.recordFailure(.init(code: .cancelled), kind: kind)
+            assertRetryableCancellation(try XCTUnwrap(store.sources[kind]))
+            XCTAssertEqual(try Data(contentsOf: XCTUnwrap(store.selectedURL(for: kind))), replacement)
+        }
+    }
+
     func testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

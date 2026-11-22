@@ -4,6 +4,44 @@ import GRDB
 @testable import TakupokeParsing
 
 extension LocalDatabaseTests {
+    func testCancellingTimetableReanalysisKeepsTheSameOriginalRecoveryJob() throws {
+        let (db, library) = try runtimeStore()
+        defer { try? db.close() }
+        let version = PDFAnalysis.currentVersion(for: .timetable)
+        func assertRetryableCancellation() throws {
+            let digest = try XCTUnwrap(library.state.record(for: .timetable)?.digest)
+            let attempt = try XCTUnwrap(db.load().pdfParseAttempts?["timetable"])
+            XCTAssertEqual(attempt.failure?.code, .cancelled)
+            XCTAssertNil(attempt.recoveryJob)
+            XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest: digest, parserVersion: version, analysisDigest: nil,
+                analysisVersion: nil, attemptDigest: attempt.sourceDigest, failure: attempt.failure, attemptVersion: attempt.parserVersion))
+        }
+
+        try acquire(library, kind: .timetable)
+        try library.recordPDFFailure(.init(code: .cancelled), kind: .timetable)
+        try assertRetryableCancellation()
+        try library.recordPDFFailure(.init(code: .unsupported, stage: .characterMapping), kind: .timetable)
+        let pending = try XCTUnwrap(library.state.pdfParseAttempts?["timetable"]?.recoveryJob)
+        XCTAssertEqual(pending.state, .pending)
+        let previous = try LocalMaterialDatabase.encode(db.load())
+        let file = try XCTUnwrap(library.localURL(for: .timetable))
+        let bytes = try Data(contentsOf: file)
+        try library.recordPDFFailure(.init(code: .cancelled), kind: .timetable)
+        XCTAssertEqual(try LocalMaterialDatabase.encode(library.state), previous)
+        let reopened = try LocalMaterialDatabase(url: runtime.appendingPathComponent("library.sqlite"))
+        defer { try? reopened.close() }
+        XCTAssertEqual(try LocalMaterialDatabase.encode(reopened.load()), previous)
+        XCTAssertEqual(try Data(contentsOf: file), bytes)
+
+        try library.recordPDFFailure(.init(code: .storage), kind: .timetable)
+        XCTAssertEqual(try db.load().pdfParseAttempts?["timetable"]?.failure?.code, .storage)
+        XCTAssertNil(try db.load().pdfParseAttempts?["timetable"]?.recoveryJob)
+        try library.recordPDFFailure(.init(code: .unsupported, stage: .characterMapping), kind: .timetable)
+        try acquire(library, kind: .timetable, suffix: "replacement")
+        try library.recordPDFFailure(.init(code: .cancelled), kind: .timetable)
+        try assertRetryableCancellation()
+    }
+
     func testRowSkipConsentAndResultRollbackTogetherAndOldPayloadRemainsReadable() throws {
         let example = try fixture(); let (db, library) = try runtimeStore()
         defer { try? db.close() }

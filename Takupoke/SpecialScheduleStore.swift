@@ -264,10 +264,16 @@ final class SpecialScheduleStore {
 
     func recordFailure(_ failure: PDFParseError, kind: SpecialScheduleKind) throws {
         guard var source = sources[kind] else { throw StoreError.invalidState }
+        let recoveryKind: RecoveryDocumentKind = kind == .exam ? .exam : .return
+        let parserVersion = SpecialScheduleAnalysis.parserVersion
+        if failure.code == .cancelled, source.recoveryJob?.state == .pending,
+           RecoveryPolicy.mayRecover(digest: source.digest, kind: recoveryKind, parserVersion: parserVersion,
+                                     attemptDigest: source.digest, attemptVersion: source.attemptParserVersion,
+                                     failure: source.failure, job: source.recoveryJob) { return }
         source.failure = failure
-        source.attemptParserVersion = SpecialScheduleAnalysis.parserVersion
-        source.recoveryJob = RecoveryPolicy.eligible(failure) && !(records[kind]?.analysis.version == SpecialScheduleAnalysis.parserVersion && RecoveryValidator.previouslyAccepted(records[kind]?.analysis.recovery,hash:source.digest)) ? RecoveryJob(pdfHash: source.digest,
-            kind: kind == .exam ? .exam : .return, state: .pending, createdAt: Date()) : nil
+        source.attemptParserVersion = parserVersion
+        source.recoveryJob = RecoveryPolicy.eligible(failure) && !(records[kind]?.analysis.version == parserVersion && RecoveryValidator.previouslyAccepted(records[kind]?.analysis.recovery,hash:source.digest)) ? RecoveryJob(pdfHash: source.digest,
+            kind: recoveryKind, state: .pending, createdAt: Date()) : nil
         let payload = try JSONEncoder().encode(source)
         try queue.write { db in
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
