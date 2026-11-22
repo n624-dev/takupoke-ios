@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`c474f08f95a74b9e747586cc54f56f1e15e2df9d3f551ef75f9817bdf8288f47`
+`cdbcecbaafee010e3af193fde36abe3c8e9579a4f1cda1a59561ea48ee1fb2b2`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -91,6 +91,8 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_countdown_os_trace_adds_only_fixed_stage_observation`
+- `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
@@ -181,6 +183,7 @@ bash tools/test-app-ui.sh
 ## [tests/ui/ApplicationChecks+Notifications.swift](../../tests/ui/ApplicationChecks+Notifications.swift)
 
 - `testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList`
+- `testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed`
 - `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`
 - `testNotificationControlsAndAppearance`
 - `testChangedDataProducesOneLocalNotification`

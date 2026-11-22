@@ -5861,3 +5861,27 @@ Linux Swift 6.1.2の初回7件では既存5件が成功し、通知ゲート・�
 `17f597d` の[45061660859／試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45061660859/job/137328714807)、SDK27.2／iOS27.0。元の復旧caseは97.448秒、削除完了の30秒で失敗し、元マーカーと旧資料は保持された。識別子付きログでは初回pendingが70.86秒、明示確認後のpendingが57.15秒、deliveredが51.14秒で実callbackを返した。アプリは応答自体が無いと判定せず、6秒で再試行を案内し、期限後の応答を成功に取り込まなかった。通知サービスがまとめて応答した下位理由は未確認。
 
 #134の6秒は製品の一時停止中の退出条件。N81/N82は実取消しの条件で、本件の遅い実照会とは異なる。通常に応答する場合のiOS 27の削除完了も検査するため、キャンセルと元バイトの保持を確認した後、同じ所有アプリから実pendingとdeliveredの両方が一度返ることを確認してから、元の二度目の確定操作へ進む。固定sleepや許可設定の注入を使わず、応答しない場合は準備失敗。製品・既存の確定後30秒・実削除／元ファイル維持・再起動を維持し、上記の未確認とデータ保持のiOS 27観測を別に記録する。
+## #155 許可要求の比較がiOS 27の起動前に停止（2026-11-23）
+
+候補 `8b5ee44`、[45057062757試行1／137314524539](https://github.com/n624-dev/takupoke-ios/actions/runs/45057062757/job/137314524539)、Xcode 27.2／iOS 27.0。ビルド成功後、18:58:39 UTCに最初の `app.launch()` を一度要求。18:59:07 UTCに `FBSOpenApplicationServiceErrorDomain Code 5 / InvalidResponse`、SpringBoardの応答のXPC error、`Failed to get launch progress` を返した。ケース159.523秒。アプリのfixture-ready・通知設定の操作・許可要求・回答・予約一覧に未到達。起動APIはSpringBoardがクラッシュした可能性を返したが、下位原因や製品プロセスのクラッシュは未確認。前回 `f903a02` の通知設定コールバック待ちとは到達段階が異なる。
+
+`SpringBoard|Failed to get launch progress|InvalidResponse` でU76、U49、N125と当時および現行の `launchReady`／ランナーを照合した。U76も実操作前に止まり、条件を保持した新しいRunnerでは同ケースが成功した。U49は操作後の再起動、N125は準備後の別の起動期限だった。現行の事前確認、一回の起動、実Allow、予約4件の日時と識別子、既存期限を保持し、iOS 27だけ新Runnerの同条件で比較する。今回iOS 26.5は実Allowと予約4件の比較に成功したため、再実行対象に含めない。
+
+## #129・#155 許可後に学校全体の実予約4件を照合できない（2026-11-23）
+
+候補 `7e97912`、[45058953653試行1／137320333439](https://github.com/n624-dev/takupoke-ios/actions/runs/45058953653/job/137320333439)、Xcode 27.2／iOS 27.0、`testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed` 105.943秒。アプリの実起動と設定保存に到達。19:17:36Zに通知許可を呼び、19:18:17Zに実 `Tap "Allow"`・許可callback・`notification-auth-granted` を確認した。続いて実設定と予約・配信済み照会の応答、`center.add` の4回の呼出し開始と返却、実予約の読み直しの返却まで記録された。現在の一枚Aの表示に成功した。その後の検査専用ボタンの照会結果は該当する接頭辞で0件、元の15秒で架空の後続2期間／通知4件と時刻の照合に失敗した。直前の許可操作とアプリ起動の失敗とは別の段階。旧計測は `try?` の後に返却を記録するため、4回ともOSが受理したか、拒否したかはまだ区別できない。テスト側の接頭辞以外に予約が存在したかも出力していない。アプリが表示した「これからの通知日時はありません。」は現在のカードAの表示で、別対象B/Cの予約を証明しない。
+
+`UNNotificationRequest|nextTriggerDate|実予約0件` で旧#121の許可前0件と、同fixture・同SDKのiOS 26.5の実Allow後4件、現在の `CountdownModel.reconcile` と `SimulatorCountdownEventsFixture` を比較した。今回は許可が確定し、現在カードの警告は対象外。保持した元ケースで、生成アプリだけの観測を追加する。予約を呼ぶ前の `nextTriggerDate()` の有無と日時の一致、実 `add` の受理／エラー種別と番号、削除対象の件数、モデルとテスト画面の実pendingの全体数／期待一致件数を記録する。Appleも `add` の完了値で受理と問題を区別し、保留一覧は別APIで返す。接触方法・許可・現在カード・4件のIDと日時・15秒・製品ロジックを維持する。[Appleの予約API](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:)) · [Appleの次回通知日時](https://developer.apple.com/documentation/usernotifications/uncalendarnotificationtrigger/nexttriggerdate())
+
+## #129 iOS 27で正しいトリガーの予約がOSの2003エラーになる（2026-11-23）
+
+`8ccb231` の[45060928537試行1／137326458047](https://github.com/n624-dev/takupoke-ios/actions/runs/45060928537/job/137326458047)、Xcode 27.2／iOS 27.0、元ケース208.857秒。実起動・設定・Allow・許可callbackが成立。19:36:45Z台、最初の実予約までに設定／予定一覧／配信済み一覧から応答を得た。4件とも `nextTriggerDate()` が指定の日本時間と一致し、実 `add` が `UNErrorDomain` 2003を返した。削除要求は対象0件、直後の保留一覧が全体0／期待対象0、利用者の操作で再照合した時も全体0。XCTestは元の予約4件の条件を満たさず失敗。数値2003の下位原因はAppleの公開 `UNError.Code` 文書から断定できない。学校全体の対象選択や曜日の入力失敗ではない。
+
+`countdown-notice-reserve|UNErrorDomain|2003|通知の許可` で前回45058953653と両iOSの許可経路、iOS26の同内容4件、旧#121の受動照会待ちを比較した。今回は許可応答後にOSの実登録がエラーを返している。実際に許可済みで、正常な未来のトリガーを送った後の追加失敗だけを、同じ予約計画が有効な間に有限回再照合する。現在の実予約を読み直し、成功した枠は再追加しない。OSが拒否した結果を成功扱いせず、実ケース・元15秒・時刻・ID・実Allowの条件を維持する。[Appleの予約応答](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:)) · [Appleの公開エラー一覧](https://developer.apple.com/documentation/usernotifications/unerror/code)
+## #129・#161 iOS 27でスイッチの実接触後にONへ変わらない（2026-11-23）
+
+`06b4551` の[45063287797試行1／137333770101](https://github.com/n624-dev/takupoke-ios/actions/runs/45063287797/job/137333770101)、Xcode 27.2／iOS 27.0、元の学校全体の実予約ケース61.410秒。アプリ起動、設定、試験の自動表示編集、スイッチOFFを確認。20:02:24Zに観測済みのネイティブつまみで一回の水平操作を開始した。実UIKitで315.67→347.33ptの開始・移動・終了が届いたが、スイッチは元の15秒以内にONにならず、既存の行19で失敗した。許可要求、保存、予約追加と再試行は未到達。初期の実保留照会も失敗時までにコールバックが記録されなかった。接触の送達と通知サービスの応答を区別し、今回のログから両者の因果は決めない。2003エラーを比較した過去の失敗と段階が異なる。
+
+`thumb-drag|tapNativeSwitch|この行を除外` でN239と、同じく水平操作が終了まで届いても切り替わらなかった76042ccの実スイッチ、旧と現行の操作を照合した。0.33秒を指定する既存の実接触ヘルパーを学校のケースだけに使用する。表示中のネイティブ部品の実枠・一意性・有効状態を維持し、一回の接触を送る。状態0→1、元の15秒、OSの許可と後続2期間の実予約4件の条件は維持する。接触後にカウントダウンの編集値が変わった段階を固定ログに加える。
+
+統合後のLinux manifestは `test_all_source_tests_are_assigned_once_and_both_os_checks_are_required` で不一致。旧試験通知worktreeには後から作った#152の通知先ケースがなく、統合後は旧41件に学校全体の1件が加わって42件になる。どちらのケースも残し、完全一覧の期待件数と一次元の宣言確認をそろえる。

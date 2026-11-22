@@ -16,6 +16,7 @@ on:
           - weekday-carryover
           - countdown-calendar
           - countdown-notifications
+          - countdown-school-notices
           - countdown-storage
           - countdown-notification-route
           - countdown-and-yellow

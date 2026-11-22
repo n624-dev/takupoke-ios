@@ -43,6 +43,49 @@ extension ApplicationChecks {
         XCTAssertEqual(app.state,.runningForeground)
     }
 
+    func testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed() {
+        let settings = "カウントダウン", editor = "試験の自動表示"
+        tab("設定")
+        tap(settings)
+        screen(settings)
+        let automatic = visible(app.buttons["countdown-automatic"], navigation: settings)
+        XCTAssertTrue(automatic.isHittable, app.debugDescription)
+        automatic.tap()
+        screen(editor)
+        let control = visible(app.switches["通知を予約"], navigation: editor)
+        XCTAssertEqual(control.value as? String, "0")
+        tapNativeSwitch(control, navigation: editor, thumbDragDuration:0.33)
+        let active = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: control)
+        XCTAssertEqual(XCTWaiter.wait(for: [active], timeout: 15), .completed, app.debugDescription)
+        tapToolbar("countdown-save", bar: editor)
+
+        let allowed = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@",
+                                  "Allow", "許可", "許可する", "通知を許可")
+        let status = app.staticTexts["fixture-countdown-reservation-status"]
+        var allowedOnce = false
+        let ready = expectation(for: NSPredicate { _, _ in
+            if !allowedOnce, let button = self.permissionAllowButton(allowed) {
+                allowedOnce = true
+                button.tap()
+                return false
+            }
+            return status.exists && status.label == "これからの通知日時はありません。"
+        }, evaluatedWith: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 45), .completed, app.debugDescription)
+        screen(settings)
+        let cards = app.buttons.matching(identifier: "countdown-list-card")
+        let current = cards.matching(NSPredicate(format: "label CONTAINS %@", "架空の試験期間A")).firstMatch
+        XCTAssertTrue(current.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertEqual(cards.count, 1, app.debugDescription)
+
+        let verify = app.buttons["学校全体の予約を照合"]
+        XCTAssertTrue(verify.waitForExistence(timeout: 10) && verify.isHittable, app.debugDescription)
+        verify.tap()
+        let observed = app.staticTexts["fixture-school-countdown-pending"]
+        let reserved = expectation(for: NSPredicate(format: "label == %@", "実予約4件／日時と対象true"), evaluatedWith: observed)
+        XCTAssertEqual(XCTWaiter.wait(for: [reserved], timeout: 15), .completed, app.debugDescription)
+    }
+
     func testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration() {
         let management = "カウントダウン"
         let warning = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"

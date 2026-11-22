@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`fc0454e4382c224d0a62a622a023623599c8f65450637eb28559811d88d3e6e1`
+`211022d5d1391609948b3732149de7823d58092ca07cb24836881625e9aaabdb`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -37,6 +37,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 ## [tests/ui/ApplicationChecks+Notifications.swift](../../tests/ui/ApplicationChecks+Notifications.swift)
 
 - `testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList`
+- `testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed`
 - `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`
 - `testNotificationControlsAndAppearance`
 - `testChangedDataProducesOneLocalNotification`
@@ -45,6 +46,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 
 ## [tests/test_notification_settings_lifecycle.py](../../tests/test_notification_settings_lifecycle.py)
 
+- `test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current`
 - `test_explicit_countdown_authorization_starts_without_a_settings_read`
 - `test_countdown_storage_actions_remove_only_owned_pending_notifications`
 - `test_authorization_bridge_requires_one_real_callback_and_preserves_denial_and_errors`

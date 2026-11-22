@@ -178,6 +178,29 @@ struct SimulatorApplication: App {
                         }
                         .buttonStyle(.bordered)
                         .offset(y: -100)
+                    } else if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") {
+                        VStack(alignment: .leading) {
+                            Button("学校全体の予約を照合") {
+                                countdownNoticeProbe = "保留予約を取得中"
+                                Task {
+                                    let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+                                    let prefix = CountdownNotice.prefix + "personal." + CountdownAutomatic.identity.uuidString + "."
+                                    let automatic = requests.filter { $0.identifier.hasPrefix(prefix) }
+                                    let expected = SimulatorCountdownEventsFixture.expectedSchoolNotices()
+                                    FixtureCITrace.mark("countdown-notice-fixture-total-\(requests.count)")
+                                    FixtureCITrace.mark("countdown-notice-fixture-matching-\(automatic.count)")
+                                    let exact = Set(automatic.map(\.identifier)) == Set(expected.keys) && automatic.allSatisfy { request in
+                                        let trigger = request.trigger as? UNCalendarNotificationTrigger
+                                        return trigger?.nextTriggerDate() == expected[request.identifier]
+                                    }
+                                    countdownNoticeProbe = "実予約\(automatic.count)件／日時と対象\(exact)"
+                                }
+                            }
+                            Text(countdownNoticeProbe).accessibilityIdentifier("fixture-school-countdown-pending").allowsHitTesting(false)
+                            FixtureCountdownReservationStatus(id: CountdownAutomatic.identity)
+                        }
+                        .buttonStyle(.bordered)
+                        .offset(y: -100)
                     }
                 }
                 .overlay(alignment: .topTrailing) {
@@ -507,6 +530,10 @@ struct SimulatorApplication: App {
             try CountdownStore(root: base).save(CountdownLibrary(registrations: [
                 .init(id: countdownNoticeID, target: .personal(target))
             ]))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices"),
+           ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+            try SimulatorCountdownEventsFixture.seedSchoolNotices(base)
         }
         if ProcessInfo.processInfo.arguments.contains("--countdown-reminder-layout"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {

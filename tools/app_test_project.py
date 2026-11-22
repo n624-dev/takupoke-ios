@@ -298,6 +298,59 @@ def instrument_retention_notification_reads(text):
         text = text.replace(original, observed)
     return text
 
+COUNTDOWN_NATIVE_ADD = '                    try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))'
+COUNTDOWN_OBSERVED_ADD = ('                    try await SimulatorCountdownEventsFixture.observeNativeReservation(center,\n'
+                          '                        request: UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger),\n'
+                          '                        expected: notice.fireAt)')
+
+def instrument_countdown_notification_center(text):
+    # Keep the actual permission, OS reads, and pending writes unchanged.
+    start = text.index('    private func reconcile(_ plan: NoticePlan) async {')
+    reconcile = text[start:]
+    operations = (
+        ('            let settings = await ScheduleNotifications.notificationSettings(from: center)', 'settings'),
+        ('        let pending = await ScheduleNotifications.readPending(from:center)', 'pending'),
+        ('        let delivered = await ScheduleNotifications.readDelivered(from:center)', 'delivered'),
+        ('                let latest = await ScheduleNotifications.readPending(from:center)', 'backoff-read'),
+        ('            let listed = await ScheduleNotifications.readPending(from:center)', 'read-back'),
+    )
+    for statement, stage in operations:
+        line = '\n' + statement + '\n'
+        assert reconcile.count(line) == 1, 'Countdown trace insertion point missing: ' + stage
+        indent = statement[:len(statement) - len(statement.lstrip())]
+        def trace(phase):
+            return indent + 'if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") { ' + (
+                f'FixtureCITrace.mark("countdown-notice-{stage}-{phase}") }}\n')
+        reconcile = reconcile.replace(line, '\n' + trace('begin') + statement + '\n' + trace('end'))
+    observations = (
+        ('            guard let settings else { return reportUnconfirmedNotices(plan) }',
+         '            if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") { FixtureCITrace.mark("countdown-notice-authorization-\\(settings.authorizationStatus.rawValue)") }'),
+        ('        center.removePendingNotificationRequests(withIdentifiers: obsolete.map(\\.identifier))',
+         '        if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") { FixtureCITrace.mark("countdown-notice-remove-pending-\\(obsolete.count)") }'),
+        ('                current = latest',
+         '                if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") { FixtureCITrace.mark("countdown-notice-backoff-read-total-\\(latest.count)"); FixtureCITrace.mark("countdown-notice-backoff-read-expected-\\(latest.filter { request in plan.desired.contains { matches(request, $0) } }.count)") }'),
+        ('            current = listed',
+         '            if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") { FixtureCITrace.mark("countdown-notice-read-back-total-\\(current.count)"); FixtureCITrace.mark("countdown-notice-read-back-expected-\\(current.filter { request in plan.desired.contains { matches(request, $0) } }.count)") }'),
+    )
+    for statement, observation in observations:
+        line = '\n' + statement + '\n'
+        assert reconcile.count(line) == 1, 'Countdown trace count insertion point missing'
+        reconcile = reconcile.replace(line, line + observation + '\n')
+    assert reconcile.count('\n' + COUNTDOWN_NATIVE_ADD + '\n') == 1, 'Countdown trace add insertion point missing'
+    return text[:start] + reconcile.replace(COUNTDOWN_NATIVE_ADD, COUNTDOWN_OBSERVED_ADD)
+
+COUNTDOWN_TOGGLE = '            Toggle("通知を予約", isOn: $value.notifications)\n'
+COUNTDOWN_TOGGLE_TRACE = '''                .onChange(of:value.notifications) { _, enabled in
+                    if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") {
+                        FixtureCITrace.mark(enabled ? "countdown-notice-draft-on" : "countdown-notice-draft-off")
+                    }
+                }
+'''
+
+def instrument_countdown_notification_draft(text):
+    assert text.count(COUNTDOWN_TOGGLE) == 1, 'Countdown notification toggle insertion point missing'
+    return text.replace(COUNTDOWN_TOGGLE, COUNTDOWN_TOGGLE + COUNTDOWN_TOGGLE_TRACE)
+
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
     check_root = repo if check_root is None else Path(check_root)
@@ -326,6 +379,10 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'ScheduleNotifications.swift':
             text = instrument_notification_permission(text)
             text = instrument_retention_notification_reads(text)
+        if path.name == 'CountdownModel.swift':
+            text = instrument_countdown_notification_center(text)
+        if path.name == 'CountdownView.swift':
+            text = instrument_countdown_notification_draft(text)
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = rewrite_network_urls(text)

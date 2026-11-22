@@ -145,6 +145,76 @@ enum SimulatorAuxiliaryStoreFixture {
 }
 
 enum SimulatorCountdownEventsFixture {
+    private static let schoolNoticeStart = SchoolDate.today()
+    private static let schoolNoticePeriods = [
+        (offset: 0, id: "fictional-active-exam", title: "架空の試験期間A"),
+        (offset: 8, id: "fictional-next-exam", title: "架空の試験期間B"),
+        (offset: 14, id: "fictional-later-exam", title: "架空の試験期間C"),
+    ]
+
+    static func seedSchoolNotices(_ base: URL) throws {
+        let store = try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI"))
+        let observed = Date().addingTimeInterval(-5)
+        let timestamp = ISO8601DateFormatter().string(from: observed)
+        let source = String(repeating: "b", count: 64)
+        let version = "sha256-" + String(repeating: "c", count: 64)
+        let events = Dictionary(grouping: schoolNoticePeriods) { schoolNoticeStart.addingDays($0.offset)!.schoolYear }
+        for (year, periods) in events {
+            let payload = SchoolEventsPayload(schoolYear: year, sourcePdfSha256: source, sourcePdfETag: nil,
+                identifiedEvents: periods.map { period in
+                    let day = schoolNoticeStart.addingDays(period.offset)!.iso8601
+                    return .init(eventId: period.id, title: period.title, tag: "テスト", ranges: [.init(startDate: day, endDate: day)])
+                })
+            let saved = SavedSchoolEvents(fetchedAt: observed, payload: payload, apiETag: nil, responseDataVersion: version,
+                lastEventsCheckedAt: observed)
+            try store.save(saved)
+            let status = SchoolEventsSourceStatus(version: "v1", schoolYear: year, dataVersion: version,
+                adoptedSourcePdfSha256: source, status: .matched, lastSuccessfulStatus: .matched,
+                lastSuccessAt: timestamp, lastAttemptAt: timestamp, nextAttemptAt: nil, checking: false, stale: false)
+            try store.saveSourceStatus(.init(receivedAt: observed, response: status, requestedTarget: .init(saved)))
+        }
+        try CountdownStore(root: base).save(CountdownLibrary(automatic: CountdownAutomatic(enabled: true)))
+    }
+
+    static func expectedSchoolNotices() -> [String: Date] {
+        let prefix = CountdownNotice.prefix + "personal." + CountdownAutomatic.identity.uuidString + "."
+        return Dictionary(uniqueKeysWithValues: schoolNoticePeriods.dropFirst().flatMap { period in
+            let start = schoolNoticeStart.addingDays(period.offset)!
+            return [7, 1].map { days in
+                (prefix + "\(start.schoolYear):\(period.id).\(days)-20-0", start.addingDays(-days)!.dateInJapan(hour: 20)!)
+            }
+        })
+    }
+
+    @MainActor static func observeNativeReservation(_ center: UNUserNotificationCenter,
+                                                    request: UNNotificationRequest, expected: Date) async throws {
+        guard ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") else {
+            try await center.add(request)
+            return
+        }
+        FixtureCITrace.mark("countdown-notice-reserve-begin")
+        defer { FixtureCITrace.mark("countdown-notice-reserve-end") }
+        let actual = (request.trigger as? UNCalendarNotificationTrigger)?.nextTriggerDate()
+        if let actual {
+            FixtureCITrace.mark(actual == expected ? "countdown-notice-reserve-trigger-matches" : "countdown-notice-reserve-trigger-mismatch")
+        } else { FixtureCITrace.mark("countdown-notice-reserve-trigger-empty") }
+        do {
+            try await center.add(request)
+            FixtureCITrace.mark("countdown-notice-reserve-accepted")
+        } catch {
+            let error = error as NSError
+            let domain = error.domain == "UNErrorDomain" ? "un" : "other"
+            let code = error.code < 0 ? "n\(error.code.magnitude)" : String(error.code)
+            FixtureCITrace.mark("countdown-notice-reserve-error-\(domain)-\(code)")
+            if [error.localizedDescription,error.localizedFailureReason ?? ""].contains(where: {
+                $0.localizedCaseInsensitiveContains("source is not authorized")
+            }) {
+                FixtureCITrace.mark("countdown-notice-reserve-source-unauthorized")
+            }
+            throw error
+        }
+    }
+
     static func reply(to transport: URLProtocol) -> Bool {
         let arguments = ProcessInfo.processInfo.arguments
         let today = SchoolDate.today()

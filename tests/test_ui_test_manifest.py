@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -24,6 +25,97 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_countdown_os_trace_adds_only_fixed_stage_observation(self):
+        source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        observed = app_test_project.instrument_countdown_notification_center(source)
+        for operation in ("settings", "pending", "delivered", "backoff-read", "read-back"):
+            for phase in ("begin", "end"):
+                self.assertEqual(observed.count(f'FixtureCITrace.mark("countdown-notice-{operation}-{phase}")'), 1)
+        self.assertEqual(observed.count(app_test_project.COUNTDOWN_OBSERVED_ADD), 1)
+        self.assertEqual(observed.count(app_test_project.COUNTDOWN_NATIVE_ADD), 0)
+        for metric in ("authorization", "remove-pending", "read-back-total", "read-back-expected",
+                       "backoff-read-total", "backoff-read-expected"):
+            self.assertEqual(observed.count(f'FixtureCITrace.mark("countdown-notice-{metric}-'), 1)
+        stripped = "".join(line for line in observed.splitlines(keepends=True) if "FixtureCITrace.mark" not in line)
+        stripped = stripped.replace(app_test_project.COUNTDOWN_OBSERVED_ADD, app_test_project.COUNTDOWN_NATIVE_ADD)
+        self.assertEqual(stripped, source)
+        view = (ROOT / "Takupoke/CountdownView.swift").read_text(encoding="utf-8")
+        trace = app_test_project.COUNTDOWN_TOGGLE_TRACE
+        observed_view = app_test_project.instrument_countdown_notification_draft(view)
+        self.assertEqual(observed_view.count(trace), 1)
+        self.assertEqual(observed_view.replace(trace, ""), view)
+        with self.assertRaises(AssertionError):
+            app_test_project.instrument_countdown_notification_draft(view + app_test_project.COUNTDOWN_TOGGLE)
+
+    def test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify the actual native reservation observer")
+        source = (ROOT / "tests/ui/ApplicationFixture+Events.swift").read_text(encoding="utf-8")
+        observe = block(source, "@MainActor static func observeNativeReservation")
+        program = r'''import Foundation
+struct UNCalendarNotificationTrigger {
+    let date: Date?
+    func nextTriggerDate() -> Date? { date }
+}
+final class UNNotificationRequest {
+    let trigger: Any?
+    init(_ date: Date?) { trigger = UNCalendarNotificationTrigger(date:date) }
+}
+final class UNUserNotificationCenter {
+    var failure: NSError?
+    var submissions = [UNNotificationRequest]()
+    func add(_ request: UNNotificationRequest) async throws {
+        submissions.append(request)
+        if let failure { throw failure }
+    }
+}
+@MainActor enum FixtureCITrace {
+    static var stages = [String]()
+    static func mark(_ stage: String) { stages.append(stage) }
+}
+enum SimulatorCountdownEventsFixture {
+OBSERVE
+}
+@main struct Probe {
+    @MainActor static func main() async throws {
+        let center = UNUserNotificationCenter()
+        let expected = Date(timeIntervalSince1970:2_000_000_000)
+        let accepted = UNNotificationRequest(expected), missing = UNNotificationRequest(nil)
+        let mismatched = UNNotificationRequest(expected.addingTimeInterval(60))
+        try await SimulatorCountdownEventsFixture.observeNativeReservation(center,request:accepted,expected:expected)
+        center.failure = NSError(domain:"UNErrorDomain",code:1,userInfo:[NSLocalizedFailureReasonErrorKey:"Source is not authorized"])
+        do {
+            try await SimulatorCountdownEventsFixture.observeNativeReservation(center,request:missing,expected:expected)
+            preconditionFailure("Reservation error was swallowed")
+        } catch let error as NSError { precondition(error.domain == "UNErrorDomain" && error.code == 1) }
+        center.failure = NSError(domain:"unrelated-raw-value",code:-2)
+        do {
+            try await SimulatorCountdownEventsFixture.observeNativeReservation(center,request:mismatched,expected:expected)
+            preconditionFailure("Reservation error was swallowed")
+        } catch let error as NSError { precondition(error.domain == "unrelated-raw-value" && error.code == -2) }
+        let originals = [accepted,missing,mismatched]
+        precondition(center.submissions.count == originals.count)
+        precondition(zip(center.submissions,originals).allSatisfy { $0 === $1 })
+        let begin = "countdown-notice-reserve-begin", end = "countdown-notice-reserve-end"
+        let stages = [begin, "countdown-notice-reserve-trigger-matches", "countdown-notice-reserve-accepted", end,
+            begin, "countdown-notice-reserve-trigger-empty", "countdown-notice-reserve-error-un-1", "countdown-notice-reserve-source-unauthorized", end,
+            begin, "countdown-notice-reserve-trigger-mismatch", "countdown-notice-reserve-error-other-n2", end]
+        let enabled = ProcessInfo.processInfo.arguments.contains("--countdown-school-notices")
+        precondition(FixtureCITrace.stages == (enabled ? stages : []))
+    }
+}
+'''.replace("OBSERVE", observe)
+        with tempfile.TemporaryDirectory(prefix="school-notice-observer-") as scratch:
+            path = Path(scratch)
+            swift = path / "Probe.swift"
+            swift.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                            "-module-cache-path", str(path / "modules"), str(swift),
+                            "-o", str(path / "probe")], check=True, timeout=60)
+            for flags in ([], ["--countdown-school-notices"]):
+                subprocess.run([str(path / "probe"), *flags], check=True, timeout=15)
+
     def test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged(self):
         source = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text()
         observed = app_test_project.instrument_week_motion(source)
@@ -1012,7 +1104,8 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 41)
+        self.assertEqual(len(manifest.selected_tests("all")), 42)
+        self.assertIn(manifest.SCHOOL_COUNTDOWN_NOTIFICATION_TEST, manifest.SHARDS["A"])
         self.assertIn("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", manifest.SHARDS["B"])
         self.assertIn("testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors", manifest.SHARDS["B"])
         self.assertIn("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups", manifest.SHARDS["B"])
@@ -1332,6 +1425,7 @@ METHOD
             ("rows", (controls[-1],)),
             ("weekday-carryover", ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",)),
             ("countdown-notifications", ("testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch",)),
+            ("countdown-school-notices", ("testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed",)),
             ("countdown-storage", ("testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",)),
             ("countdown-notification-route", ("testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",)),
             ("countdown-and-yellow", ("testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors",

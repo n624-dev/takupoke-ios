@@ -15,6 +15,134 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production reservation loop")
+        source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        program = r'''import Foundation
+enum SchoolDate {
+    static var japanCalendar: Calendar {
+        var calendar = Calendar(identifier:.gregorian)
+        calendar.timeZone = TimeZone(identifier:"Asia/Tokyo")!
+        return calendar
+    }
+}
+struct CountdownNotice {
+    let identifier: String
+    let title = "架空通知"
+    let fireAt: Date
+    let targetID = UUID()
+    let targetKey = "fictional"
+    let classScope: String? = nil
+    init(_ id: String, fromNow interval: TimeInterval = 3600) {
+        identifier = id
+        fireAt = Date().addingTimeInterval(interval)
+    }
+}
+struct UNCalendarNotificationTrigger {
+    let dateMatching: DateComponents
+    let repeats: Bool
+}
+struct Sound { static let `default` = Sound() }
+final class UNMutableNotificationContent {
+    var title = "", body = ""
+    var sound: Sound?
+    var userInfo = [String:Any]()
+}
+struct UNNotificationRequest {
+    let identifier: String
+    let content: UNMutableNotificationContent
+    let trigger: UNCalendarNotificationTrigger
+}
+@MainActor final class Center {
+    var requests = [String:UNNotificationRequest]()
+    var called = [String](), removals = [String]()
+    var failOnce = Set<String>(), failPermanently = Set<String>()
+    var rejectedButAppearsLater: UNNotificationRequest?
+    var withheldRead: Int?
+    var reads = 0
+    func pendingNotificationRequests() async -> [UNNotificationRequest]? {
+        reads += 1
+        if reads == withheldRead { return nil }
+        if reads == 2, let rejectedButAppearsLater { requests[rejectedButAppearsLater.identifier] = rejectedButAppearsLater }
+        return Array(requests.values)
+    }
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        for id in identifiers { requests.removeValue(forKey:id); removals.append(id) }
+    }
+    func add(_ request: UNNotificationRequest) async throws {
+        let id = request.identifier
+        called.append(id)
+        precondition(!request.trigger.repeats && request.trigger.dateMatching.timeZone?.identifier == "Asia/Tokyo")
+        if id == "late" { rejectedButAppearsLater = request; throw CocoaError(.fileReadUnknown) }
+        if failOnce.remove(id) != nil || failPermanently.contains(id) { throw CocoaError(.fileReadUnknown) }
+        requests[id] = request
+    }
+}
+@MainActor enum ScheduleNotifications {
+    static func readPending(from center: Center) async -> [UNNotificationRequest]? {
+        await center.pendingNotificationRequests()
+    }
+}
+@MainActor final class Harness {
+    struct NoticePlan { let revision: UUID; let desired: [CountdownNotice] }
+    var revision = UUID()
+    let center = Center()
+    func apply(_ desired: [CountdownNotice], allowed: Bool = true) async -> [String]? {
+        let known = Array(center.requests.values)
+        return await reserveNotifications(.init(revision:revision,desired:desired),allowed:allowed,startingWith:known)?.map(\.identifier).sorted()
+    }
+RESERVE
+MATCH
+}
+@main struct Probe {
+    @MainActor static func waitForRead(_ center: Center) async {
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while center.reads == 0 { precondition(ContinuousClock.now < deadline); await Task.yield() }
+    }
+    @MainActor static func main() async {
+        let h = Harness()
+        let confirmed = CountdownNotice("already-confirmed")
+        let first = await h.apply([confirmed])
+        precondition(first == ["already-confirmed"])
+        h.center.called.removeAll(); h.center.reads = 0
+        h.center.failOnce = ["transient"]
+        h.center.failPermanently = ["persistent"]
+        let result = await h.apply([confirmed,.init("ordinary"),.init("transient"),.init("persistent"),.init("expired",fromNow:-1)])
+        precondition(result == ["already-confirmed","ordinary","transient"] && h.center.reads == 5)
+        precondition(h.center.called == ["ordinary","transient","persistent","transient","persistent","persistent"])
+        precondition(h.center.removals.isEmpty)
+        let disabled = await h.apply([.init("disabled")],allowed:false)
+        precondition(disabled == result && !h.center.called.contains("disabled"))
+
+        let late = Harness()
+        let revealed = await late.apply([.init("late")])
+        precondition(revealed == ["late"] && late.center.called == ["late"] && late.center.reads == 2)
+
+        for stoppedRead in [1,2] {
+            let unknown = Harness()
+            unknown.center.failOnce = ["unknown"]
+            unknown.center.withheldRead = stoppedRead
+            let result = await unknown.apply([.init("unknown")])
+            precondition(result == nil && unknown.center.called == ["unknown"] && unknown.center.reads == stoppedRead)
+        }
+
+        for supersede in [false,true] {
+            let stale = Harness()
+            stale.center.failOnce = ["rejected"]
+            let task = Task { await stale.apply([.init("rejected")]) }
+            await waitForRead(stale.center)
+            if supersede { stale.revision = UUID() } else { task.cancel() }
+            let stopped = await task.value
+            precondition(stopped == nil && stale.center.called == ["rejected"] && stale.center.reads == 1)
+        }
+    }
+}
+'''.replace("RESERVE", block(source, "private func reserveNotifications(")).replace(
+    "MATCH", block(source, "private func matches("))
+        self.run_probe(compiler, program)
+
     def test_explicit_countdown_authorization_starts_without_a_settings_read(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
