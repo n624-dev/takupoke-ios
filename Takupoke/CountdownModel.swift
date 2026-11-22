@@ -319,11 +319,11 @@ final class CountdownModel: ObservableObject {
     func expirePrivateNotices(removeDelivered: Bool) async -> Bool {
         cards.removeAll { $0.isPrivate }
         notificationCards = notificationCards.filter { !$0.value.isPrivate }
-        // Cold launch can reach retention before the public/personal cards are
-        // loaded. Cancel an old plan without reconciling against that empty list.
+        // Invalidate the old plan without cancelling an in-flight add. It may
+        // be a personal or public reminder that must survive private expiry.
         revision = UUID()
         request = nil
-        guard await worker?.stop() != false, !Task.isCancelled else { return false }
+        guard await worker?.waitForCompletion() != false, !Task.isCancelled else { return false }
         let queued = await ScheduleNotifications.readPending(from:center)
         if let queued, !Task.isCancelled {
             let pending = queued.map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
@@ -388,8 +388,9 @@ final class CountdownModel: ObservableObject {
             guard let settings else { return reportUnconfirmedNotices(plan) }
             allowed = [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
         } else { allowed = false }
+        guard !Task.isCancelled, revision == plan.revision else { return }
         let pending = await ScheduleNotifications.readPending(from:center)
-        guard let pending else { return reportUnconfirmedNotices(plan) }
+        guard let pending, !Task.isCancelled, revision == plan.revision else { return reportUnconfirmedNotices(plan) }
         let delivered = await ScheduleNotifications.readDelivered(from:center)
         guard let delivered else { return reportUnconfirmedNotices(plan) }
         guard !Task.isCancelled, revision == plan.revision else { return }

@@ -404,10 +404,13 @@ final class NotificationWork {
 
     func cancel() { task.cancel() }
 
-    /// A timed-out stop leaves the actual write owned by this worker. No newer
-    /// worker may replace it while the notification service can still commit it.
-    func stop(timeout: Duration = .seconds(6)) async -> Bool {
+    func stop() async -> Bool {
         cancel()
+        return await waitForCompletion()
+    }
+
+    /// A timed-out wait leaves the write with this worker until it finishes.
+    func waitForCompletion(timeout: Duration = .seconds(6)) async -> Bool {
         return await completion.wait(timeout:timeout)
     }
 

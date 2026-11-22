@@ -61,6 +61,8 @@ struct UNNotificationRequest {
     var failOnce = Set<String>(), failPermanently = Set<String>()
     var rejectedButAppearsLater: UNNotificationRequest?
     var withheldRead: Int?
+    var pausesAdd = false
+    var unfinishedAdd: CheckedContinuation<Void, Never>?
     var reads = 0
     func pendingNotificationRequests() async -> [UNNotificationRequest]? {
         reads += 1
@@ -77,6 +79,7 @@ struct UNNotificationRequest {
         precondition(!request.trigger.repeats && request.trigger.dateMatching.timeZone?.identifier == "Asia/Tokyo")
         if id == "late" { rejectedButAppearsLater = request; throw CocoaError(.fileReadUnknown) }
         if failOnce.remove(id) != nil || failPermanently.contains(id) { throw CocoaError(.fileReadUnknown) }
+        if pausesAdd { await withCheckedContinuation { unfinishedAdd = $0 } }
         requests[id] = request
     }
 }
@@ -136,6 +139,25 @@ MATCH
             if supersede { stale.revision = UUID() } else { task.cancel() }
             let stopped = await task.value
             precondition(stopped == nil && stale.center.called == ["rejected"] && stale.center.reads == 1)
+        }
+
+        for cancel in [false,true] {
+            let stale = Harness()
+            stale.center.pausesAdd = true
+            let personal = CountdownNotice("fictional.personal")
+            let privateNotice = CountdownNotice("fictional.private")
+            let task = Task { await stale.apply([personal,privateNotice]) }
+            let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+            while stale.center.unfinishedAdd == nil {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            stale.revision = UUID()
+            if cancel { task.cancel() }
+            stale.center.unfinishedAdd?.resume(); stale.center.unfinishedAdd = nil
+            let stopped = await task.value
+            precondition(stopped == nil && stale.center.called == [personal.identifier])
+            precondition((stale.center.requests[personal.identifier] == nil) == cancel)
+            precondition(stale.center.removals == (cancel ? [personal.identifier] : []))
         }
     }
 }
@@ -737,11 +759,12 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
     let all = ["fictional.private.1", "fictional.personal.1", "fictional.school.1", "unrelated"]
     var reads = [0, 0, 0]
     var respondToPending = false, respondToDelivered = false
+    var settingsCallback: (@Sendable (UNNotificationSettings) -> Void)?
     var pending: (@Sendable ([UNNotificationRequest]) -> Void)?
     var delivered: (@Sendable ([UNNotification]) -> Void)?
     var removed = [String](), removedDelivered = [String]()
     nonisolated func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {
-        Task { @MainActor in reads[0] += 1 }
+        Task { @MainActor in reads[0] += 1; settingsCallback = completionHandler }
     }
     nonisolated func getPendingNotificationRequests(completionHandler: @escaping @Sendable ([UNNotificationRequest]) -> Void) {
         Task { @MainActor in
@@ -774,7 +797,7 @@ struct Card { let isPrivate: Bool }
     func begin() {
         worker = NotificationWork { [self] in
             let settings = await ScheduleNotifications.notificationSettings(from:center)
-            precondition(Task.isCancelled && settings == nil)
+            precondition(!Task.isCancelled && settings != nil)
             worker = nil
         }
     }
@@ -790,6 +813,9 @@ EXPIRY
         h.begin()
         await waitUntil { center.reads[0] == 1 }
         let cancelled = Task { await h.expirePrivateNotices(removeDelivered:true) }
+        await waitUntil { h.request == nil }
+        precondition(h.worker?.task.isCancelled == false && center.pending == nil)
+        center.settingsCallback?(UNNotificationSettings())
         await waitUntil { center.pending != nil }
         cancelled.cancel()
         let first = await cancelled.value
@@ -877,9 +903,9 @@ RESET_UPDATES
     var notificationCards = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
     var revision = UUID(), request: Int? = 1
     var worker: NotificationWork?
-    func start() {
+    func start(_ identifier: String) {
         worker = NotificationWork {
-            await self.center.write("fictional.private.countdown")
+            await self.center.write(identifier)
             self.worker = nil
         }
     }
@@ -887,14 +913,20 @@ EXPIRE
 }
 @main struct Probe {
     @MainActor static func main() async {
-        let countdown = Countdown(), updates = ScheduleNotifications()
-        countdown.start(); updates.start()
-        while countdown.center.commit == nil || updates.center.commit == nil { await Task.yield() }
+        let countdown = Countdown(), publicCountdown = Countdown(), updates = ScheduleNotifications()
+        countdown.start("fictional.private.countdown")
+        publicCountdown.start("fictional.new.public.countdown")
+        updates.start()
+        while countdown.center.commit == nil || publicCountdown.center.commit == nil || updates.center.commit == nil {
+            await Task.yield()
+        }
         async let privateExpiry = countdown.expirePrivateNotices(removeDelivered:true)
+        async let publicExpiry = publicCountdown.expirePrivateNotices(removeDelivered:true)
         async let updateExpiry = updates.resetForRetention()
-        let (removedPrivate, removedUpdates) = await (privateExpiry, updateExpiry)
-        precondition(!removedPrivate && !removedUpdates, "an unknown write must leave the period blocked")
-        precondition(countdown.worker?.task.isCancelled == true && updates.reconcileTask?.task.isCancelled == true)
+        let (removedPrivate, removedPublic, removedUpdates) = await (privateExpiry, publicExpiry, updateExpiry)
+        precondition(!removedPrivate && !removedPublic && !removedUpdates, "an unknown write must leave the period blocked")
+        precondition(countdown.worker?.task.isCancelled == false && publicCountdown.worker?.task.isCancelled == false)
+        precondition(updates.reconcileTask?.task.isCancelled == true)
         precondition(countdown.center.pendingReads == 0 && updates.loaded && updates.baseline == 1)
         precondition(countdown.request == nil && updates.pending == nil && countdown.cards.map(\.isPrivate) == [false])
         precondition(countdown.center.removedPending.isEmpty && updates.center.removedPending.isEmpty)
@@ -904,18 +936,21 @@ EXPIRE
         let cancelled = await retry.value
         precondition(!cancelled && countdown.worker != nil)
 
-        let oldCountdown = countdown.worker, oldUpdates = updates.reconcileTask
-        countdown.center.finishWrite(); updates.center.finishWrite()
-        await oldCountdown?.value; await oldUpdates?.value
+        let oldCountdown = countdown.worker, oldPublicCountdown = publicCountdown.worker, oldUpdates = updates.reconcileTask
+        countdown.center.finishWrite(); publicCountdown.center.finishWrite(); updates.center.finishWrite()
+        await oldCountdown?.value; await oldPublicCountdown?.value; await oldUpdates?.value
         precondition(countdown.center.saved.contains("fictional.private.countdown"))
         precondition(updates.center.saved.contains("fictional.exam"))
         let retriedPrivate = await countdown.expirePrivateNotices(removeDelivered:true)
+        let retriedPublic = await publicCountdown.expirePrivateNotices(removeDelivered:true)
         let retriedUpdates = await updates.resetForRetention()
-        precondition(retriedPrivate && retriedUpdates)
+        precondition(retriedPrivate && retriedPublic && retriedUpdates)
         precondition(countdown.center.removedPending == ["fictional.private.countdown"])
         precondition(updates.center.removedPending == ScheduleNotifications.updateIdentifiers)
         precondition(!updates.loaded && updates.baseline == nil)
         precondition(countdown.center.saved == ["fictional.personal", "fictional.school", "unrelated"])
+        precondition(publicCountdown.center.saved == countdown.center.saved + ["fictional.new.public.countdown"])
+        precondition(publicCountdown.center.removedPending.isEmpty && publicCountdown.center.removedDelivered.isEmpty)
         precondition(updates.center.saved == countdown.center.saved)
         print("Verified notification-write timeout, ownership retention, cancellation, and late completion cleanup.")
     }
