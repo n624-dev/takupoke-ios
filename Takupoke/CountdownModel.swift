@@ -57,7 +57,7 @@ final class CountdownModel: ObservableObject {
 
     func notificationCard(for target: CountdownNoticeTarget) -> CountdownCard? { notificationCards[target] }
 
-    func load() {
+    func load(reportFailure: Bool = false) {
         guard store == nil, !storageActionInProgress else { return }
         do {
             let store = try openStore()
@@ -69,15 +69,16 @@ final class CountdownModel: ObservableObject {
             let state: StorageState
             if case CountdownStore.ReadError.corrupt = error { state = .corrupt }
             else { state = .unavailable }
-            if storageState != state {
-                storageState = state
+            let changed = storageState != state
+            if changed { storageState = state }
+            if changed || reportFailure {
                 message = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"
             }
         }
     }
 
     func retryStorageLoad() {
-        load()
+        load(reportFailure:true)
         if storageState == .ready { onChange?() }
     }
 
@@ -99,7 +100,9 @@ final class CountdownModel: ObservableObject {
             retryStorageLoad()
         } catch {
             storageActionInProgress = false
-            message = "初期化できませんでした。元のファイルを保持しています。"
+            load()
+            if storageState == .ready { onChange?() }
+            else { message = "初期化できませんでした。元のファイルを保持しています。" }
         }
     }
 

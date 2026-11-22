@@ -384,14 +384,17 @@ struct CountdownStore {
         } catch ReadError.corrupt {}
         let backup = path.deletingLastPathComponent().appendingPathComponent("Countdown-Recovery-\(UUID().uuidString).json")
         try Self.write(bytes, to:backup)
-        do { try save(.init()) }
-        catch {
+        do {
+            guard try storedBytes() == bytes else { throw ReadError.noLongerCorrupt }
+            try save(.init())
+        } catch {
             try? FileManager.default.removeItem(at:backup)
             throw error
         }
     }
 
     private func storedBytes() throws -> Data? {
+        let path = URL(fileURLWithPath:self.path.path)
         let info: URLResourceValues
         do { info = try path.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey,.fileSizeKey]) }
         catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return nil }

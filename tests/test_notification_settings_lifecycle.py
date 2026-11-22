@@ -28,8 +28,13 @@ PREFIX
 }
 struct CountdownLibrary {}
 final class CountdownStore {
-    enum ReadError: Error { case noLongerCorrupt, corrupt }
+    enum ReadError: Error { case noLongerCorrupt, corrupt, unsafeFile }
     var fails = false, writes = 0
+    var readError: ReadError? = .corrupt
+    func load() throws -> CountdownLibrary {
+        if let readError { throw readError }
+        return CountdownLibrary()
+    }
     func preserveCorruptFileAndReset() throws {
         if fails { throw CocoaError(.fileWriteOutOfSpace) }
         writes += 1
@@ -52,7 +57,8 @@ final class CountdownStore {
     var storageState = StorageState.unavailable, storageActionInProgress = false
     var onChange: (() -> Void)?, revision = UUID(), request: Int? = 1, worker: Task<Void, Never>?
     func openStore() throws -> CountdownStore { availableStore }
-    func retryStorageLoad() {}
+    LOAD
+    RETRY
     RECOVER
     STOP
     REMOVE
@@ -65,6 +71,9 @@ final class CountdownStore {
         precondition(stop.center.state == unchanged && stop.center.reads == 1)
         precondition(stop.request == nil && !stop.storageActionInProgress && stop.storageState == .unavailable)
         precondition(stop.availableStore.writes == 0)
+        stop.availableStore.readError = .unsafeFile
+        stop.retryStorageLoad()
+        precondition(stop.message?.contains("読み込めません") == true)
 
         let reset = Harness()
         await reset.recoverCorruptStorage()
@@ -73,6 +82,12 @@ final class CountdownStore {
         reset.availableStore.fails = true
         await reset.recoverCorruptStorage()
         precondition(reset.storageState == .corrupt && !reset.storageActionInProgress && reset.center.reads == 0)
+        reset.availableStore.readError = .unsafeFile
+        await reset.recoverCorruptStorage()
+        precondition(reset.storageState == .unavailable && reset.center.reads == 0)
+        reset.availableStore.readError = .corrupt
+        reset.retryStorageLoad()
+        precondition(reset.storageState == .corrupt)
         reset.availableStore.fails = false
         var callbacks = 0
         reset.onChange = {
@@ -88,6 +103,8 @@ final class CountdownStore {
 }
 '''.replace("PREFIX", prefix) \
            .replace("STATE", block(source, "enum StorageState")) \
+           .replace("LOAD", block(source, "func load(reportFailure:")) \
+           .replace("RETRY", block(source, "func retryStorageLoad()")) \
            .replace("RECOVER", block(source, "func recoverCorruptStorage()")) \
            .replace("STOP", block(source, "func stopNoticesWhileStorageIsUnavailable()")) \
            .replace("REMOVE", block(source, "private func removeUnavailableStorageNotices()"))

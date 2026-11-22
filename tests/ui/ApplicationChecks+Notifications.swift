@@ -27,6 +27,14 @@ extension ApplicationChecks {
         XCTAssertTrue(app.staticTexts["予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"]
             .waitForExistence(timeout:10), app.debugDescription)
         XCTAssertFalse(added.isEnabled)
+        tap("読み込みを再試行")
+        XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout:10), app.debugDescription)
+        tap("元のファイルを保全して初期化")
+        let cancel = app.buttons.matching(NSPredicate(format:"label IN %@",["キャンセル","Cancel"])).firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout:10), app.debugDescription)
+        cancel.tap()
+        XCTAssertTrue(app.staticTexts[warning].exists)
+        XCTAssertFalse(added.isEnabled)
         tap("元のファイルを保全して初期化")
         tap("初期化")
         XCTAssertTrue(app.staticTexts["元のファイルを保全して、カウントダウンを初期化しました。"]
