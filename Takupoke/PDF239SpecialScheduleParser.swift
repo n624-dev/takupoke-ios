@@ -137,7 +137,9 @@ enum PDF239SpecialScheduleParser {
     }
 
     static func date(_ text: String, schoolYear: Int, slash: Bool) -> SchoolDate? {
-        let pattern = slash ? "^([0-9]{1,2})/([0-9]{1,2})$" : "^([0-9]{1,2})月([0-9]{1,2})日"
+        let weekday = #"[月火水木金土日](?:曜日?)?"#
+        let pattern = slash ? "^([0-9]{1,2})/([0-9]{1,2})$"
+            : #"^([0-9]{1,2})月([0-9]{1,2})日(?:\("# + weekday + #"\)|"# + weekday + #")?\z"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
               let monthRange = Range(match.range(at: 1), in: text),

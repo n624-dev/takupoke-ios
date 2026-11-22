@@ -8,6 +8,41 @@ import GRDB
 // Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 
 final class SpecialScheduleTests: XCTestCase {
+    func testStrictExamRequiresEachDateLabelToDescribeOneWholeDay() throws {
+        for (label, expected) in [("4月1日","2026-04-01"), ("４ 月 １ 日 （ 水 ）","2026-04-01"),
+                                  ("4月1日水曜日","2026-04-01"), ("1月5日(火)","2027-01-05")] {
+            let page = flexibleExamPage(["3-IT"],days:[1],dateLabels:[label])
+            let result = try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf")
+            XCTAssertEqual(result.coveredDates,[expected],label)
+            XCTAssertEqual(result.lessons.map(\.date),[expected],label)
+        }
+        for ambiguous in ["4月1日〜4月3日", "4月1日・4月3日", "4月1日(取消・4月3日へ変更)", "4月1日(任意)"] {
+            let page = flexibleExamPage(["3-IT"],days:[1],dateLabels:[ambiguous])
+            XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf")) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage,.calendarDates,ambiguous)
+            }
+            var mixed = flexibleExamPage(["3-IT"],days:[1,2],dateLabels:[ambiguous,"4月2日"])
+            mixed.glyphs.removeAll { $0.x >= 90 && 170 < $0.y && $0.y < 215 }
+            XCTAssertThrowsError(try SpecialScheduleParser.parse([mixed],kind:.exam,digest:"fictional",name:"fictional.pdf"))
+        }
+        for extra in ["（水）","取消"] {
+            var page = flexibleExamPage(["3-IT"],days:[1])
+            for (index, character) in extra.enumerated() {
+                page.glyphs.append(PDFGlyph(text:String(character),x:55+Double(index)*3,y:182,width:3,height:4,
+                    sourceLine:9000,sourceOrder:10000+index))
+            }
+            if extra == "（水）" {
+                let valid = try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf")
+                XCTAssertEqual(valid.coveredDates,["2026-04-01"])
+            } else {
+                XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.exam,digest:"fictional",name:"fictional.pdf")) {
+                    XCTAssertEqual(($0 as? PDFParseError)?.branch,.b438)
+                }
+            }
+        }
+        XCTAssertTrue(PDFParseAttempt.needsAnalysis(digest:"fictional",parserVersion:SpecialScheduleAnalysis.parserVersion,
+            analysisDigest:"fictional",analysisVersion:36,attemptDigest:nil,failure:nil,attemptVersion:nil))
+    }
 
     func testSegmentedCellTopBordersDefineTheCompleteExamBody() throws {
         var page=flexibleExamPage(["2-CN"],days:[1,2])

@@ -61,6 +61,12 @@ extension PDF239SpecialScheduleParser {
         }
         let grid = PDF239Grid(page:page)
         let rows = try dateRuns.map { try grid.box($0.0.cx,$0.0.cy) }
+        for ((_, day), row) in zip(dateRuns,rows) {
+            let text = PDF239SchoolParser.key(try grid.timetableRows(row).flatMap { $0.map(\.text) }.joined())
+            guard date(text,schoolYear:schoolYear,slash:false) == day else {
+                throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.calendarDates,branch:.b438)
+            }
+        }
         // Follow the date-column boundary of this table. A separate notes or
         // clock table lower on the page must not extend the lesson body.
         var tableBottom = rows[0].top

@@ -32,7 +32,7 @@ struct SpecialScheduleScope: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 36
+    static let parserVersion = 37
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String

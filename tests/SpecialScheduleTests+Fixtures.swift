@@ -59,7 +59,8 @@ extension SpecialScheduleTests {
     }
 
     /// Independently authored small tables, unrelated to any school document.
-    func flexibleExamPage(_ classes: [String], days: [Int], declaredPages: Int? = nil) -> PDFPageLayout {
+    func flexibleExamPage(_ classes: [String], days: [Int], declaredPages: Int? = nil,
+                          dateLabels: [String]? = nil) -> PDFPageLayout {
         var glyphs: [PDFGlyph] = [], lines: [PDFRule] = []
         var line = 0, order = 0
         func write(_ text: String, _ x: Double, _ y: Double) {
@@ -81,7 +82,7 @@ extension SpecialScheduleTests {
         for i in 0...days.count { let y=170+Double(i)*45; lines.append(PDFRule(x1:0,y1:y,x2:right,y2:y)) }
         for (row,day) in days.enumerated() {
             let y=182+Double(row)*45
-            write("4月\(day)日",12,y)
+            write(dateLabels?[row] ?? "4月\(day)日",12,y)
             for column in classes.indices {
                 let x=94+Double(column)*240
                 write("架空科目甲",x,y); write("架空教員乙",x,y+9); write("架空教室丙",x,y+18)

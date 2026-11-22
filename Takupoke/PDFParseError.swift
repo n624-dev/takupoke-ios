@@ -362,6 +362,7 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case b435 = "R435"
         case b436 = "R436"
         case b437 = "R437"
+        case b438 = "R438"
         case b271 = "R271"
     }
     var branch: Branch? = nil

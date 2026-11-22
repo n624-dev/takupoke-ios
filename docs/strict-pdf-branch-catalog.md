@@ -21,7 +21,7 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 更新: `python3 -B tools/pdf_branch_catalog.py write`。
 整合性: `python3 -B tools/pdf_branch_catalog.py check`。学校資料は読み込まない。
 
-## 対応一覧（436箇所）
+## 対応一覧（437箇所）
 
 ### 239.1のStrict判定（原条件と固定番号）
 
@@ -197,8 +197,8 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R427 | P16 | `guard analysis.validScopes else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L90) |
 | R434 | P04 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L101) |
 | R387 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L134) |
-| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L163) |
-| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L169) |
+| R386 | P17 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L165) |
+| R385 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser.swift#L171) |
 
 ### 239.1のStrictと返却のクラス表上端・学年の所属範囲
 
@@ -207,17 +207,18 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R404 | P14 | `guard labels.count == columns else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L49) |
 | R429 | P07 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L52) |
 | R403 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L60) |
-| R430 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L75) |
-| R435 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L78) |
-| R431 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L85) |
-| R432 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L112) |
-| R402 | P05 | `guard step > 5 else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L163) |
-| R401 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L170) |
-| R400 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L180) |
-| R399 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L194) |
-| R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L205) |
-| R436 | P15 | `返却の学年帯とクラス行を実罫線または行ごとの区切りから一意に対応できない` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L207) |
-| R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L213) |
+| R438 | P10 | `試験の日付セル全体から一日を確認できない。離れた注記・別の日付を読み飛ばさない` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L67) |
+| R430 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L81) |
+| R435 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L84) |
+| R431 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L91) |
+| R432 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L118) |
+| R402 | P05 | `guard step > 5 else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L169) |
+| R401 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L176) |
+| R400 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L186) |
+| R399 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L200) |
+| R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L211) |
+| R436 | P15 | `返却の学年帯とクラス行を実罫線または行ごとの区切りから一意に対応できない` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L213) |
+| R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L219) |
 
 ### 239.1のStrict時刻と数値途中の採用拒否
 

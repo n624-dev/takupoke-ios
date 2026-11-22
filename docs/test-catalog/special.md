@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`da6e33a0af8080fc6f101df4004ae75c8e4b3178f7c890a7ca4bee2e7af9ff0a`
+`cf488781df9a63d34491ba6b2f026f9bcb182a8f99a6fa68bbf2d8ee68e57bff`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -43,6 +43,7 @@ bash tools/test-parsing.sh
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
+- `testStrictExamRequiresEachDateLabelToDescribeOneWholeDay`
 - `testSegmentedCellTopBordersDefineTheCompleteExamBody`
 - `testBlankRuledExamEdgeRowsCannotDisappearFromScope`
 - `testDeclaredExamPageCountMustMatchTheSelectedDocument`
