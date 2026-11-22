@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`59a60b05ea8a30092b5ba1560fbd33897920077df3a4477de748e3d6d1356a95`
+`534543f8fe4391b0b7f4ca5764ec2cc9acd5fc99f2569a30d869f815cc0aefe1`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -33,6 +33,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 
 ## [tests/ui/ApplicationChecks+Notifications.swift](../../tests/ui/ApplicationChecks+Notifications.swift)
 
+- `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`
 - `testNotificationControlsAndAppearance`
 - `testChangedDataProducesOneLocalNotification`
 - `testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors`

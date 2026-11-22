@@ -331,6 +331,9 @@ struct SimulatorApplication: App {
             try SchoolDataRetention(root: base).replace(with: period)
             let countdown = base.appendingPathComponent("Countdown.json")
             if FileManager.default.fileExists(atPath: countdown.path) { try FileManager.default.removeItem(at: countdown) }
+            if ProcessInfo.processInfo.arguments.contains("--countdown-storage-corrupt") {
+                try Data("{".utf8).write(to:countdown,options:.atomic)
+            }
             if ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
                 let fixture = base.appendingPathComponent("SchoolEventsAPI")
                 if FileManager.default.fileExists(atPath: fixture.path) { try FileManager.default.removeItem(at: fixture) }

@@ -56,6 +56,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups": ["--change-weekday-carryover", "--fixture-input-trace"],
             "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch": ["--countdown-notifications"],
             "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors": ["--countdown-reminder-layout", "--fixture-input-trace"],
+            "testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration": ["--countdown-storage-corrupt"],
             "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent": [
                 "--events-v2", "--countdown-calendar", "--countdown-source-checking", "--fixture-input-trace",
             ],
