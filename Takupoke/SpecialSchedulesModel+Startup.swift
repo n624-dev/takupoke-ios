@@ -33,9 +33,10 @@ extension SpecialSchedulesModel {
                                           relativeTo: nil, bookmarkDataIsStale: &stale)
                         guard !stale else { throw MaterialError.accessExpired }
                         let selection = ScopedMaterialSelection(url)
-                        let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
+                        let (name, count, digest, receipt) = try Self.copy(selection, to: staged, kind: kind, control: control)
                         FileRefreshDiagnostics.shared.record(digest == source.digest ? .hashSame : .hashChanged,
                                                              source: diagnosticSource)
+                        try control.check()
                         if digest == source.digest {
                             try store.recordSuccessfulCheck(kind, digest: digest, originalName:name)
                         } else {
@@ -43,6 +44,8 @@ extension SpecialSchedulesModel {
                                                     byteCount: count, digest: digest, grant: grant)
                             changed = true
                         }
+                        receipt.acknowledge()
+                        control.recordProviderAcquisition(kind.rawValue)
                     }
                     // Check the provider before retrying an older local parser failure.
                     // A malformed old copy must not prevent acquiring its replacement.

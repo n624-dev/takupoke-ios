@@ -6,6 +6,17 @@ final class AcquisitionControl: @unchecked Sendable {
     private let lock = NSLock()
     private var cancelled = false
     private var coordinator: NSFileCoordinator?
+    private var acquiredProviders = Set<String>()
+
+    var acquiredProviderSources: Set<String> {
+        lock.lock(); defer { lock.unlock() }
+        return acquiredProviders
+    }
+
+    func recordProviderAcquisition(_ id: String) {
+        lock.lock(); defer { lock.unlock() }
+        acquiredProviders.insert(id)
+    }
 
     func cancel() {
         lock.lock()

@@ -27,7 +27,7 @@ final class MaterialWorker {
                 guard url.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(url, to: staged, kind: kind, control: control)
                 let source = MaterialSource(grant: try grant(for: url), childName: nil)
-                return .downloaded((source, url.lastPathComponent, result.0, result.1, result.2))
+                return .downloaded((source, url.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
             }
         }
     }
@@ -88,7 +88,7 @@ final class MaterialWorker {
                 } else { target = root }
                 guard target.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(target, to: staged, kind: kind, control: control)
-                return .downloaded((source, target.lastPathComponent, result.0, result.1, result.2))
+                return .downloaded((source, target.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
             }
         }
     }
@@ -105,10 +105,11 @@ final class MaterialWorker {
                                     remoteETag: response.metadata.etag, remoteLastModified: response.metadata.lastModified)
         if response.notModified { return .unchanged(source) }
         let result = try readMaterial(staged, copyingTo: nil, kind: .events, control: control)
-        return .downloaded((source, "学校行事.pdf", result.0, result.1, response.modifiedAt))
+        return .downloaded((source, "学校行事.pdf", result.0, result.1, response.modifiedAt, nil))
     }
 
-    private typealias Acquisition = (source: MaterialSource, name: String, count: Int, digest: String, modified: Date?)
+    private typealias Acquisition = (source: MaterialSource, name: String, count: Int, digest: String,
+                                     modified: Date?, receipt: SelectedFilePresenter.ReadReceipt?)
 
     private enum AcquisitionOutcome {
         case downloaded(Acquisition)
@@ -126,11 +127,16 @@ final class MaterialWorker {
             switch result {
             case .downloaded(let file):
                 if kind == .changes, reuseUnchanged, library.state.record(for: kind)?.digest != file.digest {
-                    try library.captureLegacyChangeEdits()
+                    try library.captureLegacyChangeEdits(check: control.check)
                 }
+                try control.check()
                 try library.commit(staged: staged, kind: kind, source: file.source,
                                    originalName: file.name, byteCount: file.count,
                                    digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged)
+                if let receipt = file.receipt {
+                    receipt.acknowledge()
+                    control.recordProviderAcquisition(kind.rawValue)
+                }
             case .unchanged(let source):
                 try library.recordUnchanged(kind, source: source)
             }

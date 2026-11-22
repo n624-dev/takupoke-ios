@@ -4,6 +4,40 @@ import ZIPFoundation
 @testable import TakupokeParsing
 
 extension ParsingTests {
+    func testCancellationWhileMigratingLegacyChangeEditsLeavesOriginalAndDecisionsIntact() throws {
+        try temporary { root in
+            let library = try MaterialLibrary(root:root)
+            let staged = library.newStagingURL()
+            try write(workbook(skipRowsFixture), to:staged)
+            let size = try XCTUnwrap(staged.resourceValues(forKeys:[.fileSizeKey]).fileSize)
+            try library.commit(staged:staged,kind:.changes,source:MaterialSource(),originalName:"完全架空変更.xlsx",
+                byteCount:size,digest:"previous",modifiedAt:nil)
+            try library.recordParseFailure(ChangeParseError(code:.weekdayMismatch,row:3),defaultYear:2032)
+            try library.applyRowSkips(library.previewChanges(),rows:[4],defaultYear:2032,correctWeekdays:true)
+            let original = try XCTUnwrap(library.state.record(for:.changes))
+            XCTAssertNotNil(original.source.weekdayConsent)
+            XCTAssertNotNil(original.source.rowSkipConsent)
+            XCTAssertNil(original.source.personalChanges)
+            var reviewChecks = 0
+            let review = try library.changeEditor(year:2032,check:{ reviewChecks += 1 })
+            XCTAssertFalse(review.edits.isEmpty)
+            var checks = 0
+            assertCode(.cancelled) {
+                try library.captureLegacyChangeEdits {
+                    checks += 1
+                    if checks == reviewChecks + 2 { throw ChangeParseError(code:.cancelled) }
+                }
+            }
+            XCTAssertEqual(library.state.record(for:.changes)?.storedName,original.storedName)
+            XCTAssertEqual(library.state.record(for:.changes)?.source.rowSkipConsent,original.source.rowSkipConsent)
+            XCTAssertNil(library.state.record(for:.changes)?.source.personalChanges)
+            try library.captureLegacyChangeEdits()
+            let migrated = try XCTUnwrap(library.state.record(for:.changes)?.source.personalChanges)
+            XCTAssertEqual(migrated.rows?.entries.first { $0.row == 4 }?.edit.excluded,true)
+            XCTAssertTrue(migrated.rows?.entries.contains { $0.edit.deriveWeekday } == true)
+        }
+    }
+
     func testSuccessfulExclusionsCanBeReviewedAndExplicitlyRemovedWithWeekdayCorrection() throws {
         try temporary { root in
             let library = try MaterialLibrary(root: root.appendingPathComponent("library"))

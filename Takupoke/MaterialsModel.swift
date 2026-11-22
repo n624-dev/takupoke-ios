@@ -290,9 +290,7 @@ final class MaterialsModel: ObservableObject {
                 self.timetableFailure = timetableFailure
                 self.busy = false
                 self.control = nil
-                let succeeded: Bool
-                if case .success = result { succeeded = true } else { succeeded = false }
-                self.updateFileMonitoring(retryFailed: succeeded)
+                self.updateFileMonitoring(retryFailedFor: control.acquiredProviderSources)
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
                 switch result {
                 case .success:

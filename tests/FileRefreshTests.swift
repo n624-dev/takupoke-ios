@@ -204,16 +204,17 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertEqual(observations.count, 1)
         monitor.update([source]); XCTAssertEqual(observations.count, 1)
         callbacks[0](false); await drainCallbacks()
-        monitor.update([source], retryFailed: false); XCTAssertEqual(observations.count, 1)
-        monitor.update([source], retryFailed: true)
+        monitor.update([source]); XCTAssertEqual(observations.count, 1)
+        monitor.update([source], retryFailedFor: ["timetable"]); XCTAssertEqual(observations.count, 1)
+        monitor.update([source], retryFailedFor: ["changes"])
         XCTAssertEqual(observations.count, 2); XCTAssertEqual(observations[1].starts, [false])
         callbacks[1](true); await drainCallbacks()
-        monitor.update([source]); XCTAssertEqual(observations.count, 2)
+        monitor.update([source], retryFailedFor: ["changes"]); XCTAssertEqual(observations.count, 2)
         callbacks[0](false); await drainCallbacks()
         XCTAssertEqual(monitor.registrations["changes"], .registered)
         monitor.setForeground(false); callbacks[1](true); await drainCallbacks()
         XCTAssertEqual(monitor.registrations["changes"], .stopped)
-        monitor.update([source]); XCTAssertEqual(observations.count, 2)
+        monitor.update([source], retryFailedFor: ["changes"]); XCTAssertEqual(observations.count, 2)
         monitor.setForeground(true); XCTAssertEqual(observations.count, 3)
         monitor.setForeground(false)
     }
@@ -234,21 +235,24 @@ final class FileRefreshTests: XCTestCase {
             lock.lock(); let isExternal = external; lock.unlock()
             if isExternal { externalEdit.fulfill() } else { noRefresh.fulfill() }
         }
-        presenter.recordContentVersion(at: file)
         NSFileCoordinator.addFilePresenter(presenter)
         defer { presenter.deactivate(); NSFileCoordinator.removeFilePresenter(presenter) }
         let access = SelectedFilePresenter.readAccess(for: file)
+        try capturedRead(of:file, using:access).acknowledge()
         var error: NSError?
         // Simulate a provider replacing its local materialization with identical
         // bytes during access: the source identity changes, the digest does not.
+        var receipt: SelectedFilePresenter.ReadReceipt?
         access.coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &error) { url in
             do {
                 try bytes.write(to: url, options: .atomic)
                 let read = try access.read(at: url) { try Data(contentsOf: url) }
-                XCTAssertEqual(read, bytes)
+                XCTAssertEqual(read.value, bytes)
+                receipt = read.receipt
             } catch { XCTFail("Synthetic read failed") }
         }
         XCTAssertNil(error)
+        try XCTUnwrap(receipt).acknowledge()
         for _ in 0..<10 { presenter.presentedItemDidChange() }
         wait(for: [noRefresh], timeout: 0.5)
         lock.lock(); external = true; lock.unlock()
@@ -269,16 +273,17 @@ final class FileRefreshTests: XCTestCase {
         try Data("before".utf8).write(to: file)
         let retry = expectation(description: "failed read must leave the change detectable")
         let presenter = SelectedFilePresenter(url: file) { retry.fulfill() }
-        presenter.recordContentVersion(at: file)
         NSFileCoordinator.addFilePresenter(presenter)
         defer { presenter.deactivate(); NSFileCoordinator.removeFilePresenter(presenter) }
         let access = SelectedFilePresenter.readAccess(for: file)
         var error: NSError?
+        let baseline = try capturedRead(of:file, using:access)
+        baseline.acknowledge()
         access.coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &error) { url in
             do { try Data("after".utf8).write(to: url, options: .atomic) }
             catch { XCTFail("Synthetic write failed") }
             do {
-                let _: Data = try access.read(at: url) { throw CocoaError(.userCancelled) }
+                let _: (value: Data, receipt: SelectedFilePresenter.ReadReceipt) = try access.read(at: url) { throw CocoaError(.userCancelled) }
                 XCTFail("Cancelled read unexpectedly succeeded")
             } catch {
                 XCTAssertEqual((error as? CocoaError)?.code, .userCancelled)
@@ -287,6 +292,48 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertNil(error)
         presenter.presentedItemDidChange()
         wait(for: [retry], timeout: 5)
+    }
+
+    func testCopiedVersionRemainsObservableUntilCommittedAndCannotHideNewerBytes() throws {
+        for commitOlderCopy in [false, true] {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try FileManager.default.createDirectory(at:root, withIntermediateDirectories:true)
+            defer { try? FileManager.default.removeItem(at:root) }
+            let file = root.appendingPathComponent("fictional.txt")
+            try Data("version-one".utf8).write(to:file)
+            let refresh = expectation(description: commitOlderCopy ? "newer bytes after commit" : "uncommitted copy")
+            let presenter = SelectedFilePresenter(url:file, source:.changes) { refresh.fulfill() }
+            NSFileCoordinator.addFilePresenter(presenter)
+            defer { presenter.deactivate(); NSFileCoordinator.removeFilePresenter(presenter) }
+            let access = SelectedFilePresenter.readAccess(for:file, source:.changes)
+            try capturedRead(of:file, using:access).acknowledge()
+            let copied = try capturedRead(of:file, using:access, replacingWith:Data("version-two".utf8))
+            if commitOlderCopy {
+                _ = try capturedRead(of:file, using:access, replacingWith:Data("version-three".utf8))
+                copied.acknowledge()
+            }
+            presenter.presentedItemDidChange()
+            wait(for:[refresh], timeout:5)
+        }
+    }
+
+    private func capturedRead(of file: URL, using access: SelectedFilePresenter.ReadAccess,
+                              replacingWith replacement: Data? = nil) throws -> SelectedFilePresenter.ReadReceipt {
+        var error: NSError?
+        var result: Result<SelectedFilePresenter.ReadReceipt, Error>?
+        let read: (URL) -> Void = { url in
+            result = Result {
+                if let replacement { try replacement.write(to:url, options:.atomic) }
+                return try access.read(at:url) { try Data(contentsOf:url) }.receipt
+            }
+        }
+        if replacement != nil {
+            access.coordinator.coordinate(writingItemAt:file, options:.forReplacing, error:&error) { read($0) }
+        } else {
+            access.coordinator.coordinate(readingItemAt:file, options:[], error:&error) { read($0) }
+        }
+        if let error { throw error }
+        return try XCTUnwrap(result).get()
     }
 
     @MainActor

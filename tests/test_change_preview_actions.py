@@ -51,6 +51,98 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
                             str(swift), "-o", str(directory / "probe")], check=True, timeout=60)
             subprocess.run([str(directory / "probe")], check=True, timeout=15)
 
+    def test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute production acquisition")
+        access_source = (ROOT / "Takupoke/MaterialAccess.swift").read_text()
+        control_source = (ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text()
+        program = '''import Foundation
+enum MaterialKind: String { case changes }
+enum MaterialError: Error { case cancelled, unavailable, invalidState }
+enum SimulatedError: Error { case disk }
+final class NSFileCoordinator { func cancel() {} }
+struct MaterialSource {}
+enum SelectedFilePresenter {
+    struct ReadReceipt { let acknowledge: () -> Void }
+}
+CONTROL
+final class MaterialLibrary {
+    enum Failure { case none, duringMigration, afterMigration, commit }
+    var failure = Failure.none
+    var currentDigest = "v1", checks = 0, commits = 0, acknowledgements = 0, cleanup = 0
+    let control = AcquisitionControl()
+    var state: MaterialLibrary { self }
+    var digest: String { currentDigest }
+    func record(for kind: MaterialKind) -> MaterialLibrary? { self }
+    func newStagingURL() -> URL { URL(fileURLWithPath: "/fictional-staging") }
+    func discardStaging(_ url: URL) { cleanup += 1 }
+    func captureLegacyChangeEdits(check: @escaping () throws -> Void) throws {
+        checks += 1
+        if failure == .duringMigration { control.cancel() }
+        try check()
+        if failure == .afterMigration { control.cancel() }
+    }
+    func commit(staged: URL, kind: MaterialKind, source: MaterialSource, originalName: String, byteCount: Int,
+                digest: String, modifiedAt: Date?, reuseUnchanged: Bool) throws {
+        commits += 1
+        if failure == .commit { throw SimulatedError.disk }
+        currentDigest = digest
+    }
+    func recordUnchanged(_ kind: MaterialKind, source: MaterialSource) throws {}
+    func recordFailure(_ kind: MaterialKind, message: String) throws {}
+}
+final class MaterialWorker {
+    let library: MaterialLibrary? = MaterialLibrary()
+    private typealias Acquisition = (source: MaterialSource, name: String, count: Int, digest: String,
+                                     modified: Date?, receipt: SelectedFilePresenter.ReadReceipt?)
+OUTCOME
+ACQUIRE
+    func run(to digest: String) throws {
+        let library = self.library!
+        try acquire(.changes, control: library.control, reuseUnchanged: true) { _ in
+            let receipt = SelectedFilePresenter.ReadReceipt {
+                precondition(library.currentDigest == digest)
+                library.acknowledgements += 1
+            }
+            return .downloaded((MaterialSource(), "fictional.xlsx", 5, digest, nil, receipt))
+        }
+    }
+}
+@main struct Probe {
+    static func main() throws {
+        for failure: MaterialLibrary.Failure in [.duringMigration, .afterMigration, .commit] {
+            let worker = MaterialWorker(), library = worker.library!
+            library.failure = failure
+            do { try worker.run(to: "v2"); preconditionFailure("Expected failure") }
+            catch let error as MaterialError {
+                precondition(error == (failure == .commit ? .unavailable : .cancelled))
+            }
+            precondition(library.currentDigest == "v1" && library.acknowledgements == 0)
+            precondition(library.control.acquiredProviderSources.isEmpty)
+            precondition(library.checks == 1 && library.cleanup == 1)
+            precondition(library.commits == (failure == .commit ? 1 : 0))
+        }
+        for digest in ["v1", "v2"] {
+            let worker = MaterialWorker(), library = worker.library!
+            try worker.run(to: digest)
+            precondition(library.currentDigest == digest && library.acknowledgements == 1)
+            precondition(library.control.acquiredProviderSources == ["changes"])
+            precondition(library.checks == (digest == "v1" ? 0 : 1) && library.commits == 1 && library.cleanup == 1)
+        }
+    }
+}
+'''.replace("CONTROL", block(control_source, "final class AcquisitionControl")) \
+           .replace("OUTCOME", block(access_source, "private enum AcquisitionOutcome")) \
+           .replace("ACQUIRE", block(access_source, "private func acquire(_"))
+        with tempfile.TemporaryDirectory(prefix="provider-commit-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(program)
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
+                            "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
+                            "-o", str(path / "probe")], check=True)
+            subprocess.run([str(path / "probe")], check=True, timeout=30)
+
     def test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
@@ -72,7 +164,7 @@ enum MaterialError: Error, LocalizedError {
     case unavailable
     var errorDescription: String? { "unavailable" }
 }
-final class AcquisitionControl {}
+final class AcquisitionControl { var acquiredProviderSources = Set<String>() }
 final class MaterialLibrary {
     var state = MaterialLibraryState()
     static func displayableTimetables(_ state: MaterialLibraryState) -> (state: MaterialLibraryState, rejected: Set<String>) { (state, []) }
@@ -91,7 +183,8 @@ final class MaterialWorker {
     var control: AcquisitionControl?, pdfURLs: [String: URL] = [:]
     var timetableReadReport: String?, timetableFailure: PDFParseError?
     let worker = MaterialWorker(), queue = DispatchQueue(label: "fictional-review-worker")
-    func updateFileMonitoring(retryFailed: Bool = false) {}
+    var observedAcquisitions = Set<String>()
+    func updateFileMonitoring(retryFailedFor acquired: Set<String>) { observedAcquisitions = acquired }
     func runPendingSelection() {}
     func runPendingFileRefresh() {}
 METHOD
@@ -102,8 +195,11 @@ METHOD
         func run(fails: Bool, close: Bool) async -> Bool {
             await withCheckedContinuation { continuation in
                 model.perform(success: "saved", completion: { continuation.resume(returning: $0) },
-                    preserveChangePreview: true, dismissChangePreviewOnSuccess: close) { _, _ in
-                    if fails { throw ChangeParseError() }
+                    preserveChangePreview: true, dismissChangePreviewOnSuccess: close) { _, control in
+                    if fails {
+                        control.acquiredProviderSources.insert("changes")
+                        throw ChangeParseError()
+                    }
                 }
                 precondition(model.changePreview?.marker == "reviewed")
             }
@@ -111,9 +207,11 @@ METHOD
         let failed = await run(fails: true, close: true)
         precondition(!failed && model.failed && !model.busy)
         precondition(model.message == "review-failed" && model.state.marker == "last-good")
+        precondition(model.observedAcquisitions == ["changes"])
         precondition(model.changePreview?.marker == "reviewed")
         let preserved = await run(fails: false, close: false)
         precondition(preserved && model.changePreview?.marker == "reviewed")
+        precondition(model.observedAcquisitions.isEmpty)
         let succeeded = await run(fails: false, close: true)
         precondition(succeeded && !model.failed && model.changePreview == nil && !model.busy)
     }

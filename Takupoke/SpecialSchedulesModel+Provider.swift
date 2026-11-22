@@ -2,16 +2,16 @@ import Foundation
 import CryptoKit
 
 extension SpecialSchedulesModel {
-    nonisolated static func copy(_ selection: ScopedMaterialSelection, to staged: URL,
-                                         control: AcquisitionControl) throws -> (String, Int, String) {
+    nonisolated static func copy(_ selection: ScopedMaterialSelection, to staged: URL, kind: SpecialScheduleKind,
+                                 control: AcquisitionControl) throws -> (name: String, count: Int, digest: String, receipt: SelectedFilePresenter.ReadReceipt) {
         try selection.access { url in
             try control.check()
-            let access = SelectedFilePresenter.readAccess(for: url)
+            let access = SelectedFilePresenter.readAccess(for: url, source: .init(rawValue: kind.rawValue))
             let coordinator = access.coordinator
             control.attach(coordinator)
             defer { control.attach(nil) }
             var error: NSError?
-            var result: Result<(String, Int, String), Error>?
+            var result: Result<(value: (String, Int, String), receipt: SelectedFilePresenter.ReadReceipt), Error>?
             coordinator.coordinate(readingItemAt: url, options: [], error: &error) { safeURL in
                 let copied = Result {
                     try control.check()
@@ -50,7 +50,8 @@ extension SpecialSchedulesModel {
             try control.check()
             if let error { throw error }
             guard let result else { throw MaterialError.unavailable }
-            return try result.get()
+            let read = try result.get()
+            return (read.value.0, read.value.1, read.value.2, read.receipt)
         }
     }
 }

@@ -42,7 +42,7 @@ final class SelectedFileMonitor {
         for id in Array(generations.keys) { stop(id) }
     }
 
-    func update(_ selected: [SelectedFileSource], retryFailed: Bool = true) {
+    func update(_ selected: [SelectedFileSource], retryFailedFor acquired: Set<String> = []) {
         observations.values.forEach { $0.refreshCompleted() }
         let next = Dictionary(uniqueKeysWithValues: selected.map { ($0.id, $0) })
         for id in sources.keys where sources[id] != next[id] { stop(id) }
@@ -51,7 +51,7 @@ final class SelectedFileMonitor {
         guard foreground, !suspended else { return }
         for source in selected {
             if previous[source.id] != source { start(source) }
-            else if retryFailed && registrations[source.id] == .failed {
+            else if acquired.contains(source.id), registrations[source.id] == .failed {
                 stop(source.id); start(source, initialRefresh: false)
             }
         }

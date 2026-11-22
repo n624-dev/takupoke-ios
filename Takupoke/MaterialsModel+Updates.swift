@@ -6,11 +6,11 @@ extension MaterialsModel {
         fileMonitor.setForeground(foreground)
     }
 
-    func updateFileMonitoring(retryFailed: Bool = false) {
+    func updateFileMonitoring(retryFailedFor acquired: Set<String>) {
         fileMonitor.update([MaterialKind.timetable, .changes].compactMap { kind in
             guard let source = state.record(for: kind)?.source, source.grant != nil else { return nil }
             return SelectedFileSource(id: kind.rawValue, grant: source.grant, childName: source.childName)
-        }, retryFailed: retryFailed)
+        }, retryFailedFor: acquired)
     }
 
     func runPendingFileRefresh() {

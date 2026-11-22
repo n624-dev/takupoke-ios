@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`85fb7ee76ccc2e8e35b0e4fa36bd5585c3d5a9d33fe4bf76141f3202ce98dccf`
+`7638d380b40521cdab7c445ff8595490196ae649e8609c5786f89afb87176d45`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -26,6 +26,7 @@ bash tools/test-parsing.sh
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
 - `test_recovered_timetable_clears_previous_error_only_after_commit`
+- `test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`
 - `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
 - `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
 - `test_actual_worker_records_failure_only_for_the_reviewed_original`
@@ -83,6 +84,7 @@ bash tools/test-parsing.sh
 
 ## [tests/ParsingTests+RowSkips.swift](../../tests/ParsingTests+RowSkips.swift)
 
+- `testCancellationWhileMigratingLegacyChangeEditsLeavesOriginalAndDecisionsIntact`
 - `testSuccessfulExclusionsCanBeReviewedAndExplicitlyRemovedWithWeekdayCorrection`
 - `testSkipAndExplicitWeekdayCorrectionReparseAllRemainingRowsAndRetainDecisions`
 - `testLegacyChangeIdentitySurvivesRenamedLocalCopyWithoutWeakeningStaleChecks`

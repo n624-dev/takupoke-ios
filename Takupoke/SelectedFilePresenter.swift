@@ -77,14 +77,20 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         coordinator?.cancel()
     }
 
-    @discardableResult
-    func recordContentVersion(at url: URL) -> Bool {
+    private func acknowledge(_ version: FileContentVersion?) {
         lock.lock()
         defer { lock.unlock() }
-        guard active else { return false }
-        let version = Self.contentVersion(at: url)
+        guard active else { return }
         contentGate.record(version)
-        return version != nil
+        FileRefreshDiagnostics.shared.record(version == nil ? .readVersionUnavailable : .readVersionRecorded,
+                                             source: diagnosticSource)
+    }
+
+    struct ReadReceipt {
+        fileprivate let presenter: SelectedFilePresenter?
+        fileprivate let version: FileContentVersion?
+
+        func acknowledge() { presenter?.acknowledge(version) }
     }
 
     func refreshCompleted() {
@@ -108,17 +114,13 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         let coordinator: NSFileCoordinator
         fileprivate let presenter: SelectedFilePresenter?
 
-        /// Call inside the coordinated accessor, after all source handles close.
-        /// A later external write cannot be mistaken for the bytes just read.
-        func read<T>(at url: URL, body: () throws -> T) rethrows -> T {
+        /// Capture the version inside coordination once source handles close.
+        /// The caller acknowledges it only after saving the selected source.
+        func read<T>(at url: URL, body: () throws -> T) rethrows -> (value: T, receipt: ReadReceipt) {
             do {
                 let result = try body()
-                if let presenter {
-                    let recorded = presenter.recordContentVersion(at: url)
-                    FileRefreshDiagnostics.shared.record(recorded ? .readVersionRecorded : .readVersionUnavailable,
-                                                         source: presenter.diagnosticSource)
-                }
-                return result
+                let version = presenter.flatMap { _ in SelectedFilePresenter.contentVersion(at: url) }
+                return (result, ReadReceipt(presenter: presenter, version: version))
             } catch {
                 presenter?.refreshCompleted()
                 throw error
@@ -126,12 +128,12 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         }
     }
 
-    static func readAccess(for url: URL) -> ReadAccess {
+    static func readAccess(for url: URL, source: FileRefreshDiagnostics.Source? = nil) -> ReadAccess {
         let presenter = NSFileCoordinator.filePresenters.compactMap { $0 as? SelectedFilePresenter }.first {
-            $0.presentedItemURL?.standardizedFileURL == url.standardizedFileURL
+            (source == nil || $0.diagnosticSource == source) && $0.presentedItemURL?.standardizedFileURL == url.standardizedFileURL
         }
         FileRefreshDiagnostics.shared.record(presenter == nil ? .coordinatorUnmatched : .coordinatorMatched,
-                                             source: presenter?.diagnosticSource)
+                                             source: source ?? presenter?.diagnosticSource)
         return ReadAccess(coordinator: NSFileCoordinator(filePresenter: presenter), presenter: presenter)
     }
 

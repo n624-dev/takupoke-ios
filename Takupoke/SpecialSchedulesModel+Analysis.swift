@@ -49,15 +49,18 @@ extension SpecialSchedulesModel {
                 if let selection, let staged {
                     diagnostics.record(.material)
                     diagnosticURL = staged
-                    let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
+                    let (name, count, digest, receipt) = try Self.copy(selection, to: staged, kind: kind, control: control)
                     sourceName = name
                     let grant = try selection.access { url in
                         SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
                             includingResourceValuesForKeys: nil, relativeTo: nil),
                             name: url.lastPathComponent, isFolder: false)
                     }
+                    try control.check()
                     try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                             byteCount: count, digest: digest, grant: grant)
+                    receipt.acknowledge()
+                    control.recordProviderAcquisition(kind.rawValue)
                 }
                 guard let source = store.sources[kind], let selectedURL = store.selectedURL(for: kind) else {
                     throw PDFParseError(code: .unreadable)

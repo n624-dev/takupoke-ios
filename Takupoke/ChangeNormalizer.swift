@@ -257,10 +257,11 @@ extension ChangeEditTable {
         normalizedDate(values, row: row, edit: edit, defaultYear: defaultYear).flatMap(ChangeNormalizer.weekday)
     }
 
-    func suggestedEdits(defaultYear: Int) -> [Int: ChangeRowEdit] {
+    func suggestedEdits(defaultYear: Int, check: () throws -> Void = {}) throws -> [Int: ChangeRowEdit] {
         guard let column = weekdayColumn else { return [:] }
         var edits: [Int: ChangeRowEdit] = [:]
         for number in rowIDs {
+            try check()
             let values = values(at: number, defaultYear: defaultYear)
             guard let date = normalizedDate(values, row: number, edit: ChangeRowEdit(), defaultYear: defaultYear),
                   canDeriveWeekday(row: number, column: column),
@@ -291,11 +292,13 @@ extension ChangeEditTable {
         return original.indices.contains(column) && weekdayOnly(original, row: row, column: column)
     }
 
-    func legacyEdits(weekday: Bool, excluded: Set<Int>, defaultYear: Int) -> [Int: ChangeRowEdit] {
+    func legacyEdits(weekday: Bool, excluded: Set<Int>, defaultYear: Int,
+                     check: () throws -> Void = {}) throws -> [Int: ChangeRowEdit] {
         var edits: [Int: ChangeRowEdit] = [:]
-        let suggestions = weekday ? suggestedEdits(defaultYear: defaultYear) : [:]
+        let suggestions = weekday ? try suggestedEdits(defaultYear: defaultYear, check: check) : [:]
         if let column = weekdayColumn {
             for (number, suggestion) in suggestions {
+                try check()
                 let values = values(at: number, defaultYear: defaultYear)
                 let issue = cellIssues[number]?[column]
                 if ChangeNormalizer.knownWeekday(values[column]), issue == nil || issue == .weekdayMismatch || issue == .formula {
@@ -303,7 +306,10 @@ extension ChangeEditTable {
                 }
             }
         }
-        for number in rowIDs where excluded.contains(number) { edits[number, default: ChangeRowEdit()].excluded = true }
+        for number in rowIDs where excluded.contains(number) {
+            try check()
+            edits[number, default: ChangeRowEdit()].excluded = true
+        }
         return edits
     }
 

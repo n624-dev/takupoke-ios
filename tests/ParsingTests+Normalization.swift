@@ -141,7 +141,7 @@ extension ParsingTests {
         let target = ["", "IT", "4/5", "不明", "架空教室A"]
         let other = ["4", "IT", "4/6", "", "架空教室B"]
         let old = ChangeEditTable(sheet: "架空", headers: headers, rows: [headers, target, other], headerRow: 1)
-        var edits = old.suggestedEdits(defaultYear: 2032)
+        var edits = try old.suggestedEdits(defaultYear: 2032)
         XCTAssertTrue(edits[2]?.deriveWeekday == true)
         edits[2, default: ChangeRowEdit()].values = [0: "3", 4: "架空教室C"]
         let records = try old.records(edits: edits, defaultYear: 2032)
@@ -276,7 +276,7 @@ extension ParsingTests {
         XCTAssertThrowsError(try table.records(edits: [2: edits[2]!, 3: edits[3]!, 4: ChangeRowEdit(excluded: true)], defaultYear: 2032))
         let old = ChangeEditTable(sheet: "架空", headers: headers, rows: [headers, ["3", "IT", "8/1", "月"], ["", "", "", "金"]], headerRow: 1)
         let weekday = ChangeNormalizer.weekday("2032-08-01")
-        let migrated = old.legacyEdits(weekday: true, excluded: [3], defaultYear: 2032)
+        let migrated = try old.legacyEdits(weekday: true, excluded: [3], defaultYear: 2032)
         XCTAssertEqual(migrated[2]?.deriveWeekday == true, weekday != "月")
         XCTAssertTrue(migrated[3]?.excluded == true)
     }
@@ -632,9 +632,9 @@ extension ParsingTests {
             let url = root.appendingPathComponent("weekdays.xlsx")
             try write(files, to: url)
             let original = try XLSXReader.editableWorkbook(url, layout: nil, check: {}).table
-            let skip = original.legacyEdits(weekday: false, excluded: [3], defaultYear: 2032)
+            let skip = try original.legacyEdits(weekday: false, excluded: [3], defaultYear: 2032)
             XCTAssertNil(skip[2])
-            XCTAssertNil(original.suggestedEdits(defaultYear: 2032)[2])
+            XCTAssertNil(try original.suggestedEdits(defaultYear: 2032)[2])
             XCTAssertEqual(try original.records(edits: skip, defaultYear: 2032).first?.class_name, "2_ZZ")
             var duplicate = original
             duplicate.headers.append("曜")
@@ -726,8 +726,8 @@ extension ParsingTests {
             let blocked = try damaged.review(edits: edits, defaultYear: 2032)
             XCTAssertEqual(blocked[2]?.first?.code, .mergedCells)
             XCTAssertTrue(blocked[3]?.contains(where: { $0.column == 2 && $0.code == .formula }) == true)
-            XCTAssertNil(damaged.suggestedEdits(defaultYear: 2032)[2])
-            XCTAssertNil(damaged.suggestedEdits(defaultYear: 2032)[3])
+            XCTAssertNil(try damaged.suggestedEdits(defaultYear: 2032)[2])
+            XCTAssertNil(try damaged.suggestedEdits(defaultYear: 2032)[3])
         }
     }
 }

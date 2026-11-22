@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`6845933a27fde9c91f00f6c7f3d24e3b7d63c6d5fb6ca63be73ea84fd549af97`
+`53058cee333204738994f700224d3faab15275b8e1c815e1cc11391679dc69fe`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -51,6 +51,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 - `testFailedRegistrationRetriesSameSourceWithoutInitialRefreshAndRejectsLateCallbacks`
 - `testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit`
 - `testFailedReadDoesNotAcknowledgeUnreadVersion`
+- `testCopiedVersionRemainsObservableUntilCommittedAndCannotHideNewerBytes`
 - `testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork`
 - `testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop`
 - `testBackgroundAndReselectionInvalidatePendingCallbacks`
@@ -68,6 +69,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/ParsingTests+RowSkips.swift](../../tests/ParsingTests+RowSkips.swift)
 
+- `testCancellationWhileMigratingLegacyChangeEditsLeavesOriginalAndDecisionsIntact`
 - `testSuccessfulExclusionsCanBeReviewedAndExplicitlyRemovedWithWeekdayCorrection`
 - `testSkipAndExplicitWeekdayCorrectionReparseAllRemainingRowsAndRetainDecisions`
 - `testLegacyChangeIdentitySurvivesRenamedLocalCopyWithoutWeakeningStaleChecks`
@@ -86,6 +88,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
 - `test_recovered_timetable_clears_previous_error_only_after_commit`
+- `test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`
 - `test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`
 - `test_actual_callbacks_preserve_rejected_preview_and_dispatch_accepted_action_once`
 - `test_actual_worker_records_failure_only_for_the_reviewed_original`

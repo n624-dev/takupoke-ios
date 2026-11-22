@@ -6,10 +6,10 @@ extension SpecialSchedulesModel {
         fileMonitor.setForeground(foreground)
     }
 
-    func updateFileMonitoring(retryFailed: Bool = false) {
+    func updateFileMonitoring(retryFailedFor acquired: Set<String>) {
         fileMonitor.update(SpecialScheduleKind.allCases.compactMap { kind in
             guard let source = sources[kind] else { return nil }
             return SelectedFileSource(id: kind.rawValue, grant: source.grant)
-        }, retryFailed: retryFailed)
+        }, retryFailedFor: acquired)
     }
 }

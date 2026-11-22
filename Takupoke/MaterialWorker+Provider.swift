@@ -23,15 +23,15 @@ extension MaterialWorker {
         return try selection.access(body)
     }
 
-    private func coordinated<T>(_ url: URL, control: AcquisitionControl,
-                                read: (URL) throws -> T) throws -> T {
+    private func coordinated<T>(_ url: URL, kind: MaterialKind, control: AcquisitionControl,
+                                read: (URL) throws -> T) throws -> (value: T, receipt: SelectedFilePresenter.ReadReceipt) {
         try control.check()
-        let access = SelectedFilePresenter.readAccess(for: url)
+        let access = SelectedFilePresenter.readAccess(for: url, source: .init(rawValue: kind.rawValue))
         let coordinator = access.coordinator
         control.attach(coordinator)
         defer { control.attach(nil) }
         var coordinationError: NSError?
-        var result: Result<T, Error>?
+        var result: Result<(value: T, receipt: SelectedFilePresenter.ReadReceipt), Error>?
         coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { safeURL in
             result = Result {
                 try access.read(at: safeURL) {
@@ -49,14 +49,15 @@ extension MaterialWorker {
     }
 
     func copyProviderFile(_ url: URL, to staged: URL, kind: MaterialKind,
-                                  control: AcquisitionControl) throws -> (Int, String, Date?) {
+                          control: AcquisitionControl) throws -> (count: Int, digest: String, modified: Date?, receipt: SelectedFilePresenter.ReadReceipt) {
         do {
-            return try coordinated(url, control: control) { file in
+            let read = try coordinated(url, kind: kind, control: control) { file in
                 let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey])
                 guard values.isRegularFile == true, values.isSymbolicLink != true else { throw MaterialError.invalidFile }
                 let result = try readMaterial(file, copyingTo: staged, kind: kind, control: control)
                 return (result.0, result.1, values.contentModificationDate)
             }
+            return (read.value.0, read.value.1, read.value.2, read.receipt)
         } catch {
             throw (error as? MaterialError) ?? MaterialError.providerReadFailed
         }

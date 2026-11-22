@@ -124,9 +124,9 @@ extension MaterialLibrary {
         if personal == nil {
             let weekday = record.source.weekdayConsent
             let skip = record.source.rowSkipConsent
-            view.edits = view.table.legacyEdits(weekday: weekday?.digest == record.digest && weekday?.defaultYear == year,
+            view.edits = try view.table.legacyEdits(weekday: weekday?.digest == record.digest && weekday?.defaultYear == year,
                 excluded: Set(skip?.identifies(sourceIdentity: identity, digest: record.digest, defaultYear: year) == true ? skip?.rows ?? [] : []),
-                defaultYear: year)
+                defaultYear: year, check: check)
         }
         return view
     }
@@ -138,7 +138,7 @@ extension MaterialLibrary {
               !view.requiresLayoutConfirmation, view.conflicts.isEmpty,
               !manual || view.baseline == ChangeEditBaseline(source: record.source) else { throw ChangeParseError(code: .staleConfirmation) }
         let records = try view.table.records(edits: edits, defaultYear: year, check: check)
-        let rows = try view.table.savedEdits(sourceIdentity: expectedIdentity, digest: expectedDigest, defaultYear: year, edits: edits)
+        let rows = try view.table.savedEdits(sourceIdentity: expectedIdentity, digest: expectedDigest, defaultYear: year, edits: edits, check: check)
         let personal = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: view.previous, reviewedDigest: record.digest)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName, defaultYear: year, parsedAt: Date(), records: records)
         analysis.sourceModifiedAt = record.sourceModifiedAt
@@ -178,15 +178,16 @@ extension MaterialLibrary {
     }
 
     /// Snapshot legacy permissions while the exact original XLSX is still on disk.
-    func captureLegacyChangeEdits() throws {
+    func captureLegacyChangeEdits(check: @escaping () throws -> Void = {}) throws {
         guard let i = state.records.firstIndex(where: { $0.kind == .changes }) else { return }
         let source = state.records[i]
         guard source.source.personalChanges == nil,
               let year = source.source.rowSkipConsent?.defaultYear ?? source.source.weekdayConsent?.defaultYear else { return }
-        let view = try changeEditor(year: year)
+        let view = try changeEditor(year: year, check: check)
         let rows = try view.table.savedEdits(sourceIdentity: source.source.selectionID ?? source.storedName,
-            digest: source.digest, defaultYear: year, edits: view.edits)
+            digest: source.digest, defaultYear: year, edits: view.edits, check: check)
         guard rows != nil else { return }
+        try check()
         var next = state
         next.records[i].source.personalChanges = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: [])
         try persist(next)

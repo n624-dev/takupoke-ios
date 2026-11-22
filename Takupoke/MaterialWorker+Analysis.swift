@@ -12,7 +12,7 @@ extension MaterialWorker {
             }
             if record.source.weekdayConsent.map({ $0.parserVersion < ChangeAnalysis.parserVersion }) == true ||
                 record.source.rowSkipConsent.map({ $0.parserVersion < ChangeAnalysis.parserVersion }) == true {
-                try library.captureLegacyChangeEdits()
+                try library.captureLegacyChangeEdits(check: check)
             }
             if let year = defaultYear, library.state.record(for: .changes)?.source.personalChanges?.year == year {
                 let view = try library.changeEditor(year: year, check: check)

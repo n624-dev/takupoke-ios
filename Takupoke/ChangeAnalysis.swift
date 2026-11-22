@@ -547,18 +547,24 @@ struct ChangeEditTable: Equatable {
     }
 
     func savedEdits(sourceIdentity: String, digest: String, defaultYear: Int,
-                    edits: [Int: ChangeRowEdit]) throws -> ChangeEdits? {
+                    edits: [Int: ChangeRowEdit], check: () throws -> Void = {}) throws -> ChangeEdits? {
+        try check()
         let active = edits.filter { !$0.value.isEmpty }
         guard !active.isEmpty else { return nil }
         let ids = rowIDs
         guard !sourceIdentity.isEmpty, !digest.isEmpty, Set(active.keys).isSubset(of: Set(ids)),
               active.values.allSatisfy({ $0.values.allSatisfy { headers.indices.contains($0.key) && $0.value.utf8.count <= 4096 } })
         else { throw ChangeParseError(code: .staleConfirmation) }
-        let groups = Dictionary(grouping: ids, by: original(at:))
+        var occurrencesByOriginal: [ChangeEdits.Original: Int] = [:]
+        for row in ids {
+            try check()
+            occurrencesByOriginal[original(at: row), default: 0] += 1
+        }
         let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
-        let entries = active.keys.sorted().compactMap { number -> ChangeEdits.Entry? in
+        let entries = try active.keys.sorted().compactMap { number -> ChangeEdits.Entry? in
+            try check()
             let key = original(at: number)
-            guard let occurrences = groups[key]?.count, let edit = active[number] else { return nil }
+            guard let occurrences = occurrencesByOriginal[key], let edit = active[number] else { return nil }
             let editedDate = dateColumn.flatMap { edit.values[$0] }
             let editedSerial = editedDate.map { ChangeNormalizer.matches(ChangeNormalizer.text($0), "^[0-9]+(?:\\.[0-9]+)?$") } == true
             return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit,
