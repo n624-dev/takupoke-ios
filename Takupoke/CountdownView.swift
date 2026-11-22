@@ -28,42 +28,73 @@ struct CountdownHomeSection: View {
 
 struct CountdownManagementView: View {
     private enum AddTarget: String, Identifiable { case school, manual; var id: String { rawValue } }
+    private enum StorageAction {
+        case reset, stopNotices
+
+        var title: String {
+            self == .reset ? "カウントダウンを初期化しますか？" : "予約済み通知を取り消しますか？"
+        }
+
+        var explanation: String {
+            self == .reset ? "元のファイルを端末内に保全し、空の一覧から再開します。予約済みのカウントダウン通知は取り消されます。"
+                : "カウントダウンの予約済み通知を取り消します。元のファイルは保持します。"
+        }
+    }
     @EnvironmentObject private var model: CountdownModel
     @ObservedObject var events: SchoolEventsModel
     @State private var adding: AddTarget?
+    @State private var storageAction = StorageAction.reset
+    @State private var confirmingStorageAction = false
     private var active: [CountdownCard] { model.cards.filter { !$0.isFinished(on: model.day) } }
     private var finished: [CountdownCard] { model.cards.filter { $0.isFinished(on: model.day) } }
 
     var body: some View {
         List {
             if let message = model.message { InlineWarning(message) }
-            Section {
-                NavigationLink {
-                    CountdownAutomaticEditor(automatic: model.library.automatic)
-                } label: {
-                    LabeledContent("試験の自動表示",
-                        value: model.library.automatic.enabled ? model.library.automatic.mode.label : "オフ")
-                }
-                .accessibilityIdentifier("countdown-automatic")
-                if model.library.automatic.enabled, model.cards.allSatisfy({ $0.id != CountdownAutomatic.identity }) {
-                    Text("自動で選んだ試験は、同じ行事の固定登録にまとめています。")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
-            if !active.isEmpty {
-                Section("予定") { rows(active) }
-            }
-            if !finished.isEmpty {
-                Section("終了済み") { rows(finished) }
-            }
-            if !model.isConfigured {
+            if model.storageState == .ready {
                 Section {
-                    Text("学校行事を選ぶか、日付を入力して予定を追加できます。")
-                        .foregroundStyle(.secondary)
+                    NavigationLink {
+                        CountdownAutomaticEditor(automatic: model.library.automatic)
+                    } label: {
+                        LabeledContent("試験の自動表示",
+                            value: model.library.automatic.enabled ? model.library.automatic.mode.label : "オフ")
+                    }
+                    .accessibilityIdentifier("countdown-automatic")
+                    if model.library.automatic.enabled, model.cards.allSatisfy({ $0.id != CountdownAutomatic.identity }) {
+                        Text("自動で選んだ試験は、同じ行事の固定登録にまとめています。")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
+                if !active.isEmpty {
+                    Section("予定") { rows(active) }
+                }
+                if !finished.isEmpty {
+                    Section("終了済み") { rows(finished) }
+                }
+                if !model.isConfigured {
+                    Section {
+                        Text("学校行事を選ぶか、日付を入力して予定を追加できます。")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else if model.storageState != .unloaded {
+                Section {
+                    if model.storageActionInProgress { ProgressView() }
+                    Button("読み込みを再試行", systemImage:"arrow.clockwise") { model.retryStorageLoad() }
+                    Button("予約済み通知を取り消す", systemImage:"bell.slash") {
+                        storageAction = .stopNotices; confirmingStorageAction = true
+                    }
+                    if model.storageState == .corrupt {
+                        Button("元のファイルを保全して初期化", role:.destructive) {
+                            storageAction = .reset; confirmingStorageAction = true
+                        }
+                    }
+                }
+                .disabled(model.storageActionInProgress)
             }
         }
         .navigationTitle("カウントダウン")
+        .task { model.load() }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -73,6 +104,7 @@ struct CountdownManagementView: View {
                     Label("予定を追加", systemImage: "plus")
                 }
                 .accessibilityIdentifier("countdown-add")
+                .disabled(model.storageState != .ready)
             }
         }
         .navigationDestination(item: $adding) { mode in
@@ -80,6 +112,16 @@ struct CountdownManagementView: View {
             case .school: CountdownEventPicker(events: events)
             case .manual: CountdownEditor()
             }
+        }
+        .confirmationDialog(storageAction.title, isPresented:$confirmingStorageAction, titleVisibility:.visible) {
+            switch storageAction {
+            case .reset:
+                Button("初期化", role:.destructive) { Task { await model.recoverCorruptStorage() } }
+            case .stopNotices:
+                Button("通知を取り消す", role:.destructive) { Task { await model.stopNoticesWhileStorageIsUnavailable() } }
+            }
+        } message: {
+            Text(storageAction.explanation)
         }
     }
 

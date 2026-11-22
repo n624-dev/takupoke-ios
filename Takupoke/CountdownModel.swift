@@ -5,6 +5,8 @@ import UserNotifications
 
 @MainActor
 final class CountdownModel: ObservableObject {
+    enum StorageState { case unloaded, ready, unavailable, corrupt }
+
     struct PublicEvent: Identifiable, Equatable {
         let reference: CountdownEventReference
         let dates: CountdownDates
@@ -16,6 +18,8 @@ final class CountdownModel: ObservableObject {
     @Published private(set) var cards: [CountdownCard] = []
     @Published private(set) var day = SchoolDate.today()
     @Published private(set) var message: String?
+    @Published private(set) var storageState = StorageState.unloaded
+    @Published private(set) var storageActionInProgress = false
     @Published private(set) var notificationStatuses: [CountdownNoticeTarget: String] = [:]
     @Published private(set) var publicEvents: [PublicEvent] = []
     @Published private(set) var automaticSchoolExams: [PublicEvent] = []
@@ -54,17 +58,71 @@ final class CountdownModel: ObservableObject {
     func notificationCard(for target: CountdownNoticeTarget) -> CountdownCard? { notificationCards[target] }
 
     func load() {
-        guard store == nil else { return }
+        guard store == nil, !storageActionInProgress else { return }
         do {
-            let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                                  appropriateFor: nil, create: true)
-            let store = CountdownStore(root: root)
+            let store = try openStore()
             library = try store.load()
             self.store = store
+            storageState = .ready
             message = nil
         } catch {
-            message = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"
+            let state: StorageState
+            if case CountdownStore.ReadError.corrupt = error { state = .corrupt }
+            else { state = .unavailable }
+            if storageState != state {
+                storageState = state
+                message = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"
+            }
         }
+    }
+
+    func retryStorageLoad() {
+        load()
+        if storageState == .ready { onChange?() }
+    }
+
+    func recoverCorruptStorage() async {
+        guard storageState == .corrupt, !storageActionInProgress else { return }
+        storageActionInProgress = true
+        do {
+            let store = try openStore()
+            try store.preserveCorruptFileAndReset()
+            await removeUnavailableStorageNotices()
+            self.store = store
+            library = CountdownLibrary()
+            storageState = .ready
+            message = "元のファイルを保全して、カウントダウンを初期化しました。"
+            storageActionInProgress = false
+            onChange?()
+        } catch CountdownStore.ReadError.noLongerCorrupt {
+            storageActionInProgress = false
+            retryStorageLoad()
+        } catch {
+            storageActionInProgress = false
+            message = "初期化できませんでした。元のファイルを保持しています。"
+        }
+    }
+
+    func stopNoticesWhileStorageIsUnavailable() async {
+        guard storageState == .unavailable || storageState == .corrupt, !storageActionInProgress else { return }
+        storageActionInProgress = true
+        await removeUnavailableStorageNotices()
+        storageActionInProgress = false
+        message = "予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"
+    }
+
+    private func removeUnavailableStorageNotices() async {
+        revision = UUID()
+        request = nil
+        await worker?.value
+        let pending = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(CountdownNotice.prefix) }
+        center.removePendingNotificationRequests(withIdentifiers:pending)
+    }
+
+    private func openStore() throws -> CountdownStore {
+        let root = try FileManager.default.url(for:.applicationSupportDirectory,in:.userDomainMask,
+                                               appropriateFor:nil,create:true)
+        return CountdownStore(root:root)
     }
 
     @discardableResult

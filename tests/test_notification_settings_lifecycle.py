@@ -9,10 +9,90 @@ import subprocess
 import tempfile
 import unittest
 
+from test_manual_input_lifecycle import block
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_countdown_storage_actions_remove_only_owned_pending_notifications(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production storage recovery actions")
+        source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        prefix = next(line for line in (ROOT / "Takupoke/Countdown.swift").read_text(encoding="utf-8").splitlines()
+                      if line.startswith('    static let prefix = "takupoke.countdown.'))
+        program = r'''import Foundation
+enum CountdownNotice {
+PREFIX
+}
+struct CountdownLibrary {}
+final class CountdownStore {
+    enum ReadError: Error { case noLongerCorrupt, corrupt }
+    var fails = false, writes = 0
+    func preserveCorruptFileAndReset() throws {
+        if fails { throw CocoaError(.fileWriteOutOfSpace) }
+        writes += 1
+    }
+}
+@MainActor final class FakeCenter {
+    struct Request { var identifier: String }
+    var state = ["takupoke.countdown.personal.example", "takupoke.countdown.private.example", "takupoke.materials", "takupoke.countdown-other"]
+    var reads = 0
+    func pendingNotificationRequests() async -> [Request] {
+        reads += 1
+        return state.map { Request(identifier: $0) }
+    }
+    func removePendingNotificationRequests(withIdentifiers ids: [String]) { state.removeAll(where: ids.contains) }
+}
+@MainActor final class Harness {
+    STATE
+    let center = FakeCenter(), availableStore = CountdownStore()
+    var store: CountdownStore?, library = CountdownLibrary(), message: String?
+    var storageState = StorageState.unavailable, storageActionInProgress = false
+    var onChange: (() -> Void)?, revision = UUID(), request: Int? = 1, worker: Task<Void, Never>?
+    func openStore() throws -> CountdownStore { availableStore }
+    func retryStorageLoad() {}
+    RECOVER
+    STOP
+    REMOVE
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        let unchanged = ["takupoke.materials", "takupoke.countdown-other"]
+        let stop = Harness()
+        await stop.stopNoticesWhileStorageIsUnavailable()
+        precondition(stop.center.state == unchanged && stop.center.reads == 1)
+        precondition(stop.request == nil && !stop.storageActionInProgress && stop.storageState == .unavailable)
+        precondition(stop.availableStore.writes == 0)
+
+        let reset = Harness()
+        await reset.recoverCorruptStorage()
+        precondition(reset.center.reads == 0 && reset.availableStore.writes == 0)
+        reset.storageState = .corrupt
+        reset.availableStore.fails = true
+        await reset.recoverCorruptStorage()
+        precondition(reset.storageState == .corrupt && !reset.storageActionInProgress && reset.center.reads == 0)
+        reset.availableStore.fails = false
+        var callbacks = 0
+        reset.onChange = {
+            precondition(reset.storageState == .ready && !reset.storageActionInProgress)
+            precondition(reset.center.state == unchanged)
+            callbacks += 1
+        }
+        await reset.recoverCorruptStorage()
+        precondition(callbacks == 1 && reset.availableStore.writes == 1 && reset.center.reads == 1)
+        await reset.stopNoticesWhileStorageIsUnavailable()
+        precondition(reset.center.reads == 1)
+    }
+}
+'''.replace("PREFIX", prefix) \
+           .replace("STATE", block(source, "enum StorageState")) \
+           .replace("RECOVER", block(source, "func recoverCorruptStorage()")) \
+           .replace("STOP", block(source, "func stopNoticesWhileStorageIsUnavailable()")) \
+           .replace("REMOVE", block(source, "private func removeUnavailableStorageNotices()"))
+        self.run_probe(compiler, program)
+
     def test_authorization_bridge_requires_one_real_callback_and_preserves_denial_and_errors(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

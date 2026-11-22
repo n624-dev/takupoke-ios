@@ -223,6 +223,58 @@ final class CountdownTests: XCTestCase {
         try SchoolDataRetention(root: root).replace(with: SchoolDataPeriod(day: day("2032-10-01")))
         XCTAssertEqual(try store.load(), library)
     }
+
+    func testCountdownRecoveryPreservesCorruptBytesAndInstallsWritableLibrary() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:root, withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let dataFile = root.appendingPathComponent("Countdown.json")
+        let store = CountdownStore(root:root)
+        XCTAssertEqual(try store.load(),CountdownLibrary())
+        let registration = CountdownRegistration(id:UUID(),target:.personal(dates("架空の予定", "2032-04-01")))
+        try store.save(CountdownLibrary(registrations:[registration]))
+        let corrupt = Data("{".utf8)
+        try corrupt.write(to:dataFile,options:.atomic)
+        let reopened = CountdownStore(root:root)
+        XCTAssertThrowsError(try reopened.load()) { error in
+            guard case CountdownStore.ReadError.corrupt = error else { return XCTFail("Expected corrupt content") }
+        }
+        XCTAssertEqual(try Data(contentsOf:dataFile),corrupt)
+        try reopened.preserveCorruptFileAndReset()
+        XCTAssertEqual(try reopened.load(),CountdownLibrary())
+        let backup = try XCTUnwrap(FileManager.default.contentsOfDirectory(at:root, includingPropertiesForKeys:nil)
+            .first { $0.lastPathComponent.hasPrefix("Countdown-Recovery-") })
+        XCTAssertEqual(try Data(contentsOf:backup),corrupt)
+        try reopened.save(CountdownLibrary(registrations:[registration]))
+        XCTAssertEqual(try CountdownStore(root:root).load().registrations,[registration])
+        XCTAssertThrowsError(try reopened.preserveCorruptFileAndReset())
+        XCTAssertEqual(try reopened.load().registrations,[registration])
+    }
+
+    func testCountdownResetRejectsTemporaryAccessFailureAndFutureFormats() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:root, withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let dataFile = root.appendingPathComponent("Countdown.json")
+        let stored = root.appendingPathComponent("fictional.json")
+        let store = CountdownStore(root:root)
+        try store.save(CountdownLibrary())
+        try FileManager.default.moveItem(at:dataFile,to:stored)
+        try FileManager.default.createSymbolicLink(at:dataFile,withDestinationURL:stored)
+        XCTAssertThrowsError(try store.load())
+        XCTAssertThrowsError(try store.preserveCorruptFileAndReset())
+        try FileManager.default.removeItem(at:dataFile)
+        try FileManager.default.moveItem(at:stored,to:dataFile)
+        XCTAssertEqual(try store.load(),CountdownLibrary())
+        let future = Data(#"{"version":2,"differentShape":true}"#.utf8)
+        try future.write(to:dataFile,options:.atomic)
+        XCTAssertThrowsError(try store.load()) { error in
+            guard case CountdownStore.ReadError.unsafeFile = error else { return XCTFail("Expected unsupported format") }
+        }
+        XCTAssertThrowsError(try store.preserveCorruptFileAndReset())
+        XCTAssertEqual(try Data(contentsOf:dataFile),future)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path),["Countdown.json"])
+    }
 }
 
 extension CountdownTests {

@@ -363,19 +363,64 @@ struct CountdownNotice: Equatable {
 }
 
 struct CountdownStore {
+    enum ReadError: Error { case corrupt, unsafeFile, noLongerCorrupt }
+    private struct LibraryVersion: Decodable { let version: Int }
+
     private let path: URL
     private static let maximumBytes = 2_000_000
     init(root: URL) { path = root.appendingPathComponent("Countdown.json") }
 
     func load() throws -> CountdownLibrary {
-        guard FileManager.default.fileExists(atPath: path.path) else { return .init() }
-        let info = try path.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard let bytes = try storedBytes() else { return .init() }
+        return try decode(bytes)
+    }
+
+    /// Preserve the unreadable original before installing an empty library.
+    func preserveCorruptFileAndReset() throws {
+        guard let bytes = try storedBytes() else { throw ReadError.noLongerCorrupt }
+        do {
+            _ = try decode(bytes)
+            throw ReadError.noLongerCorrupt
+        } catch ReadError.corrupt {}
+        let backup = path.deletingLastPathComponent().appendingPathComponent("Countdown-Recovery-\(UUID().uuidString).json")
+        try Self.write(bytes, to:backup)
+        do { try save(.init()) }
+        catch {
+            try? FileManager.default.removeItem(at:backup)
+            throw error
+        }
+    }
+
+    private func storedBytes() throws -> Data? {
+        let info: URLResourceValues
+        do { info = try path.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey,.fileSizeKey]) }
+        catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return nil }
         guard info.isRegularFile == true, info.isSymbolicLink != true,
-              let size = info.fileSize, size <= Self.maximumBytes else { throw CocoaError(.fileReadCorruptFile) }
-        let bytes = try Data(contentsOf: path)
-        guard bytes.count <= Self.maximumBytes else { throw CocoaError(.fileReadCorruptFile) }
-        let value = try JSONDecoder().decode(CountdownLibrary.self, from: bytes)
-        guard value.valid else { throw CocoaError(.fileReadCorruptFile) }
+              let size = info.fileSize, size <= Self.maximumBytes else { throw ReadError.unsafeFile }
+        let handle = try FileHandle(forReadingFrom:path)
+        defer { try? handle.close() }
+        var bytes = Data()
+        while let chunk = try handle.read(upToCount:65_536), !chunk.isEmpty {
+            guard bytes.count + chunk.count <= Self.maximumBytes else { throw ReadError.unsafeFile }
+            bytes.append(chunk)
+        }
+        return bytes
+    }
+
+    private func decode(_ bytes: Data) throws -> CountdownLibrary {
+        let supportedVersion = CountdownLibrary().version
+        let decoder = JSONDecoder()
+        let value: CountdownLibrary
+        do { value = try decoder.decode(CountdownLibrary.self, from:bytes) }
+        catch is DecodingError {
+            if let known = try? decoder.decode(LibraryVersion.self, from:bytes), known.version > supportedVersion {
+                throw ReadError.unsafeFile
+            }
+            throw ReadError.corrupt
+        }
+        // An installation running an older app must preserve future settings.
+        guard value.version == supportedVersion else { throw ReadError.unsafeFile }
+        guard value.valid else { throw ReadError.corrupt }
         return value
     }
 
@@ -383,10 +428,14 @@ struct CountdownStore {
         guard library.valid else { throw CocoaError(.fileWriteInapplicableStringEncoding) }
         let bytes = try JSONEncoder().encode(library)
         guard bytes.count <= Self.maximumBytes else { throw CocoaError(.fileWriteOutOfSpace) }
+        try Self.write(bytes, to:path)
+    }
+
+    private static func write(_ bytes: Data, to destination: URL) throws {
         #if os(iOS)
-        try bytes.write(to: path, options: [.atomic, .completeFileProtection])
+        try bytes.write(to:destination, options:[.atomic,.completeFileProtection])
         #else
-        try bytes.write(to: path, options: .atomic)
+        try bytes.write(to:destination, options:.atomic)
         #endif
     }
 }
