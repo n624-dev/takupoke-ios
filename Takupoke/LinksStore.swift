@@ -68,8 +68,11 @@ final class LinkPreferencesStore {
     }
 
     func save(_ preferences: LinkPreferences) throws {
-        guard preferences.colorOverrides.values.allSatisfy(LinksPayload.colors.contains) else {
-            throw LinksError.invalidResponse
+        let unsupported = preferences.colorOverrides.filter { !LinksPayload.colors.contains($0.value) }
+        if !unsupported.isEmpty {
+            // Carry forward an opaque saved color without accepting any new unsupported value.
+            let original = try load().colorOverrides
+            guard unsupported.allSatisfy({ original[$0.key] == $0.value }) else { throw LinksError.invalidResponse }
         }
         defaults.set(try JSONEncoder().encode(preferences), forKey: key)
     }

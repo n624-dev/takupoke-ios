@@ -96,6 +96,35 @@ struct MappingService {
         cancelled.cancel()
         let cancelledResult = await cancelled.value
         check(cancelledResult == nil, "a cancelled search does not publish results")
+
+        let currentLink = fictional("fictional-second").payload.categories[0].buttons[0]
+        var unreadableColors = stored
+        unreadableColors.colorOverrides["fictional-removed"] = "fictional-old-color"
+        unreadableColors.colorOverrides[currentLink.id] = "fictional-invalid-color"
+        let original = try JSONEncoder().encode(unreadableColors)
+        defaults.set(original,forKey:"linkPreferences.v1")
+        model.reloadPreferences()
+        check(model.preferencesReady && model.preferencesError == nil, "otherwise valid settings load")
+        check(model.color(for:currentLink) == currentLink.color, "an unsupported override uses the link's original color")
+        check(defaults.data(forKey:"linkPreferences.v1") == original, "loading does not rewrite old color data")
+        model.toggleFavorite("fictional-third")
+        model.hide("fictional-third")
+        model.setColor("blue",for:"fictional-third")
+        let savedAfterOtherLink = try store.load()
+        check(model.preferencesError == nil, "an obsolete color does not block unrelated saves")
+        check(savedAfterOtherLink.favoriteIDs == stored.favoriteIDs.union(["fictional-third"]), "old and new favorites persist")
+        check(savedAfterOtherLink.hiddenIDs == stored.hiddenIDs.union(["fictional-third"]), "old and new hidden links persist")
+        check(savedAfterOtherLink.colorOverrides == unreadableColors.colorOverrides.merging(["fictional-third":"blue"]) { old,_ in old },
+              "both existing invalid values and valid colors survive the unrelated save")
+        var invalidChange = savedAfterOtherLink
+        invalidChange.colorOverrides["fictional-removed"] = "fictional-new-invalid-color"
+        do { try store.save(invalidChange); check(false,"new unsupported values must be rejected") }
+        catch LinksError.invalidResponse {}
+        check(try store.load() == savedAfterOtherLink, "rejected color does not change storage")
+        model.setColor("blue",for:currentLink.id)
+        model.reloadPreferences()
+        check(model.color(for:currentLink) == "blue", "choosing a new supported color works after reload")
+        check(model.preferences.colorOverrides["fictional-removed"] == "fictional-old-color", "unrelated historic color is retained")
         check(failures.isEmpty, "all preference and search lifecycle assertions")
         if !failures.isEmpty { exit(1) }
         print("Production link preferences: revision, repair and edit persistence passed.")
