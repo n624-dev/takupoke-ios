@@ -260,8 +260,11 @@ enum RecoveryDocumentBuilder {
                 }
             }
             let referenceBoxes = try grid.lessonBoxes(rows:vertical.compactMap(\.row),columns:periodRow.map(\.cx),check:check)
-            let rasterRules = try fromOCR.contains(number) ? RecoveryRasterGrid.coverageRules(page.lines,
-                rows:vertical.compactMap(\.row),cells:referenceBoxes,check:check) : page.lines
+            let rasterRules: [PDFRule]
+            if fromOCR.contains(number), let raster = rasters[number] {
+                rasterRules = try raster.coverageRules(page.lines, rows:vertical.compactMap(\.row),
+                                                       cells:referenceBoxes,check:check)
+            } else { rasterRules = page.lines }
             let pageRaster = try rasters[number]?.preparingRules(rasterRules,check:check)
             // Build logical cells, preserving short horizontal divisions as parallel lessons.
             for v in vertical {
@@ -413,7 +416,7 @@ enum RecoveryDocumentBuilder {
                         cell.lessonBindings = bindings
                         cell.confirmedEmpty = try cell.sourceIds.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(cell.box,rules:rasterRules,check:check) == true)
                         cell.parallelCount = max(1,cell.bindingMode == .fixed ? bindings.count : cell.roleScopes.count/3)
-                        guard cell.confirmedEmpty || !cell.sourceIds.isEmpty else { throw PDFParseError(code:.ambiguous) }
+                        guard cell.confirmedEmpty || !cell.sourceIds.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                         if fromOCR.contains(number) {
                             guard let raster = pageRaster, try !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical,check:check).map { try box([$0]) },rules:rasterRules,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                         }

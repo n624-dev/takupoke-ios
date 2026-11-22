@@ -140,7 +140,7 @@ extension PDFParsingTests {
         }
         for glyph in layout.glyphs { base[Int(glyph.cy)*width+Int(glyph.cx)] = 0 }
 
-        enum Ink: CaseIterable { case blank, divider, closed, open }
+        enum Ink: CaseIterable { case blank, divider, closed, open, rowHeight }
         for ink in Ink.allCases {
             var pixels = base
             switch ink {
@@ -154,6 +154,9 @@ extension PDFParsingTests {
                 let top = ink == .closed ? 200 : 207
                 for y in top...225 { pixels[y*width+196] = 0 }
                 for y in 200...225 { pixels[y*width+221] = 0 }
+            case .rowHeight:
+                for x in 196...221 { pixels[194*width+x] = 0; pixels[294*width+x] = 0 }
+                for y in 194...294 { pixels[y*width+196] = 0; pixels[y*width+221] = 0 }
             }
             let raster = RecoveryRasterGrid(width:width,height:height,grayscale:pixels)
             layout.lines = try raster.rules(check:{})
@@ -161,12 +164,18 @@ extension PDFParsingTests {
             if ink == .closed {
                 XCTAssertTrue(layout.lines.contains { $0.horizontal && $0.y1 == 200 && $0.x1 == 196 && $0.x2 == 221 })
             }
+            if ink == .rowHeight {
+                XCTAssertTrue(layout.lines.contains { $0.horizontal && $0.y1 == 194 && $0.x1 == 196 && $0.x2 == 221 })
+            }
             func build() throws -> RecoveryDocument {
                 try RecoveryDocumentBuilder.build([layout],kind:.timetable,hash:String(repeating:"b",count:64),
                     fromOCR:[1],rasters:[1:raster])
             }
-            if ink == .closed || ink == .open {
-                XCTAssertThrowsError(try build()) { XCTAssertEqual(($0 as? PDFParseError)?.code,.ambiguous) }
+            if ink == .closed || ink == .open || ink == .rowHeight {
+                XCTAssertThrowsError(try build(), "\(ink)") {
+                    XCTAssertEqual(($0 as? PDFParseError)?.code,.ambiguous)
+                    XCTAssertEqual(($0 as? PDFParseError)?.stage,.rasterInput)
+                }
             } else {
                 let document = try build()
                 XCTAssertEqual(document.requiredSlots.count,80)
@@ -178,6 +187,41 @@ extension PDFParsingTests {
                 XCTAssertEqual(result.cells.first { $0.cellId == cell.id }?.state,.empty)
             }
         }
+    }
+
+    func testOCRRuleMaskRequiresIndependentRowBoundariesEvenForTallOrCrossingShapes() throws {
+        let row = PDFBox(left: 16, top: 40, right: 40, bottom: 144)
+        let nextRow = PDFBox(left: 16, top: 144, right: 40, bottom: 248)
+        let cells = [PDFBox(left: 40, top: 40, right: 72, bottom: 144),
+                     PDFBox(left: 72, top: 40, right: 104, bottom: 144),
+                     PDFBox(left: 40, top: 144, right: 104, bottom: 248)]
+        let top = PDFRule(x1:16,y1:40,x2:104,y2:40), bottom = PDFRule(x1:16,y1:144,x2:104,y2:144)
+        let footer = PDFRule(x1:16,y1:248,x2:104,y2:248)
+        let rails = [40.0,72.0,104.0].map { PDFRule(x1:$0,y1:20,x2:$0,y2:$0 == 72 ? 144:248) }
+        let divider = PDFRule(x1:39,y1:92,x2:72,y2:92), classDivider = PDFRule(x1:16,y1:72,x2:40,y2:72)
+        let table = [top,bottom,footer,divider,classDivider] + rails
+        let shape = [PDFRule(x1:45,y1:42,x2:70,y2:42), PDFRule(x1:45,y1:142,x2:70,y2:142),
+                     PDFRule(x1:45,y1:42,x2:45,y2:142), PDFRule(x1:70,y1:42,x2:70,y2:142)]
+        let crossing = [PDFRule(x1:64,y1:30,x2:64,y2:66), PDFRule(x1:35,y1:110,x2:64,y2:110)]
+        let unconnectedInNextRow = PDFRule(x1:40,y1:180,x2:72,y2:180)
+        let width = 125, height = 270
+        var pixels = [UInt8](repeating:255,count:width*height)
+        for rule in table + shape + crossing + [unconnectedInNextRow] {
+            if rule.horizontal {
+                for x in Int(rule.x1)...Int(rule.x2) { pixels[Int(rule.y1)*width+x] = 0 }
+            } else {
+                for y in Int(rule.y1)...Int(rule.y2) { pixels[y*width+Int(rule.x1)] = 0 }
+            }
+        }
+        let raster = RecoveryRasterGrid(width:width,height:height,grayscale:pixels)
+        let extendedShape = shape.map { rule in
+            rule.vertical ? PDFRule(x1:rule.x1,y1:40,x2:rule.x2,y2:144) : rule
+        }
+        let spuriousCells = cells + [PDFBox(left:45,top:42,right:70,bottom:142)]
+        let accepted = try raster.coverageRules(table + extendedShape + crossing + [unconnectedInNextRow],
+                                               rows:[row,nextRow],cells:spuriousCells,check:{})
+        let points: (PDFRule) -> [Double] = { [$0.x1,$0.y1,$0.x2,$0.y2] }
+        XCTAssertEqual(accepted.map(points),table.map(points))
     }
 
     func testOCRRecoveryRejectsUnobservedAnnotationInkOutsideRecognizedCells() throws {

@@ -10,24 +10,58 @@ struct RecoveryRasterGrid: Sendable {
 
     /// Inside the lesson table, only strokes tied to confirmed period edges
     /// can hide ink. A closed glyph can connect its own four sides.
-    static func coverageRules(_ candidates: [PDFRule], rows: [PDFBox], cells: [PDFBox],
-                              check: () throws -> Void) throws -> [PDFRule] {
+    func coverageRules(_ candidates: [PDFRule], rows: [PDFBox], cells: [PDFBox],
+                       check: () throws -> Void) throws -> [PDFRule] {
+        guard validPixels else { throw PDFParseError(code:.limit) }
         guard let top = rows.map(\.top).min(), let bottom = rows.map(\.bottom).max(),
               let left = cells.map(\.left).min(), let right = cells.map(\.right).max() else { return [] }
-        let periodEdges = try Set(candidates.compactMap { rule -> Double? in
-            try check()
-            guard rule.vertical, left-2 <= rule.x1, rule.x1 <= right+2,
-                  rows.contains(where:{ rule.y1 <= $0.top+2 && rule.y2 >= $0.bottom-2 }) else { return nil }
-            return rule.x1
-        })
-        func meetsPeriodEdge(_ x: Double) -> Bool { periodEdges.contains { abs($0 - x) <= 2 } }
-        return try candidates.filter { rule in
-            try check()
-            guard min(rule.x1,rule.x2) >= left, max(rule.x1,rule.x2) <= right,
-                  min(rule.y1,rule.y2) >= top, max(rule.y1,rule.y2) <= bottom else { return true }
-            if rule.vertical { return meetsPeriodEdge(rule.x1) }
-            return rule.horizontal && meetsPeriodEdge(rule.x1) && meetsPeriodEdge(rule.x2)
+        let cellEdges = Set(cells.flatMap { [$0.left,$0.right] })
+        let rowEdges = Set(rows.flatMap { [$0.top,$0.bottom] })
+        func touches(_ x: Double, rowEdge: Double, direction: Int) -> Bool {
+            let edge = Int(rowEdge.rounded())
+            // A half-pixel center can represent two dark lanes. Do not let a
+            // candidate borrow pixels from an adjacent, independent rail.
+            return (Int(x.rounded(.down))...Int(x.rounded(.up))).contains { column in
+                (0..<width).contains(column) && (0...2).allSatisfy { distance in
+                    let line = edge + distance * direction
+                    return (0..<height).contains(line) && dark(column,line)
+                }
+            }
         }
+        // Rule extraction may extend a detected stroke to link nearby lanes.
+        // Check the actual pixels at both row boundaries before masking its ink.
+        let supportedRails = try Set(candidates.indices.filter { index in
+            try check()
+            let rule = candidates[index]
+            return rule.vertical && cellEdges.contains { abs($0-rule.x1) <= 0.8 } && rows.contains {
+                rule.y1 <= $0.top+0.8 && rule.y2 >= $0.bottom-0.8 &&
+                touches(rule.x1,rowEdge:$0.top,direction:1) && touches(rule.x1,rowEdge:$0.bottom,direction:-1)
+            }
+        })
+        func meetsPeriodEdge(_ x: Double, at y: Double) -> Bool {
+            supportedRails.contains { index in
+                let rail = candidates[index]
+                return abs(rail.x1-x) <= 2 && rail.y1-0.8 <= y && y <= rail.y2+0.8
+            }
+        }
+        let accepted = try candidates.indices.filter { index in
+            try check()
+            let rule = candidates[index]
+            guard max(rule.x1,rule.x2) >= left, min(rule.x1,rule.x2) <= right,
+                  max(rule.y1,rule.y2) >= top, min(rule.y1,rule.y2) <= bottom else { return true }
+            if rule.vertical {
+                return rule.y2 <= top || rule.y1 >= bottom || supportedRails.contains(index)
+            }
+            guard rule.horizontal else { return false }
+            // Treat contact at a border as outside, while allowing a small
+            // detector overshoot where both ends meet rails at this height.
+            if rule.x2 <= left || rule.x1 >= right { return true }
+            let crossesOuterEdge = rule.x1 < left-2 || rule.x2 > right+2
+            let isRowEdge = rowEdges.contains { abs($0-rule.y1) <= 0.8 }
+            return (!crossesOuterEdge || isRowEdge) &&
+                meetsPeriodEdge(max(left,rule.x1),at:rule.y1) && meetsPeriodEdge(min(right,rule.x2),at:rule.y1)
+        }
+        return accepted.map { candidates[$0] }
     }
 
     func preparingRules(_ rules: [PDFRule], check: () throws -> Void = {}) throws -> Self {
