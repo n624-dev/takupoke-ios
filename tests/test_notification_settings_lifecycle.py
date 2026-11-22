@@ -15,6 +15,51 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_explicit_countdown_authorization_starts_without_a_settings_read(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production countdown permission action")
+        source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        action = block(source, "func notificationPermission()")
+        program = r'''import Foundation
+final class Center {
+    enum Authorization { case notDetermined }
+    let authorizationStatus = Authorization.notDetermined
+    var requests = 0, settingsReads = 0
+    var response: Result<Bool,CocoaError> = .success(true)
+}
+@MainActor enum ScheduleNotifications {
+    static func notificationSettings(from center:Center) async -> Center {
+        center.settingsReads += 1
+        return center
+    }
+    static func requestAuthorization(from center:Center) async throws -> Bool {
+        center.requests += 1
+        return try center.response.get()
+    }
+}
+@MainActor final class CountdownProbe {
+    let center = Center()
+    var message: String?
+ACTION
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        for granted in [false,true] {
+            let model = CountdownProbe()
+            model.center.response = .success(granted)
+            await model.notificationPermission()
+            precondition(model.center.requests == 1 && model.center.settingsReads == 0 && model.message == nil)
+        }
+        let failure = CountdownProbe()
+        failure.center.response = .failure(CocoaError(.fileReadUnknown))
+        await failure.notificationPermission()
+        precondition(failure.center.requests == 1 && failure.center.settingsReads == 0 && failure.message != nil)
+    }
+}
+'''.replace("ACTION", action)
+        self.run_probe(compiler, program)
+
     def test_countdown_storage_actions_remove_only_owned_pending_notifications(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

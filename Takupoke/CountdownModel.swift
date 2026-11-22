@@ -310,11 +310,10 @@ final class CountdownModel: ObservableObject {
     }
 
     func notificationPermission() async {
-        let settings = await ScheduleNotifications.notificationSettings(from: center)
-        if settings.authorizationStatus == .notDetermined {
-            do { _ = try await ScheduleNotifications.requestAuthorization(from: center) }
-            catch { message = "通知の許可を確認できません。端末の通知設定を確認してください。" }
-        }
+        // This runs after explicitly enabling notifications in an editor. The
+        // system remembers its prior answer and presents only the first request.
+        do { _ = try await ScheduleNotifications.requestAuthorization(from: center) }
+        catch { message = "通知の許可を確認できません。端末の通知設定を確認してください。" }
     }
 
     func expirePrivateNotices(removeDelivered: Bool) async {
