@@ -189,7 +189,8 @@ struct SimulatorApplication: App {
                             }
                             .accessibilityIdentifier("fixture-countdown-route-existing")
                             Button("対象のない架空通知を開く") {
-                                let id = Self.secondCountdownNoticeID
+                                // This fixed target is deliberately never registered.
+                                let id = UUID(uuidString:"4ccfacb8-6ce2-4cc2-a414-b67490b3975c")!
                                 ApplicationData.shared.notifications.openedCountdown = .init(target:.init(id:id,key:id.uuidString))
                             }
                             .accessibilityIdentifier("fixture-countdown-route-missing")

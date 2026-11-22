@@ -8,27 +8,35 @@ extension ApplicationChecks {
         tap("カウントダウン")
         screen("カウントダウン")
         XCTAssertTrue(app.staticTexts["架空の通知予定"].waitForExistence(timeout:10),app.debugDescription)
+        tab("ホーム")
         let existing = app.buttons["fixture-countdown-route-existing"], missing = app.buttons["fixture-countdown-route-missing"]
         XCTAssertTrue(existing.waitForExistence(timeout:10))
         XCTAssertTrue(existing.isHittable)
         existing.tap()
-        let close = app.navigationBars.buttons["閉じる"]
-        XCTAssertTrue(close.waitForExistence(timeout:10),app.debugDescription)
+        let detail = app.navigationBars["予定の詳細"]
+        XCTAssertTrue(detail.waitForExistence(timeout:10),app.debugDescription)
+        let close = detail.buttons["閉じる"]
         XCTAssertTrue(app.staticTexts["開始日"].waitForExistence(timeout:10),app.debugDescription)
         XCTAssertTrue(app.staticTexts["架空の通知予定"].exists)
         XCTAssertTrue(close.isHittable)
         close.tap()
         XCTAssertTrue(close.waitForNonExistence(timeout:10))
+        screen("たくポケ")
 
         XCTAssertTrue(missing.waitForExistence(timeout:10))
         XCTAssertTrue(missing.isHittable)
         missing.tap()
         XCTAssertTrue(app.staticTexts["通知の対象は変更または削除されています。現在の予定を表示しています。"]
             .waitForExistence(timeout:10),app.debugDescription)
-        XCTAssertTrue(app.staticTexts["架空の通知予定"].exists)
-        XCTAssertTrue(close.isHittable)
-        close.tap()
-        XCTAssertTrue(close.waitForNonExistence(timeout:10))
+        let management = app.navigationBars["カウントダウン"]
+        XCTAssertTrue(management.exists)
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format:"identifier == %@ AND label CONTAINS %@",
+            "countdown-list-card","架空の通知予定")).firstMatch.exists)
+        let closeManagement = management.buttons["閉じる"]
+        XCTAssertTrue(closeManagement.isHittable)
+        closeManagement.tap()
+        XCTAssertTrue(closeManagement.waitForNonExistence(timeout:10))
+        screen("たくポケ")
         XCTAssertEqual(app.state,.runningForeground)
     }
 
