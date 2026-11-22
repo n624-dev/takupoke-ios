@@ -321,6 +321,32 @@ extension CountdownTests {
         XCTAssertNil(try issue(after:oldCancellation))
         XCTAssertEqual(try issue(after:oldCancellation,cancelled:false),.changesUnavailable)
         XCTAssertNil(try issue(after:"fictional-cancellation",cancelled:true))
+
+        let root = directory.appendingPathComponent("retry",isDirectory:true)
+        do {
+            let library = try LocalMaterialDatabase.openLibrary(root:root)
+            try library.recordFailure(.changes,message:unavailable,cancelled:false)
+        }
+        do {
+            let library = try LocalMaterialDatabase.openLibrary(root:root)
+            try library.recordFailure(.changes,message:oldCancellation,cancelled:true)
+        }
+        do {
+            let retry = try LocalMaterialDatabase.openLibrary(root:root)
+            XCTAssertEqual(retry.state.attempts[MaterialKind.changes.rawValue]?.failure,unavailable)
+            XCTAssertEqual(CountdownAvailability.classExamChangeIssue(in:retry.state,ready:true,failed:false,schoolYear:2032),
+                           .changesUnavailable)
+
+            let staged = retry.newStagingURL()
+            let fictionalBytes = Data([0x50,0x4b,0x03,0x04])
+            try fictionalBytes.write(to:staged)
+            try retry.commit(staged:staged,kind:.changes,source:.init(grant:nil,childName:nil),
+                originalName:"fictional.xlsx",byteCount:fictionalBytes.count,digest:String(repeating:"a",count:64),modifiedAt:nil)
+        }
+        let acquired = try LocalMaterialDatabase.openLibrary(root:root).state
+        XCTAssertNil(acquired.attempts[MaterialKind.changes.rawValue]?.failure)
+        XCTAssertEqual(CountdownAvailability.classExamChangeIssue(in:acquired,ready:true,failed:false,schoolYear:2032),
+                       .changesUnconfirmed)
     }
 
     func testClassExamUsesAcceptedSlotsVisibilityAndAppliedChanges() throws {

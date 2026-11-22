@@ -5826,3 +5826,11 @@ ebe3694の[明示選択限定44616309920](https://github.com/n624-dev/takupoke-i
 
 - `3d13e72`（製品 `d7f11ef`）、[45052922079・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45052922079/job/137301792542)、iOS 27.0・SDK 27.2、`testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList` の実ケース1件・失敗1（135.716秒）。設定で架空の個人予定を確認してホームへ戻り、有効な通知先を渡すテストボタンの実tapを39.39秒に送出した。10秒の待機で「予定の詳細」は見つからず17行で停止。後続の対象なし、閉じる操作は未到達。失敗時のAXはアプリの照会先名までで要素がなく、通常のクラッシュ記録は取得できなかった。OSからの配信や通知バナーのタップは未実行。
 - `sheet|EnvironmentObject|カウントダウン|予定の詳細` で通常の詳細遷移、N117の閉鎖、#120の予定詳細と通知許可の記録を照合した。今回は既存の一覧のNavigationLinkを通らず、外側のシートが同じモデルを必要とする経路。通知シートに実モデルを明示して渡し、操作を受け取った場所と、詳細が見えない場合のアプリ状態を記録する。実予定・期限・対象なしの期待値は維持する。停止の下位原因は未確定。
+
+## #156 変更ファイルの再試行を中止すると保留が外れる（2026-11-23）
+
+Linux Swift 6.1.2、`0fe7d66` の `MaterialLibrary` と追加した対照 `testClassExamHoldsAfterFailedFirstChangeAcquisitionAcrossReopen`。SQLiteに初回取得失敗を記録して開き直し、次の取得の中止を記録して再度開いた。既存候補は取得失敗を中止で上書きし、変更資料なしのまま試験通知の保留を解除した。1件中2 assertion失敗、0.141秒。実端末や配信の失敗を示すものではない。
+
+初回に一度も取り込めていない場合だけ、再試行の中止で未解決の取得エラーを消さない。初めて試した操作の中止・未試行・成功後の解析待ちは、それぞれ保存を開き直して比較する。移行用の旧メッセージと新しい中止情報の優先順位もテストする。
+
+追加した取得成功の正対照を含む初回候補のLinux限定47件は失敗1。失敗は `invalidState` で、成功後の再openの前に同じLibraryを保持していた。`LocalMaterialDatabase.openLibrary` の排他的 `LibraryLock` と既存の `testFreshSQLiteCutoverIgnoresLegacyAndReopensWithoutReset` を照合し、前の所有者をスコープで解放してから再openする。製品の排他、保留条件、成功後の期待値は変更しない。
