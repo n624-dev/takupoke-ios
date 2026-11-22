@@ -278,6 +278,26 @@ def instrument_notification_permission(text):
     return text.replace(auth, NOTIFICATION_AUTH_REQUEST + auth + NOTIFICATION_AUTH_CALLBACK).replace(
         end, end + NOTIFICATION_AUTH_RETURNED)
 
+def retention_notice_read_insertions():
+    for operation, stage in (('getPendingNotificationRequests', 'pending'),
+                             ('getDeliveredNotifications', 'delivered')):
+        original = f'            center.{operation}(completionHandler:callback)\n'
+        flag = 'ProcessInfo.processInfo.arguments.contains("--retention-corrupt")'
+        observed = (f'            let fixtureRetentionRead = {flag} ? UUID().uuidString.prefix(8).lowercased() : nil\n'
+                    f'            if let fixtureRetentionRead {{ FixtureCITrace.mark("retention-notice-{stage}-request-\\(fixtureRetentionRead)") }}\n'
+                    f'            center.{operation} {{ requests in\n'
+                    f'                if let fixtureRetentionRead {{ FixtureCITrace.mark("retention-notice-{stage}-callback-\\(fixtureRetentionRead)") }}\n'
+                    '                callback(requests)\n'
+                    '            }\n')
+        yield original, observed
+
+def instrument_retention_notification_reads(text):
+    # Preserve real requests and callbacks, including callbacks after a timeout.
+    for original, observed in retention_notice_read_insertions():
+        assert text.count(original) == 1, 'Retention notification insertion point missing'
+        text = text.replace(original, observed)
+    return text
+
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
     check_root = repo if check_root is None else Path(check_root)
@@ -305,6 +325,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':
             text = instrument_notification_permission(text)
+            text = instrument_retention_notification_reads(text)
         # A URLProtocol below rejects every request. Rewrite URLs as a second
         # guard against any production communication from the test app.
         text = rewrite_network_urls(text)

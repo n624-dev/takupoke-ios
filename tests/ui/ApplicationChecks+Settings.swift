@@ -184,6 +184,15 @@ extension ApplicationChecks {
         XCTAssertTrue(recovery.waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label, before)
         XCTAssertEqual(app.staticTexts["fixture-retention-bytes"].label,bytes)
+        let notificationService = app.staticTexts["fixture-retention-notice-service"]
+        let serviceReady = expectation(for:NSPredicate(format:"label == %@","通知サービス応答確認済み"),
+                                       evaluatedWith:notificationService)
+        guard XCTWaiter.wait(for:[serviceReady],timeout:90) == .completed else {
+            XCTFail("Notification service did not return both real lists: " + app.debugDescription)
+            return
+        }
+        XCTAssertEqual(app.staticTexts["fixture-retention-proof"].label,before)
+        XCTAssertEqual(app.staticTexts["fixture-retention-bytes"].label,bytes)
         let currentBounds=recovery.frame
         XCTAssertTrue(usable(currentBounds) && app.frame.contains(currentBounds) && recovery.isEnabled && recovery.isHittable,app.debugDescription)
         recovery.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.1)

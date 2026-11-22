@@ -844,6 +844,33 @@ METHOD
             with self.assertRaises(AssertionError):
                 app_test_project.instrument_retention_recovery(changed)
 
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        generated = app_test_project.instrument_retention_notification_reads(notifications)
+        for stage in ("pending", "delivered"):
+            for phase in ("request", "callback"):
+                self.assertEqual(generated.count(f'FixtureCITrace.mark("retention-notice-{stage}-{phase}-\\(fixtureRetentionRead)")'), 1)
+        for original, observed in app_test_project.retention_notice_read_insertions():
+            self.assertEqual(generated.count(observed), 1)
+            self.assertIn('callback(requests)', observed)
+            generated = generated.replace(observed, original, 1)
+            for changed in (notifications.replace(original, ""), notifications + original):
+                with self.assertRaises(AssertionError):
+                    app_test_project.instrument_retention_notification_reads(changed)
+        self.assertEqual(generated, notifications)
+        fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        readiness = fixture.split("struct SimulatorRetentionProofView:", 1)[1].split("private final class FixtureYearInputObservation", 1)[0]
+        self.assertIn("center.pendingNotificationRequests()", readiness)
+        self.assertIn("center.deliveredNotifications()", readiness)
+        self.assertLess(readiness.index("await (pending,delivered)"), readiness.index("notificationServiceReady = true"))
+        self.assertNotRegex(readiness, r"requestAuthorization|removePending|removeDelivered|Task\.sleep")
+        case = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text(encoding="utf-8")
+        recovery = case.split("func testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
+        self.assertLess(recovery.index("XCTWaiter.wait(for:[dismissed,observed],timeout:10)"),
+                        recovery.index("XCTWaiter.wait(for:[serviceReady],timeout:90)"))
+        self.assertLess(recovery.index("XCTWaiter.wait(for:[serviceReady],timeout:90)"), recovery.index("let currentBounds=recovery.frame"))
+        self.assertRegex(recovery, r'guard XCTWaiter\.wait\(for:\[serviceReady\],timeout:90\) == \.completed else \{\s+XCTFail\([^\n]+\)\s+return\s+\}')
+        self.assertIn("notice.waitForExistence(timeout: 30)", recovery)
+
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
         collector = runner.split("<<'PY_TRACE'\n", 1)[1].split("\nPY_TRACE", 1)[0]
