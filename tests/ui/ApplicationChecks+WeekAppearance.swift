@@ -110,8 +110,8 @@ extension ApplicationChecks {
         }
         XCTAssertGreaterThan(textLuminances.count, 50, "The selected tab must have dark readable lettering")
         XCTAssertGreaterThan(backgroundLuminances.count, 50, "The label must have a light stock background")
-        let textSample = textLuminances.sorted()[textLuminances.count / 4]
-        let background = backgroundLuminances.sorted()[backgroundLuminances.count / 4]
+        let textSample = try XCTUnwrap(textLuminances.sorted().dropFirst(textLuminances.count / 4).first)
+        let background = try XCTUnwrap(backgroundLuminances.sorted().dropFirst(backgroundLuminances.count / 4).first)
         let ratio = (background + 0.05) / (textSample + 0.05)
         print("YELLOW_TAB title=\(title);appearance=\(appearance);yellow=\(yellowPixels);text-contrast=\(ratio)")
         XCTAssertGreaterThanOrEqual(ratio, 4.5)
