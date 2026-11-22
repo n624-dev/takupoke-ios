@@ -120,6 +120,66 @@ extension PDFParsingTests {
             }
         }
     }
+
+    func testOCRCoverageWillNotMaskAnIndependentClosedShapeAsATableRule() async throws {
+        let (original, _) = try twoClassRasterCoverage()
+        let width = Int(original.width * 2), height = Int(original.height * 2)
+        var layout = original
+        layout.width = Double(width); layout.height = Double(height)
+        layout.glyphs = original.glyphs.map { glyph in
+            var item = glyph
+            item.x *= 2; item.y *= 2; item.width *= 2; item.height *= 2
+            return item
+        }
+        layout.glyphs.removeAll { (192..<224).contains($0.cx) && (192..<296).contains($0.cy) }
+        var base = [UInt8](repeating:255,count:width*height)
+        for rule in original.lines {
+            let x = Int(rule.x1 * 2), y = Int(rule.y1 * 2)
+            if rule.horizontal { for column in x...Int(rule.x2 * 2) { base[y*width+column] = 0 } }
+            else { for row in y...Int(rule.y2 * 2) { base[row*width+x] = 0 } }
+        }
+        for glyph in layout.glyphs { base[Int(glyph.cy)*width+Int(glyph.cx)] = 0 }
+
+        enum Ink: CaseIterable { case blank, divider, closed, open }
+        for ink in Ink.allCases {
+            var pixels = base
+            switch ink {
+            case .blank: break
+            case .divider:
+                for x in 192...224 { pixels[244*width+x] = 0 }
+            case .closed, .open:
+                let first = ink == .closed ? 196 : 203
+                for x in first...221 { pixels[200*width+x] = 0 }
+                for x in 196...221 { pixels[225*width+x] = 0 }
+                let top = ink == .closed ? 200 : 207
+                for y in top...225 { pixels[y*width+196] = 0 }
+                for y in 200...225 { pixels[y*width+221] = 0 }
+            }
+            let raster = RecoveryRasterGrid(width:width,height:height,grayscale:pixels)
+            layout.lines = try raster.rules(check:{})
+            XCTAssertFalse(layout.lines.isEmpty)
+            if ink == .closed {
+                XCTAssertTrue(layout.lines.contains { $0.horizontal && $0.y1 == 200 && $0.x1 == 196 && $0.x2 == 221 })
+            }
+            func build() throws -> RecoveryDocument {
+                try RecoveryDocumentBuilder.build([layout],kind:.timetable,hash:String(repeating:"b",count:64),
+                    fromOCR:[1],rasters:[1:raster])
+            }
+            if ink == .closed || ink == .open {
+                XCTAssertThrowsError(try build()) { XCTAssertEqual(($0 as? PDFParseError)?.code,.ambiguous) }
+            } else {
+                let document = try build()
+                XCTAssertEqual(document.requiredSlots.count,80)
+                let cell = try XCTUnwrap(document.cells.first { $0.slots.contains(.init(className:"1_2",day:"1",period:2)) })
+                XCTAssertTrue(cell.confirmedEmpty)
+                let run = try await RecoveryEngine.run(document,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+                let result = try XCTUnwrap(run.result)
+                XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+                XCTAssertEqual(result.cells.first { $0.cellId == cell.id }?.state,.empty)
+            }
+        }
+    }
+
     func testOCRRecoveryRejectsUnobservedAnnotationInkOutsideRecognizedCells() throws {
         let (page, raster) = try twoClassRasterCoverage(unknownAnnotation: true)
         XCTAssertThrowsError(

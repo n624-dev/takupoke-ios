@@ -7,6 +7,29 @@ struct RecoveryRasterGrid: Sendable {
     private var preparedRuleMask: [UInt8]? = nil
     private var preparedRules: [PDFRule] = []
     init(width: Int,height: Int,grayscale: [UInt8]) { self.width = width; self.height = height; self.grayscale = grayscale }
+
+    /// Inside the lesson table, only strokes tied to confirmed period edges
+    /// can hide ink. A closed glyph can connect its own four sides.
+    static func coverageRules(_ candidates: [PDFRule], rows: [PDFBox], cells: [PDFBox],
+                              check: () throws -> Void) throws -> [PDFRule] {
+        guard let top = rows.map(\.top).min(), let bottom = rows.map(\.bottom).max(),
+              let left = cells.map(\.left).min(), let right = cells.map(\.right).max() else { return [] }
+        let periodEdges = try Set(candidates.compactMap { rule -> Double? in
+            try check()
+            guard rule.vertical, left-2 <= rule.x1, rule.x1 <= right+2,
+                  rows.contains(where:{ rule.y1 <= $0.top+2 && rule.y2 >= $0.bottom-2 }) else { return nil }
+            return rule.x1
+        })
+        func meetsPeriodEdge(_ x: Double) -> Bool { periodEdges.contains { abs($0 - x) <= 2 } }
+        return try candidates.filter { rule in
+            try check()
+            guard min(rule.x1,rule.x2) >= left, max(rule.x1,rule.x2) <= right,
+                  min(rule.y1,rule.y2) >= top, max(rule.y1,rule.y2) <= bottom else { return true }
+            if rule.vertical { return meetsPeriodEdge(rule.x1) }
+            return rule.horizontal && meetsPeriodEdge(rule.x1) && meetsPeriodEdge(rule.x2)
+        }
+    }
+
     func preparingRules(_ rules: [PDFRule], check: () throws -> Void = {}) throws -> Self {
         guard validPixels else { throw PDFParseError(code:.limit) }
         var copy = self, mask = [UInt8](repeating:0,count:width*height)

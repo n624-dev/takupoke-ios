@@ -8,6 +8,69 @@ import XCTest
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testReturnRecoveryUsesOnePrintedGradeAcrossIndividuallyRuledRows() async throws {
+        let open = returnPageWithSplitCell()
+        var closed = open
+        closed.lines.append(PDFRule(x1:0,y1:110,x2:0,y2:545))
+        let hash = String(repeating:"e",count:64)
+        let withoutBorder = try RecoveryDocumentBuilder.build([open],kind:.return,hash:hash)
+        let withBorder = try RecoveryDocumentBuilder.build([closed],kind:.return,hash:hash)
+        XCTAssertEqual(withBorder.classes,withoutBorder.classes)
+        XCTAssertEqual(withBorder.requiredSlots,withoutBorder.requiredSlots)
+        XCTAssertEqual(withBorder.requiredSlots.count,680)
+        XCTAssertEqual(withBorder.cells.map(\.slots),withoutBorder.cells.map(\.slots))
+        XCTAssertEqual(withBorder.classEvidence["1_1"]?.first,withBorder.classEvidence["1_3"]?.first)
+        XCTAssertEqual(withBorder.classEvidence["AI_1"]?.first,withBorder.classEvidence["AI_2"]?.first)
+
+        var missing = closed
+        missing.glyphs.removeAll { $0.x == 30 && $0.y == 232 }
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([missing],kind:.return,hash:hash))
+        var duplicate = closed
+        let duplicateGrade = try XCTUnwrap(duplicate.glyphs.firstIndex { $0.x == 30 && $0.y == 232 })
+        duplicate.glyphs[duplicateGrade].text = "1"
+        XCTAssertThrowsError(try RecoveryDocumentBuilder.build([duplicate],kind:.return,hash:hash))
+
+        let recovered = try await RecoveryEngine.run(withBorder,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+        XCTAssertEqual(recovered.state,.awaitingConfirmation,recovered.errors.joined(separator:","))
+        XCTAssertTrue(RecoveryValidator.validate(withBorder,try XCTUnwrap(recovered.result)).canAdopt)
+    }
+
+    func testReturnRecoveryWithClosedGradeColumnStillRecoversFoldedLessonRoles() async throws {
+        var page = returnPageWithSplitCell()
+        page.height *= 3
+        page.glyphs = page.glyphs.map { glyph in
+            var scaled = glyph
+            scaled.y *= 3; scaled.height *= 3
+            return scaled
+        }
+        page.lines = page.lines.map { PDFRule(x1:$0.x1,y1:$0.y1*3,x2:$0.x2,y2:$0.y2*3) }
+        page.lines.append(PDFRule(x1:0,y1:330,x2:0,y2:1635))
+        page.glyphs.removeAll { (140..<180).contains($0.cx) && (360..<435).contains($0.cy) }
+        func text(_ value: String, x: Double, y: Double) {
+            for (offset, letter) in value.enumerated() {
+                page.glyphs.append(PDFGlyph(text:String(letter),x:x+Double(offset)*3,y:y,width:3,height:4))
+            }
+        }
+        for (index, item) in [(["科","目",":"],"架空科目Z"),(["担当","教員",":"],"架空教員Y"),(["教","室",":"],"架空室X")].enumerated() {
+            let top = 363 + Double(index)*23
+            for (row, label) in item.0.enumerated() { text(label,x:143,y:top+Double(row)*6) }
+            text(item.1,x:155,y:top+6)
+        }
+        let hash = String(repeating:"e",count:64)
+        XCTAssertThrowsError(try SpecialScheduleParser.parse([page],kind:.examReturn,digest:hash,name:"fictional.pdf")) {
+            XCTAssertEqual(($0 as? PDFParseError)?.stage,.lessonLines)
+        }
+        let document = try RecoveryDocumentBuilder.build([page],kind:.return,hash:hash)
+        let run = try await RecoveryEngine.run(document,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+        XCTAssertEqual(run.state,.awaitingConfirmation,run.errors.joined(separator:","))
+        let result = try XCTUnwrap(run.result)
+        XCTAssertTrue(RecoveryValidator.validate(document,result).canAdopt)
+        let slot = RecoverySlot(className:"1_1",day:"2026-04-01",period:1)
+        let cell = try XCTUnwrap(document.cells.first { $0.slots.contains(slot) })
+        let lesson = try XCTUnwrap(result.cells.first { $0.cellId == cell.id }?.lessons.first)
+        XCTAssertEqual([lesson.subject.value,lesson.teacher.value,lesson.room.value],["架空科目Z","架空教員Y","架空室X"])
+    }
+
     func testRecoveryExamCannotDiscardBlankEdgeRows() throws {
         for row in [0,2] {
             var page=flexibleExamPage(["2-CN"],days:[1,2,3])

@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`b1a395f0cd2291d7828f6da0416237d333143d7f554ed0c6a9cd96881909926b`
+`368c6d249e5ceeca16a765695eca2bccfd163583ebd40fe4ec1e6011dbfd3fd3`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -90,6 +90,7 @@ bash tools/test-parsing.sh
 
 - `testOCRRecoveryRejectsAnEntireUnobservedClassRow`
 - `testOCRRecoveryAccountsForBothClassRowsRulesAndKnownAnnotation`
+- `testOCRCoverageWillNotMaskAnIndependentClosedShapeAsATableRule`
 - `testOCRRecoveryRejectsUnobservedAnnotationInkOutsideRecognizedCells`
 - `testVectorRecoveryDoesNotTreatUnrequestedRasterAsOCRProof`
 - `testRasterCoverageMaskFirstKeepsUnionAndFractionalPixelSemantics`
@@ -111,6 +112,8 @@ bash tools/test-parsing.sh
 
 ## [tests/RecoveryBuilderTests+Special.swift](../../tests/RecoveryBuilderTests+Special.swift)
 
+- `testReturnRecoveryUsesOnePrintedGradeAcrossIndividuallyRuledRows`
+- `testReturnRecoveryWithClosedGradeColumnStillRecoversFoldedLessonRoles`
 - `testRecoveryExamCannotDiscardBlankEdgeRows`
 - `testRecoveryExamUsesPageBoundEvidenceForVariableScope`
 - `testDenseRecoverySourceGroupsUseOneIndexAndRemainCancellable`

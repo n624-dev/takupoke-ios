@@ -89,7 +89,6 @@ enum RecoveryDocumentBuilder {
             try page.requireVisibleBounds(check:check)
             let number = pageIndex + 1, grid = PDFGrid(page: page)
             if kind == .exam { try PDF239SpecialScheduleParser.validateDeclaredExamPages(page,count:pages.count,pageNumber:number) }
-            let pageRaster = try rasters[number].map { try $0.preparingRules(page.lines,check:check) }
             let glyphIndex = try RecoveryGlyphIndex(page.glyphs,check:check)
             var used: Set<Int> = []
             func add(_ glyphs: [PDFGlyph], owner: String = "", value: String? = nil) throws -> String {
@@ -219,7 +218,7 @@ enum RecoveryDocumentBuilder {
                     : try grid.box(first.left-2, first.bottom+20,check:check)
                 guard let bottom = page.lines.filter({ $0.vertical && abs($0.x1-classBox.right)<0.3 }).map(\.y2).max() else { throw PDFParseError(code:.unsupported) }
                 let rows = PDFGrid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right && $0.cy > first.bottom && $0.cy < bottom })
-                var gradeSources = [PDFBox:(String,[PDFGlyph])]()
+                var gradeSources = [PDFBox:String]()
                 let grades = headings(page.glyphs.filter { $0.cx < classBox.left && $0.cy > headerY && $0.cy < bottom }).filter { PDFSchoolParser.key($0.text).range(of:"^(?:[1-5]|AI)$",options:.regularExpression) != nil }.sorted { $0.box.y < $1.box.y }
                 for row in rows {
                     let y = row.map(\.cy).reduce(0,+)/Double(row.count)
@@ -227,8 +226,9 @@ enum RecoveryDocumentBuilder {
                     let physical: PDFBox?
                     do { physical = try grid.box(classBox.left-2,y,check:check) }
                     catch let error as PDFParseError where error.code == .unsupported { physical = nil }
-                    if let physical {
-                        gradeBox = physical; gradeGlyphs = try grid.glyphs(in:physical,check:check)
+                    let physicalGlyphs = try physical.map { try grid.glyphs(in:$0,check:check) } ?? []
+                    if let physical, kind != .return || !physicalGlyphs.isEmpty {
+                        gradeBox = physical; gradeGlyphs = physicalGlyphs
                     } else {
                         guard kind == .return, !grades.isEmpty, rows.count == grades.reduce(0,{ $0 + (PDFSchoolParser.key($1.text) == "AI" ? 2:3) }),
                               let gradeIndex = grades.indices.min(by:{ abs(grades[$0].box.y+grades[$0].box.height/2-y) < abs(grades[$1].box.y+grades[$1].box.height/2-y) }) else { throw PDFParseError(code:.unsupported,stage:.gradeLabel) }
@@ -244,10 +244,14 @@ enum RecoveryDocumentBuilder {
                     let grade = PDFSchoolParser.key(gradeGlyphs.map(\.text).joined()), label = PDFSchoolParser.key(row.map(\.text).joined())
                     let cls = grade + "_" + label
                     guard RecoveryValidator.knownClasses.contains(cls) else { throw PDFParseError(code:.ambiguous,stage:.classLabel) }
-                    // Grade cells are merged. Split their original text once into a
-                    // structural source, and reference it from all relevant classes.
-                    if gradeSources[gradeBox] == nil { gradeSources[gradeBox] = (try add(gradeGlyphs), gradeGlyphs) }
-                    let labelId = try add(row), gradeId = gradeSources[gradeBox]!.0
+                    // The same printed grade can be shared by rows with either an
+                    // individual physical cell or a band inferred from all rows.
+                    let evidence = try box(gradeGlyphs)
+                    let evidenceBox = PDFBox(left:evidence.x,top:evidence.y,right:evidence.x+evidence.width,bottom:evidence.y+evidence.height)
+                    let gradeId: String
+                    if let existing = gradeSources[evidenceBox] { gradeId = existing }
+                    else { gradeId = try add(gradeGlyphs); gradeSources[evidenceBox] = gradeId }
+                    let labelId = try add(row)
                     var classRow = try grid.box((classBox.left+classBox.right)/2,y,check:check)
                     classRow.top = max(classRow.top,try grid.box(periodRow[0].cx,y,check:check).top)
                     let combined = RecoveryBox(x: gradeBox.left,y: gradeBox.top,width: classBox.right-gradeBox.left,height: gradeBox.bottom-gradeBox.top)
@@ -256,6 +260,9 @@ enum RecoveryDocumentBuilder {
                 }
             }
             let referenceBoxes = try grid.lessonBoxes(rows:vertical.compactMap(\.row),columns:periodRow.map(\.cx),check:check)
+            let rasterRules = try fromOCR.contains(number) ? RecoveryRasterGrid.coverageRules(page.lines,
+                rows:vertical.compactMap(\.row),cells:referenceBoxes,check:check) : page.lines
+            let pageRaster = try rasters[number]?.preparingRules(rasterRules,check:check)
             // Build logical cells, preserving short horizontal divisions as parallel lessons.
             for v in vertical {
                 guard let row = v.row else { throw PDFParseError(code:.unsupported) }
@@ -333,7 +340,7 @@ enum RecoveryDocumentBuilder {
                                     }
                                     let scope = RecoveryBox(x:labelBox.x+labelBox.width,y:top,width:subBox.right-labelBox.x-labelBox.width,height:bottom-top)
                                     if !item.2.isEmpty { cell.sourceIds.append(try add(item.2,owner:id)) } else { cell.blankFields.append(item.0.rawValue) }
-                                    let emptyVerified = try item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:page.lines,check:check) == true)
+                                    let emptyVerified = try item.2.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(scope,rules:rasterRules,check:check) == true)
                                     if genericRuled { guard !item.2.isEmpty || item.0 != .subject && emptyVerified else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) } }
                                     cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:item.0,page:number,box:scope,labelSourceIds:[labelId],labelRegion:region(labelBox,axis:.left),proof:.inlineLabel,emptyVerified:emptyVerified))
                                 }
@@ -357,7 +364,7 @@ enum RecoveryDocumentBuilder {
                                             cell.sourceIds += labelIds
                                             cell.sourceIds += try role.body.map { try add($0.glyphs,owner:id) }
                                             if role.body.isEmpty { cell.blankFields.append(role.role.rawValue) }
-                                            let emptyVerified = try role.body.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(role.scope,rules:page.lines,check:check) == true)
+                                            let emptyVerified = try role.body.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(role.scope,rules:rasterRules,check:check) == true)
                                             cell.roleScopes.append(RecoveryRoleScope(lessonIndex:lessonIndex,role:role.role,page:number,box:role.scope,labelSourceIds:labelIds,labelRegion:region(role.labelBox,axis:.left),proof:.inlineLabel,emptyVerified:emptyVerified))
                                         }
                                     } else {
@@ -404,11 +411,11 @@ enum RecoveryDocumentBuilder {
                             }
                         }
                         cell.lessonBindings = bindings
-                        cell.confirmedEmpty = try cell.sourceIds.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(cell.box,rules:page.lines,check:check) == true)
+                        cell.confirmedEmpty = try cell.sourceIds.isEmpty && (!fromOCR.contains(number) || pageRaster?.isBlank(cell.box,rules:rasterRules,check:check) == true)
                         cell.parallelCount = max(1,cell.bindingMode == .fixed ? bindings.count : cell.roleScopes.count/3)
                         guard cell.confirmedEmpty || !cell.sourceIds.isEmpty else { throw PDFParseError(code:.ambiguous) }
                         if fromOCR.contains(number) {
-                            guard let raster = pageRaster, try !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical,check:check).map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                            guard let raster = pageRaster, try !raster.hasUncoveredInk(cell.box,text:try grid.glyphs(in:logical,check:check).map { try box([$0]) },rules:rasterRules,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                         }
                         doc.cells.append(cell)
                         _ = periodIndex
@@ -530,7 +537,7 @@ enum RecoveryDocumentBuilder {
             // OCR may omit an entire class row; account for ink beyond recognized cells.
             if fromOCR.contains(number) {
                 guard let raster = pageRaster, Double(raster.width) == page.width, Double(raster.height) == page.height,
-                      try !raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:page.width,height:page.height),text:page.glyphs.map { try box([$0]) },rules:page.lines,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+                      try !raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:page.width,height:page.height),text:page.glyphs.map { try box([$0]) },rules:rasterRules,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                 let proof = RecoveryOCRCoveragePage(page:number,width:raster.width,height:raster.height,
                     grayscaleSHA256:try rasterFingerprint(raster,work:structureWork))
                 if doc.ocrCoverageProof == nil { doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[]) }
