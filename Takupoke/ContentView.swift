@@ -120,10 +120,6 @@ struct ContentView: View {
         else { setupPresented = true }
     }
 
-    private var tabContentTint: Color? {
-        mainColor.selection.color(for: colorScheme, contrast: colorSchemeContrast)
-    }
-
     @ViewBuilder private func tabLabel(_ title: LocalizedStringKey, symbol: String, tab: Tab,
                                       selectedSymbol: String? = nil) -> some View {
         if selectedTab == tab, mainColor.selection.usesLightYellowIcons(in: colorScheme),
@@ -146,21 +142,86 @@ struct ContentView: View {
                 timetableTodayRequest = UUID()
                 selectedTab = .timetable
             }
-                .tint(tabContentTint)
                 .tabItem { tabLabel("ホーム", symbol: "house", tab: .home, selectedSymbol: "house.fill") }.tag(Tab.home)
             LinksView(model: links)
-                .tint(tabContentTint)
                 .tabItem { tabLabel("一覧", symbol: "list.bullet", tab: .links) }.tag(Tab.links)
             TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest)
-                .tint(tabContentTint)
                 .tabItem { tabLabel("時間割", symbol: "calendar", tab: .timetable) }.tag(Tab.timetable)
             SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings)
-                .tint(tabContentTint)
                 .tabItem { tabLabel("設定", symbol: "gearshape", tab: .settings, selectedSymbol: "gearshape.fill") }.tag(Tab.settings)
         }
-        .tint(mainColor.selection.tabTitleTint(for: colorScheme, contrast: colorSchemeContrast))
+        .background {
+            TabBarTitleTint(selectedTab: selectedTab,
+                            titleColor: mainColor.selection.usesLightYellowIcons(in: colorScheme)
+                                ? mainColor.selection.tabTitleTint(for: colorScheme, contrast: colorSchemeContrast).map { UIColor($0) }
+                                : nil,
+                            defaultTint: mainColor.selection.color(for: colorScheme, contrast: colorSchemeContrast).map { UIColor($0) })
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .onChange(of: selectedTab) { tab in
             if tab == .links, !account.busy { Task { await links.refresh() } }
+        }
+    }
+
+    // Configure the existing native bar in its window. Tinting the SwiftUI
+    // TabView would also tint controls on each of its pages.
+    private struct TabBarTitleTint: UIViewRepresentable {
+        // Changing the selected tab can recreate its native item.
+        let selectedTab: Tab
+        let titleColor: UIColor?
+        let defaultTint: UIColor?
+
+        func makeUIView(context: Context) -> Anchor { Anchor() }
+
+        func updateUIView(_ anchor: Anchor, context: Context) {
+            anchor.update(titleColor: titleColor, defaultTint: defaultTint)
+        }
+
+        final class Anchor: UIView {
+            private var titleColor: UIColor?
+            private var defaultTint: UIColor?
+            private weak var overriddenBar: UITabBar?
+            private var updatePending = false
+
+            override func didMoveToWindow() {
+                super.didMoveToWindow()
+                scheduleUpdate()
+            }
+
+            func update(titleColor: UIColor?, defaultTint: UIColor?) {
+                self.titleColor = titleColor
+                self.defaultTint = defaultTint
+                scheduleUpdate()
+            }
+
+            private func scheduleUpdate() {
+                guard !updatePending else { return }
+                updatePending = true
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.updatePending = false
+                    self.apply()
+                }
+            }
+
+            private func apply() {
+                guard let window, let titleColor else {
+                    overriddenBar?.tintColor = defaultTint
+                    overriddenBar = nil
+                    return
+                }
+                let bars = nativeBars(in: window)
+                guard bars.count == 1, let bar = bars.first else { return }
+                if let overriddenBar, overriddenBar !== bar { overriddenBar.tintColor = defaultTint }
+                overriddenBar = bar
+                if bar.tintColor != titleColor { bar.tintColor = titleColor }
+            }
+
+            private func nativeBars(in view: UIView) -> [UITabBar] {
+                if let bar = view as? UITabBar { return [bar] }
+                return view.subviews.flatMap { nativeBars(in: $0) }
+            }
         }
     }
 

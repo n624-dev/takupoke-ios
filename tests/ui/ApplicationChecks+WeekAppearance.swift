@@ -145,6 +145,7 @@ extension ApplicationChecks {
             }
             tab("時間割")
             XCTAssertEqual(calendar.label, selectedWeek, "Changing color must retain the selected week")
+            if stored == "yellow" { recoveryScreenshot("yellow-week-standard") }
             let buttonInk = try coloredInk(calendar.screenshot().image)
             if stored == "yellow" {
                 XCTAssertGreaterThan(buttonInk[2], 0.7)
@@ -186,6 +187,7 @@ extension ApplicationChecks {
         let increasedSettings = try assertYellowTab("設定", appearance: "increased")
         XCTAssertGreaterThan(increasedSettings, try XCTUnwrap(settingsTitle) + 1)
         tab("時間割")
+        recoveryScreenshot("yellow-week-increased")
         let highContrastCalendar = try coloredInk(app.buttons["timetable-week-calendar"].screenshot().image)
         XCTAssertGreaterThan(highContrastCalendar[2], 0.7)
         XCTAssertGreaterThan(highContrastCalendar[2], highContrastCalendar[0] + 0.15)
