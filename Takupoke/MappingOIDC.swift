@@ -89,7 +89,11 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = Data((form.percentEncodedQuery ?? "").utf8)
+        // Form encoding distinguishes a literal plus sign from a space.
+        let formBody = (form.percentEncodedQuery ?? "")
+            .replacingOccurrences(of: "+", with: "%2B")
+            .replacingOccurrences(of: "%20", with: "+")
+        request.httpBody = Data(formBody.utf8)
         let tokenRequestedAt = Date()
         let (bytes, response) = try await network.data(for: request)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200,

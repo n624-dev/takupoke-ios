@@ -145,7 +145,8 @@
       "title": "名称対応・パッケージ・認証取得",
       "environment": "Linux Swift／Apple Native（PDFKit・VisionはApple限定）",
       "commands": [
-        "bash tools/test-parsing.sh"
+        "bash tools/test-parsing.sh",
+        "python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v"
       ],
       "sources": [
         "Takupoke/MappingModel.swift",
@@ -162,7 +163,8 @@
         "tests/MappingPackageTests.swift",
         "tests/MappingRulesTests.swift",
         "tests/MappingServiceTests.swift",
-        "tests/LinksTests.swift"
+        "tests/LinksTests.swift",
+        "tests/test_mapping_oidc_form.py"
       ]
     },
     {

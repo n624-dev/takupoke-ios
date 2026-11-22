@@ -1,12 +1,13 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`4b3faed941ce2b0a3483185f7ce6f0e9f2b0adea48938e27aa6d56c3c4082958`
+`07acf1970eaee85d999e06262626871ff9d09ec5d564e06a0c94fef0c1abbfe0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
 ```bash
 bash tools/test-parsing.sh
+python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 ```
 
 ## 変更時に確認するソース
@@ -85,3 +86,7 @@ bash tools/test-parsing.sh
 - `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
 - `testSearchMatchesKanaRomajiAndRanking`
+
+## [tests/test_mapping_oidc_form.py](../../tests/test_mapping_oidc_form.py)
+
+- `test_exchange_preserves_opaque_code_in_form_body`
