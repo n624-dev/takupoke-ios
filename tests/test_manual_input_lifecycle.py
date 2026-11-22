@@ -29,6 +29,7 @@ class ManualInputLifecycleTests(unittest.TestCase):
         if not compiler:
             self.skipTest("Swift compiler unavailable; native CI compiles the same methods")
         application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
+        content = (ROOT / "Takupoke/ContentView.swift").read_text(encoding="utf-8")
         source = '''import Foundation
 @MainActor final class UIApplication {
  enum State { case active, background }
@@ -42,6 +43,11 @@ class ManualInputLifecycleTests(unittest.TestCase):
  func setSourceChecksActive(_ value:Bool) { active=value }
  func refresh() async {} ; func check() async {}
 }
+@MainActor struct SchoolDataPeriod: Equatable {
+ let index: Int
+ static var clock = 2
+ static func current() -> Self { .init(index:clock) }
+}
 struct Clock { let currentDate=Date(timeIntervalSince1970: 42) }
 @MainActor final class Countdown {
  var updatedAt: [Date]=[]
@@ -53,16 +59,27 @@ struct Clock { let currentDate=Date(timeIntervalSince1970: 42) }
 @MainActor final class Application {
  var backgroundRefresh:Task<Void,Never>?, backgroundDuringPrepare=false
  var ready=true
+ var loadedPeriod: SchoolDataPeriod? = .current()
+ var preparing = false
+ var heldWork: CheckedContinuation<Void, Never>?
  let materials=Unit(),specialSchedules=Unit(),schoolEvents=Unit(),mappings=Unit(),times=Unit(),links=Unit(),account=Unit()
  let countdown=Countdown()
  let homeClock=Clock()
  func prepare() async -> Bool {
+  preparing = true
+  loadedPeriod = .current(); ready = true
   if backgroundDuringPrepare { UIApplication.shared.applicationState = .background; schoolEvents.setSourceChecksActive(false) }
   return true
  }
  func setFileMonitoring(_ active:Bool) { schoolEvents.setSourceChecksActive(active) }
  func checkNotificationsWhenActive() {}
-''' + block(application, "    func activate() async") + "\n" + block(application, "    func updateCountdown()") + '''
+''' + block(application, "    func activate() async") + "\n" + block(application, "    func updateCountdown()") + "\n" + block(
+            application, "    var readyForCurrentPeriod:") + '''
+}
+@MainActor struct Content {
+ let application: Application
+''' + block(content, "    private var dataReady:") + '''
+ var showsData: Bool { dataReady }
 }
 @main struct Probe {
  @MainActor static func main() async {
@@ -83,6 +100,27 @@ struct Clock { let currentDate=Date(timeIntervalSince1970: 42) }
    precondition(app.countdown.updatedAt == (stage==0 ? [app.homeClock.currentDate] : []))
   }
   print("Verified actual activation foreground guards across both suspension points.")
+  for nextPeriod in [2,3] {
+   for crossedBoundary in [false,true] {
+    UIApplication.shared.applicationState = .active
+    SchoolDataPeriod.clock = crossedBoundary ? nextPeriod - 1 : nextPeriod
+    let app = Application(), screen = Content(application:app)
+    precondition(app.ready && screen.showsData)
+    app.backgroundRefresh = Task { await withCheckedContinuation { app.heldWork = $0 } }
+    while app.heldWork == nil { await Task.yield() }
+    SchoolDataPeriod.clock = nextPeriod
+    precondition(screen.showsData == !crossedBoundary) // check the view even before the async activation
+    let foreground = Task { await app.activate() }
+    while app.backgroundRefresh?.isCancelled != true { await Task.yield() }
+    precondition(!app.preparing && app.ready == !crossedBoundary && screen.showsData == !crossedBoundary)
+    app.updateCountdown()
+    precondition(app.countdown.updatedAt.count == (crossedBoundary ? 0 : 1))
+    app.heldWork?.resume(); app.heldWork = nil
+    await foreground.value
+    precondition(app.preparing && app.loadedPeriod == .current() && screen.showsData)
+   }
+  }
+  print("Verified prior-period data is hidden before a suspended background refresh completes.")
  }
 }
 '''

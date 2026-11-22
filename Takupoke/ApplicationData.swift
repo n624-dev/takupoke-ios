@@ -32,6 +32,7 @@ final class ApplicationData: ObservableObject {
 
     @Published private(set) var ready = false
     @Published private(set) var loadedPeriod: SchoolDataPeriod?
+    var readyForCurrentPeriod: Bool { ready && loadedPeriod == SchoolDataPeriod.current() }
     @Published private(set) var retentionFailure = false
     @Published var retentionNotice = false
     @Published private(set) var retentionFailureReason: SchoolDataRetention.Failure?
@@ -89,13 +90,13 @@ final class ApplicationData: ObservableObject {
     }
 
     func updateCountdown() {
-        guard ready, UIApplication.shared.isProtectedDataAvailable else { return }
+        guard readyForCurrentPeriod, UIApplication.shared.isProtectedDataAvailable else { return }
         countdown.update(using: self, at: homeClock.currentDate)
     }
 
     private func checkNotificationsWhenActive() {
         Task { @MainActor [weak self] in
-            guard let self, self.ready, UIApplication.shared.applicationState == .active,
+            guard let self, self.readyForCurrentPeriod, UIApplication.shared.applicationState == .active,
                   let period = self.loadedPeriod else { return }
             await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
                                                 sources: self.specialSchedules.sources, period: period,
@@ -190,6 +191,8 @@ final class ApplicationData: ObservableObject {
 
     func activate() async {
         guard UIApplication.shared.applicationState != .background else { return }
+        // Hide the previous half even while an older refresh is unwinding.
+        if ready && !readyForCurrentPeriod { ready = false }
         backgroundRefresh?.cancel()
         if let task = backgroundRefresh { await task.value }
         guard await prepare(), UIApplication.shared.applicationState != .background else { return }

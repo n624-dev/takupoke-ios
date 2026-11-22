@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .home
     @State private var timetableTodayRequest: UUID?
     @StateObject private var application = ApplicationData.shared
-    private var dataReady: Bool { application.ready }
+    private var dataReady: Bool { application.readyForCurrentPeriod }
     private var loadedPeriod: SchoolDataPeriod? { application.loadedPeriod }
     private var retentionFailure: Bool { application.retentionFailure }
     private var retentionNotice: Bool { application.retentionNotice }
