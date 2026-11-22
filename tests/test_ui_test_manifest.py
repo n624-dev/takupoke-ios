@@ -363,7 +363,7 @@ enum SimulatorEventsYearFixture {
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         generated = app_test_project.instrument_notification_permission(source)
         self.assertNotIn("FixtureNotificationAuthorization", source)
-        for operation in ("await Self.notificationSettings(from: center)", "center.getNotificationSettings"):
+        for operation in ("await readCurrentNotificationSettings()", "center.getNotificationSettings"):
             self.assertEqual(generated.count(operation), source.count(operation))
         restored = generated
         for insertion in (app_test_project.NOTIFICATION_PERMISSION_BEGIN,
@@ -376,6 +376,9 @@ enum SimulatorEventsYearFixture {
                           app_test_project.NOTIFICATION_AUTH_CALLBACK):
             self.assertEqual(restored.count(insertion), 1)
             restored = restored.replace(insertion, "", 1)
+        self.assertEqual(restored.count(app_test_project.NOTIFICATION_PERMISSION_READ), 1)
+        restored = restored.replace(app_test_project.NOTIFICATION_PERMISSION_READ,
+                                    app_test_project.NOTIFICATION_PERMISSION_READ_ORIGINAL, 1)
         self.assertEqual(restored, source)
         for marker in ("center.getNotificationSettings { settings in",
                        "callback(settings)",

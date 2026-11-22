@@ -374,8 +374,8 @@ BRIDGE
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         bridge = "\n".join(block(source, "nonisolated static func " + name) for name in (
             "notificationSettings(", "notificationQuery"))
-        permission_start = source.index("    func checkPermission() async {")
-        permission_end = source.index("    // Keep the actual OS response", permission_start)
+        observed = block(source, "    private func readCurrentNotificationSettings(")
+        permission = block(source, "    func checkPermission() async")
         gate_start = source.index("    private func deliveryAllowed() async -> Bool? {")
         gate_end = source.index("    private func apply(", gate_start)
         program = r'''import Foundation
@@ -389,14 +389,18 @@ final class UNNotificationSettings: @unchecked Sendable {
 final class UNUserNotificationCenter: @unchecked Sendable {
     let response: UNNotificationSettings?
     private let lock = NSLock()
-    private var reads = 0
+    private var reads = [@Sendable (UNNotificationSettings) -> Void]()
     init(_ response: UNNotificationSettings?) { self.response = response }
-    var count: Int { lock.lock(); defer { lock.unlock() }; return reads }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return reads.count }
     func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {
-        lock.lock(); reads += 1; lock.unlock()
+        lock.lock(); reads.append(completionHandler); lock.unlock()
         // nil models an OS service that never responds. The disabled branch
         // must complete without touching it, not wait for a synthesized reply.
         if let response { completionHandler(response) }
+    }
+    func complete(_ index: Int, authorization: Authorization) {
+        lock.lock(); let callback = reads[index]; lock.unlock()
+        callback(UNNotificationSettings(authorization))
     }
 }
 @MainActor final class Harness {
@@ -405,15 +409,50 @@ final class UNUserNotificationCenter: @unchecked Sendable {
     let center: UNUserNotificationCenter
     var message: String?
     var permissionMessage: String?
+    private var permissionReadSequence = 0, lastAppliedPermissionSequence = 0
     init(_ changes: Bool, _ specials: Bool, _ center: UNUserNotificationCenter) {
         changesEnabled = changes; specialsEnabled = specials; self.center = center
     }
 BRIDGE
+OBSERVED
 GATE
 PERMISSION
     func evaluate() async -> Bool? { await deliveryAllowed() }
 }
 @main struct Probe {
+    static func waitForReads(_ count: Int, _ center: UNUserNotificationCenter) async {
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while center.count != count { precondition(ContinuousClock.now < deadline); await Task.yield() }
+    }
+
+    @MainActor static func verifyReadOrder(newerDelivery: Bool, earlierStatus: Authorization,
+                                           currentStatus: Authorization) async {
+        let center = UNUserNotificationCenter(nil)
+        let harness = Harness(true,false,center)
+        harness.message = "independent storage failure"
+        let earlier = Task { () -> Bool? in
+            if !newerDelivery { return await harness.evaluate() }
+            await harness.checkPermission()
+            return nil
+        }
+        await waitForReads(1,center)
+        let current = Task { () -> Bool? in
+            if newerDelivery { return await harness.evaluate() }
+            await harness.checkPermission()
+            return nil
+        }
+        await waitForReads(2,center)
+        center.complete(1,authorization:currentStatus)
+        let confirmed = await current.value
+        if newerDelivery { precondition(confirmed == (currentStatus == .authorized)) }
+        let expected = currentStatus == .denied ? "iPhoneの設定で通知を許可してください。" : nil
+        precondition(harness.permissionMessage == expected)
+        center.complete(0,authorization:earlierStatus)
+        let stale = await earlier.value
+        precondition(stale == nil && harness.permissionMessage == expected)
+        precondition(harness.message == "independent storage failure" && center.count == 2)
+    }
+
     @MainActor static func main() async {
         let unavailable = UNUserNotificationCenter(nil)
         let disabled = Harness(false, false, unavailable)
@@ -447,11 +486,15 @@ PERMISSION
                 precondition(center.count == (enabled ? 4 : 0))
             }
         }
-        print("Verified production gate: disabled uses no OS request; enabled requires actual allowed status.")
+        for newerDelivery in [false,true] {
+            await verifyReadOrder(newerDelivery:newerDelivery,earlierStatus:.denied,currentStatus:.authorized)
+            await verifyReadOrder(newerDelivery:newerDelivery,earlierStatus:.authorized,currentStatus:.denied)
+        }
+        print("Verified production gate: disabled uses no OS request; older callbacks cannot overwrite confirmed permission.")
     }
 }
-'''.replace("BRIDGE", bridge).replace("GATE", source[gate_start:gate_end]).replace(
-    "PERMISSION", source[permission_start:permission_end])
+'''.replace("BRIDGE", bridge).replace("OBSERVED", observed).replace("GATE", source[gate_start:gate_end]).replace(
+    "PERMISSION", permission)
         self.run_probe(compiler, program)
 
     def test_actual_apply_keeps_denial_separate_from_storage_success_and_failure(self):
@@ -459,9 +502,10 @@ PERMISSION
         if not compiler:
             self.skipTest("Swift required for the production permission/apply methods")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        permission = source[source.index("    func checkPermission() async {"):source.index("    // Keep the actual OS response")]
+        permission = block(source, "    func checkPermission() async")
         bridge = "\n".join(block(source, "nonisolated static func " + name) for name in (
             "notificationSettings(", "notificationQuery", "readPending", "readDelivered"))
+        observed = block(source, "    private func readCurrentNotificationSettings(")
         gate_start = source.index("    private func deliveryAllowed() async -> Bool? {")
         methods = source[gate_start:source.index("    private func changeNotice(", gate_start)]
         program = r'''import Foundation
@@ -498,6 +542,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
 }
 @MainActor final class Harness {
  var changesEnabled=true,specialsEnabled=true,message:String?,permissionMessage:String?
+ private var permissionReadSequence=0,lastAppliedPermissionSequence=0
  let center=UNUserNotificationCenter();var generation=UUID(),latestRevision=UUID(),loaded=true
  var baseline:ScheduleNotificationSnapshot?=ScheduleNotificationSnapshot();var failSave=false,saves=0
  let root:URL
@@ -509,6 +554,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  func changeNotice(_ targets:[ScheduleNotificationSnapshot.ChangeTarget])throws->ScheduleNotificationSnapshot.Pending{.init()}
 PERMISSION
 BRIDGE
+OBSERVED
 METHODS
  func update()async{await apply(Input(revision:latestRevision))}
 }
@@ -543,7 +589,7 @@ METHODS
   print("Actual permission/apply: denial survives reconcile, storage failure coexists, authorization recovers independently, and disabled settings do not read the OS.")
  }
 }
-'''.replace("PERMISSION", permission).replace("BRIDGE", bridge).replace("METHODS", methods)
+'''.replace("PERMISSION", permission).replace("BRIDGE", bridge).replace("OBSERVED", observed).replace("METHODS", methods)
         self.run_probe(compiler, program)
 
     def test_retention_can_retry_private_notification_cleanup_after_unknown_os_reads(self):

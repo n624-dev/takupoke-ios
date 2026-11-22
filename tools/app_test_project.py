@@ -226,6 +226,8 @@ def instrument_notification_switch(text):
 
 NOTIFICATION_PERMISSION_BEGIN = (
     '        let fixturePermissionRead = FixtureNotificationAuthorization.shared.begin()\n')
+NOTIFICATION_PERMISSION_READ = '        let settings = await readCurrentNotificationSettings()\n'
+NOTIFICATION_PERMISSION_READ_ORIGINAL = '        _ = await readCurrentNotificationSettings()\n'
 NOTIFICATION_PERMISSION_END = (
     '        FixtureNotificationAuthorization.shared.complete(fixturePermissionRead,\n'
     '            authorization: settings?.authorizationStatus.rawValue, cancelled: Task.isCancelled)\n')
@@ -246,7 +248,7 @@ NOTIFICATION_PERMISSION_SKIPPED = (
 def instrument_notification_permission(text):
     # Observe actual branches and calls. Never supply an OS status or change settings.
     start = '    func checkPermission() async {\n'
-    read = '        let settings = await Self.notificationSettings(from: center)\n'
+    read = NOTIFICATION_PERMISSION_READ_ORIGINAL
     disabled = ('            permissionMessage = nil\n'
                 '            return\n')
     end = text.index('    // Keep the actual OS response')
@@ -255,7 +257,7 @@ def instrument_notification_permission(text):
         'Notification permission read insertion point missing')
     assert permission.count(disabled) == 1, 'Disabled permission branch insertion point missing'
     permission = permission.replace(start, start + NOTIFICATION_PERMISSION_BEGIN)
-    permission = permission.replace(read, read + NOTIFICATION_PERMISSION_END)
+    permission = permission.replace(read, NOTIFICATION_PERMISSION_READ + NOTIFICATION_PERMISSION_END)
     permission = permission.replace(disabled, disabled.replace(
         '            return\n', NOTIFICATION_PERMISSION_SKIPPED + '            return\n'))
     text = permission + text[end:]

@@ -24,6 +24,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private var pending: Input?
     private var generation = UUID()
     private var latestRevision = UUID()
+    private var permissionReadSequence = 0
+    private var lastAppliedPermissionSequence = 0
 
     private struct Input {
         let changeDocument: String?
@@ -63,6 +65,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             defer { requestingPermission = false }
             do {
                 guard try await Self.requestAuthorization(from: center) else {
+                    lastAppliedPermissionSequence = permissionReadSequence
                     permissionMessage = "iPhoneの設定で通知を許可してください。"
                     return
                 }
@@ -82,7 +85,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         // general setup must not enable a type the person turned off.
         UserDefaults.standard.set(true, forKey: "notificationsSetupCompleted")
         message = nil
-        if value || (!changesEnabled && !specialsEnabled) { permissionMessage = nil }
+        if value || (!changesEnabled && !specialsEnabled) {
+            lastAppliedPermissionSequence = permissionReadSequence
+            permissionMessage = nil
+        }
         if !value {
             let ids = changes ? ["takupoke.changes"] : ["takupoke.exam", "takupoke.examReturn"]
             reconcileTask?.cancel()
@@ -123,8 +129,18 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             permissionMessage = nil
             return
         }
-        let settings = await Self.notificationSettings(from: center)
-        if let settings { recordPermission(settings) }
+        _ = await readCurrentNotificationSettings()
+    }
+
+    private func readCurrentNotificationSettings() async -> UNNotificationSettings? {
+        permissionReadSequence += 1
+        let sequence = permissionReadSequence
+        // Only a confirmed response can supersede an earlier read.
+        guard let settings = await Self.notificationSettings(from:center), !Task.isCancelled,
+              sequence > lastAppliedPermissionSequence else { return nil }
+        lastAppliedPermissionSequence = sequence
+        recordPermission(settings)
+        return settings
     }
 
     // Keep the actual OS response across the callback/concurrency boundary. Missing or cancelled reads
@@ -258,8 +274,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         // No notification can be delivered in that state, so an OS settings read
         // must not delay saving the baseline or the next input.
         guard changesEnabled || specialsEnabled else { permissionMessage = nil; return false }
-        guard let settings = await Self.notificationSettings(from: center) else { return nil }
-        recordPermission(settings)
+        guard let settings = await readCurrentNotificationSettings() else { return nil }
         guard changesEnabled || specialsEnabled else { return false }
         return settings.authorizationStatus == .authorized ||
             settings.authorizationStatus == .provisional || settings.authorizationStatus == .ephemeral
