@@ -57,6 +57,8 @@ final class ApplicationData: ObservableObject {
         schoolEvents.$saved.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         schoolEvents.$sourcePresentationRevision.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$state.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        materials.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        materials.$failed.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$records.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$sources.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
@@ -66,7 +68,8 @@ final class ApplicationData: ObservableObject {
             .receive(on: RunLoop.main)
             .map { _ in
                 let defaults = UserDefaults.standard
-                return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent"))]
+                return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent")),
+                        defaults.string(forKey: ChangeNormalizer.schoolYearSettingKey) ?? ""]
             }.removeDuplicates()
             .sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
     }
@@ -223,9 +226,11 @@ final class ApplicationData: ObservableObject {
             _ = await (materials, specials, events, revisions)
             if !Task.isCancelled, let period = self.loadedPeriod {
                 self.updateCountdown()
-                await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
-                                                    sources: self.specialSchedules.sources, period: period,
-                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
+                async let scheduleNotices: Void = self.notifications.reconcile(state: self.materials.state,
+                    records: self.specialSchedules.records, sources: self.specialSchedules.sources, period: period,
+                    materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
+                await self.countdown.waitForNotificationReconciliation()
+                await scheduleNotices
             }
         }
         backgroundRefresh = task

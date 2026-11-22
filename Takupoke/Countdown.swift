@@ -227,6 +227,7 @@ struct CountdownLibrary: Codable, Equatable {
 enum CountdownAvailability: Equatable {
     case available, loading, missingYear, missingEvent, sourcePending, sourceDifference
     case noClass, noExam, noDocument, notAnalysed, analysisFailed, expired, previousResult
+    case changesUnavailable, changesUnconfirmed
 
     var label: String? {
         switch self {
@@ -243,11 +244,22 @@ enum CountdownAvailability: Equatable {
         case .analysisFailed: return "試験時間割を解析できませんでした。"
         case .expired: return "試験時間割の保存期間が終了しました。"
         case .previousResult: return "試験時間割は前回の正常な解析結果です。"
+        case .changesUnavailable: return "時間割変更を読み込めません。試験の通知は保留しています。"
+        case .changesUnconfirmed: return "時間割変更の結果を確認中です。試験の通知は保留しています。"
         }
     }
     var allowsNotification: Bool { self == .available || self == .previousResult }
     var presentsDatesOnHome: Bool {
-        self == .available || self == .sourcePending || self == .sourceDifference || self == .previousResult
+        self == .available || self == .sourcePending || self == .sourceDifference ||
+            self == .previousResult || self == .changesUnconfirmed
+    }
+
+    static func classExamChangeIssue(in state: MaterialLibraryState, ready: Bool, failed: Bool,
+                                     schoolYear: Int?) -> Self? {
+        guard ready else { return failed ? .changesUnavailable : .loading }
+        guard let source = state.record(for: .changes) else { return nil }
+        return state.changeAnalysis?.matches(record: source, defaultYear: schoolYear) == true
+            ? nil : .changesUnconfirmed
     }
 }
 
@@ -261,8 +273,10 @@ struct CountdownCard: Identifiable, Equatable {
     var expiry: Date?
     var classSubjects: [String] = []
     var evidence: String = ""
+    var classScope: String?
 
     var targetKey: String { reference?.key ?? (expiry == nil ? id.uuidString : evidence) }
+    var noticeTarget: CountdownNoticeTarget { .init(id: id, key: targetKey) }
     var isPrivate: Bool { expiry != nil }
 
     func isFinished(on today: SchoolDate) -> Bool {
@@ -291,14 +305,43 @@ struct CountdownCard: Identifiable, Equatable {
     }
 }
 
+struct CountdownAutomaticCards {
+    let displayed: CountdownCard?
+    let notificationTargets: [CountdownCard]
+
+    init(_ ordered: [CountdownCard], fixedReferences: Set<CountdownEventReference> = []) {
+        func isAutomatic(_ card: CountdownCard) -> Bool {
+            card.reference.map(fixedReferences.contains) != true
+        }
+        displayed = ordered.first.flatMap { isAutomatic($0) ? $0 : nil }
+        notificationTargets = ordered.filter(isAutomatic)
+    }
+}
+
+struct CountdownNoticeTarget: Hashable {
+    let id: UUID
+    let key: String
+}
+
 struct CountdownNotice: Equatable {
     static let prefix = "takupoke.countdown."
     static let privatePrefix = prefix + "private."
     let identifier: String
-    let targetID: UUID
-    let targetKey: String
+    let target: CountdownNoticeTarget
     let title: String
     let fireAt: Date
+    let classScope: String?
+    var targetID: UUID { target.id }
+    var targetKey: String { target.key }
+
+    static func holdsWhileLoading(identifier: String, storedScope: String?, currentScope: String,
+                                  activeReminderKeys: Set<String>, acceptsLegacy: Bool) -> Bool {
+        let automaticClassPrefix = privatePrefix + CountdownAutomatic.identity.uuidString + "."
+        guard identifier.hasPrefix(automaticClassPrefix),
+              let reminder = identifier.split(separator: ".").last,
+              activeReminderKeys.contains(String(reminder)) else { return false }
+        return storedScope.map { $0 == currentScope } ?? acceptsLegacy
+    }
 
     static func planned(for cards: [CountdownCard], at now: Date) -> [Self] {
         let today = TimetableDaySchedule.schoolDay(at: now)
@@ -309,8 +352,11 @@ struct CountdownNotice: Equatable {
                 guard let fireAt = reminder.fireDate(start: dates.start), fireAt > now,
                       card.expiry.map({ fireAt < $0 && now < $0 }) != false else { return nil }
                 let scope = card.isPrivate ? privatePrefix : prefix + "personal."
-                return Self(identifier: scope + card.id.uuidString + "." + reminder.key, targetID: card.id,
-                            targetKey: card.targetKey, title: card.title, fireAt: fireAt)
+                let target = card.noticeTarget
+                let identity = target.id == CountdownAutomatic.identity
+                    ? target.id.uuidString + "." + target.key : target.id.uuidString
+                return Self(identifier: scope + identity + "." + reminder.key, target: target,
+                            title: card.title, fireAt: fireAt, classScope: card.classScope)
             }
         }.sorted { ($0.fireAt, $0.identifier) < ($1.fireAt, $1.identifier) }
     }

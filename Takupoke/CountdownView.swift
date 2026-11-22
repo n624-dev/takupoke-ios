@@ -88,7 +88,7 @@ struct CountdownManagementView: View {
             NavigationLink {
                 CountdownDetail(id: card.id, events: events)
             } label: {
-                CountdownRow(card: card, day: model.day, notice: model.notificationStatuses[card.id])
+                CountdownRow(card: card, day: model.day, notice: model.notificationStatuses[card.noticeTarget])
             }
             .accessibilityIdentifier("countdown-list-card")
         }
@@ -127,8 +127,8 @@ struct CountdownNotificationDestination: View {
     @ObservedObject var events: SchoolEventsModel
 
     var body: some View {
-        if model.cards.contains(where: { $0.id == destination.id && $0.targetKey == destination.target }) {
-            CountdownDetail(id: destination.id, events: events)
+        if model.notificationCard(for: destination.target) != nil {
+            CountdownDetail(id: destination.target.id, events: events, notificationTarget: destination.target)
         } else {
             CountdownManagementView(events: events)
                 .safeAreaInset(edge: .bottom) {
@@ -144,11 +144,17 @@ private struct CountdownDetail: View {
     @Environment(\.dismiss) private var dismiss
     let id: UUID
     @ObservedObject var events: SchoolEventsModel
+    var notificationTarget: CountdownNoticeTarget? = nil
     @State private var confirmingDelete = false
+
+    private var selectedCard: CountdownCard? {
+        if let notificationTarget { return model.notificationCard(for: notificationTarget) }
+        return model.cards.first { $0.id == id }
+    }
 
     var body: some View {
         List {
-            if let card = model.cards.first(where: { $0.id == id }) {
+            if let card = selectedCard {
                 Section("予定") {
                     CountdownRow(card: card, day: model.day)
                     if let dates = card.dates {
@@ -190,7 +196,7 @@ private struct CountdownDetail: View {
                     LabeledContent("ホーム表示", value: card.preferences.showsOnHome ? "オン" : "オフ")
                     LabeledContent("表示開始", value: card.preferences.lookahead.label)
                     LabeledContent("通知設定", value: card.preferences.notifications ? "オン" : "オフ")
-                    if let notice = model.notificationStatuses[id] {
+                    if let notice = model.notificationStatuses[card.noticeTarget] {
                         Text(notice).foregroundStyle(.secondary)
                     }
                     if card.preferences.notifications {
@@ -221,9 +227,10 @@ private struct CountdownDetail: View {
                             Button("学校行事を取得") { events.fetch(year: model.day.schoolYear) }.disabled(events.busy)
                         }
                     }
-                    if model.library.automatic.mode == .school && !model.automaticAlternatives.isEmpty {
+                    let otherExams = model.automaticSchoolExams.filter { $0.reference != card.reference }
+                    if model.library.automatic.mode == .school && !otherExams.isEmpty {
                         Section("ほかの試験期間") {
-                            ForEach(model.automaticAlternatives) { event in
+                            ForEach(otherExams) { event in
                                 VStack(alignment: .leading) {
                                     Text(event.dates.title)
                                     Text(event.dates.ranges.map(\.label).joined(separator: "、"))

@@ -7,8 +7,8 @@ import UserNotifications
 final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let updateIdentifiers = ["takupoke.changes", "takupoke.exam", "takupoke.examReturn"]
     struct CountdownDestination: Identifiable {
-        let id: UUID
-        let target: String
+        let target: CountdownNoticeTarget
+        var id: CountdownNoticeTarget { target }
     }
     @Published var openedCountdown: CountdownDestination?
     @Published private(set) var changesEnabled = UserDefaults.standard.bool(forKey: "notifyScheduleChanges")
@@ -52,7 +52,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
               let idValue = request.content.userInfo["countdownID"] as? String, let id = UUID(uuidString: idValue),
               let target = request.content.userInfo["targetKey"] as? String else { return }
         await MainActor.run {
-            self.openedCountdown = CountdownDestination(id: id, target: target)
+            self.openedCountdown = CountdownDestination(target: .init(id: id, key: target))
         }
     }
 

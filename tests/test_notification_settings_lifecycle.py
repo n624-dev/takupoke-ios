@@ -332,6 +332,150 @@ METHODS
 '''.replace("PERMISSION", permission).replace("BRIDGE", bridge).replace("METHODS", methods)
         self.run_probe(compiler, program)
 
+    def test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the background and countdown worker")
+        app = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
+        model = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        background = app[app.index("    func refreshInBackground() async {"):
+                         app.index("    private func checkRevisionsInBackground()")]
+        workers = model[model.index("    func waitForNotificationReconciliation()"):
+                        model.index("    private func reconcile(_ plan:")]
+        marker = "    private func cancelNotificationReconciliation(_ token: UUID) {\n"
+        self.assertEqual(workers.count(marker), 1)
+        workers = workers.replace(marker, marker + "        cancellations.append(token)\n")
+        wait_operation = "            await withTaskCancellationHandler {\n"
+        self.assertEqual(workers.count(wait_operation), 1)
+        workers = workers.replace(wait_operation, wait_operation + "                waitEntries += 1\n")
+        program = r'''import Foundation
+@MainActor final class UIApplication {
+    enum State { case background }
+    static let shared = UIApplication()
+    let applicationState = State.background
+    let isProtectedDataAvailable = true
+}
+@MainActor final class Material {
+    let state = 0, records = 0, sources = 0, ready = true
+    func refreshInBackground() async -> Bool { true }
+}
+@MainActor final class ScheduleNotices {
+    private(set) var finished = false
+    func reconcile(state: Int, records: Int, sources: Int, period: Int,
+                   materialsReady: Bool, specialsReady: Bool) async { finished = true }
+}
+@MainActor final class Countdown {
+    struct NoticePlan { let revision: UUID }
+    var request: NoticePlan?, worker: Task<Void, Never>?
+    var revision = UUID()
+    var waiting: CheckedContinuation<Void, Never>?
+    var applied: [UUID] = []
+    var cancellations: [UUID] = []
+    var waitEntries = 0
+
+    func enqueue() {
+        revision = UUID()
+        request = NoticePlan(revision: revision)
+        startNotificationWorker()
+    }
+    private func reconcile(_ plan: NoticePlan) async {
+        await withCheckedContinuation { waiting = $0 }
+        guard !Task.isCancelled, revision == plan.revision else { return }
+        applied.append(plan.revision)
+    }
+    func release() {
+        let callback = waiting!
+        waiting = nil
+        callback.resume()
+    }
+WORKERS
+}
+@MainActor final class App {
+    let materials = Material(), specialSchedules = Material(), schoolEvents = Material()
+    let notifications = ScheduleNotices(), countdown = Countdown()
+    var loadedPeriod: Int? = 1
+    var backgroundRefresh: Task<Void, Never>?
+    var finished = false
+
+    func prepare() async -> Bool { true }
+    func setFileMonitoring(_ enabled: Bool) { precondition(!enabled) }
+    func checkRevisionsInBackground() async {}
+    func updateCountdown() { countdown.enqueue() }
+BACKGROUND
+    func start() -> Task<Void, Never> {
+        Task { await refreshInBackground(); finished = true }
+    }
+}
+@main struct Probe {
+    @MainActor static func observe(_ condition: () -> Bool) async {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while !condition() { precondition(ContinuousClock.now < deadline); await Task.yield() }
+    }
+    @MainActor static func main() async {
+        for cancel in [false, true] {
+            let app = App()
+            let task = app.start()
+            await observe { app.countdown.waiting != nil && app.notifications.finished }
+            precondition(!app.finished && app.backgroundRefresh != nil)
+            let token = app.countdown.revision
+            if cancel {
+                task.cancel()
+                await observe { app.countdown.worker?.isCancelled == true }
+            }
+            app.countdown.release()
+            await task.value
+            precondition(app.finished && app.backgroundRefresh == nil)
+            precondition(app.countdown.applied == (cancel ? [] : [token]))
+        }
+        let app = App()
+        let task = app.start()
+        await observe { app.countdown.waiting != nil && app.notifications.finished }
+        app.countdown.enqueue()
+        let newest = app.countdown.revision
+        task.cancel()
+        app.countdown.release()
+        await observe { app.countdown.waiting != nil }
+        app.countdown.release()
+        await task.value
+        precondition(app.countdown.applied == [newest])
+
+        // Join after the previous operation was cancelled but before its OS
+        // callback returns. Its epilogue starts the newer task.
+        for newerPlanAfterJoining in [false, true] {
+            let countdown = Countdown()
+            countdown.enqueue()
+            await observe { countdown.waiting != nil }
+            countdown.worker!.cancel()
+            countdown.enqueue()
+            let original = countdown.revision
+            var beganWaiting = false
+            var endedWaiting = false
+            let join = Task {
+                beganWaiting = true
+                await countdown.waitForNotificationReconciliation()
+                endedWaiting = true
+            }
+            await observe { beganWaiting }
+            if newerPlanAfterJoining { countdown.enqueue() }
+            let restarted = countdown.revision
+            countdown.release()
+            await observe { countdown.waiting != nil && countdown.waitEntries == 2 }
+            precondition(!endedWaiting)
+            if newerPlanAfterJoining {
+                join.cancel()
+                await observe { !countdown.cancellations.isEmpty }
+                precondition(countdown.cancellations == [original] && countdown.worker?.isCancelled == false)
+            }
+            countdown.release()
+            await join.value
+            precondition(endedWaiting && countdown.applied == [restarted])
+        }
+        print("Verified background waits for countdown, cancels its own work, and preserves a newer plan.")
+    }
+}
+'''.replace("WORKERS", workers).replace("BACKGROUND", background)
+        self.run_probe(compiler, program)
+
     def run_probe(self, compiler, program):
         with tempfile.TemporaryDirectory(prefix="notification-settings-lifecycle-") as scratch:
             directory = Path(scratch)

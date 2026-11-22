@@ -74,6 +74,101 @@ final class CountdownTests: XCTestCase {
         XCTAssertTrue(CountdownNotice.planned(for: [personal], at: target.start.dateInJapan(hour: 20)!).isEmpty)
     }
 
+    func testAutomaticClassExamReservesEveryDayWithoutReplacingTodaysCard() throws {
+        let expiry = try XCTUnwrap(day("2032-10-01").dateInJapan())
+        let reminders = [
+            CountdownReminder(daysBefore: 7, hour: 20, minute: 0),
+            CountdownReminder(daysBefore: 1, hour: 20, minute: 0),
+            CountdownReminder(daysBefore: 0, hour: 8, minute: 0)
+        ]
+        let exams = ["2032-06-07", "2032-06-08", "2032-06-09"].map { date in
+            CountdownCard(id: CountdownAutomatic.identity, title: "架空試験", dates: dates("架空試験", date),
+                preferences: CountdownPreferences(notifications: true, reminders: reminders),
+                availability: .available, expiry: expiry, evidence: "fictional-\(date)")
+        }
+        let firstPlan = CountdownAutomaticCards(exams)
+        let early = try XCTUnwrap(day("2032-05-31").dateInJapan(hour: 19))
+        let firstNotices = CountdownNotice.planned(for: firstPlan.notificationTargets, at: early)
+        XCTAssertEqual(firstNotices.count, 9)
+        XCTAssertEqual(Set(firstNotices.map(\.identifier)).count, 9)
+        XCTAssertEqual(Set(firstNotices.map(\.target)), Set(exams.map(\.noticeTarget)))
+        XCTAssertTrue(firstNotices.allSatisfy { $0.identifier.hasPrefix(CountdownNotice.privatePrefix) })
+        for (index, exam) in exams.enumerated() {
+            let start = try XCTUnwrap(exam.dates?.start)
+            XCTAssertEqual(firstNotices.filter { $0.target == exam.noticeTarget }.map(\.fireAt),
+                           reminders.compactMap { $0.fireDate(start: start) })
+            let evening = try XCTUnwrap(start.dateInJapan(hour: 19))
+            let todayPlan = CountdownAutomaticCards(Array(exams.dropFirst(index)))
+            XCTAssertEqual(todayPlan.displayed, exam)
+            let upcoming = CountdownNotice.planned(for: todayPlan.notificationTargets, at: evening)
+            if index + 1 < exams.count {
+                XCTAssertTrue(upcoming.contains {
+                    $0.target == exams[index + 1].noticeTarget && $0.fireAt == start.dateInJapan(hour: 20)
+                })
+            }
+        }
+        let changed = CountdownCard(id: CountdownAutomatic.identity, title: exams[1].title, dates: exams[1].dates,
+            preferences: exams[1].preferences, availability: .available, expiry: expiry, evidence: "fictional-changed")
+        let updated = CountdownNotice.planned(for: CountdownAutomaticCards([exams[0], changed]).notificationTargets, at: early)
+        XCTAssertEqual(Set(updated.map(\.target)), [exams[0].noticeTarget, changed.noticeTarget])
+        XCTAssertTrue(Set(updated.map(\.identifier)).isDisjoint(with: firstNotices.filter { $0.target != exams[0].noticeTarget }.map(\.identifier)))
+    }
+
+    func testSchoolAutomaticPlansLaterPeriodsAndHonorsFixedAndUnconfirmedEvents() throws {
+        let date = day("2032-06-03")
+        let prefs = CountdownPreferences(notifications: true)
+        func event(_ key: String, _ start: String, _ end: String, _ availability: CountdownAvailability = .available) -> CountdownCard {
+            .init(id: CountdownAutomatic.identity, title: "架空試験期間", dates: dates("架空試験期間", start, end),
+                  preferences: prefs, availability: availability, reference: .init(year: date.schoolYear, eventID: key))
+        }
+        let active = event("fictional-active", "2032-06-01", "2032-06-07")
+        let next = event("fictional-next", "2032-06-10", "2032-06-12")
+        let fixedEvent = event("fictional-fixed", "2032-06-16", "2032-06-17")
+        let pending = event("fictional-pending", "2032-06-24", "2032-06-25", .sourcePending)
+        let fixed = CountdownCard(id: UUID(), title: fixedEvent.title, dates: fixedEvent.dates,
+                                  preferences: CountdownPreferences(notifications: false), availability: .available,
+                                  reference: fixedEvent.reference)
+        let assessment = CountdownAutomaticCards([active, next, fixedEvent, pending], fixedReferences: Set([try XCTUnwrap(fixed.reference)]))
+        XCTAssertEqual(assessment.displayed, active)
+        let now = try XCTUnwrap(date.dateInJapan(hour: 19))
+        let notices = CountdownNotice.planned(for: assessment.notificationTargets + [fixed], at: now)
+        XCTAssertEqual(notices.map(\.target), [next.noticeTarget, next.noticeTarget])
+        XCTAssertEqual(notices.first?.fireAt, date.dateInJapan(hour: 20))
+        XCTAssertTrue(notices.allSatisfy { !$0.identifier.hasPrefix(CountdownNotice.privatePrefix) })
+        let fixedFirst = CountdownAutomaticCards([active, next],
+            fixedReferences: Set([try XCTUnwrap(active.reference)]))
+        XCTAssertNil(fixedFirst.displayed)
+        XCTAssertEqual(fixedFirst.notificationTargets, [next])
+    }
+
+    func testStartupHoldsOnlyExistingAutomaticClassReservationsForTheSameSelection() throws {
+        let start = day("2032-06-07")
+        let classCard = CountdownCard(id: CountdownAutomatic.identity, title: "架空試験", dates: dates("架空試験", start.iso8601),
+            preferences: CountdownPreferences(notifications: true), availability: .available,
+            expiry: day("2032-10-01").dateInJapan(), evidence: "fictional-exam", classScope: "fictional-current-class")
+        let personal = CountdownCard(id: UUID(), title: classCard.title, dates: classCard.dates,
+            preferences: classCard.preferences, availability: .available)
+        let now = try XCTUnwrap(day("2032-05-31").dateInJapan(hour: 19))
+        let notices = CountdownNotice.planned(for: [classCard, personal], at: now)
+        let planned = try XCTUnwrap(notices.first { $0.target == classCard.noticeTarget })
+        let other = try XCTUnwrap(notices.first { $0.target == personal.noticeTarget })
+        XCTAssertEqual(planned.classScope, "fictional-current-class")
+        let active = Set(CountdownReminder.defaults.map(\.key))
+        XCTAssertTrue(CountdownNotice.holdsWhileLoading(identifier: planned.identifier, storedScope: planned.classScope,
+            currentScope: "fictional-current-class", activeReminderKeys: active, acceptsLegacy: false))
+        XCTAssertFalse(CountdownNotice.holdsWhileLoading(identifier: planned.identifier, storedScope: planned.classScope,
+            currentScope: "fictional-current-class", activeReminderKeys: ["1-20-0"], acceptsLegacy: false))
+        XCTAssertFalse(CountdownNotice.holdsWhileLoading(identifier: planned.identifier, storedScope: planned.classScope,
+            currentScope: "fictional-other-class", activeReminderKeys: active, acceptsLegacy: true))
+        XCTAssertFalse(CountdownNotice.holdsWhileLoading(identifier: other.identifier, storedScope: nil,
+            currentScope: "fictional-current-class", activeReminderKeys: active, acceptsLegacy: true))
+        let legacyID = CountdownNotice.privatePrefix + CountdownAutomatic.identity.uuidString + ".7-20-0"
+        XCTAssertTrue(CountdownNotice.holdsWhileLoading(identifier: legacyID, storedScope: nil,
+            currentScope: "fictional-current-class", activeReminderKeys: active, acceptsLegacy: true))
+        XCTAssertFalse(CountdownNotice.holdsWhileLoading(identifier: legacyID, storedScope: nil,
+            currentScope: "fictional-other-class", activeReminderKeys: active, acceptsLegacy: false))
+    }
+
     func testReminderDayEditingRequiresACompleteInRangeValue() {
         let locale = Locale(identifier: "ja_JP")
         var edits = CountdownReminderDayEdits()
@@ -131,6 +226,27 @@ final class CountdownTests: XCTestCase {
 }
 
 extension CountdownTests {
+    func testClassExamDistinguishesAbsentUnloadedAndUnconfirmedChanges() {
+        var state = MaterialLibraryState()
+        func issue(ready: Bool, failed: Bool = false, year: Int = 2032) -> CountdownAvailability? {
+            CountdownAvailability.classExamChangeIssue(in: state, ready: ready, failed: failed, schoolYear: year)
+        }
+        XCTAssertEqual(issue(ready: false), .loading)
+        XCTAssertEqual(issue(ready: false, failed: true), .changesUnavailable)
+        XCTAssertNil(issue(ready: true))
+        state.records = [.init(kind: .changes, source: .init(grant: nil, childName: nil, selectionID: "fictional"),
+            originalName: "fictional.xlsx", storedName: "fictional.xlsx", byteCount: 10, digest: "fictional",
+            sourceModifiedAt: nil, acquiredAt: Date())]
+        XCTAssertEqual(issue(ready: true), .changesUnconfirmed)
+        state.changeAnalysis = .init(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+            defaultYear: 2032, parsedAt: Date(), records: [])
+        XCTAssertNil(issue(ready: true, failed: true))
+        XCTAssertEqual(issue(ready: true, year: 2033), .changesUnconfirmed)
+        XCTAssertFalse(CountdownAvailability.changesUnavailable.allowsNotification)
+        XCTAssertFalse(CountdownAvailability.changesUnconfirmed.allowsNotification)
+        XCTAssertTrue(CountdownAvailability.changesUnconfirmed.presentsDatesOnHome)
+    }
+
     func testClassExamUsesAcceptedSlotsVisibilityAndAppliedChanges() throws {
         let schoolDay = day("2032-05-24")
         let date = schoolDay.iso8601

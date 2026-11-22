@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`45340cf956dc21a693a9982263cb40b2d2638fa13e4e2d19621bbf2fae60c8f1`
+`b04fcf8635c6cfdfca4c2130a720adcfbecf48dc689f7fbe301517bdc3534b7f`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -21,9 +21,13 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testJapaneseCalendarPhaseCoversLeapDayYearBoundaryAndSplitRanges`
 - `testHomeFilteringAndProgressDoNotDependOnReservation`
 - `testNotificationDeadlineAndSourcePauseApplyOnlyToTheirOwnTargets`
+- `testAutomaticClassExamReservesEveryDayWithoutReplacingTodaysCard`
+- `testSchoolAutomaticPlansLaterPeriodsAndHonorsFixedAndUnconfirmedEvents`
+- `testStartupHoldsOnlyExistingAutomaticClassReservationsForTheSameSelection`
 - `testReminderDayEditingRequiresACompleteInRangeValue`
 - `testRemovingReminderKeepsTheOtherRowsOwnUnfinishedText`
 - `testRegistrationStoreRejectsInvalidWritesAndSurvivesSchoolDataRetention`
+- `testClassExamDistinguishesAbsentUnloadedAndUnconfirmedChanges`
 - `testClassExamUsesAcceptedSlotsVisibilityAndAppliedChanges`
 
 ## [tests/SchoolEventsSourceModelTests.swift](../../tests/SchoolEventsSourceModelTests.swift)

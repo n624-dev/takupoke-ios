@@ -538,7 +538,8 @@ private struct FixtureCountdownReservationStatus: View {
     @ObservedObject private var model = ApplicationData.shared.countdown
 
     var body: some View {
-        Text(model.notificationStatuses[id] ?? "予約報告なし")
+        let card = model.cards.first { $0.id == id }
+        Text(card.flatMap { model.notificationStatuses[$0.noticeTarget] } ?? "予約報告なし")
             .accessibilityIdentifier(control ? "fixture-countdown-control-status" : "fixture-countdown-reservation-status")
             .allowsHitTesting(false)
     }
