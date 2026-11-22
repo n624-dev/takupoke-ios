@@ -85,6 +85,7 @@ struct RecoveryOCRCoveragePage: Codable, Equatable, Sendable {
     var page: Int; var width: Int; var height: Int; var grayscaleSHA256: String
 }
 struct RecoveryOCRCoverageProof: Codable, Equatable, Sendable {
+    static let currentVersion = 2
     var version: Int; var pages: [RecoveryOCRCoveragePage]
 }
 struct RecoveryDocument: Codable, Equatable, Sendable {

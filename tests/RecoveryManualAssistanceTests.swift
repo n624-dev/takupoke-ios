@@ -1,5 +1,10 @@
 import Foundation
 import XCTest
+#if canImport(CryptoKit)
+import CryptoKit
+#elseif canImport(Crypto)
+import Crypto
+#endif
 @testable import TakupokeParsing
 
 extension PDFParsingTests {
@@ -284,9 +289,8 @@ extension PDFParsingTests {
         XCTAssertEqual(acknowledged["subject"],false)
     }
 
-    private func manualFixture(lowCount:Int = 1, lowHeader:Bool = false) throws -> RecoveryDocument {
+    private func manualFixture(lowCount:Int = 1, lowHeader:Bool = false, hash: String = String(repeating: "a", count: 64)) throws -> RecoveryDocument {
         let (page,raster) = try twoClassRasterCoverage()
-        let hash = String(repeating:"a",count:64)
         let doc = try RecoveryDocumentBuilder.build([page],kind:.timetable,hash:hash,fromOCR:[1],rasters:[1:raster])
         let groups = Dictionary(grouping:page.glyphs,by:{ $0.sourceLine! })
         let eligible = groups.keys.sorted().filter { key in
@@ -302,6 +306,61 @@ extension PDFParsingTests {
         let capture = RecoveryOCRAcquisitionDraft(sourcePDFHash:hash,documentPageCount:1,requiredOCRPages:[1],
             pages:[RecoveryOCRPage(page:1,width:Int(page.width),height:Int(page.height),nativeDocumentCount:1,lines:lines,captureComplete:true)])
         return try RecoveryManualAssistance.attaching(capture,to:doc)
+    }
+
+    func testLegacyOCRCoverageHoldsTheProjectionAndPreservesOriginalAndManualCorrection() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("fictional-old-ocr-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fileRoot = root.appendingPathComponent("library")
+        let bytes = Data("fictional stored OCR source".utf8)
+        let hash = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        let doc = try manualFixture(hash: hash)
+        let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(doc, os: "test"))
+        let field = try XCTUnwrap(draft.fields.first)
+        let confirmedAt = Date(timeIntervalSince1970: 1_750_000_000)
+        let result = try RecoveryManualAssistance.complete(draft, values: [field.id: "架空手動訂正"], now: confirmedAt)
+        let period = SchoolDataPeriod(day: try XCTUnwrap(SchoolDate(year: doc.schoolYear, month: doc.term == "前期" ? 4 : 10, day: 16)))
+        let source = RecoverySelectedSource(kind: .timetable, url: root.appendingPathComponent("fixture.pdf"),
+            digest: hash, originalName: "fixture.pdf", storedName: "fixture.pdf", period: period)
+        let current = try RecoveryConversion.timetable(.init(document: doc, result: result, source: source))
+        XCTAssertTrue(RecoveryConversion.trustsAcquisitionCache(current, hash: hash))
+        var visible = MaterialLibraryState(); visible.pdfAnalyses = ["timetable": current]
+        XCTAssertEqual(MaterialLibrary.displayableTimetables(visible).state.pdfAnalyses?["timetable"]?.lessons, current.lessons)
+
+        var oldDoc = doc, oldResult = result
+        oldDoc.ocrCoverageProof?.version = 1
+        let oldSnapshot = try RecoveryValidator.fingerprint(oldDoc)
+        let oldCorrection = try XCTUnwrap(result.humanCorrections?.first)
+        oldResult.humanCorrections = [.init(schemaVersion: oldCorrection.schemaVersion, target: oldCorrection.target,
+            pdfHash: oldCorrection.pdfHash, acquisitionHash: oldCorrection.acquisitionHash, documentSnapshotHash: oldSnapshot,
+            page: oldCorrection.page, parentSourceIds: oldCorrection.parentSourceIds, crop: oldCorrection.crop,
+            value: oldCorrection.value, provenance: oldCorrection.provenance, confirmedAt: oldCorrection.confirmedAt,
+            selectedTargets: oldCorrection.selectedTargets)]
+        let legacy = RecoveryAdopted(document: oldDoc, result: oldResult,
+            acceptance: .init(pdfHash: hash, resultHash: try RecoveryValidator.fingerprint(oldResult), scopeHash: oldSnapshot,
+                              metadata: oldResult.metadata, acceptedAt: current.parsedAt))
+        var saved = current; saved.recovery = legacy
+        do {
+            let library = try LocalMaterialDatabase.openLibrary(root: fileRoot)
+            let staged = library.newStagingURL()
+            try bytes.write(to: staged)
+            try library.commit(staged: staged, kind: .timetable, source: MaterialSource(), originalName: "fixture.pdf",
+                               byteCount: bytes.count, digest: hash, modifiedAt: nil)
+            try library.savePDFAnalysis(saved)
+        }
+        let database = fileRoot.appendingPathComponent("library.sqlite")
+        let persisted = try Data(contentsOf: database)
+        let reopened = try LocalMaterialDatabase.openLibrary(root: fileRoot)
+        XCTAssertEqual(reopened.state.pdfAnalyses?["timetable"]?.recovery, legacy)
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(reopened.localURL(for: .timetable))), bytes)
+        XCTAssertEqual(try Data(contentsOf: database), persisted)
+        XCTAssertEqual(RecoveryValidator.validate(oldDoc, oldResult).errors, ["ocrCoverage"])
+        XCTAssertFalse(RecoveryConversion.trustsAcquisitionCache(saved, hash: hash))
+        let held = MaterialLibrary.displayableTimetables(reopened.state)
+        XCTAssertEqual(held.rejected, ["timetable"])
+        XCTAssertNil(held.state.pdfAnalyses?["timetable"])
+        XCTAssertEqual(reopened.state.pdfAnalyses?["timetable"]?.recovery?.result.humanCorrections, oldResult.humanCorrections)
     }
 
     func testManualOneTwoThreeFieldsReachFormalConversionWithSeparateHumanProvenance() throws {

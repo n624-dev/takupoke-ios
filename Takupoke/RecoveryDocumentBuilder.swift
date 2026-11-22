@@ -559,7 +559,9 @@ enum RecoveryDocumentBuilder {
                       try !raster.hasUncoveredInk(RecoveryBox(x:0,y:0,width:page.width,height:page.height),text:page.glyphs.map { try box([$0]) },rules:rasterRules,check:check) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
                 let proof = RecoveryOCRCoveragePage(page:number,width:raster.width,height:raster.height,
                     grayscaleSHA256:try rasterFingerprint(raster,work:structureWork))
-                if doc.ocrCoverageProof == nil { doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[]) }
+                if doc.ocrCoverageProof == nil {
+                    doc.ocrCoverageProof = RecoveryOCRCoverageProof(version: RecoveryOCRCoverageProof.currentVersion, pages: [])
+                }
                 doc.ocrCoverageProof!.pages.append(proof)
             }
         }

@@ -254,8 +254,9 @@ enum CountdownAvailability: Equatable {
             self == .previousResult || self == .changesUnconfirmed
     }
 
-    static func classExamChangeIssue(in state: MaterialLibraryState, ready: Bool, failed: Bool,
-                                     schoolYear: Int?) -> Self? {
+    static func classExamInputIssue(in state: MaterialLibraryState, ready: Bool, failed: Bool,
+                                    schoolYear: Int?, rejectedExamRecovery: Bool = false) -> Self? {
+        if rejectedExamRecovery { return .analysisFailed }
         guard ready else { return failed ? .changesUnavailable : .loading }
         guard let source = state.record(for: .changes) else {
             return state.attempts[MaterialKind.changes.rawValue]?.failedToAcquire == true ? .changesUnavailable : nil

@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`86287eab14ce04c6e1dfcbcfcd25c0680f01faab0695e35bc72556dfcfa81012`
+`a29a5310eac208d8a05e1dc5397804764796b1c45e004b046726a04af7fd2a7a`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -41,6 +41,7 @@ bash tools/test-manual-ui.sh
 - `testStandaloneBuilderAtomCannotEscapeWithoutNativeCapture`
 - `testManualInputIdenticalRebindPreservesThreeIndividualAcknowledgements`
 - `testManualInputRawUnicodeChangeRequiresNewAcknowledgement`
+- `testLegacyOCRCoverageHoldsTheProjectionAndPreservesOriginalAndManualCorrection`
 - `testManualOneTwoThreeFieldsReachFormalConversionWithSeparateHumanProvenance`
 - `testManualFourthFieldAndAnyHeaderUncertaintyAreTerminal`
 - `testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault`

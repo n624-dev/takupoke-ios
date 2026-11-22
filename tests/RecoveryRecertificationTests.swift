@@ -21,7 +21,7 @@ final class RecoveryRecertificationTests: XCTestCase {
                 characters:characters.enumerated().map { .init(text:String($0.element),range:.init(x:source.box.x+Double($0.offset)*width,
                     y:source.box.y,width:width,height:source.box.height)) })]))
         }
-        doc.ocrCoverageProof = .init(version:1,pages:[.init(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        doc.ocrCoverageProof = .init(version:RecoveryOCRCoverageProof.currentVersion,pages:[.init(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
         let capture = RecoveryOCRAcquisitionDraft(sourcePDFHash:doc.pdfHash,documentPageCount:1,requiredOCRPages:[1],pages:[
             .init(page:1,width:700,height:1000,nativeDocumentCount:1,lines:lines,captureComplete:true)])
         doc = try RecoveryManualAssistance.attaching(capture,to:doc)
@@ -246,7 +246,7 @@ final class RecoveryRecertificationTests: XCTestCase {
     func testOCRCoverageProofSurvivesJSONRoundtripAndRemainsReusable() throws {
         var (doc,result) = fixture()
         for index in doc.sources.indices { doc.sources[index].fromOcr = true }
-        doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:1,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        doc.ocrCoverageProof = RecoveryOCRCoverageProof(version:RecoveryOCRCoverageProof.currentVersion,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
         let original = try accepted(doc,result)
         let decoded = try JSONDecoder().decode(RecoveryAdopted.self,from:JSONEncoder().encode(original))
         XCTAssertEqual(decoded.document.ocrCoverageProof,original.document.ocrCoverageProof)
@@ -384,20 +384,21 @@ final class RecoveryRecertificationTests: XCTestCase {
         for i in doc.sources.indices { doc.sources[i].fromOcr=true }
         let old=try accepted(doc,result)
         // A shape-valid marker is not permission to rewrite an old scope fingerprint.
-        doc.ocrCoverageProof=RecoveryOCRCoverageProof(version:1,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
+        doc.ocrCoverageProof=RecoveryOCRCoverageProof(version:RecoveryOCRCoverageProof.currentVersion,pages:[RecoveryOCRCoveragePage(page:1,width:700,height:1000,grayscaleSHA256:String(repeating:"b",count:64))])
         XCTAssertFalse(try RecoveryValidator.canReuse(old.acceptance,document:doc,result:result))
         var forged=old; forged.document=doc
         XCTAssertNil(try RecoveryValidator.recertify(forged,hash:doc.pdfHash))
-        for mutation in 0..<7 {
+        for mutation in 0..<8 {
             var invalid=doc
             switch mutation {
-            case 0: invalid.ocrCoverageProof!.version=2
+            case 0: invalid.ocrCoverageProof!.version=1
             case 1: invalid.ocrCoverageProof!.pages=[]
             case 2: invalid.ocrCoverageProof!.pages.append(invalid.ocrCoverageProof!.pages[0])
             case 3: invalid.ocrCoverageProof!.pages[0].page=2
             case 4: invalid.ocrCoverageProof!.pages[0].grayscaleSHA256="not-a-hash"
             case 5: invalid.ocrCoverageProof!.pages[0].width=1
-            default: invalid.sources[0].fromOcr=false
+            case 6: invalid.sources[0].fromOcr=false
+            default: invalid.ocrCoverageProof!.version=3
             }
             XCTAssertTrue(RecoveryValidator.validate(invalid,result).errors.contains("ocrCoverage"),"mutation \(mutation)")
         }

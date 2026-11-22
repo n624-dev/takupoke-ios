@@ -100,7 +100,7 @@ extension PDFParsingTests {
             XCTAssertEqual(doc.requiredSlots.count, 80)
             XCTAssertEqual(doc.annotations.count, annotation ? 1 : 0)
             let proof = try XCTUnwrap(doc.ocrCoverageProof)
-            XCTAssertEqual(proof.version, 1)
+            XCTAssertEqual(proof.version, 2)
             XCTAssertEqual(proof.pages.count, 1)
             XCTAssertEqual(proof.pages[0].page, 1)
             XCTAssertEqual(proof.pages[0].width, 740)

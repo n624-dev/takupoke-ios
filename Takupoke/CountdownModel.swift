@@ -332,24 +332,24 @@ final class CountdownModel: ObservableObject {
         let classes = selection.classes
         guard app.ready, let period = app.loadedPeriod, period == SchoolDataPeriod(day: today),
               let expiry = period.endsAt, now < expiry else { return [placeholder(automatic, .expired)] }
-        let materials = app.materials
-        let changeIssue = CountdownAvailability.classExamChangeIssue(in: materials.state, ready: materials.ready,
-            failed: materials.failed, schoolYear: materials.automaticChangeSchoolYear)
-        if let changeIssue, !changeIssue.presentsDatesOnHome {
-            return [placeholder(automatic, changeIssue)]
-        }
         let specials = app.specialSchedules
+        let materials = app.materials
+        let inputIssue = CountdownAvailability.classExamInputIssue(in: materials.state, ready: materials.ready,
+            failed: materials.failed, schoolYear: materials.automaticChangeSchoolYear,
+            rejectedExamRecovery: specials.ready && specials.rejectedRecoveryKinds.contains(.exam))
+        if let inputIssue, !inputIssue.presentsDatesOnHome {
+            return [placeholder(automatic, inputIssue)]
+        }
         guard specials.ready else { return [placeholder(automatic, specials.failed ? .analysisFailed : .loading)] }
         let source = specials.sources[.exam]
         guard let record = specials.records[.exam] else {
-            return [placeholder(automatic, source == nil ? .noDocument :
-                source?.failure != nil || specials.rejectedRecoveryKinds.contains(.exam) ? .analysisFailed : .notAnalysed)]
+            return [placeholder(automatic, source == nil ? .noDocument : source?.failure != nil ? .analysisFailed : .notAnalysed)]
         }
         guard SchoolDataPeriod.current(at: record.acquiredAt) == period else { return [placeholder(automatic, .expired)] }
-        guard record.digest == record.analysis.sourceDigest, record.analysis.version == SpecialScheduleAnalysis.parserVersion,
-              !specials.rejectedRecoveryKinds.contains(.exam) else { return [placeholder(automatic, .analysisFailed)] }
+        guard record.digest == record.analysis.sourceDigest, record.analysis.version == SpecialScheduleAnalysis.parserVersion
+        else { return [placeholder(automatic, .analysisFailed)] }
         let examAvailability: CountdownAvailability = specials.availability.state(for: .exam) == .current ? .available : .previousResult
-        let availability = changeIssue ?? examAvailability
+        let availability = inputIssue ?? examAvailability
         let schedule = TimetableDaySchedule(timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: app.schoolEvents.analysis,
             specials: specials.scheduleAnalyses, includesChanges: true, customTimes: app.times.current?.data,
@@ -371,7 +371,7 @@ final class CountdownModel: ObservableObject {
                 preferences: automatic.preferences, availability: availability, expiry: expiry,
                 classSubjects: subjects, evidence: key, classScope: classScope))
         }
-        return results.isEmpty ? [placeholder(automatic, changeIssue ?? .noExam)] : results
+        return results.isEmpty ? [placeholder(automatic, inputIssue ?? .noExam)] : results
     }
 
     func notificationPermission() async {

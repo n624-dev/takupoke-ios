@@ -280,10 +280,14 @@ final class CountdownTests: XCTestCase {
 extension CountdownTests {
     func testClassExamDistinguishesAbsentUnloadedAndUnconfirmedChanges() {
         var state = MaterialLibraryState()
-        func issue(ready: Bool, failed: Bool = false, year: Int = 2032) -> CountdownAvailability? {
-            CountdownAvailability.classExamChangeIssue(in: state, ready: ready, failed: failed, schoolYear: year)
+        func issue(ready: Bool, failed: Bool = false, year: Int = 2032, rejectedExamRecovery: Bool = false) -> CountdownAvailability? {
+            CountdownAvailability.classExamInputIssue(in: state, ready: ready, failed: failed, schoolYear: year,
+                                                      rejectedExamRecovery: rejectedExamRecovery)
         }
         XCTAssertEqual(issue(ready: false), .loading)
+        XCTAssertEqual(issue(ready: false, rejectedExamRecovery: true), .analysisFailed)
+        XCTAssertFalse(CountdownAvailability.analysisFailed.allowsNotification)
+        XCTAssertFalse(CountdownAvailability.analysisFailed.presentsDatesOnHome)
         XCTAssertEqual(issue(ready: false, failed: true), .changesUnavailable)
         XCTAssertNil(issue(ready: true))
         state.records = [.init(kind: .changes, source: .init(grant: nil, childName: nil, selectionID: "fictional"),
@@ -313,7 +317,7 @@ extension CountdownTests {
             }
             let state = try LocalMaterialDatabase.openLibrary(root:root).state
             XCTAssertNil(state.record(for:.changes))
-            return CountdownAvailability.classExamChangeIssue(in:state,ready:true,failed:false,schoolYear:2032)
+            return CountdownAvailability.classExamInputIssue(in:state,ready:true,failed:false,schoolYear:2032)
         }
 
         XCTAssertNil(try issue())
@@ -334,7 +338,7 @@ extension CountdownTests {
         do {
             let retry = try LocalMaterialDatabase.openLibrary(root:root)
             XCTAssertEqual(retry.state.attempts[MaterialKind.changes.rawValue]?.failure,unavailable)
-            XCTAssertEqual(CountdownAvailability.classExamChangeIssue(in:retry.state,ready:true,failed:false,schoolYear:2032),
+            XCTAssertEqual(CountdownAvailability.classExamInputIssue(in:retry.state,ready:true,failed:false,schoolYear:2032),
                            .changesUnavailable)
 
             let staged = retry.newStagingURL()
@@ -345,7 +349,7 @@ extension CountdownTests {
         }
         let acquired = try LocalMaterialDatabase.openLibrary(root:root).state
         XCTAssertNil(acquired.attempts[MaterialKind.changes.rawValue]?.failure)
-        XCTAssertEqual(CountdownAvailability.classExamChangeIssue(in:acquired,ready:true,failed:false,schoolYear:2032),
+        XCTAssertEqual(CountdownAvailability.classExamInputIssue(in:acquired,ready:true,failed:false,schoolYear:2032),
                        .changesUnconfirmed)
     }
 

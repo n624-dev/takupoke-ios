@@ -60,8 +60,8 @@ enum RecoveryValidator {
         guard (1900...9998).contains(doc.schoolYear), (1...64).contains(doc.classes.count), (1...31).contains(doc.days.count), (1...20000).contains(doc.cells.count), doc.sources.count <= 100000, result.cells.count <= 20000, (result.humanCorrections?.count ?? 0) <= RecoveryManualAssistance.maximumFields else { return RecoveryValidation(errors: ["inputLimit"]) }
         var errors = [String]()
         func check(_ ok: Bool, _ code: String) { if work.charge(), !ok && !errors.contains(code) { errors.append(code) } }
-        // Old OCR audits lack this acquisition proof and cannot be recertified
-        // from text/result metadata alone. Vector audits retain their prior path.
+        // Older coverage proofs did not account for closed shapes misidentified
+        // as table rules. Their saved text cannot establish current coverage.
         var ocrPages = Set<Int>()
         for source in doc.sources {
             guard work.charge() else { return RecoveryValidation(errors:["validationLimit"]) }
@@ -70,7 +70,8 @@ enum RecoveryValidator {
         if ocrPages.isEmpty { check(doc.ocrCoverageProof == nil,"ocrCoverage") }
         else if let proof = doc.ocrCoverageProof {
             guard proof.pages.count <= 12, work.charge(proof.pages.count * 65) else { return RecoveryValidation(errors:["inputLimit"]) }
-            check(proof.version == 1 && Set(proof.pages.map(\.page)) == ocrPages && Set(proof.pages.map(\.page)).count == proof.pages.count,"ocrCoverage")
+            check(proof.version == RecoveryOCRCoverageProof.currentVersion &&
+                  Set(proof.pages.map(\.page)) == ocrPages && Set(proof.pages.map(\.page)).count == proof.pages.count,"ocrCoverage")
             for page in proof.pages {
                 check((1...12).contains(page.page) && (1...4096).contains(page.width) && (1...4096).contains(page.height) &&
                       page.grayscaleSHA256.utf8.count == 64 && page.grayscaleSHA256.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) },"ocrCoverage")

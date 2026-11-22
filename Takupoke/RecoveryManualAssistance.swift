@@ -353,7 +353,7 @@ enum RecoveryManualAssistance {
     static func verifiedRasters(_ draft:RecoveryManualDraft, rasters:[Int:RecoveryRasterGrid],
                                 check:() throws -> Void = {}) throws -> [Int:RecoveryRasterGrid] {
         guard let capture = draft.document.nativeCapture, let proof = draft.document.ocrCoverageProof,
-              proof.version == 1, draft.snapshotHash == (try fingerprint(draft.document)),
+              proof.version == RecoveryOCRCoverageProof.currentVersion, draft.snapshotHash == (try fingerprint(draft.document)),
               draft.acquisitionHash == (try fingerprint(capture)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         _ = try capture.assess(check:check)
         var result = [Int:RecoveryRasterGrid]()
