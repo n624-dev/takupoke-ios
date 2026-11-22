@@ -293,8 +293,11 @@ final class MappingPackageTests: XCTestCase {
         }
         let model = MappingModel(directory: root, baseURL: URL(string: "https://mapping.example.test")!)
         model.loadIfNeeded()
+        let readWarning = model.message
         let result = try await model.revision(using: network)
         XCTAssertEqual(result, .available(revision)); try preserved()
+        XCTAssertTrue(model.failed && model.updateAvailable)
+        XCTAssertEqual(model.message, readWarning)
         try await queue.write { try $0.execute(sql: "CREATE TRIGGER fictional_save_failure BEFORE INSERT ON currentMapping BEGIN SELECT RAISE(ABORT,'fictional failure'); END") }
         do { try await model.download(token: "synthetic-token", revision: revision, network: network); XCTFail("Failed save must not replace cache") } catch { }
         try preserved(); XCTAssertNil(model.current)
@@ -348,8 +351,12 @@ final class MappingPackageTests: XCTestCase {
             try originalIsActive()
         }
         let model = MappingModel(directory:root,baseURL:URL(string:"https://mapping.example.test")!)
+        model.loadIfNeeded()
+        let readWarning = model.message
         let available = try await model.revision(using:network)
         XCTAssertEqual(available,.available(revision))
+        XCTAssertTrue(model.failed && model.updateAvailable)
+        XCTAssertEqual(model.message, readWarning)
         try originalIsActive()
         try await model.download(token:"synthetic-token",revision:revision,network:network)
         let expected = try XCTUnwrap(model.current)

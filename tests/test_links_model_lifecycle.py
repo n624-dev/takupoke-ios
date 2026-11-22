@@ -79,8 +79,18 @@ struct MappingService {
             return SavedLinks(payload:LinksPayload(version:"v1",linksVersion:"sha256-" + String(repeating:"a",count:64),
                 categories:[category]),apiETag:"W/\"fictional\"",checkedAt:Date())
         }
+        let cacheFile = dataRoot.appendingPathComponent("links.json")
+        let damagedCache = Data("{fictional-malformed-link-cache".utf8)
+        try damagedCache.write(to:cacheFile)
+        model.resetForRetention(); model.loadIfNeeded()
+        let readWarning = model.message
+        check(model.ready && model.failed && model.saved == nil, "damaged link cache stays distinguishable from missing data")
+        _ = try await model.revision()
+        check(model.updateAvailable && model.failed && model.message == readWarning, "public revision does not erase the cache warning")
+        check(try Data(contentsOf:cacheFile) == damagedCache, "public revision does not change the cache bytes")
         try links.save(fictional("fictional-first"))
         model.resetForRetention(); model.loadIfNeeded()
+        check(!model.failed && model.message == nil, "reading the restored cache clears the warning")
         let originalRevision = model.searchRevision
         let originalHits = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:[])
         check(originalHits?.map(\.id) == ["fictional-first"], "search uses current saved data")

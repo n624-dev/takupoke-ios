@@ -11,6 +11,7 @@ final class TimetableTimesModel: ObservableObject {
     private var generation = UUID()
     private let baseURL: URL
     private var file: URL?
+    private var storedReadWarning: String?
     private let directoryOverride: URL?
 
     init(directory: URL? = nil, baseURL: URL = URL(string: "https://takupoke-api.n624.jp")!) {
@@ -37,17 +38,21 @@ final class TimetableTimesModel: ObservableObject {
             let file = directory.appendingPathComponent("current.json")
             // An unreadable cache must not prevent a user-requested replacement.
             // Directory setup failures still leave the model unavailable.
-            self.file = file
-            ready = true
             if FileManager.default.fileExists(atPath: file.path) {
-                guard let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 132 * 1024 else { throw TimetableTimesError.storage }
-                let saved = try JSONDecoder().decode(SavedTimetableTimes.self, from: Data(contentsOf: file))
-                guard MappingPackage.validRevision(saved.revision) else { throw TimetableTimesError.storage }
-                _ = try saved.data.validated()
-                current = saved
+                do {
+                    guard let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 132 * 1024 else { throw TimetableTimesError.storage }
+                    let saved = try JSONDecoder().decode(SavedTimetableTimes.self, from: Data(contentsOf: file))
+                    guard MappingPackage.validRevision(saved.revision) else { throw TimetableTimesError.storage }
+                    _ = try saved.data.validated()
+                    current = saved
+                } catch {
+                    storedReadWarning = "保存済みの授業時刻を読み込めませんでした。学校アカウントで取得し直してください。"
+                }
             }
             self.file = file
-            ready = true; failed = false; message = nil
+            failed = storedReadWarning != nil
+            message = storedReadWarning
+            ready = true
         } catch { report(TimetableTimesError.storage) }
     }
 
@@ -58,11 +63,9 @@ final class TimetableTimesModel: ObservableObject {
         let result = try await TimetableTimesService(baseURL: baseURL, network: network).revision(installed: current?.revision)
         try Task.checkCancellation()
         guard operation == generation else { throw CancellationError() }
-        failed = false
-        switch result {
-        case .unchanged: updateAvailable = false; message = "授業時刻は最新です。"
-        case .available: updateAvailable = true; message = nil
-        }
+        updateAvailable = result != .unchanged
+        failed = storedReadWarning != nil
+        message = storedReadWarning ?? (updateAvailable ? nil : "授業時刻は最新です。")
         return result
     }
 
@@ -85,6 +88,7 @@ final class TimetableTimesModel: ObservableObject {
         do {
             try JSONEncoder().encode(saved).write(to: file, options: [.atomic, .completeFileProtection])
         } catch { throw TimetableTimesError.storage }
+        storedReadWarning = nil
         current = saved; updateAvailable = false; failed = false; message = "授業時刻を更新しました。"
     }
 
@@ -95,6 +99,7 @@ final class TimetableTimesModel: ObservableObject {
 
     func resetForRetention() {
         generation = UUID(); current = nil; file = nil; ready = false; busy = false
+        storedReadWarning = nil
         updateAvailable = false; failed = false; message = nil
     }
 }

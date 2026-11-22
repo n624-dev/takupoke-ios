@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`a9cf41b85179dfe1d2157fd9652eb0b9ffe19136c26971214e84baf150b10cd6`
+`83b2b860d5761d23759610e69811c3429bb848d57fd23c3f86622360efee7361`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -114,6 +114,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 - `testPublicConditionalRevision`
 - `testAuthenticatedDownloadAndChangedRevisionRejection`
+- `testUnreadableSavedTimesStayReportedUntilValidatedDownload`
 
 ## [tests/TimetableTimesTests.swift](../../tests/TimetableTimesTests.swift)
 

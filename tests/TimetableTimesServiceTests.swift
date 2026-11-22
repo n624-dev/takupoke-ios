@@ -53,4 +53,38 @@ final class TimetableTimesServiceTests: XCTestCase {
             XCTFail("Authentication must be required")
         } catch { XCTAssertTrue(error is TimetableTimesError) }
     }
+
+    @MainActor
+    func testUnreadableSavedTimesStayReportedUntilValidatedDownload() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        let (service, session) = service()
+        defer { session.invalidateAndCancel(); try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("current.json")
+        let damaged = Data("{fictional-invalid-saved-times".utf8)
+        try damaged.write(to: file)
+        let model = TimetableTimesModel(directory: root, baseURL: service.baseURL)
+        model.loadIfNeeded()
+        let readWarning = model.message
+        XCTAssertTrue(model.ready && model.failed && model.current == nil)
+        XCTAssertTrue(readWarning?.contains("読み込めません") == true)
+        let revision = String(repeating: "T", count: 43)
+        let result = try await model.revision(using: session)
+        XCTAssertEqual(result, .available(revision))
+        XCTAssertTrue(model.failed && model.updateAvailable)
+        XCTAssertEqual(model.message, readWarning)
+        do {
+            try await model.download(token: "invalid", revision: revision, network: session)
+            XCTFail("Authentication must be required for replacement")
+        } catch TimetableTimesError.authentication {}
+        XCTAssertEqual(try Data(contentsOf: file), damaged)
+        XCTAssertTrue(model.failed)
+        try await model.download(token: "synthetic-token", revision: revision, network: session)
+        XCTAssertFalse(model.failed)
+        XCTAssertEqual(model.current?.revision, revision)
+        let reopened = TimetableTimesModel(directory: root, baseURL: service.baseURL)
+        reopened.loadIfNeeded()
+        XCTAssertFalse(reopened.failed)
+        XCTAssertEqual(reopened.current, model.current)
+    }
 }

@@ -20,6 +20,7 @@ final class LinksModel: ObservableObject {
     @Published private(set) var message: String?
 
     private var store: LinksStore?
+    private var storedReadWarning: String?
     private let preferencesStore: LinkPreferencesStore
     private let storeRoot: URL?
     private let revisions = LinksRevisionCoordinator()
@@ -78,7 +79,8 @@ final class LinksModel: ObservableObject {
             do { saved = try opened.load() }
             catch {
                 failed = true
-                message = "保存済みの一覧を読み込めませんでした。更新を試してください。"
+                storedReadWarning = "保存済みの一覧を読み込めませんでした。更新を試してください。"
+                message = storedReadWarning
             }
             reloadPreferences()
             ready = true
@@ -131,8 +133,10 @@ final class LinksModel: ObservableObject {
             try Task.checkCancellation()
             guard operation == generation else { throw CancellationError() }
             updateAvailable = result != .unchanged
-            failed = false
-            message = updateAvailable ? (saved == nil ? "認証して一覧を取得してください。学内ネットワークではMicrosoft認証を省略できます。" : "一覧に更新があります。") : "一覧は最新です。"
+            failed = storedReadWarning != nil
+            message = storedReadWarning ?? (updateAvailable
+                ? (saved == nil ? "認証して一覧を取得してください。学内ネットワークではMicrosoft認証を省略できます。" : "一覧に更新があります。")
+                : "一覧は最新です。")
             return result
         }
     }
@@ -156,6 +160,7 @@ final class LinksModel: ObservableObject {
         replacement.revision = revision
         do { try store.save(replacement) } catch { throw LinksError.storage }
         revisions.reset()
+        storedReadWarning = nil
         saved = replacement; updateAvailable = false; failed = false
         message = "一覧を更新しました。"
     }
@@ -174,6 +179,7 @@ final class LinksModel: ObservableObject {
         generation = UUID()
         revisions.reset()
         revisionBusyOwner = nil
+        storedReadWarning = nil
         saved = nil; store = nil; ready = false; busy = false
         updateAvailable = false; message = nil; failed = false
     }

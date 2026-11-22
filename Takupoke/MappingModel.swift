@@ -12,6 +12,8 @@ final class MappingModel: ObservableObject {
 
     private var store: MappingStore?
     private var damagedFile: MappingStore.DamagedFile?
+    private var storedReadFailed = false
+    private static let storedReadWarning = "保存した名称データを読み込めません。学校アカウントで取得し直してください。"
     private var checkedAtStartup = false
     private var generation = UUID()
     private let directory: URL?
@@ -48,18 +50,20 @@ final class MappingModel: ObservableObject {
                 #endif
                 do {
                     current = try store.load()
-                    failed = false; message = nil
+                    storedReadFailed = false
                 } catch is MappingStore.InvalidPayload {
-                    current = nil; failed = true
-                    message = MappingError.storage.localizedDescription
+                    current = nil
+                    storedReadFailed = true
                 }
                 self.store = store
             } catch {
                 guard let damage = try? MappingStore.DamagedFile(url:file,error:error) else { throw error }
                 damagedFile = damage
-                current = nil; failed = true
-                message = "保存した名称データを読み込めません。学校アカウントで取得し直してください。"
+                current = nil
+                storedReadFailed = true
             }
+            failed = storedReadFailed
+            message = storedReadFailed ? Self.storedReadWarning : nil
             ready = true
         } catch {
             failed = true
@@ -98,7 +102,7 @@ final class MappingModel: ObservableObject {
         try Task.checkCancellation()
         guard operation == generation else { throw CancellationError() }
         apply(result)
-        if case .unchanged = result { message = "名称データは最新です。" }
+        if case .unchanged = result, !failed { message = "名称データは最新です。" }
         return result
     }
 
@@ -133,6 +137,7 @@ final class MappingModel: ObservableObject {
             }
         } catch is CancellationError { throw CancellationError() }
         catch { throw MappingError.storage }
+        storedReadFailed = false
         current = package
         updateAvailable = false
         failed = false
@@ -148,6 +153,7 @@ final class MappingModel: ObservableObject {
     func resetForRetention() {
         generation = UUID()
         current = nil; store = nil; damagedFile = nil; ready = false; busy = false
+        storedReadFailed = false
         checkedAtStartup = false; updateAvailable = false; message = nil; failed = false
     }
 
@@ -160,15 +166,9 @@ final class MappingModel: ObservableObject {
     }
 
     private func apply(_ result: MappingRevisionResult) {
-        failed = false
-        switch result {
-        case .unchanged:
-            updateAvailable = false
-            message = nil
-        case .available:
-            updateAvailable = true
-            message = nil
-        }
+        updateAvailable = result != .unchanged
+        failed = storedReadFailed
+        message = storedReadFailed ? Self.storedReadWarning : nil
     }
 
     private static func networkSession() -> URLSession {
