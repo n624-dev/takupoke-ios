@@ -231,13 +231,13 @@ final class FileRefreshTests: XCTestCase {
         let externalEdit = expectation(description: "later real edit remains observable")
         let lock = NSLock()
         var external = false
-        let presenter = SelectedFilePresenter(url: file) {
+        let presenter = SelectedFilePresenter(url: file, source:.changes) {
             lock.lock(); let isExternal = external; lock.unlock()
             if isExternal { externalEdit.fulfill() } else { noRefresh.fulfill() }
         }
         NSFileCoordinator.addFilePresenter(presenter)
         defer { presenter.deactivate(); NSFileCoordinator.removeFilePresenter(presenter) }
-        let access = SelectedFilePresenter.readAccess(for: file)
+        let access = SelectedFilePresenter.readAccess(for:file, source:.changes)
         try capturedRead(of:file, using:access).acknowledge()
         var error: NSError?
         // Simulate a provider replacing its local materialization with identical

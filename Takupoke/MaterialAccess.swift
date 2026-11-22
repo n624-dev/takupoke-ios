@@ -126,13 +126,13 @@ final class MaterialWorker {
             try control.check()
             switch result {
             case .downloaded(let file):
-                if kind == .changes, reuseUnchanged, library.state.record(for: kind)?.digest != file.digest {
-                    try library.captureLegacyChangeEdits(check: control.check)
-                }
+                let legacySettings = kind == .changes && reuseUnchanged && library.state.record(for:kind)?.digest != file.digest
+                    ? try library.legacyChangeSettings(check:control.check) : nil
                 try control.check()
                 try library.commit(staged: staged, kind: kind, source: file.source,
                                    originalName: file.name, byteCount: file.count,
-                                   digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged)
+                                   digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged,
+                                   legacyChangeSettings:legacySettings)
                 if let receipt = file.receipt {
                     receipt.acknowledge()
                     control.recordProviderAcquisition(kind.rawValue)

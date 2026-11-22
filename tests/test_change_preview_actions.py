@@ -63,6 +63,7 @@ enum MaterialError: Error { case cancelled, unavailable, invalidState }
 enum SimulatedError: Error { case disk }
 final class NSFileCoordinator { func cancel() {} }
 struct MaterialSource {}
+struct PersonalChangeSettings {}
 enum SelectedFilePresenter {
     struct ReadReceipt { let acknowledge: () -> Void }
 }
@@ -70,24 +71,26 @@ CONTROL
 final class MaterialLibrary {
     enum Failure { case none, duringMigration, afterMigration, commit }
     var failure = Failure.none
-    var currentDigest = "v1", checks = 0, commits = 0, acknowledgements = 0, cleanup = 0
+    var currentDigest = "v1", migrated = false, checks = 0, commits = 0, acknowledgements = 0, cleanup = 0
     let control = AcquisitionControl()
     var state: MaterialLibrary { self }
     var digest: String { currentDigest }
     func record(for kind: MaterialKind) -> MaterialLibrary? { self }
     func newStagingURL() -> URL { URL(fileURLWithPath: "/fictional-staging") }
     func discardStaging(_ url: URL) { cleanup += 1 }
-    func captureLegacyChangeEdits(check: @escaping () throws -> Void) throws {
+    func legacyChangeSettings(check: @escaping () throws -> Void) throws -> PersonalChangeSettings? {
         checks += 1
         if failure == .duringMigration { control.cancel() }
         try check()
         if failure == .afterMigration { control.cancel() }
+        return PersonalChangeSettings()
     }
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource, originalName: String, byteCount: Int,
-                digest: String, modifiedAt: Date?, reuseUnchanged: Bool) throws {
+                digest: String, modifiedAt: Date?, reuseUnchanged: Bool, legacyChangeSettings: PersonalChangeSettings?) throws {
         commits += 1
         if failure == .commit { throw SimulatedError.disk }
         currentDigest = digest
+        migrated = legacyChangeSettings != nil
     }
     func recordUnchanged(_ kind: MaterialKind, source: MaterialSource) throws {}
     func recordFailure(_ kind: MaterialKind, message: String) throws {}
@@ -118,7 +121,7 @@ ACQUIRE
             catch let error as MaterialError {
                 precondition(error == (failure == .commit ? .unavailable : .cancelled))
             }
-            precondition(library.currentDigest == "v1" && library.acknowledgements == 0)
+            precondition(library.currentDigest == "v1" && !library.migrated && library.acknowledgements == 0)
             precondition(library.control.acquiredProviderSources.isEmpty)
             precondition(library.checks == 1 && library.cleanup == 1)
             precondition(library.commits == (failure == .commit ? 1 : 0))
@@ -127,6 +130,7 @@ ACQUIRE
             let worker = MaterialWorker(), library = worker.library!
             try worker.run(to: digest)
             precondition(library.currentDigest == digest && library.acknowledgements == 1)
+            precondition(library.migrated == (digest == "v2"))
             precondition(library.control.acquiredProviderSources == ["changes"])
             precondition(library.checks == (digest == "v1" ? 0 : 1) && library.commits == 1 && library.cleanup == 1)
         }

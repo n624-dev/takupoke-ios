@@ -6,7 +6,11 @@ import ZIPFoundation
 extension ParsingTests {
     func testCancellationWhileMigratingLegacyChangeEditsLeavesOriginalAndDecisionsIntact() throws {
         try temporary { root in
-            let library = try MaterialLibrary(root:root)
+            var failWrite = false
+            let library = try MaterialLibrary(root:root) { data, url in
+                if failWrite { throw CocoaError(.fileWriteOutOfSpace) }
+                try data.write(to:url,options:.atomic)
+            }
             let staged = library.newStagingURL()
             try write(workbook(skipRowsFixture), to:staged)
             let size = try XCTUnwrap(staged.resourceValues(forKeys:[.fileSizeKey]).fileSize)
@@ -15,6 +19,8 @@ extension ParsingTests {
             try library.recordParseFailure(ChangeParseError(code:.weekdayMismatch,row:3),defaultYear:2032)
             try library.applyRowSkips(library.previewChanges(),rows:[4],defaultYear:2032,correctWeekdays:true)
             let original = try XCTUnwrap(library.state.record(for:.changes))
+            let originalFile = try XCTUnwrap(library.localURL(for:.changes))
+            let originalBytes = try Data(contentsOf:originalFile)
             XCTAssertNotNil(original.source.weekdayConsent)
             XCTAssertNotNil(original.source.rowSkipConsent)
             XCTAssertNil(original.source.personalChanges)
@@ -31,7 +37,26 @@ extension ParsingTests {
             XCTAssertEqual(library.state.record(for:.changes)?.storedName,original.storedName)
             XCTAssertEqual(library.state.record(for:.changes)?.source.rowSkipConsent,original.source.rowSkipConsent)
             XCTAssertNil(library.state.record(for:.changes)?.source.personalChanges)
-            try library.captureLegacyChangeEdits()
+            let settings = try XCTUnwrap(library.legacyChangeSettings())
+            XCTAssertNil(library.state.record(for:.changes)?.source.personalChanges)
+            func replace() throws {
+                let replacement = library.newStagingURL()
+                var rows = skipRowsFixture
+                rows.append([])
+                try write(workbook(rows),to:replacement)
+                let updatedSize = try XCTUnwrap(replacement.resourceValues(forKeys:[.fileSizeKey]).fileSize)
+                try library.commit(staged:replacement,kind:.changes,source:MaterialSource(),originalName:"架空の新版.xlsx",
+                    byteCount:updatedSize,digest:"replacement",modifiedAt:nil,reuseUnchanged:true,legacyChangeSettings:settings)
+            }
+            failWrite = true
+            XCTAssertThrowsError(try replace())
+            XCTAssertEqual(library.state.record(for:.changes)?.storedName,original.storedName)
+            XCTAssertEqual(try Data(contentsOf:originalFile),originalBytes)
+            XCTAssertEqual(library.state.record(for:.changes)?.source.rowSkipConsent,original.source.rowSkipConsent)
+            XCTAssertNil(library.state.record(for:.changes)?.source.personalChanges)
+            failWrite = false
+            try replace()
+            XCTAssertEqual(library.state.record(for:.changes)?.digest,"replacement")
             let migrated = try XCTUnwrap(library.state.record(for:.changes)?.source.personalChanges)
             XCTAssertEqual(migrated.rows?.entries.first { $0.row == 4 }?.edit.excluded,true)
             XCTAssertTrue(migrated.rows?.entries.contains { $0.edit.deriveWeekday } == true)

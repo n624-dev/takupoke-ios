@@ -224,6 +224,7 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             f.model.fetch(year:2032)
             await dataFinished(f.model)
             XCTAssertEqual(try store.loadRefreshState(year:2032)?.source.firstFailureAt,oldRetry.firstFailureAt)
+            XCTAssertEqual(try store.loadRefreshState(year:2032)?.followUpAt,f.now.addingTimeInterval(60))
             XCTAssertEqual(f.model.sourcePresentation(year:2032)?.lastSuccessAt,lastSuccess)
             XCTAssertTrue(try XCTUnwrap(f.model.sourcePresentation(year:2032)).message.contains("確認中"))
             XCTAssertEqual(f.network.count(path:"/events/source-status",year:2032),failures+2)
@@ -265,7 +266,13 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title,"架空保存行事")
             XCTAssertEqual(f.model.message,SchoolEventsError.cancelled.localizedDescription)
 
-            if !expired { f.now.addTimeInterval(3600) }
+            f.now.addTimeInterval(3600)
+            f.model.reevaluate()
+            XCTAssertTrue(f.model.isChecking(year:2033))
+            let otherYear = try XCTUnwrap(f.model.checkSource(year:2033))
+            _ = await otherYear.value
+            XCTAssertEqual(f.network.count(path:"/events",year:2033),1)
+            XCTAssertFalse(f.model.isChecking(year:2032))
             f.model.setSourceChecksActive(false); f.model.setSourceChecksActive(true)
             let resumed = try XCTUnwrap(f.model.checkSource(year:2032))
             _ = await resumed.value
@@ -273,6 +280,31 @@ final class SchoolEventsSourceModelTests: XCTestCase {
             XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title,"架空更新行事")
             XCTAssertEqual(f.network.unexpected,0)
         }
+    }
+
+    func testManualSchoolEventsCancellationAfterJoiningStatusAlsoStopsTheBodyRequest() async throws {
+        let f = try Fixture()
+        defer { f.clean() }
+        let statusStarted = expectation(description:"source-only check started")
+        f.network.holdStatus = true; f.network.started = statusStarted
+        let source = try XCTUnwrap(f.model.checkSource(year:2032))
+        await fulfillment(of:[statusStarted],timeout:5)
+        f.model.fetch(year:2032)
+        let bodyStarted = expectation(description:"joined manual check escalated to body")
+        f.network.holdStatus = false; f.network.holdBody = true; f.network.started = bodyStarted
+        f.network.release()
+        let sourceSucceeded = await source.value
+        XCTAssertTrue(sourceSucceeded)
+        await fulfillment(of:[bodyStarted],timeout:5)
+        f.model.cancel()
+        f.network.holdBody = false; f.network.updated = true; f.network.release()
+        await dataFinished(f.model)
+        XCTAssertEqual(f.network.count(path:"/events",year:2032),1)
+        XCTAssertEqual(f.network.count(path:"/events/source-status",year:2032),1)
+        XCTAssertEqual(f.model.saved[2032]?.payload.events.first?.title,"架空保存行事")
+        XCTAssertEqual(f.model.message,SchoolEventsError.cancelled.localizedDescription)
+        XCTAssertFalse(f.model.isChecking(year:2032))
+        XCTAssertEqual(f.network.unexpected,0)
     }
 
     func testCheckingStopsAfterExactlyThreeAdditionalRequestsAndRestartsAfterPersistentDelay() async throws {

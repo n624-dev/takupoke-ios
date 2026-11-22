@@ -109,10 +109,11 @@ final class MaterialLibrary {
     }
 
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
-                originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false) throws {
+                originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false,
+                legacyChangeSettings: PersonalChangeSettings? = nil) throws {
         var source = source
         if reuseUnchanged, let old = state.record(for: kind) {
-            source.personalChanges = old.source.personalChanges
+            source.personalChanges = old.source.personalChanges ?? (kind == .changes ? legacyChangeSettings : nil)
             source.selectionID = old.source.selectionID ?? (kind == .changes ? old.storedName : nil)
             source.weekdayConsent = old.digest == digest ? old.source.weekdayConsent : nil
             source.rowSkipConsent = old.digest == digest ? old.source.rowSkipConsent : nil

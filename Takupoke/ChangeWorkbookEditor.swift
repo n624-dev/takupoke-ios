@@ -177,19 +177,23 @@ extension MaterialLibrary {
         try persist(next)
     }
 
-    /// Snapshot legacy permissions while the exact original XLSX is still on disk.
-    func captureLegacyChangeEdits(check: @escaping () throws -> Void = {}) throws {
-        guard let i = state.records.firstIndex(where: { $0.kind == .changes }) else { return }
-        let source = state.records[i]
-        guard source.source.personalChanges == nil,
-              let year = source.source.rowSkipConsent?.defaultYear ?? source.source.weekdayConsent?.defaultYear else { return }
+    /// Prepare the old edits from the original XLSX before replacing its bytes.
+    func legacyChangeSettings(check: @escaping () throws -> Void = {}) throws -> PersonalChangeSettings? {
+        guard let source = state.record(for:.changes), source.source.personalChanges == nil,
+              let year = source.source.rowSkipConsent?.defaultYear ?? source.source.weekdayConsent?.defaultYear else { return nil }
         let view = try changeEditor(year: year, check: check)
         let rows = try view.table.savedEdits(sourceIdentity: source.source.selectionID ?? source.storedName,
             digest: source.digest, defaultYear: year, edits: view.edits, check: check)
-        guard rows != nil else { return }
+        guard let rows else { return nil }
+        return PersonalChangeSettings(year:year,layout:view.layout,rows:rows,history:[])
+    }
+
+    func captureLegacyChangeEdits(check: @escaping () throws -> Void = {}) throws {
+        guard let i = state.records.firstIndex(where:{ $0.kind == .changes }),
+              let settings = try legacyChangeSettings(check:check) else { return }
         try check()
         var next = state
-        next.records[i].source.personalChanges = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: [])
+        next.records[i].source.personalChanges = settings
         try persist(next)
     }
 }

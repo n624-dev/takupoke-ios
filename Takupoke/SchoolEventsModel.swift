@@ -210,6 +210,7 @@ final class SchoolEventsModel: ObservableObject {
                 let confirmed = await source.task.value
                 succeeded = succeeded && confirmed
             }
+            guard !self.manualCancelled else { return }
             if !succeeded && self.message == nil {
                 self.failed = true
                 self.message = request.task.isCancelled ? SchoolEventsError.cancelled.localizedDescription

@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`71b53ac3d5bcabc9bc06cf2169af76d04c43b543e9ce83df9730a9646353b2cb`
+`c5d6e52b484769a6b2d05ee819d6d01e5361c0498788fd2e54df811d36a44279`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -35,6 +35,7 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testCheckingAutomaticallyBecomesMatchedWithoutFetchingEventsAgain`
 - `testManualCheckingFollowsUpWithinSixtySecondsDuringEachPriorFailureBackoff`
 - `testManualCancellationDoesNotImmediatelyRestartExpiredAutomaticBodyRequest`
+- `testManualSchoolEventsCancellationAfterJoiningStatusAlsoStopsTheBodyRequest`
 - `testCheckingStopsAfterExactlyThreeAdditionalRequestsAndRestartsAfterPersistentDelay`
 - `testFailedFollowUpStopsAndPreservesSavedEventsAndSuccessfulEvidence`
 - `testBackgroundSuspensionCancelsPendingAndInFlightFollowUps`
