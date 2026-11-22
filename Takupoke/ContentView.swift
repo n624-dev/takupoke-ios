@@ -228,8 +228,10 @@ struct ContentView: View {
                     guard bars.count == 1 else { return }
                     overriddenBar = bars.first
                 }
-                if overriddenBar?.tintColor != titleColor { overriddenBar?.tintColor = titleColor }
-                appliedColor = titleColor
+                if let bar = overriddenBar, bar.tintColor != titleColor {
+                    bar.tintColor = titleColor
+                    appliedColor = titleColor
+                }
             }
 
             private func clearOverride() {
