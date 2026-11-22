@@ -88,11 +88,12 @@ final class CountdownModel: ObservableObject {
         do {
             let store = try openStore()
             try store.preserveCorruptFileAndReset()
-            await removeUnavailableStorageNotices()
+            let removed = await removeUnavailableStorageNotices()
             self.store = store
             library = CountdownLibrary()
             storageState = .ready
-            message = "元のファイルを保全して、カウントダウンを初期化しました。"
+            message = removed ? "元のファイルを保全して、カウントダウンを初期化しました。"
+                : "元のファイルを保全して初期化しました。以前の予約済み通知は確認できていません。"
             storageActionInProgress = false
             onChange?()
         } catch CountdownStore.ReadError.noLongerCorrupt {
@@ -109,17 +110,22 @@ final class CountdownModel: ObservableObject {
     func stopNoticesWhileStorageIsUnavailable() async {
         guard storageState == .unavailable || storageState == .corrupt, !storageActionInProgress else { return }
         storageActionInProgress = true
-        await removeUnavailableStorageNotices()
+        let removed = await removeUnavailableStorageNotices()
         storageActionInProgress = false
-        message = "予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"
+        message = removed ? "予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"
+            : "予約済みのカウントダウン通知を確認できません。もう一度お試しください。"
     }
 
-    private func removeUnavailableStorageNotices() async {
+    private func removeUnavailableStorageNotices() async -> Bool {
+        // Reconciliation only runs after load succeeds. Never race a previously
+        // issued notification add if the storage lifecycle changes later.
+        guard store == nil, worker == nil else { return false }
         revision = UUID()
         request = nil
-        await worker?.value
-        let pending = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(CountdownNotice.prefix) }
-        center.removePendingNotificationRequests(withIdentifiers:pending)
+        guard let pending = await ScheduleNotifications.pendingStorageRecoveryIdentifiers(from:center) else { return false }
+        let owned = pending.filter { $0.hasPrefix(CountdownNotice.prefix) }
+        if !owned.isEmpty { center.removePendingNotificationRequests(withIdentifiers:owned) }
+        return true
     }
 
     private func openStore() throws -> CountdownStore {

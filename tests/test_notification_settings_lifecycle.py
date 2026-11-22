@@ -20,6 +20,7 @@ class NotificationSettingsLifecycleTests(unittest.TestCase):
         if not compiler:
             self.skipTest("Swift required to execute the production storage recovery actions")
         source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         prefix = next(line for line in (ROOT / "Takupoke/Countdown.swift").read_text(encoding="utf-8").splitlines()
                       if line.startswith('    static let prefix = "takupoke.countdown.'))
         program = r'''import Foundation
@@ -41,14 +42,26 @@ final class CountdownStore {
     }
 }
 @MainActor final class FakeCenter {
-    struct Request { var identifier: String }
+    struct Request: Sendable { var identifier: String }
     var state = ["takupoke.countdown.personal.example", "takupoke.countdown.private.example", "takupoke.materials", "takupoke.countdown-other"]
-    var reads = 0
-    func pendingNotificationRequests() async -> [Request] {
-        reads += 1
-        return state.map { Request(identifier: $0) }
+    var reads = 0, responds = true
+    var removals: [[String]] = []
+    var held: (@Sendable ([Request]) -> Void)?
+    nonisolated func getPendingNotificationRequests(completionHandler: @escaping @Sendable ([Request]) -> Void) {
+        Task { @MainActor in
+            reads += 1
+            if responds { completionHandler(state.map { Request(identifier: $0) }) }
+            else { held = completionHandler }
+        }
     }
-    func removePendingNotificationRequests(withIdentifiers ids: [String]) { state.removeAll(where: ids.contains) }
+    func removePendingNotificationRequests(withIdentifiers ids: [String]) {
+        removals.append(ids)
+        state.removeAll(where: ids.contains)
+    }
+}
+typealias UNUserNotificationCenter = FakeCenter
+@MainActor enum ScheduleNotifications {
+    BRIDGE
 }
 @MainActor final class Harness {
     STATE
@@ -99,9 +112,40 @@ final class CountdownStore {
         precondition(callbacks == 1 && reset.availableStore.writes == 1 && reset.center.reads == 1)
         await reset.stopNoticesWhileStorageIsUnavailable()
         precondition(reset.center.reads == 1)
+
+        let delayed = FakeCenter()
+        delayed.responds = false
+        let query = Task { await ScheduleNotifications.pendingStorageRecoveryIdentifiers(from:delayed) }
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while delayed.held == nil {
+            precondition(ContinuousClock.now < deadline)
+            await Task.yield()
+        }
+        delayed.held?([.init(identifier:"actual-response")])
+        let result = await query.value
+        precondition(result == ["actual-response"] && delayed.reads == 1)
+
+        let stalledStop = Harness(), stalledReset = Harness()
+        for model in [stalledStop, stalledReset] { model.center.responds = false }
+        stalledReset.storageState = .corrupt
+        async let stopping: Void = stalledStop.stopNoticesWhileStorageIsUnavailable()
+        async let resetting: Void = stalledReset.recoverCorruptStorage()
+        _ = await (stopping, resetting)
+        precondition(stalledStop.storageState == .unavailable && stalledStop.message?.contains("確認できません") == true)
+        precondition(stalledReset.availableStore.writes == 1 && stalledReset.storageState == .ready)
+        precondition(stalledReset.message?.contains("確認できていません") == true)
+        for model in [stalledStop, stalledReset] {
+            precondition(model.center.reads == 1 && model.center.held != nil)
+            let message = model.message
+            model.center.held?(model.center.state.map { .init(identifier:$0) })
+            await Task.yield()
+            precondition(model.center.removals.isEmpty && model.center.state.count == 4)
+            precondition(!model.storageActionInProgress && model.message == message)
+        }
     }
 }
 '''.replace("PREFIX", prefix) \
+           .replace("BRIDGE", block(notifications, "nonisolated static func pendingStorageRecoveryIdentifiers")) \
            .replace("STATE", block(source, "enum StorageState")) \
            .replace("LOAD", block(source, "func load(reportFailure:")) \
            .replace("RETRY", block(source, "func retryStorageLoad()")) \
@@ -197,9 +241,7 @@ BRIDGE
         if not compiler:
             self.skipTest("Swift required to execute the production callback bridge")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        start = source.index("    nonisolated static func notificationSettings(")
-        end = source.index("\n    func ", start)
-        bridge = source[start:end]
+        bridge = block(source, "nonisolated static func notificationSettings(")
         program = r'''import Foundation
 final class UNNotificationSettings: @unchecked Sendable {
     let authorizationStatus: Int
@@ -272,8 +314,7 @@ BRIDGE
         if not compiler:
             self.skipTest("Swift required to execute the production delivery gate")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        bridge_start = source.index("    nonisolated static func notificationSettings(")
-        bridge_end = source.index("\n    func ", bridge_start)
+        bridge = block(source, "nonisolated static func notificationSettings(")
         permission_start = source.index("    func checkPermission() async {")
         permission_end = source.index("    // Keep the actual OS response", permission_start)
         gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
@@ -350,7 +391,7 @@ PERMISSION
         print("Verified production gate: disabled uses no OS request; enabled requires actual allowed status.")
     }
 }
-'''.replace("BRIDGE", source[bridge_start:bridge_end]).replace("GATE", source[gate_start:gate_end]).replace(
+'''.replace("BRIDGE", bridge).replace("GATE", source[gate_start:gate_end]).replace(
     "PERMISSION", source[permission_start:permission_end])
         self.run_probe(compiler, program)
 
@@ -360,8 +401,7 @@ PERMISSION
             self.skipTest("Swift required for the production permission/apply methods")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         permission = source[source.index("    func checkPermission() async {"):source.index("    // Keep the actual OS response")]
-        bridge_start = source.index("    nonisolated static func notificationSettings(")
-        bridge = source[bridge_start:source.index("\n    func ", bridge_start)]
+        bridge = block(source, "nonisolated static func notificationSettings(")
         gate_start = source.index("    private func deliveryAllowed() async -> Bool {")
         methods = source[gate_start:source.index("    private func changeNotice(", gate_start)]
         program = r'''import Foundation

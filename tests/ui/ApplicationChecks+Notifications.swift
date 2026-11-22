@@ -7,6 +7,16 @@ extension ApplicationChecks {
         let management = "カウントダウン"
         let warning = "保存したカウントダウンを読み込めません。端末内の登録は保持しています。"
         let added = app.buttons["countdown-add"]
+        func tapDialog(_ button: XCUIElement) {
+            let ready = XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
+                button.exists && button.isEnabled && button.isHittable
+            },object:nil)
+            guard XCTWaiter.wait(for:[ready],timeout:10) == .completed else {
+                XCTFail("Dialog button never became tappable: \(button)\n\(app.debugDescription)")
+                return
+            }
+            button.tap()
+        }
         func openCountdown() {
             tab("設定")
             tap(management)
@@ -23,32 +33,33 @@ extension ApplicationChecks {
         XCTAssertFalse(added.isEnabled)
 
         tap("予約済み通知を取り消す")
-        tap("通知を取り消す")
+        tapDialog(app.buttons["通知を取り消す"])
         XCTAssertTrue(app.staticTexts["予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"]
             .waitForExistence(timeout:10), app.debugDescription)
         XCTAssertFalse(added.isEnabled)
         tap("読み込みを再試行")
         XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout:10), app.debugDescription)
         tap("元のファイルを保全して初期化")
-        let cancel = app.buttons.matching(NSPredicate(format:"label IN %@",["キャンセル","Cancel"])).firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout:10), app.debugDescription)
-        cancel.tap()
+        let confirmation = app.alerts["カウントダウンを初期化しますか？"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout:10),app.debugDescription)
+        tapDialog(confirmation.buttons["キャンセル"])
         XCTAssertTrue(app.staticTexts[warning].exists)
         XCTAssertFalse(added.isEnabled)
         tap("元のファイルを保全して初期化")
-        tap("初期化")
+        XCTAssertTrue(confirmation.waitForExistence(timeout:10),app.debugDescription)
+        tapDialog(confirmation.buttons["初期化"])
         XCTAssertTrue(app.staticTexts["元のファイルを保全して、カウントダウンを初期化しました。"]
             .waitForExistence(timeout:10), app.debugDescription)
         XCTAssertTrue(added.isEnabled)
 
-        tap("countdown-add")
-        tap("自分で入力")
+        tapToolbar("countdown-add",bar:management)
+        tapDialog(app.buttons["自分で入力"])
         let name = app.textFields["countdown-name"]
         XCTAssertTrue(name.waitForExistence(timeout:10), app.debugDescription)
         name.tap()
         name.typeText("Fictional Recovery")
         XCTAssertEqual(name.value as? String,"Fictional Recovery")
-        tap("countdown-save")
+        tapToolbar("countdown-save",bar:"カウントダウンを設定")
         XCTAssertTrue(app.staticTexts["Fictional Recovery"].waitForExistence(timeout:10), app.debugDescription)
 
         app.terminate()

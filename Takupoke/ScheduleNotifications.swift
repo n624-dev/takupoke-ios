@@ -139,6 +139,31 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         }
     }
 
+    /// Recovery must remain usable if the notification service never responds.
+    nonisolated static func pendingStorageRecoveryIdentifiers(
+        from center: UNUserNotificationCenter, timeout: Duration = .seconds(6)
+    ) async -> [String]? {
+        let (results, continuation) = AsyncStream<[String]>.makeStream(bufferingPolicy:.bufferingNewest(1))
+        let timeoutTask = Task {
+            do { try await Task.sleep(for:timeout) } catch { return }
+            continuation.finish()
+        }
+        defer { timeoutTask.cancel(); continuation.finish() }
+        #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
+        print("TAKUPOKE_COUNTDOWN_STORAGE pending-read-start")
+        #endif
+        center.getPendingNotificationRequests { requests in
+            continuation.yield(requests.map(\.identifier))
+            continuation.finish()
+        }
+        var iterator = results.makeAsyncIterator()
+        let identifiers = await iterator.next()
+        #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
+        print("TAKUPOKE_COUNTDOWN_STORAGE pending-read-\(identifiers == nil ? "unavailable" : "complete")")
+        #endif
+        return identifiers
+    }
+
     func suspendForUnavailableData() async {
         generation = UUID()
         pending = nil

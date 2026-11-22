@@ -28,23 +28,11 @@ struct CountdownHomeSection: View {
 
 struct CountdownManagementView: View {
     private enum AddTarget: String, Identifiable { case school, manual; var id: String { rawValue } }
-    private enum StorageAction {
-        case reset, stopNotices
-
-        var title: String {
-            self == .reset ? "カウントダウンを初期化しますか？" : "予約済み通知を取り消しますか？"
-        }
-
-        var explanation: String {
-            self == .reset ? "元のファイルを端末内に保全し、空の一覧から再開します。予約済みのカウントダウン通知は取り消されます。"
-                : "カウントダウンの予約済み通知を取り消します。元のファイルは保持します。"
-        }
-    }
     @EnvironmentObject private var model: CountdownModel
     @ObservedObject var events: SchoolEventsModel
     @State private var adding: AddTarget?
-    @State private var storageAction = StorageAction.reset
-    @State private var confirmingStorageAction = false
+    @State private var confirmingReset = false
+    @State private var confirmingStopNotices = false
     private var active: [CountdownCard] { model.cards.filter { !$0.isFinished(on: model.day) } }
     private var finished: [CountdownCard] { model.cards.filter { $0.isFinished(on: model.day) } }
 
@@ -82,11 +70,11 @@ struct CountdownManagementView: View {
                     if model.storageActionInProgress { ProgressView() }
                     Button("読み込みを再試行", systemImage:"arrow.clockwise") { model.retryStorageLoad() }
                     Button("予約済み通知を取り消す", systemImage:"bell.slash") {
-                        storageAction = .stopNotices; confirmingStorageAction = true
+                        confirmingStopNotices = true
                     }
                     if model.storageState == .corrupt {
                         Button("元のファイルを保全して初期化", role:.destructive) {
-                            storageAction = .reset; confirmingStorageAction = true
+                            confirmingReset = true
                         }
                     }
                 }
@@ -113,15 +101,17 @@ struct CountdownManagementView: View {
             case .manual: CountdownEditor()
             }
         }
-        .confirmationDialog(storageAction.title, isPresented:$confirmingStorageAction, titleVisibility:.visible) {
-            switch storageAction {
-            case .reset:
-                Button("初期化", role:.destructive) { Task { await model.recoverCorruptStorage() } }
-            case .stopNotices:
-                Button("通知を取り消す", role:.destructive) { Task { await model.stopNoticesWhileStorageIsUnavailable() } }
-            }
+        .confirmationDialog("予約済み通知を取り消しますか？", isPresented:$confirmingStopNotices, titleVisibility:.visible) {
+            Button("通知を取り消す", role:.destructive) { Task { await model.stopNoticesWhileStorageIsUnavailable() } }
+            Button("キャンセル", role:.cancel) {}
         } message: {
-            Text(storageAction.explanation)
+            Text("カウントダウンの予約済み通知を取り消します。元のファイルは保持します。")
+        }
+        .alert("カウントダウンを初期化しますか？", isPresented:$confirmingReset) {
+            Button("初期化", role:.destructive) { Task { await model.recoverCorruptStorage() } }
+            Button("キャンセル", role:.cancel) {}
+        } message: {
+            Text("元のファイルを端末内に保全し、空の一覧から再開します。予約済みのカウントダウン通知を確認し、確認できた予約を取り消します。")
         }
     }
 
