@@ -216,7 +216,8 @@ final class SpecialScheduleTests: XCTestCase {
 
     func testSpecialConsecutiveHeadingsDoNotAdoptNumericSuffix() throws {
         let original = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }
-        for text in ["11・2時限連続7:00~8:00", "1・2時限連続7:00~8:500", "1・2時限連続8:50~10:20:30"] {
+        for text in ["11・2時限連続7:00~8:00", "1・2時限連続7:00~8:500", "1・2時限連続8:50~10:20:30",
+                     "9・1・2時限連続8:50~10:20", "9 ･ 1･2時限連続8:50~10:20"] {
             let pages = replacingFirstExamTime(original, with: text, consecutive: true)
             XCTAssertThrowsError(try SpecialScheduleParser.parse(pages, kind: .exam,
                 digest: "fictional", name: "fictional.pdf"), text) {
@@ -232,6 +233,46 @@ final class SpecialScheduleTests: XCTestCase {
                 hash: String(repeating: "a", count: 64)), text) {
                 XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
             }
+        }
+    }
+
+    func testReturnMergedLessonRejectsAPartialPeriodList() async throws {
+        let hash = String(repeating: "a", count: 64)
+        func page(_ heading: String) -> [PDFPageLayout] {
+            var result = returnPageWithSplitCell()
+            for (index, character) in heading.enumerated() {
+                result.glyphs.append(PDFGlyph(text: String(character), x: 20 + Double(index) * 4,
+                    y: 910, width: 4, height: 4, sourceLine: 9001, sourceOrder: 90000 + index))
+            }
+            return [result]
+        }
+        for heading in ["4・5・6時限連続9:30~11:50", "4･5・6時限連続9:30~11:50", "3・4・5・6時限連続9:30~11:50"] {
+            let pages = page(heading)
+            XCTAssertThrowsError(try SpecialScheduleParser.parse(pages, kind: .examReturn, digest: hash, name: "fictional.pdf"), heading) {
+                XCTAssertEqual(($0 as? PDFParseError)?.branch, .b424)
+            }
+            XCTAssertThrowsError(try SpecialScheduleParser.parseCertified(pages, kind: .examReturn, digest: hash, name: "fictional.pdf"), heading) {
+                XCTAssertEqual(($0 as? PDFParseError)?.branch, .b425)
+            }
+            XCTAssertThrowsError(try RecoveryDocumentBuilder.build(pages, kind: .return, hash: hash), heading) {
+                XCTAssertEqual(($0 as? PDFParseError)?.stage, .periodHeading)
+            }
+        }
+        let valid = page("5・6時限連続10:30~11:50")
+        let document = try RecoveryDocumentBuilder.build(valid, kind: .return, hash: hash)
+        let source = RecoverySelectedSource(kind: .return, url: URL(fileURLWithPath: "/fictional.pdf"), digest: hash,
+            originalName: "fictional.pdf", storedName: "fictional.pdf", period: SchoolDataPeriod(day: SchoolDate(iso8601: "2026-04-01")!))
+        let run = try await RecoveryEngine.run(document, os: "test", osMajor: 27, foreground: true, providers: [], rule: { _ in nil }, check: {})
+        let result = try XCTUnwrap(run.result)
+        let analyses = [
+            try SpecialScheduleParser.parse(valid, kind: .examReturn, digest: hash, name: "fictional.pdf"),
+            try SpecialScheduleParser.parseCertified(valid, kind: .examReturn, digest: hash, name: "fictional.pdf"),
+            try RecoveryConversion.special(.init(document: document, result: result, source: source)),
+        ]
+        for analysis in analyses {
+            let merged = analysis.lessons.filter { $0.date == "2026-04-01" && $0.className == "1_1" && $0.spanStart == 5 && $0.spanEnd == 6 }
+            XCTAssertEqual(merged.map(\.period).sorted(), [5, 6])
+            XCTAssertTrue(merged.allSatisfy { $0.timeRange == "10:30〜11:50" })
         }
     }
 
@@ -588,6 +629,16 @@ final class SpecialScheduleTests: XCTestCase {
         let result = try SpecialScheduleParser.parseCertified(pages,kind:.exam,digest:"fictional",name:"fictional.pdf")
         XCTAssertEqual(result.periodTimes[2],"09:35〜10:35")
         XCTAssertEqual(result.lessons.first { $0.spanEnd == 2 }?.timeRange,"08:50〜10:20")
+
+        let separate = replacingFirstExamTime(pages, with: "1時限目\(times[0])・2時限目\(times[1])").map { input in
+            var page = input
+            page.glyphs.removeAll { $0.y == 485 && $0.x < 280 }
+            return page
+        }
+        let hash = String(repeating: "a", count: 64)
+        XCTAssertEqual(try SpecialScheduleParser.parse(separate, kind: .exam, digest: hash, name: "fictional.pdf").periodTimes[2], "09:35〜10:35")
+        XCTAssertEqual(try SpecialScheduleParser.parseCertified(separate, kind: .exam, digest: hash, name: "fictional.pdf").periodTimes[2], "09:35〜10:35")
+        XCTAssertNoThrow(try RecoveryDocumentBuilder.build(separate, kind: .exam, hash: hash))
     }
     func testExamParsesDatesClassesAndDocumentTimes() throws {
         let pages = (1...6).map { examPage($0, mergedFirstTwo: $0 == 1) }

@@ -74,11 +74,16 @@ extension SpecialScheduleParser {
             let start = matches[first].range.location
             let end = NSMaxRange(matches[next - 1].range)
             let startsInNumber = isDecimalDigit(units, at: start - 1)
+            // Keep independent complete headings separated by a dot, but do not
+            // take the end of a longer list whose first number was not matched.
+            let followsHeading = first > 0 && NSMaxRange(matches[first - 1].range) == start - 1
+            let startsInPeriodList = start >= 2 && (units[start - 1] == 0x30FB || units[start - 1] == 0xFF65)
+                && isDecimalDigit(units, at: start - 2) && !followsHeading
             let endsInNumber = isDecimalDigit(units, at: end)
             // A colon or decimal point followed by a number extends the clock.
             let clockContinues = units.indices.contains(end) && (units[end] == 0x3A || units[end] == 0x2E)
                 && isDecimalDigit(units, at: end + 1)
-            if !startsInNumber && !endsInNumber && !clockContinues {
+            if !startsInNumber && !startsInPeriodList && !endsInNumber && !clockContinues {
                 for index in first..<next { accepted.insert(matches[index].range) }
             }
             first = next
