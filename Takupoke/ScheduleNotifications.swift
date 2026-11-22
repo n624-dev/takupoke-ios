@@ -100,7 +100,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         // Remove notices already in the center even when the in-flight add
         // cannot finish. Remove again once that write has actually stopped.
         disabledNotificationsAwaitingWrite.formUnion(ids)
-        worker.cancel()
+        if !changesEnabled && !specialsEnabled { worker.cancel() }
         removeUpdateNotifications(ids)
         let finished = await worker.waitForCompletion()
         if !finished, !Task.isCancelled, !(changes ? changesEnabled : specialsEnabled),
@@ -348,14 +348,18 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             // before yielding to the notification service. An interrupted send
             // can be retried without recomputing or losing the data difference.
             if next != baseline { try save(next, to: file) }
+            func enabled(_ kind: String) -> Bool { kind == "changes" ? changesEnabled : specialsEnabled }
+            var failedKinds: [String] = []
             for kind in ["changes", "exam", "examReturn"] {
-                guard input.availability.state(for: kind) == .available, var notice = next.pending[kind] else { continue }
+                guard enabled(kind), input.availability.state(for: kind) == .available,
+                      var notice = next.pending[kind] else { continue }
                 try Task.checkCancellation()
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
                 guard let queued = await Self.readPending(from:center),
                       let deliveredNotifications = await Self.readDelivered(from:center) else { return }
                 try Task.checkCancellation()
+                guard enabled(kind) else { continue }
                 let delivered = deliveredNotifications.map(\.request)
                 // Selection or midnight may change while the notification service
                 // suspends. Revalidate the exact slots immediately before delivery.
@@ -373,7 +377,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
                 guard latestRevision == input.revision else { return }
-                if !alreadySent { try await send(kind: kind, notice: notice) }
+                if !alreadySent {
+                    // A setting may change while this write is in the OS.
+                    // Clean up this identifier before the next kind can wait.
+                    defer { if !enabled(kind) { removeUpdateNotifications([identifier]) } }
+                    do { try await send(kind: kind, notice: notice) }
+                    catch {
+                        try Task.checkCancellation()
+                        failedKinds.append(kind)
+                        continue
+                    }
+                }
                 guard operation == generation, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
                 // Acknowledge an accepted notice even if cancellation arrived
@@ -381,7 +395,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 next.pending.removeValue(forKey: kind)
                 try save(next, to: file)
             }
-            message = nil
+            guard operation == generation, latestRevision == input.revision, !Task.isCancelled,
+                  input.period == SchoolDataPeriod.current(), UIApplication.shared.isProtectedDataAvailable else { return }
+            message = failedKinds.contains(where: enabled)
+                ? "更新通知を送信できませんでした。次の更新確認で再試行します。" : nil
         } catch {
             if operation == generation, !Task.isCancelled { message = "通知の更新確認を保存できませんでした。" }
         }

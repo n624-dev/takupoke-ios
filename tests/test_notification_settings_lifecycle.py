@@ -85,7 +85,7 @@ METHODS
         }
         let otherNotifications = ["takupoke.exam","takupoke.examReturn","fictional.unrelated"]
         precondition(slow.center.pending == otherNotifications && slow.center.delivered == otherNotifications)
-        precondition(slow.reconcileTask?.task.isCancelled == true && slow.center.waiting != nil)
+        precondition(slow.reconcileTask?.task.isCancelled == false && slow.center.waiting != nil)
         precondition(reenabled.center.pending == ["takupoke.changes","fictional.unrelated"])
 
         await reenabled.setEnabled(changes:false,value:true)
@@ -109,6 +109,17 @@ METHODS
         await idle.setEnabled(changes:false,value:false)
         precondition(idle.center.pending == ["takupoke.changes","fictional.unrelated"] && idle.center.pending == idle.center.delivered)
         precondition(idle.baseline?.pending == ["changes":1] && idle.message == nil)
+
+        let last = Schedule()
+        last.specialsEnabled = false
+        let writeLast = last.start("takupoke.changes")
+        await observe { last.center.waiting != nil }
+        let offLast = Task { await last.setEnabled(changes:true,value:false) }
+        await observe { !last.changesEnabled }
+        precondition(last.reconcileTask?.task.isCancelled == true)
+        last.center.complete()
+        await writeLast.value; await offLast.value
+        precondition(!last.center.pending.contains("takupoke.changes"))
         print("Verified immediate owned removals, bounded stop, late write cleanup, and a newer explicit opt-in.")
     }
 }
@@ -748,7 +759,7 @@ PERMISSION
     "PERMISSION", permission)
         self.run_probe(compiler, program)
 
-    def test_actual_apply_keeps_denial_separate_from_storage_success_and_failure(self):
+    def test_actual_apply_keeps_denial_storage_and_independent_delivery_results_separate(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required for the production permission/apply methods")
@@ -785,7 +796,10 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{}
  struct Pending:Codable,Equatable { var fingerprint="fictional";var changeTargets:[ChangeTarget]? }
  enum State {case available,unavailable}
- struct Availability {func state(for kind:String)->State{.unavailable}}
+ struct Availability {
+  var available = Set<String>()
+  func state(for kind:String)->State{available.contains(kind) ? .available : .unavailable}
+ }
  var revision=0;var pending=[String:Pending]()
  static func load(from file:URL)throws->Self{preconditionFailure("This permission probe starts with an already loaded baseline")}
  func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool)throws->Self{var next=self;next.revision+=1;return next}
@@ -796,18 +810,26 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  private var permissionReadSequence=0,lastAppliedPermissionSequence=0
  let center=UNUserNotificationCenter();var generation=UUID(),latestRevision=UUID(),loaded=true
  var baseline:ScheduleNotificationSnapshot?=ScheduleNotificationSnapshot();var failSave=false,saves=0
+ var attempted=[String](), removed=[String](), rejected:String?, duringSend:((String)->Void)?
  let root:URL
  init(_ root:URL){self.root=root}
  struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
  func storageFile()throws->URL{root.appendingPathComponent("fictional-baseline.json")}
  func save(_ value:ScheduleNotificationSnapshot,to file:URL)throws{saves+=1;if failSave{throw CocoaError(.fileWriteNoPermission)};baseline=value}
- func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{preconditionFailure("No notice is eligible in this baseline-only fixture")}
+ func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{
+  attempted.append(kind)
+  duringSend?(kind)
+  if kind==rejected{throw CocoaError(.fileWriteUnknown)}
+ }
+ func removeUpdateNotifications(_ ids:[String]){removed += ids}
  func changeNotice(_ targets:[ScheduleNotificationSnapshot.ChangeTarget])throws->ScheduleNotificationSnapshot.Pending{.init()}
 PERMISSION
 BRIDGE
 OBSERVED
 METHODS
- func update()async{await apply(Input(revision:latestRevision))}
+ func update(_ available:Set<String> = [])async{
+  await apply(Input(revision:latestRevision,availability:.init(available:available)))
+ }
 }
 @main struct Probe {
  @MainActor static func main()async throws {
@@ -837,6 +859,34 @@ METHODS
   h.changesEnabled=false;h.specialsEnabled=false;let count=h.center.reads
   await h.checkPermission();await h.update()
   precondition(h.permissionMessage==nil && h.center.reads==count,"Both-off must clear permission state without asking the OS")
+
+  let exams=Harness(root)
+  exams.center.response=UNNotificationSettings(.authorized)
+  exams.baseline?.pending=["exam":.init(),"examReturn":.init()]
+  exams.rejected="exam"
+  await exams.update(["exam","examReturn"])
+  precondition(exams.attempted==["exam","examReturn"] && Set(exams.baseline!.pending.keys)==["exam"])
+  precondition(exams.message?.contains("送信できませんでした")==true)
+  exams.rejected=nil
+  await exams.update(["exam","examReturn"])
+  precondition(exams.attempted==["exam","examReturn","exam"] && exams.baseline?.pending.isEmpty==true && exams.message==nil)
+
+  let mixed=Harness(root)
+  mixed.center.response=UNNotificationSettings(.authorized)
+  mixed.baseline?.pending=["changes":.init(changeTargets:[.init()]),"exam":.init()]
+  mixed.duringSend={ [weak mixed] kind in if kind=="changes"{mixed?.changesEnabled=false} }
+  await mixed.update(["changes","exam"])
+  precondition(mixed.attempted==["changes","exam"] && mixed.removed==["takupoke.changes"])
+  precondition(mixed.baseline?.pending.isEmpty==true)
+
+  let superseded=Harness(root)
+  superseded.center.response=UNNotificationSettings(.authorized)
+  superseded.baseline?.pending=["examReturn":.init()]
+  superseded.rejected="examReturn"
+  superseded.message="current notice status"
+  superseded.duringSend={ [weak superseded] _ in superseded?.latestRevision=UUID() }
+  await superseded.update(["examReturn"])
+  precondition(superseded.message=="current notice status" && superseded.baseline?.pending["examReturn"] != nil)
   print("Actual permission/apply: denial survives reconcile, storage failure coexists, authorization recovers independently, and disabled settings do not read the OS.")
  }
 }
