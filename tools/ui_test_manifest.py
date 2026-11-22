@@ -86,6 +86,7 @@ NOTIFICATION_PROBE_TESTS = (
 COUNTDOWN_NOTIFICATION_TEST = "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch"
 COUNTDOWN_REMINDER_LAYOUT_TEST = "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors"
 SCHOOL_COUNTDOWN_NOTIFICATION_TEST = "testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed"
+COUNTDOWN_DELETE_TEST = "testCountdownDeleteWriteFailureKeepsDetailAndCanRetry"
 NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (COUNTDOWN_NOTIFICATION_TEST, SCHOOL_COUNTDOWN_NOTIFICATION_TEST)
 CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testLinkPreferencesSurviveRelaunch",
@@ -112,6 +113,7 @@ PROBE_GROUPS = {
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-school-notices": (SCHOOL_COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-storage": ("testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",),
+    "countdown-delete": (COUNTDOWN_DELETE_TEST,),
     "countdown-notification-route": ("testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",),
     "countdown-and-yellow": (COUNTDOWN_REMINDER_LAYOUT_TEST, "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
     "countdown-notification-context": (SETTINGS_TEST, "testNotificationControlsAndAppearance", COUNTDOWN_NOTIFICATION_TEST),
@@ -162,6 +164,7 @@ SHARDS = {
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
         "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
         "testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",
+        COUNTDOWN_DELETE_TEST,
         "testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",
         "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
         "testChangedAccountDataNoticeOpensSharedAcquisition",

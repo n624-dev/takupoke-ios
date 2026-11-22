@@ -544,6 +544,10 @@ struct SimulatorApplication: App {
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorCountdownEventsFixture.seedSchoolNotices(base)
         }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-delete-write-failure"),
+           ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
+            try SimulatorCountdownDeletionFixture.seed(base)
+        }
         if ProcessInfo.processInfo.arguments.contains("--countdown-reminder-layout"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             let date = SchoolDate.today().addingDays(12)!

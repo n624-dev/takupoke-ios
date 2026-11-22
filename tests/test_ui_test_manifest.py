@@ -1120,8 +1120,9 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 42)
+        self.assertEqual(len(manifest.selected_tests("all")), 43)
         self.assertIn(manifest.SCHOOL_COUNTDOWN_NOTIFICATION_TEST, manifest.SHARDS["A"])
+        self.assertIn(manifest.COUNTDOWN_DELETE_TEST, manifest.SHARDS["A"])
         self.assertIn("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", manifest.SHARDS["B"])
         self.assertIn("testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors", manifest.SHARDS["B"])
         self.assertIn("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups", manifest.SHARDS["B"])
@@ -1443,6 +1444,7 @@ METHOD
             ("countdown-notifications", ("testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch",)),
             ("countdown-school-notices", ("testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed",)),
             ("countdown-storage", ("testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",)),
+            ("countdown-delete", ("testCountdownDeleteWriteFailureKeepsDetailAndCanRetry",)),
             ("countdown-notification-route", ("testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",)),
             ("countdown-and-yellow", ("testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors",
                                       "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch")),

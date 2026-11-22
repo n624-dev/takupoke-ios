@@ -3,6 +3,64 @@ import UIKit
 import CryptoKit
 
 extension ApplicationChecks {
+    func testCountdownDeleteWriteFailureKeepsDetailAndCanRetry() {
+        let home = "たくポケ", detail = "予定の詳細"
+        let cards = app.buttons.matching(identifier: "countdown-home-card")
+        let target = cards.matching(NSPredicate(format: "label CONTAINS %@", "架空の削除対象")).firstMatch
+        let other = cards.matching(NSPredicate(format: "label CONTAINS %@", "架空の別の予定")).firstMatch
+        let warning = app.staticTexts["予定を削除できませんでした。前の設定を保持しています。"]
+
+        func confirmDeletion() -> Bool {
+            let row = visible(app.buttons["countdown-delete"], navigation: detail)
+            guard row.isEnabled && row.isHittable else {
+                XCTFail("Delete row was not tappable. " + app.debugDescription)
+                return false
+            }
+            row.tap()
+            let confirmation = app.buttons.matching(NSPredicate(format: "label == %@ AND identifier != %@",
+                "削除", "countdown-delete"))
+            var observed: XCUIElement?
+            let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                let buttons = confirmation.allElementsBoundByAccessibilityElement
+                guard buttons.count == 1, let button = buttons.first, button.isEnabled, button.isHittable else { return false }
+                observed = button
+                return true
+            }, object: app)
+            guard XCTWaiter.wait(for: [ready], timeout: 10) == .completed, let observed else {
+                XCTFail("Delete confirmation was not uniquely tappable. " + app.debugDescription)
+                return false
+            }
+            observed.tap()
+            return true
+        }
+
+        screen(home)
+        let selected = visible(target, navigation: home)
+        XCTAssertTrue(selected.isEnabled && selected.isHittable, app.debugDescription)
+        selected.tap()
+        screen(detail)
+        guard confirmDeletion() else { return }
+        XCTAssertTrue(warning.waitForExistence(timeout: 10), app.debugDescription)
+        screen(detail)
+
+        guard confirmDeletion() else { return }
+        XCTAssertTrue(app.navigationBars[detail].waitForNonExistence(timeout: 10), app.debugDescription)
+        screen(home)
+        XCTAssertTrue(visible(other, navigation: home).exists)
+        XCTAssertFalse(target.exists, app.debugDescription)
+
+        app.launchArguments.removeAll { $0 == "--reset-fixture" || $0 == "--countdown-delete-write-failure" }
+        launchReady()
+        screen(home)
+        let management = visible(app.buttons["countdown-all"], navigation: home)
+        XCTAssertTrue(management.isEnabled && management.isHittable, app.debugDescription)
+        management.tap()
+        screen("カウントダウン")
+        let saved = app.buttons.matching(identifier: "countdown-list-card")
+        XCTAssertEqual(saved.count, 1, app.debugDescription)
+        XCTAssertTrue(saved.matching(NSPredicate(format: "label CONTAINS %@", "架空の別の予定")).firstMatch.exists)
+    }
+
     func testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList() {
         tab("設定")
         tap("カウントダウン")

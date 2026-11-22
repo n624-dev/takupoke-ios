@@ -149,9 +149,9 @@ final class CountdownModel: ObservableObject {
         return commit(next)
     }
 
-    func delete(_ id: UUID) {
+    func delete(_ id: UUID) -> Bool {
         var next = library; next.registrations.removeAll { $0.id == id }
-        commit(next)
+        return commit(next)
     }
 
     @discardableResult

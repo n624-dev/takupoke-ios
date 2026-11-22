@@ -18,6 +18,7 @@ on:
           - countdown-notifications
           - countdown-school-notices
           - countdown-storage
+          - countdown-delete
           - countdown-notification-route
           - countdown-and-yellow
           - countdown-notification-context

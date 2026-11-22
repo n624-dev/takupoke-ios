@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`cdbcecbaafee010e3af193fde36abe3c8e9579a4f1cda1a59561ea48ee1fb2b2`
+`64f8066812018da8b1bc6fa91bee128cee30275fc87cf803f7484911d52866dd`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -182,6 +182,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Notifications.swift](../../tests/ui/ApplicationChecks+Notifications.swift)
 
+- `testCountdownDeleteWriteFailureKeepsDetailAndCanRetry`
 - `testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList`
 - `testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed`
 - `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`

@@ -58,6 +58,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed": ["--countdown-school-notices", "--events-v2"],
             "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors": ["--countdown-reminder-layout", "--fixture-input-trace"],
             "testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration": ["--countdown-storage-corrupt"],
+            "testCountdownDeleteWriteFailureKeepsDetailAndCanRetry": ["--countdown-delete-write-failure"],
             "testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList": ["--countdown-notification-route"],
             "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent": [
                 "--events-v2", "--countdown-calendar", "--countdown-source-checking", "--fixture-input-trace",

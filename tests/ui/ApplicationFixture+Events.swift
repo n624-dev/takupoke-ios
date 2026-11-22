@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UIKit
 import CryptoKit
 import UserNotifications
@@ -140,6 +141,43 @@ enum SimulatorAuxiliaryStoreFixture {
                 try manager.removeItem(at: root)
                 try manager.moveItem(at: backup, to: root)
             }
+        }
+    }
+}
+
+@MainActor enum SimulatorCountdownDeletionFixture {
+    private static let writeFailure = "カウントダウンを保存できません。前の設定を保持しています。"
+    private static var observation: AnyCancellable?
+
+    static func seed(_ base: URL) throws {
+        let registrations = ["架空の削除対象", "架空の別の予定"].enumerated().map { index, title in
+            let date = SchoolDate.today().addingDays(12 + index)!
+            let target = CountdownDates(title: title, ranges: [.init(start: date, end: date)])
+            return CountdownRegistration(id: UUID(), target: .personal(target))
+        }
+        try CountdownStore(root: base).save(CountdownLibrary(registrations: registrations))
+        let model = ApplicationData.shared.countdown
+        model.load()
+        guard model.library.registrations == registrations else { throw CocoaError(.fileReadUnknown) }
+
+        let files = FileManager.default
+        let library = base.appendingPathComponent("Countdown.json")
+        let original = base.appendingPathComponent("fixture-countdown-before-deletion.json")
+        try files.moveItem(at: library, to: original)
+        try files.createDirectory(at: library, withIntermediateDirectories: false)
+        let marker = library.appendingPathComponent("fixture-write-blocker")
+        try Data("fictional".utf8).write(to: marker)
+        FixtureCITrace.mark("countdown-delete-write-blocked")
+
+        // Return the untouched store only after the model observes an actual
+        // write failure. The test still has to retry through the real detail.
+        observation = model.$message.first(where: { $0 == writeFailure }).sink { _ in
+            do {
+                guard files.fileExists(atPath: marker.path) else { throw CocoaError(.fileNoSuchFile) }
+                try files.removeItem(at: library)
+                try files.moveItem(at: original, to: library)
+                FixtureCITrace.mark("countdown-delete-write-restored")
+            } catch { fatalError("Could not restore the fictional countdown store: \(error)") }
         }
     }
 }

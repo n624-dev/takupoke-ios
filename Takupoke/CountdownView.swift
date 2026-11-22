@@ -178,6 +178,7 @@ private struct CountdownDetail: View {
     @ObservedObject var events: SchoolEventsModel
     var notificationTarget: CountdownNoticeTarget? = nil
     @State private var confirmingDelete = false
+    @State private var deletionFailed = false
 
     private var selectedCard: CountdownCard? {
         if let notificationTarget { return model.notificationCard(for: notificationTarget) }
@@ -250,7 +251,11 @@ private struct CountdownDetail: View {
                                 Button("学校行事を取得") { events.fetch(year: reference.year) }.disabled(events.busy)
                             }
                         }
+                        if deletionFailed {
+                            InlineWarning("予定を削除できませんでした。前の設定を保持しています。")
+                        }
                         Button("削除", role: .destructive) { confirmingDelete = true }
+                            .accessibilityIdentifier("countdown-delete")
                     }
                 } else if id == CountdownAutomatic.identity {
                     Section {
@@ -279,7 +284,10 @@ private struct CountdownDetail: View {
         }
         .navigationTitle("予定の詳細")
         .confirmationDialog("この予定を削除しますか？", isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("削除", role: .destructive) { model.delete(id); dismiss() }
+            Button("削除", role: .destructive) {
+                if model.delete(id) { dismiss() }
+                else { deletionFailed = true }
+            }
         }
     }
 }
