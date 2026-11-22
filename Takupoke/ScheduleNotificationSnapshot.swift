@@ -34,6 +34,45 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     var specialDigests: [String: String] = [:]
     var pending: [String: Pending] = [:]
 
+    static func load(from file: URL) throws -> Self {
+        let original = URL(fileURLWithPath:file.path)
+        let info: URLResourceValues
+        do { info = try original.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey]) }
+        catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return Self() }
+        guard info.isRegularFile == true, info.isSymbolicLink != true else { throw CocoaError(.fileReadCorruptFile) }
+        let bytes = try Data(contentsOf:original)
+        do { return try JSONDecoder().decode(Self.self,from:bytes) }
+        catch let error as DecodingError {
+            // A structurally different but well-formed document might belong to
+            // a newer app. Only replace an unreadable JSON representation.
+            guard (try? JSONSerialization.jsonObject(with:bytes,options:.fragmentsAllowed)) == nil else { throw error }
+            let retained = original.deletingLastPathComponent()
+                .appendingPathComponent("baseline-malformed-\(UUID().uuidString).json")
+            try write(bytes,to:retained)
+            let empty = Self()
+            do {
+                guard try Data(contentsOf:original) == bytes else { throw CocoaError(.fileReadCorruptFile) }
+                try empty.save(to:original)
+            } catch {
+                try? FileManager.default.removeItem(at:retained)
+                throw error
+            }
+            return empty
+        }
+    }
+
+    func save(to file: URL) throws {
+        try Self.write(JSONEncoder().encode(self),to:file)
+    }
+
+    private static func write(_ bytes: Data, to file: URL) throws {
+        #if os(iOS)
+        try bytes.write(to:file,options:[.atomic,.completeFileProtection])
+        #else
+        try bytes.write(to:file,options:.atomic)
+        #endif
+    }
+
     enum Readiness { case unavailable, absent, available }
     struct Availability {
         var changes: Readiness

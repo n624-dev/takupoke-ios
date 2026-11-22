@@ -255,9 +255,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             guard UIApplication.shared.isProtectedDataAvailable, input.period == SchoolDataPeriod.current() else { return }
             let file = try storageFile()
             if !loaded {
-                if FileManager.default.fileExists(atPath: file.path) {
-                    baseline = try JSONDecoder().decode(ScheduleNotificationSnapshot.self, from: Data(contentsOf: file))
-                } else { baseline = ScheduleNotificationSnapshot() }
+                baseline = try ScheduleNotificationSnapshot.load(from:file)
                 loaded = true
             }
             guard var next = baseline else { return }
@@ -319,8 +317,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     private func save(_ value: ScheduleNotificationSnapshot, to file: URL) throws {
-        try JSONEncoder().encode(value).write(to: file, options: .atomic)
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
+        try value.save(to:file)
         baseline = value
     }
 

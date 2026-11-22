@@ -97,6 +97,55 @@ final class ScheduleNotificationTests: XCTestCase {
         XCTAssertEqual(restored.changeCount(comparedWith: [change("a")], today: today, classes: ["3_XY"]), 0)
     }
 
+    func testMalformedStoredBaselineRecoversWithoutInventingAnUpdate() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let file = root.appendingPathComponent("baseline.json")
+        let malformed = Data("{\"specialDigests\":{\"exam\":\"fictional".utf8)
+        try malformed.write(to:file)
+
+        let first = try ScheduleNotificationSnapshot.load(from:file)
+        XCTAssertEqual(first,ScheduleNotificationSnapshot())
+        let retained = try FileManager.default.contentsOfDirectory(at:root,includingPropertiesForKeys:nil)
+            .filter { $0.lastPathComponent.hasPrefix("baseline-malformed-") }
+        XCTAssertEqual(retained.count,1)
+        XCTAssertEqual(try Data(contentsOf:XCTUnwrap(retained.first)),malformed)
+        XCTAssertEqual(try ScheduleNotificationSnapshot.load(from:file),first)
+
+        let availability = ScheduleNotificationSnapshot.Availability(changes:.available,
+            specials:["exam":.available,"examReturn":.available])
+        let original = try first.reconciling(changes:[change("first-school-revision")],
+            specials:["exam":"first-exam","examReturn":"first-return"],availability:availability,
+            today:today,classes:["3_XY"],changesEnabled:true,specialsEnabled:true)
+        XCTAssertTrue(original.pending.isEmpty)
+        try original.save(to:file)
+        let reopened = try ScheduleNotificationSnapshot.load(from:file)
+        let update = try reopened.reconciling(changes:[change("next-school-revision")],
+            specials:["exam":"next-exam","examReturn":"next-return"],availability:availability,
+            today:today,classes:["3_XY"],changesEnabled:true,specialsEnabled:true)
+        XCTAssertEqual(Set(update.pending.keys),["changes","exam","examReturn"])
+        XCTAssertEqual(update.pending["changes"]?.count,1)
+    }
+
+    func testStoredBaselinePreservesUnrecognizedFormatAndDoesNotFollowSymlinks() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let file = root.appendingPathComponent("baseline.json")
+        XCTAssertEqual(try ScheduleNotificationSnapshot.load(from:file),ScheduleNotificationSnapshot())
+        XCTAssertFalse(FileManager.default.fileExists(atPath:file.path))
+        let unknown = Data("{\"futureVersion\": 2, \"history\": []}".utf8)
+        try unknown.write(to:file)
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from:file))
+        XCTAssertEqual(try Data(contentsOf:file),unknown)
+        let link = root.appendingPathComponent("link.json")
+        try FileManager.default.createSymbolicLink(at:link,withDestinationURL:file)
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from:link))
+        XCTAssertEqual(try Data(contentsOf:file),unknown)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path).sorted(),["baseline.json","link.json"])
+    }
+
     func testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent() throws {
         let previous: Set = [change("old")], current: Set = [change("new")]
         var baseline = ScheduleNotificationSnapshot(changes:previous)

@@ -426,6 +426,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  enum State {case available,unavailable}
  struct Availability {func state(for kind:String)->State{.unavailable}}
  var revision=0;var pending=[String:Pending]()
+ static func load(from file:URL)throws->Self{preconditionFailure("This permission probe starts with an already loaded baseline")}
  func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool)throws->Self{var next=self;next.revision+=1;return next}
  func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>)->[ChangeTarget]{targets}
 }
