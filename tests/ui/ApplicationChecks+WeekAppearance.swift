@@ -132,7 +132,7 @@ extension ApplicationChecks {
         let selectedWeek = calendar.label
         var settingsTitle: Double?
         var timetableTitle: Double?
-        for (title, stored) in [("オレンジ", "orange"), ("緑", "green"), ("黄色", "yellow"), ("デフォルト", "未設定"), ("青", "blue")] {
+        for (title, stored) in [("オレンジ", "orange"), ("黄色", "yellow"), ("緑", "green"), ("デフォルト", "未設定"), ("青", "blue")] {
             tab("設定")
             tap("メインカラー")
             tap(title)

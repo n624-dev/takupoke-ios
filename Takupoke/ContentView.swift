@@ -154,8 +154,7 @@ struct ContentView: View {
             TabBarTitleTint(selectedTab: selectedTab,
                             titleColor: mainColor.selection.usesLightYellowIcons(in: colorScheme)
                                 ? mainColor.selection.tabTitleTint(for: colorScheme, contrast: colorSchemeContrast).map { UIColor($0) }
-                                : nil,
-                            defaultTint: mainColor.selection.color(for: colorScheme, contrast: colorSchemeContrast).map { UIColor($0) })
+                                : nil)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
@@ -170,36 +169,49 @@ struct ContentView: View {
         // Changing the selected tab can recreate its native item.
         let selectedTab: Tab
         let titleColor: UIColor?
-        let defaultTint: UIColor?
-
         func makeUIView(context: Context) -> Anchor { Anchor() }
 
         func updateUIView(_ anchor: Anchor, context: Context) {
-            anchor.update(titleColor: titleColor, defaultTint: defaultTint)
+            anchor.update(titleColor: titleColor)
+        }
+
+        static func dismantleUIView(_ anchor: Anchor, coordinator: ()) {
+            anchor.dismantle()
         }
 
         final class Anchor: UIView {
             private var titleColor: UIColor?
-            private var defaultTint: UIColor?
+            private var appliedColor: UIColor?
             private weak var overriddenBar: UITabBar?
             private var updatePending = false
+            private var isDismantled = false
 
             override func didMoveToWindow() {
                 super.didMoveToWindow()
+                if window == nil { clearOverride() }
+                else { scheduleUpdate() }
+            }
+
+            override func layoutSubviews() {
+                super.layoutSubviews()
+                if titleColor != nil && overriddenBar == nil { scheduleUpdate() }
+            }
+
+            func update(titleColor: UIColor?) {
+                self.titleColor = titleColor
                 scheduleUpdate()
             }
 
-            func update(titleColor: UIColor?, defaultTint: UIColor?) {
-                self.titleColor = titleColor
-                self.defaultTint = defaultTint
-                scheduleUpdate()
+            func dismantle() {
+                isDismantled = true
+                clearOverride()
             }
 
             private func scheduleUpdate() {
-                guard !updatePending else { return }
+                guard !isDismantled, !updatePending else { return }
                 updatePending = true
                 Task { @MainActor [weak self] in
-                    guard let self else { return }
+                    guard let self, !self.isDismantled else { return }
                     self.updatePending = false
                     self.apply()
                 }
@@ -207,15 +219,25 @@ struct ContentView: View {
 
             private func apply() {
                 guard let window, let titleColor else {
-                    overriddenBar?.tintColor = defaultTint
-                    overriddenBar = nil
+                    clearOverride()
                     return
                 }
-                let bars = nativeBars(in: window)
-                guard bars.count == 1, let bar = bars.first else { return }
-                if let overriddenBar, overriddenBar !== bar { overriddenBar.tintColor = defaultTint }
-                overriddenBar = bar
-                if bar.tintColor != titleColor { bar.tintColor = titleColor }
+                if overriddenBar?.window !== window { clearOverride() }
+                if overriddenBar == nil {
+                    let bars = nativeBars(in: window)
+                    guard bars.count == 1 else { return }
+                    overriddenBar = bars.first
+                }
+                if overriddenBar?.tintColor != titleColor { overriddenBar?.tintColor = titleColor }
+                appliedColor = titleColor
+            }
+
+            private func clearOverride() {
+                if let bar = overriddenBar, let appliedColor, bar.tintColor == appliedColor {
+                    bar.tintColor = nil
+                }
+                appliedColor = nil
+                overriddenBar = nil
             }
 
             private func nativeBars(in view: UIView) -> [UITabBar] {
