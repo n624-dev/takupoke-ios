@@ -165,9 +165,11 @@ OBSERVE
         self.assertLess(frames.index("XCTWaiter.wait(for: [reportReady]"), frames.index("gridMetrics()"))
         self.assertIn('XCTAssertEqual(record["gridMetricReadsDuringMotion"] as? Int, 0,', frames)
         grid_fixture = (ROOT / "tests/ui/ApplicationFixture+Grid.swift").read_text()
-        self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
+        self.assertLess(grid_fixture.index("if selection.date == week && !motion.isRecording"),
                         grid_fixture.index(".accessibilityValue(read())"))
         self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
+        self.assertNotIn("isDisplayedTimetableWeek", source + grid_fixture)
+        self.assertIn("WeekGridAccessibility(week: week, selection: weekSelection,", source)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
@@ -190,7 +192,7 @@ OBSERVE
                     app_test_project.instrument_timetable_date(original.replace(site, " " + site, 1), path.name)
 
         source = generated[timetable.name]
-        model = block(source, "@Observable\nprivate final class TimetableWeekSelection")
+        model = block(source, "@Observable\nfinal class TimetableWeekSelection")
         fields = re.findall(r"^    @State (?:private )?(var \w+ = .*SimulatorSelectionFixture\.day.*)$",
                             source, re.MULTILINE)
         actions = re.findall(r"^        ((?:let current|today) = .*SimulatorSelectionFixture\.day.*)$",

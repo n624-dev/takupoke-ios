@@ -5971,3 +5971,17 @@ Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate
 同じsource `d1c3bf71ab88c9e9180cdba2a7949474ad0ed53b`、iOS26.5／SDK27.2。[通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137518367474) の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は06:28:23 UTCに失敗した。実解放と横到着は成立。到着と最初の整列枠の間が266.508ms、main CPU約256.6ms、21枠から22枠になり幾何欠落0。昇格・スクロール復帰は約0.53ms、最初の設定開始は到着から約216.1ms後。計測中のXCTestアイドル照会はログに現れず、前回より少ない公開前ジョブの状態でも同じ段階の停止が再発した。往路で失敗し後続は未到達。一緒に再実行した[手動原本変更](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137518367632)は同じSDKと元の条件で425.135秒、成功。全ジョブ終端、公開は依存ジョブが失敗したため未実行。
 
 再発時は `FixtureActiveGridMetrics|fixtureGridMetrics|isDisplayedTimetableWeek|configuration-begin` も調べた。生成アプリだけのグリッド診断は、選択中の週や測定値の変化でViewを再評価し、メインスレッドで全カードの集計、ファイル読取、JSON変換を行う。既存の週送り検査は枠を採取し終えてから、この診断で到着週が行事だけかを照合する。枠の採取中は診断の組み立てを待ち、診断が実行された回数も記録する。実接触、実座標、描画間隔上限90ms、ガラス画像、終了後の診断と元の週への復帰の検査を維持する。診断処理が過去の遅延をどれだけ占めたかは未確定。iOS26.5／27.0・SDK27.2の週送り限定で検証する。
+
+### 週送り限定45127238474・iOS27は週送り後の別ケースで見出しを画面内へ移せなかった
+
+[iOS27.0／SDK27.2](https://github.com/n624-dev/takupoke-ios/actions/runs/45127238474/job/137534297120)、source `99bd3b9`、試行1。週送りの描画検査は53.024秒で成功。往路50.184ms・復路39.624ms、幾何欠落0、実枠採取中の診断JSON読取0件。続く `testTimetableCommonClocksAndEventOnlyWeekScale` は07:09:32 UTCに163.379秒で失敗した。最大文字サイズの通常週で先頭日付の下端が854pt、可視範囲の下端が769ptだった。接触ログでは実縦ドラッグを配送したが、6回とも対象の枠は変わらなかった。横スクロール位置の確認は未到達。縦ドラッグが画面位置を変えなかった理由は未確定。
+
+`UI_VISIBLE|testTimetableCommonClocksAndEventOnlyWeekScale|Week grid is outside the viewport` で正式503と正式528の通常A、現行 `visible` を照合した。正式503は行事週のドラッグ前の表示範囲、今回は通常週の先頭日付を探す途中。今回の可視範囲の中心 `(196.5, 441)` は、失敗後の実アクセシビリティ木で「変更込み」ボタンの枠 `(196,416.3,165,32)` 内だった。切り替えに触れないよう、同じ実Listで可視範囲に完全に収まる見出し・案内の実ラベルを既存のドラッグ始点候補にする。縦移動量、対象の完全包含、既存の最大文字・横位置・週移動の判定を維持し、始点と終点を数値ログで確認する。[正式528の同ケースが成功したiOS27 A](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137490689486)
+
+### 週送り限定45127238474・iOS26では診断JSONを除いても同じ段階で停止
+
+[iOS26.5／SDK27.2](https://github.com/n624-dev/takupoke-ios/actions/runs/45127238474/job/137534296998)、source `99bd3b9`、試行1。`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は07:11:26 UTCに38.470秒で失敗した。描画の停止339.005ms、収集23枠、実枠採取中の診断JSON読取0件。横到着0.2814秒、昇格とスクロール復帰0.2822秒、最初の設定開始0.5379秒。到着から設定開始まで約256.5ms、その間のmain CPU約253.7ms。正式528の2回と工程が一致し、診断JSONだけでは説明できない。Native検査は成功し両OSのジョブは終端。
+
+`isDisplayedTimetableWeek|weekSection|configuration-begin|WeekGridAccessibility` で #125 の正式526・527、4d30920の限定と今の描画コードを比較。到着直後の選択変化で、準備済みの2つの週の中身にSwiftUIの環境値も伝播していた。候補では、既存の選択状態をアクセシビリティの表示判定だけで読み、UIKitの非表示状態も旧週・新週の実ScrollViewと新規登録時に更新する。準備済みの週の中身に選択状態の環境変更が及ばないようにし、実際の週の選択順・日時表示・接触範囲・VoiceOverの表示対象を維持する。これがCPU時間をどこまで減らすかは未検証。両OSの週送り限定で、90msの元の上限・往復・描画画像・実グリッドと、別ケースの最大文字時の実ドラッグを確認する。
+
+Linuxの生成後Swift構文検査で、変更途中の `WeekGridAccessibility` を2行に分割すると、行を基準にした既存の生成器が引数の途中に観測用Viewを挿入することを確認した。引数のラベルをローカル変数に取り出し、生成器が利用する呼出しを一行で閉じる。生成後のソースを再検査してからAppleの限定に進む。

@@ -45,6 +45,7 @@ extension TimetableView {
         let columns = days.map(dayLayout)
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         let rowHeights = gridRowHeights(columns, days: days)
+        let accessibilityLabel = "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"
         return VStack(spacing: 0) {
             ScrollView(.horizontal) {
                 WeekColumnsLayout(widths: [periodColumnWidth] + columns.map(\.width), spacing: gridSpacing) {
@@ -90,7 +91,7 @@ extension TimetableView {
             .scrollBounceBehavior(.always, axes: .horizontal)
             .fixedSize(horizontal: false, vertical: true)
             .dynamicTypeSize(.large...)
-            .modifier(WeekGridAccessibility(label: "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"))
+            .modifier(WeekGridAccessibility(week: week, selection: weekSelection, label: accessibilityLabel))
             weekEvents(on: week, embedded: true)
                 .modifier(WeekFooterHandoff(motion: weekPull.motion, week: week))
         }
@@ -162,16 +163,14 @@ private struct WeekPageMeasurement: Equatable {
     let revision: [String]
 }
 
-extension EnvironmentValues {
-    @Entry var isDisplayedTimetableWeek = false
-}
-
 private struct WeekGridAccessibility: ViewModifier {
-    @Environment(\.isDisplayedTimetableWeek) private var isDisplayed
+    let week: SchoolDate
+    let selection: TimetableWeekSelection
     let label: String
 
     func body(content: Content) -> some View {
-        content.accessibilityIdentifier(isDisplayed ? "timetable-week-grid" : "")
+        let isDisplayed = selection.date == week
+        return content.accessibilityIdentifier(isDisplayed ? "timetable-week-grid" : "")
             .accessibilityLabel(isDisplayed ? label : "")
             .accessibilityHidden(!isDisplayed)
     }
@@ -274,7 +273,6 @@ private struct WeekPagesCanvas: View {
                     .allowsHitTesting(isDisplayed && motion.transition == nil)
                     .accessibilityElement(children: .contain)
                     .accessibilityHidden(!isDisplayed)
-                    .environment(\.isDisplayedTimetableWeek, isDisplayed)
             }
         }
     }
@@ -366,7 +364,13 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     @Published private(set) var transition: Transition?
     @Published private(set) var reservedHeight: CGFloat?
     let preparation = WeekPagePreparation()
-    var selection: SchoolDate?
+    var selection: SchoolDate? {
+        didSet {
+            guard oldValue != selection else { return }
+            if let oldValue, let scroll = scroll(for: oldValue) { scroll.accessibilityElementsHidden = true }
+            if let selection, let scroll = scroll(for: selection) { scroll.accessibilityElementsHidden = false }
+        }
+    }
     var bounds: ClosedRange<SchoolDate>?
     var available = Set<SchoolDate>()
     var revision: [String] = []
@@ -391,6 +395,8 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         if scrolls[week]?.value !== scroll || scrolls[week]?.probe !== probe {
             scrolls[week] = ScrollReference(scroll, probe: probe)
         }
+        let isHidden = selection != week
+        if scroll.accessibilityElementsHidden != isHidden { scroll.accessibilityElementsHidden = isHidden }
         scheduleQueuedMove()
     }
     func measure(_ measurement: WeekPageMeasurement, week: SchoolDate) {
@@ -735,7 +741,6 @@ private struct WeekPullBadge: View {
 /// Observe the horizontal scroll view's own pan. No competing gesture recognizer
 /// is installed, so wide content keeps priority over switching weeks.
 private struct WeekPullObserver: UIViewRepresentable {
-    @Environment(\.isDisplayedTimetableWeek) private var isDisplayed
     let week: SchoolDate
     let pull: WeekPullProgress
     func makeUIView(context: Context) -> Probe {
@@ -744,7 +749,6 @@ private struct WeekPullObserver: UIViewRepresentable {
     func updateUIView(_ view: Probe, context: Context) {
         view.week = week
         view.progress = pull
-        view.isDisplayed = isDisplayed
         view.attach()
     }
     static func dismantleUIView(_ view: Probe, coordinator: ()) { view.detach() }
@@ -752,7 +756,6 @@ private struct WeekPullObserver: UIViewRepresentable {
     final class Probe: UIView {
         var week: SchoolDate?
         weak var progress: WeekPullProgress?
-        var isDisplayed = false
         private weak var scroll: UIScrollView?
         private var pull: WeekEdgePull?
         private var inputGeneration: UUID?
@@ -767,9 +770,6 @@ private struct WeekPullObserver: UIViewRepresentable {
                 next?.panGestureRecognizer.addTarget(self, action: #selector(pan(_:)))
             }
             if let scroll, let week { progress?.motion.register(scroll, week: week, probe: self) }
-            if let scroll, scroll.accessibilityElementsHidden == isDisplayed {
-                scroll.accessibilityElementsHidden = !isDisplayed
-            }
         }
         func detach() {
             scroll?.panGestureRecognizer.removeTarget(self, action: #selector(pan(_:)))

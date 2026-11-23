@@ -185,8 +185,8 @@ extension ApplicationChecks {
             if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: current) {
                 var points = drag
                 if let scrollLabels {
-                    // The middle of the review form may be an editable text field.
-                    // Start on a visible original-value label in this form instead.
+                    // The center of the viewport can be an input or a control.
+                    // Start on a visible list label with room for the same vertical drag.
                     let offset = drag.end.y - drag.start.y
                     var anchor: CGPoint?
                     for label in scrollLabels.allElementsBoundByAccessibilityElement {
@@ -200,10 +200,11 @@ extension ApplicationChecks {
                         }
                     }
                     guard let anchor else {
-                        XCTFail("No visible original-value label for scrolling the change row")
+                        XCTFail("No visible list label with room for the vertical drag")
                         return e
                     }
                     points = (anchor, CGPoint(x: anchor.x, y: anchor.y + offset))
+                    print("UI_VISIBLE anchor-start=\(points.start);anchor-end=\(points.end)")
                 }
                 let origin = app.coordinate(withNormalizedOffset: .zero)
                 let appFrame = app.frame

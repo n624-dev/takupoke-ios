@@ -575,7 +575,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         .coordinateSpace(name: "fixture-grid")
         .overlay(alignment: .topLeading) {
             if ProcessInfo.processInfo.arguments.contains("--grid-probe") {
-                FixtureActiveGridMetrics(measurements: fixtureGridMeasurements) {
+                FixtureActiveGridMetrics(week: week, selection: weekSelection, measurements: fixtureGridMeasurements) {
                     fixtureGridMetrics(columns: columns, days: days, heights: rowHeights)
                 }
             }

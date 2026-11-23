@@ -539,8 +539,10 @@ extension ApplicationChecks {
                         let originalWeek = calendar.label
                         let next = app.buttons["翌週"].exists
                         XCTAssertTrue(next || app.buttons["前週"].exists)
-                        // The overlay can exist while the tall grid is still outside the body.
-                        _ = visible(headers[0], navigation: "時間割")
+                        // Start the vertical drag on a list label instead of the segmented control above the grid.
+                        let scrollLabels = app.collectionViews.staticTexts.matching(NSPredicate(format:"label IN %@",
+                            ["週の時間割", "時間割変更の解析結果がありません。"]))
+                        _ = visible(headers[0], navigation: "時間割", scrollLabels: scrollLabels)
                         let aligned = try gridMetrics()
                         XCTAssertEqual(aligned["days"] as? [String], days)
                         let grid = app.scrollViews["timetable-week-grid"]
