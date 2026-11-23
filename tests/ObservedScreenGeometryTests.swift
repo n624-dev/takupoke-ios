@@ -95,6 +95,18 @@ final class ObservedScreenGeometryTests: XCTestCase {
         XCTAssertNil(ObservedScreenGeometry.scrollDrag(for: viewport, in: .null))
     }
 
+    func testClippedScrollLabelOffersOnlyPointsWithBothDragEndpointsVisible() throws {
+        let viewport = CGRect(x: 0, y: 113, width: 393, height: 656)
+        let label = CGRect(x: 16, y: 563, width: 361, height: 217)
+        let offset: CGFloat = -218
+        XCTAssertFalse(ObservedScreenGeometry.contains(label, in: viewport, scale: 3))
+        let start = try XCTUnwrap(ObservedScreenGeometry.visibleScrollStart(for: label, in: viewport, offset: offset))
+        XCTAssertTrue(label.intersection(viewport).contains(start))
+        XCTAssertTrue(viewport.contains(CGPoint(x: start.x, y: start.y + offset)))
+        XCTAssertNil(ObservedScreenGeometry.visibleScrollStart(for: label, in: viewport, offset: 300))
+        XCTAssertNil(ObservedScreenGeometry.visibleScrollStart(for: .null, in: viewport, offset: offset))
+    }
+
     func testUnresolvedPresentFooterNeverMakesBodyVisible() {
         let viewport = CGRect(x: 0, y: 100, width: 100, height: 200)
         let body = CGRect(x: 10, y: 120, width: 80, height: 30)

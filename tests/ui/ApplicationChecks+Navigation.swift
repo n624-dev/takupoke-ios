@@ -164,7 +164,7 @@ extension ApplicationChecks {
         return usable(frame) ? frame : .null
     }
     func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false,
-                 scrollLabels: XCUIElementQuery? = nil) -> XCUIElement {
+                 scrollLabels: XCUIElementQuery? = nil, allowPartiallyVisibleScrollLabels: Bool = false) -> XCUIElement {
         for _ in 0..<6 {
             let viewport = bodyViewport(navigation: navigation)
             if contained(e, in: viewport) { return e }
@@ -191,6 +191,12 @@ extension ApplicationChecks {
                     var anchor: CGPoint?
                     for label in scrollLabels.allElementsBoundByAccessibilityElement {
                         let bounds = label.frame
+                        if allowPartiallyVisibleScrollLabels,
+                           let start = ObservedScreenGeometry.visibleScrollStart(for: bounds, in: current, offset: offset),
+                           label.isHittable {
+                            anchor = start
+                            break
+                        }
                         let center = CGPoint(x: bounds.midX, y: bounds.midY)
                         let end = CGPoint(x: center.x, y: center.y + offset)
                         if ObservedScreenGeometry.contains(bounds, in: current, scale: UIScreen.main.scale),

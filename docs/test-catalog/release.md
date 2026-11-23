@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応関係・宣言名・実行方法のSHA-256：
-`4b9bf73f197575c91cfe406e56e3edbe92bae8eca6f7faf6fdc217fac2b09642`
+`9c361632d44dadf89568b967c28ccd8ac1ae2c649c91eb56e902037558ade3a7`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -147,5 +147,6 @@ python3 -B -m unittest discover -s tests -v
 - `testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible`
 - `testObservedClippedRowsUseBoundedDragTowardBodyCenter`
 - `testUnusableOversizeOrAlreadyVisibleRowsNeverInventScrollGeometry`
+- `testClippedScrollLabelOffersOnlyPointsWithBothDragEndpointsVisible`
 - `testUnresolvedPresentFooterNeverMakesBodyVisible`
 - `testAbsentResolvedAndCoveringFooterHaveDifferentVisibleBounds`

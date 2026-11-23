@@ -542,7 +542,8 @@ extension ApplicationChecks {
                         // Start the vertical drag on a list label instead of the segmented control above the grid.
                         let scrollLabels = app.collectionViews.staticTexts.matching(NSPredicate(format:"label IN %@",
                             ["週の時間割", "時間割変更の解析結果がありません。"]))
-                        _ = visible(headers[0], navigation: "時間割", scrollLabels: scrollLabels)
+                        _ = visible(headers[0], navigation: "時間割", scrollLabels: scrollLabels,
+                                    allowPartiallyVisibleScrollLabels: true)
                         let aligned = try gridMetrics()
                         XCTAssertEqual(aligned["days"] as? [String], days)
                         let grid = app.scrollViews["timetable-week-grid"]

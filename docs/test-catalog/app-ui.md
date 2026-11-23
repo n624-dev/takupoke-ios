@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`64f8066812018da8b1bc6fa91bee128cee30275fc87cf803f7484911d52866dd`
+`2e8a319e68a721d835c6c377dc9ad5e03934db455f2e2e5ada74600a624ea0f7`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -199,6 +199,7 @@ bash tools/test-app-ui.sh
 - `testEmptyNonFiniteAndInvalidScaleDoNotBecomeVisible`
 - `testObservedClippedRowsUseBoundedDragTowardBodyCenter`
 - `testUnusableOversizeOrAlreadyVisibleRowsNeverInventScrollGeometry`
+- `testClippedScrollLabelOffersOnlyPointsWithBothDragEndpointsVisible`
 - `testUnresolvedPresentFooterNeverMakesBodyVisible`
 - `testAbsentResolvedAndCoveringFooterHaveDifferentVisibleBounds`
 

@@ -47,6 +47,13 @@ enum ObservedScreenGeometry {
         return (start, CGPoint(x: start.x, y: start.y + offset))
     }
 
+    static func visibleScrollStart(for label: CGRect, in viewport: CGRect, offset: CGFloat) -> CGPoint? {
+        guard usable(label), usable(viewport), offset.isFinite else { return nil }
+        let area = label.intersection(viewport).intersection(viewport.offsetBy(dx: 0, dy: -offset))
+        guard usable(area.insetBy(dx: 2, dy: 2)) else { return nil }
+        return CGPoint(x: area.midX, y: area.midY)
+    }
+
     private static func edge(_ value: CGFloat, scale: CGFloat) -> CGFloat {
         let pixelEdge = (value * scale).rounded() / scale
         // Measure rounding noise in the observed points. Scaling the difference

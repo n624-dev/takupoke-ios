@@ -6001,3 +6001,9 @@ Linuxの生成後Swift構文検査で、変更途中の `WeekGridAccessibility` 
 source `e2b1804`、試行1、SDK27.2。[iOS27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45136782217/job/137564853957)は08:22:06 UTCに `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が39.044秒・高さ中133.518msで停止。診断JSON読取0件、27枠、到着後の最初の設定開始まで約100.5ms。最大文字は153.878秒で成功。[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45136782217/job/137564854270)は08:15:53 UTCに取得済みRuntimeの再登録が30秒内に完了せず、生成アプリのビルドとXCTestの前に停止した。Nativeは成功し、全ジョブは終端。
 
 `Owned asset re-registration did not complete|SWIFT_OPTIMIZATION_LEVEL|Onone|configuration-begin` を確認した。iOS26の準備は限定43767607953の停止と同段階で、条件に合うRuntimeや実行先の判定は維持する。iOS27のアプリのコンパイラ行では `-Onone` を確認した。公開IPAの対象は `Release` の `-O` と `wholemodule`。週配置の試験的な変更は旧製品のコードへ戻す。通常UIの生成アプリ本体には公開版と同じSwift最適化設定を適用し、テストの入力、取得点、合格基準、DEBUGでの架空データ、XCTestと手動訂正用の既存設定を維持する。公開ビルドに近い実行条件で、同じ90msの基準を両OSで検証する。
+
+### 週送り限定45140095070・公開版と同じ最適化でも週送りの高さ調整が停止
+
+source `bd586dc`、試行1、SDK27.2。両OSの実コンパイラ行は `Takupoke -O -whole-module-optimization`。[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45140095070/job/137575662106)は08:49:24 UTC、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が40.348秒、到着後134.629msで失敗。採取中の診断JSONは0件、29枠。最大文字は159.088秒で成功。[iOS27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45140095070/job/137575662229)は08:52:42 UTC、同ケースが48.799秒、217.638msで失敗。診断JSONは0件、21枠。続く最大文字では、見出しの下端955ptが可視下端769ptの外にあり、縦ドラッグの候補ラベルを丸ごと表示できる始点が得られず132.607秒で失敗した。Nativeは成功し、両OSは終端。
+
+最大文字の縦移動は `No visible list label|UI_VISIBLE|ObservedScreenGeometry` で限定45127238474と45131022827を照合した。全体が画面に入っている必要があるのは検査対象の見出し。縦スクロールの始点を選ぶ際は、その操作を受けることが確認できた非操作ラベルの可視部分から、始点と終点の両方が画面内に入る点を求める。変更行の入力回避に使う従来の始点選択や、最大文字の見出しの完全包含は維持する。
