@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`a29a5310eac208d8a05e1dc5397804764796b1c45e004b046726a04af7fd2a7a`
+`3defe564235579bd6a4ae0d71ef96d2c3d4720dcc58ad52eaa26583ffa4624fe`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -153,6 +153,7 @@ bash tools/test-manual-ui.sh
 - `testFunctionalMergedUnlabeledParallelTuplesRetainSeparatorAndEveryFormalSlot`
 - `testSpecialRecoveryAdoptsSameBytesAfterProviderRename`
 - `testRetainedSpecialRecoveryProjectsCurrentVersionWhileAnotherSourceFails`
+- `testRetainedSpecialRecoveryHoldsLegacyExplicitClockUntilReanalysis`
 - `testFunctionalExamMergedClockAndBlankRolesReachFormalConversion`
 - `testFunctionalReturnSplitParallelBlankRoomAndMergedNormalClockReachFormalConversion`
 - `testFunctionalSpecialHeaderEvidenceCannotBeRemovedOrBorrowedForConversion`

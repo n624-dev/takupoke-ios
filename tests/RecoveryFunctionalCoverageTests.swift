@@ -178,6 +178,59 @@ extension SpecialScheduleTests {
         XCTAssertNil(invalid.sources[.exam]?.failure)
     }
 
+    func testRetainedSpecialRecoveryHoldsLegacyExplicitClockUntilReanalysis() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at:root) }
+        let store = try SpecialScheduleStore(root:root)
+        let kind = SpecialScheduleKind.examReturn
+        let digest = String(repeating:"a",count:64)
+        var page = returnPageWithSplitCell()
+        for (index, character) in "5・6時限連続10:30~11:50".enumerated() {
+            page.glyphs.append(PDFGlyph(text:String(character),x:20 + Double(index) * 4,
+                y:910,width:4,height:4,sourceLine:9001,sourceOrder:90000 + index))
+        }
+        let document = try RecoveryDocumentBuilder.build([page],kind:.return,hash:digest)
+        let run = try await RecoveryEngine.run(document,os:"ios",osMajor:26,foreground:true,providers:[],rule:{_ in nil},check:{})
+        let accepted = try RecoveryConversion.special(functionalPreview(document,XCTUnwrap(run.result)))
+        XCTAssertNil(document.ocrCoverageProof)
+        XCTAssertEqual(document.clockBindings["2026-04-01:5-6"]?.derivedSpan,false)
+        XCTAssertTrue(accepted.lessons.contains { $0.date == "2026-04-01" && $0.spanStart == 5 && $0.spanEnd == 6 && $0.timeRange == "10:30〜11:50" })
+        let staged = store.newStagingURL(), bytes = Data("%PDF-fictional-return".utf8)
+        try bytes.write(to:staged)
+        try store.save(staged:staged,analysis:accepted,originalName:accepted.sourceName,byteCount:bytes.count,digest:digest)
+        var old = try XCTUnwrap(store.records[kind])
+        old.analysis.version = 38
+        let payload = try JSONEncoder().encode(old)
+        let database = try DatabaseQueue(path:root.appendingPathComponent("specials.sqlite").path)
+        try await database.write { try $0.execute(sql:"UPDATE specialSchedule SET payload = ? WHERE kind = ?",
+            arguments:[payload,kind.rawValue]) }
+
+        let reopened = try SpecialScheduleStore(root:root)
+        let retained = try XCTUnwrap(reopened.records[kind])
+        let visible = reopened.displayableRecords()
+        XCTAssertEqual(retained.analysis.version,38)
+        let persisted = try await database.read { try Data.fetchOne($0,sql:"SELECT payload FROM specialSchedule WHERE kind = ?",
+            arguments:[kind.rawValue]) }
+        XCTAssertEqual(persisted,payload)
+        XCTAssertEqual(try Data(contentsOf:XCTUnwrap(reopened.savedURL(for:kind))),bytes)
+        XCTAssertNil(visible.records[kind]?.analysis.version)
+        XCTAssertEqual(visible.rejected,[kind])
+        XCTAssertFalse(RecoveryConversion.trustsAcquisitionCache(retained.analysis,hash:digest))
+        XCTAssertTrue(ScheduleNotificationSnapshot.acceptedSpecialDigests(records:visible.records,sources:reopened.sources).isEmpty)
+
+        try reopened.recordFailure(PDFParseError(code:.unsupported,stage:.periodHeading),kind:kind)
+        let failed = try SpecialScheduleStore(root:root)
+        XCTAssertEqual(failed.records[kind]?.analysis.recovery?.acceptance,old.analysis.recovery?.acceptance)
+        XCTAssertEqual(failed.displayableRecords().rejected,[kind])
+
+        let reparsed = try SpecialScheduleParser.parse([page],kind:kind,digest:digest,name:accepted.sourceName)
+        try failed.saveAnalysis(reparsed)
+        let refreshed = try SpecialScheduleStore(root:root).displayableRecords()
+        XCTAssertEqual(refreshed.records[kind]?.analysis,reparsed)
+        XCTAssertTrue(refreshed.rejected.isEmpty)
+        XCTAssertEqual(ScheduleNotificationSnapshot.acceptedSpecialDigests(records:refreshed.records,sources:failed.sources),[kind.rawValue:digest])
+    }
+
     func testFunctionalExamMergedClockAndBlankRolesReachFormalConversion() async throws {
         let pages = (1...6).map { functionalLayout(examPage($0,mergedFirstTwo:$0 == 1)) }
         let doc = try RecoveryDocumentBuilder.build(pages,kind:.exam,hash:String(repeating:"c",count:64))
@@ -205,6 +258,9 @@ extension SpecialScheduleTests {
         XCTAssertEqual(parallel.map(\.lines),[["仮想研題A","仮想試師A",""],["仮想研題B","仮想試師B",""]])
         let merged = formal.lessons.filter { $0.className == "1_1" && $0.date == "2026-04-02" && [5,6].contains($0.period) }
         XCTAssertEqual(merged.map(\.period),[5,6]); XCTAssertTrue(merged.allSatisfy { $0.spanStart == 5 && $0.spanEnd == 6 && $0.timeRange == "12:50〜14:20" && $0.lines == ["仮想研題E","",""] })
+        XCTAssertEqual(doc.clockBindings["2026-04-02:5-6"]?.derivedSpan,true)
+        var legacy = formal; legacy.version = 38
+        XCTAssertEqual(try RecoveryConversion.recertifiedSpecial(legacy,hash:doc.pdfHash),formal)
         var wrongClock = doc; wrongClock.normalTimeNoteEvidence = []
         XCTAssertFalse(RecoveryValidator.validate(wrongClock,result).canAdopt)
         XCTAssertThrowsError(try RecoveryConversion.special(functionalPreview(wrongClock,result)))
