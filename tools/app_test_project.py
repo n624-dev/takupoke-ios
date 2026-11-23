@@ -542,9 +542,12 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'TimetableView+GridHeaders.swift':
             marker = next(line for line in text.splitlines() if '.accessibilityIdentifier("timetable-day-' in line)
             text = text.replace(marker, marker + '''
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
-                guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
+            .onGeometryChange(for: CGRect?.self) { proxy in
+                FixtureGridMeasurements.capturesDetailGeometry ? proxy.frame(in: .named("fixture-grid")) : nil
+            } action: { observed in
+                guard let frame = observed else { return }
                 if fixtureGridMeasurements.headerFrames[column.day.iso8601] != frame {
+                    FixtureWeekMotionRecorder.shared.recordGridGeometryWrite()
                     fixtureGridMeasurements.headerFrames[column.day.iso8601] = frame
                 }
             }
@@ -552,19 +555,27 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         if path.name == 'TimetableView+DayColumns.swift':
             marker = next(line for line in text.splitlines() if '.accessibilityIdentifier("timetable-event-' in line)
             text = text.replace(marker, marker + '''
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
-                guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
-                if fixtureGridMeasurements.eventSizes[title] != size { fixtureGridMeasurements.eventSizes[title] = size }
+            .onGeometryChange(for: CGSize?.self) { proxy in
+                FixtureGridMeasurements.capturesDetailGeometry ? proxy.size : nil
+            } action: { observed in
+                guard let size = observed, fixtureGridMeasurements.eventSizes[title] != size else { return }
+                FixtureWeekMotionRecorder.shared.recordGridGeometryWrite()
+                fixtureGridMeasurements.eventSizes[title] = size
             }
 ''')
             # The observer must be inside offset so its frame includes the
             # ancestor's translation, rather than measuring offset's layout box.
             marker = next(line for line in text.splitlines() if '.offset(x: CGFloat(entry.lane)' in line)
             text = text.replace(marker, '''
-                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("fixture-grid")) } action: { frame in
-                        guard ProcessInfo.processInfo.arguments.contains("--grid-probe") else { return }
+                    .onGeometryChange(for: CGRect?.self) { proxy in
+                        FixtureGridMeasurements.capturesDetailGeometry ? proxy.frame(in: .named("fixture-grid")) : nil
+                    } action: { observed in
+                        guard let frame = observed else { return }
                         let key = fixtureCardKey(on: day, className: className, entry: entry)
-                        if fixtureGridMeasurements.cardFrames[key] != frame { fixtureGridMeasurements.cardFrames[key] = frame }
+                        if fixtureGridMeasurements.cardFrames[key] != frame {
+                            FixtureWeekMotionRecorder.shared.recordGridGeometryWrite()
+                            fixtureGridMeasurements.cardFrames[key] = frame
+                        }
                     }
 ''' + marker)
         if path.name == 'TimetableView+Grid.swift':

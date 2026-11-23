@@ -15,6 +15,12 @@ struct FixtureTypeSize: ViewModifier {
 
 @MainActor
 final class FixtureGridMeasurements: ObservableObject {
+    nonisolated static let capturesDetailGeometry = capturesDetailGeometry(arguments: ProcessInfo.processInfo.arguments)
+
+    nonisolated static func capturesDetailGeometry(arguments: [String]) -> Bool {
+        arguments.contains("--grid-probe") && !arguments.contains("--week-motion-probe")
+    }
+
     @Published var headerFrames: [String: CGRect] = [:]
     @Published var eventSizes: [String: CGSize] = [:]
     @Published var cardFrames: [String: CGRect] = [:]

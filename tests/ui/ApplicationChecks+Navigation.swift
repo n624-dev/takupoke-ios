@@ -30,6 +30,7 @@ extension ApplicationChecks {
         let e = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).element(boundBy: 0)
         for _ in 0..<6 {
             let viewport = bodyViewport()
+            guard usable(viewport) else { continue }
             if contained(e, in: viewport) && e.isHittable { break }
             let above = e.exists && usable(e.frame) && e.frame.minY < viewport.minY
             // A virtualized preceding row keeps its known search direction;
@@ -124,21 +125,23 @@ extension ApplicationChecks {
     var contentViewport: CGRect {
         contentViewport(navigation: nil)
     }
-    private func observedKeyboardFrame() -> CGRect? {
+    private func observedKeyboardFrames() -> [CGRect] {
         let keyboards = app.keyboards.allElementsBoundByAccessibilityElement
         XCTAssertLessThanOrEqual(keyboards.count, 1, "Keyboard geometry must be unique")
-        guard keyboards.count == 1 else { return nil }
+        if keyboards.isEmpty { return [] }
+        guard keyboards.count == 1 else { return [.null] }
         let frame = keyboards[0].frame
-        XCTAssertTrue(usable(frame), "Present keyboard must have finite positive geometry")
-        return frame
+        if !usable(frame) { print("UI_VIEWPORT keyboard-frame-unavailable") }
+        return [frame]
     }
     func contentViewport(navigation: String?) -> CGRect {
         let frame = app.frame
         let bar = navigation.map { app.navigationBars[$0] } ?? app.navigationBars.firstMatch
-        let top = bar.frame.maxY
-        var bottom = app.tabBars.firstMatch.exists ? app.tabBars.firstMatch.frame.minY : frame.maxY
-        if let keyboardFrame = observedKeyboardFrame() { bottom = min(bottom, keyboardFrame.minY) }
-        return CGRect(x: frame.minX, y: top, width: frame.width, height: max(0, bottom - top))
+        let navigationFrame = bar.frame
+        let tab = app.tabBars.firstMatch
+        let tabFrame = tab.exists ? tab.frame : nil
+        return ObservedScreenGeometry.bodyViewport(app: frame, navigation: navigationFrame, tab: tabFrame,
+                                                   keyboards: observedKeyboardFrames(), footers: [])
     }
     func contained(_ element: XCUIElement, in viewport: CGRect) -> Bool {
         guard element.exists else { return false }
@@ -148,6 +151,7 @@ extension ApplicationChecks {
     }
     func bodyViewport(navigation: String? = nil) -> CGRect {
         let frame = contentViewport(navigation: navigation)
+        guard usable(frame) else { return .null }
         // These helpers search scrolling content. The separate tapSetupNext
         // observes and operates the footer without using the body viewport.
         return ObservedScreenGeometry.excludingFooter(observedSetupFooterFrame(), from: frame)

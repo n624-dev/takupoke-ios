@@ -164,12 +164,39 @@ OBSERVE
         self.assertIn('0.09, "Height adjustment must keep drawing frames"', frames)
         self.assertLess(frames.index("XCTWaiter.wait(for: [reportReady]"), frames.index("gridMetrics()"))
         self.assertIn('XCTAssertEqual(record["gridMetricReadsDuringMotion"] as? Int, 0,', frames)
+        self.assertIn('XCTAssertEqual(record["gridGeometryWritesDuringMotion"] as? Int, 0,', frames)
         grid_fixture = (ROOT / "tests/ui/ApplicationFixture+Grid.swift").read_text()
         self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
                         grid_fixture.index(".accessibilityValue(read())"))
         self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
         project_generator = (ROOT / "tools/app_test_project.py").read_text()
         self.assertIn("settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='DEBUG'", project_generator)
+
+    def test_motion_fixture_leaves_detailed_geometry_to_the_sizing_checks(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify the motion fixture condition")
+        fixture = (ROOT / "tests/ui/ApplicationFixture+Grid.swift").read_text(encoding="utf-8")
+        active = next(line for line in fixture.splitlines() if "static let capturesDetailGeometry =" in line)
+        selection = block(fixture, "nonisolated static func capturesDetailGeometry(arguments:")
+        program = f'''import Foundation
+@MainActor final class FixtureGridMeasurements {{
+    {active}
+    {selection}
+}}
+precondition(FixtureGridMeasurements.capturesDetailGeometry)
+precondition(!FixtureGridMeasurements.capturesDetailGeometry(arguments: []))
+precondition(FixtureGridMeasurements.capturesDetailGeometry(arguments: ["--grid-probe"]))
+precondition(FixtureGridMeasurements.capturesDetailGeometry(arguments: ["--grid-probe", "--week-sequence-probe"]))
+precondition(!FixtureGridMeasurements.capturesDetailGeometry(arguments: ["--grid-probe", "--week-motion-probe"]))
+'''
+        with tempfile.TemporaryDirectory(prefix="takupoke-grid-observation-") as directory:
+            path = Path(directory)
+            swift = path / "test.swift"
+            swift.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", str(swift), "-o", str(path / "test")],
+                           check=True, timeout=60)
+            subprocess.run([str(path / "test"), "--grid-probe"], check=True, timeout=15)
 
     def test_week_column_placement_reuses_only_the_matching_size_measurement(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

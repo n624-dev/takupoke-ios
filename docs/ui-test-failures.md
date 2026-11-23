@@ -6035,3 +6035,15 @@ Linuxの局所レイアウト検査で、製品の `private` 型を抽出後に�
 `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent|Button (First Match)|UI query timeout` で正式44700448423を照合。前はアプリ起動返却前、今回は再起動後の対象ボタン照会が停止した。正式528のiOS27 Bは同じカウントダウン検査を完走。`NOTIFICATION_ROW|phase=cancelled|screen("通知")` でN48・U75・正式44513210500の6bc3c18と現行 `openNotificationSettings` を照合。6bc3c18と同じ場所と段階の入力取消が見えた。正式527のiOS26 Bでは同じ入口を通り、今回のiOS26 Aでも同じ入口を使う `testChangedDataProducesOneLocalNotification` を含む全ジョブが成功した。iOS27 Aの修正済み行の再起動確認も、正式528の両OSと今回のiOS26 Aで通った。`d1c3bf7` 以後、失敗した事例のリスト照会、対象カード、通知行の操作に使われる分岐と設定の製品コードに変更はない。実AX照会と入力取消の下位原因は未確定。
 
 このsourceで失敗した3ジョブについて、同じsource・SDK・全ケース・判定を保持して、新しいRunnerかつ初回の手動訂正ジョブが並行しない条件で一度だけ比較する。公開は失敗ジョブの再実行分を含む同じ公式試行の全必須検査を照合する。再試行で同じ接触取消や同じAX照会の停止が続いた場合は、各停止点に対応する照会や送出だけを見直す。
+
+### 正式529・試行2の通常Bで再び2ジョブが停止
+
+同じsource `86866fd8df355c8483704d3df78903b896023b2f`、Xcode SDK27.2。[通常iOS26.5 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137685187485) は12:15:05〜12:32:42 UTC、[通常iOS27.0 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137685187118) は12:15:03〜12:52:06 UTCで失敗。12:53の確認でiOS27 Aは進行中。既存の11成功は試行2へ継承された。ケース・段階・原因は原ログ取得前の時点で未確定。試行1との一致は原ログで確認する。
+
+iOS26.5では `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が12:31:21 UTC、87.076秒で停止。横到着直後の高さ調整で実描画間隔232.996ms、採取間のmainスレッドCPUは約221ms。横到着から昇格コールバックとスクロール復帰は約0.64ms、最初の `configuration-begin` は約176ms後。27枠、欠落0、診断JSON読取0。通知画面のフェーズまで進まなかった。正式528の同じ週送りで199.689／266.508msだった以前の停止段階と一致する。今回の初回は週送りを成功しており、負荷を占めた個別の呼出しは未確定。
+
+iOS27.0の週送りは67.800／48.009msで成功。`before-settings` の `testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors` は12:35:13 UTC、258.396秒で `Navigation.swift:132` の `Present keyboard must have finite positive geometry`。先にKeyboardの存在を取得し、同じIdentityのframe再取得で内部再試行を観測した。個別の画面遷移とキーボード状態は前後ログと対照して記録する。同じフェーズの残り7件は成功し、試行1のカレンダーケースは今回は通過。後続フェーズは未実行。
+
+`gridMetricReadsDuringMotion|fixtureGridMeasurements|onGeometryChange|configuration-begin` で正式528・限定45149532016と比較した。旧候補は計測中の診断JSON生成を除いたが、生成器が追加した各時限カード・日見出しの座標、行事見出しの寸法は表示のたびに取得し、変更を `@Published` の辞書へ書く。週送りの対象ケースは実画面のフレームを別の録画器で取得し、最後の診断JSONは `eventsOnly` だけを読む。座標・寸法の変換と更新をこの計測中に使わない構成で比較する。画面・実測・方向・90ms・PNG・行事週の条件は維持し、計測中の追加収集の書込件数も記録する。通常のカード寸法・最大文字のケースでは従来の座標収集を使う。232.996msの内訳はいまだ未確定で、これが原因とみなすのは実比較の後とする。
+
+`countdown-delete-reminder-0|Present keyboard|Identity Binding|N153` で `contentViewport` と既存の一貫した幾何確認を比較した。今回は個人予定の標準文字で2を実入力し、キーボードの存在が成立したあと、削除行を表示する途中の再照会で幾何が無効だった。N153はキーボード列挙そのもののタイムアウト。現在のframeがとれなければ既存の `ObservedScreenGeometry.bodyViewport` で範囲を未確定にし、既存の探索中は押したりスクロールしたりせず再観測する。削除前の存在・削除後の消失・残った1日前の保存と再表示の元検査は維持する。

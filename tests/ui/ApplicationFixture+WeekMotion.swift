@@ -25,6 +25,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var releasePoint: CGPoint?
     private var samples: [[String: Double]] = []
     private var gridMetricReadsDuringMotion = 0
+    private var gridGeometryWritesDuringMotion = 0
     private var checkpoints: [[String: Any]] = []
     private var missingFrames: [Double] = []
     private var records: [[String: Any]] = []
@@ -72,6 +73,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         self.source = bodies[source]?.view; self.target = bodies[target]?.view
         samples = []; missingFrames = []; checkpoints = []; arrivedAt = nil; finishedAt = nil
         gridMetricReadsDuringMotion = 0
+        gridGeometryWritesDuringMotion = 0
         isRecording = true
         link?.invalidate()
         let display = CADisplayLink(target: self, selector: #selector(sample(_:)))
@@ -82,6 +84,9 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     func recordGridMetricsRead() {
         if isRecording { gridMetricReadsDuringMotion += 1 }
+    }
+    func recordGridGeometryWrite() {
+        if isRecording { gridGeometryWritesDuringMotion += 1 }
     }
     func arrived() {
         guard enabled else { return }
@@ -147,7 +152,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
                 "samples": samples, "checkpoints": checkpoints, "missingGeometryFrames": missingFrames, "badge": badge,
                 "badgeReadyObserved": badgeFrame != nil, "badgeDrawAttempts": badgeDrawAttempts,
-                "gridMetricReadsDuringMotion": gridMetricReadsDuringMotion]
+                "gridMetricReadsDuringMotion": gridMetricReadsDuringMotion,
+                "gridGeometryWritesDuringMotion": gridGeometryWritesDuringMotion]
             if let releasePoint {
                 record["releaseX"] = Double(releasePoint.x)
                 record["releaseY"] = Double(releasePoint.y)
