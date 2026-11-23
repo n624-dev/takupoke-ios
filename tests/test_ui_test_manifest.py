@@ -168,6 +168,8 @@ OBSERVE
         self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
                         grid_fixture.index(".accessibilityValue(read())"))
         self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
+        project_generator = (ROOT / "tools/app_test_project.py").read_text()
+        self.assertIn("settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='DEBUG'", project_generator)
 
     def test_week_column_placement_reuses_only_the_matching_size_measurement(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
@@ -212,6 +214,10 @@ private let resized = WeekColumnsLayout(widths: [90,50], spacing: 2)
 resized.placeSubviews(in: bounds, proposal: proposal, subviews: views, cache: &cache)
 precondition(views.allSatisfy { $0.measurements == 4 })
 precondition(views[3].position == CGPoint(x:97,y:54))
+_ = resized.sizeThatFits(proposal: proposal, subviews: views, cache: &cache)
+resized.placeSubviews(in: bounds, proposal: proposal, subviews: Array(views.dropLast()), cache: &cache)
+precondition(views.map { $0.measurements } == [6,5,6,5])
+precondition(views[2].position == CGPoint(x:5,y:29))
 """
         with tempfile.TemporaryDirectory(prefix="takupoke-week-layout-") as scratch:
             path = Path(scratch) / "main.swift"
