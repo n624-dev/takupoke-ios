@@ -6017,3 +6017,21 @@ Linuxの局所レイアウト検査で、製品の `private` 型を抽出後に�
 `84a4e91` のLinux全体検査はSwift 700件・失敗0。Pythonは `test_actual_xctest_comparison_and_pixel_geometry` が幾何ケース数の固定値8に対して9件を見つけ、実Swiftの再実行前に停止した。部分表示ラベルの新ケースをSwift全体は実行済み。`geometry_names|ObservedScreenGeometryTests|test_actual_xctest_comparison_and_pixel_geometry` で、名前を抽出してすべて走らせる既存のLinux補助と台帳を照合した。旧8件と追加1件の期待を同期し、補助からも9件すべてを実行する。
 
 `84a4e91` の[週送り限定45149532016](https://github.com/n624-dev/takupoke-ios/actions/runs/45149532016)は両OSで成功。高さ調整中の最大間隔はiOS26.5で49.854／49.997ms、iOS27.0で33.125／31.640ms。各方向の幾何欠落と採取中の診断JSON呼び出しは0。最大文字は両OSで成功し、iOS26.5は実ラベルからの縦ドラッグを数値ログで確認した。Linux補助の同期後はPython全344件・既定skip2・失敗0。正式公開の全組と同じコミットの結果は別に記録する。
+
+### 正式529・試行1のiOS27 Aで時間割変更の再起動後にAX照会が停止
+
+[iOS27.0／SDK27.2の通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137625383531)、source `86866fd8df355c8483704d3df78903b896023b2f`。 `testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` は10:45:02 UTC、738.024秒で失敗。再起動後に「内容を確認・修正」のタッチ開始と解放が配送され、同タイトルのNavigationBarを確認した。`bodyViewport` 内の `次へ` のボタン列挙までログに記録され、約132秒後に `Navigation.swift:157` で `Timed out while evaluating UI query`。続く修正済み行の確認は未到達。同じXCTestプロセスの23件中、最大文字を含む残り22件は成功。所有アプリのスタック採取は `owned-app-unavailable`。下位原因は未確定。
+
+`変更後、架空科目C`、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`、`UI query timeout` でN153と正式44741890239の試行1・2を照合した。先行試行1は同じ再起動後の表示探索で `app.frame` が停止し、試行2は保持科目Cと除外科目Bの確認を通過した。今回は `SetupView.swift` の初期設定専用フッターを探す追加照会が停止箇所で、修正画面への遷移とタッチは観測済み。正式528の同ケースはiOS26・27で成功している。停止中の待ち先と保存結果はこの試行からは確定できない。
+
+### 正式529・試行1の通常BでカウントダウンのAX照会と通知画面への接触が停止
+
+[iOS27.0／SDK27.2の通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137625383591)、source `86866fd8df355c8483704d3df78903b896023b2f`。10:55:19 UTCに終了。`testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` は10:36:34 UTC、448.542秒で失敗。個人予定と学校行事の登録を進め、再起動、新しい元PDFの警告、設定からカウントダウンへの再遷移を観測した。保持した固定カウントダウンを探す `Button (First Match)` の存在照会が2回内部再試行の後、`ApplicationChecks+Navigation.swift:144` で `Timed out while evaluating UI query`。該当カードの保持・詳細は未確認。同じフェーズの残り7件は成功し、後続フェーズは未開始。
+
+同じ試行の[iOS26.5／SDK27.2の通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137625383466)は11:19:13 UTCに終了。`testNotificationControlsAndAppearance` は11:15:33 UTC、120.338秒で失敗。実設定タブを開き、通知行と子ラベルの実枠を確認。ラベル中央(48,603.33)への一回の0.1秒指定の接触は始点がUIKitへ届いたが、実配送間隔約277msで `phase=cancelled`、解放なし。`ApplicationChecks.swift:148` の通知NavigationBarの10秒判定で停止。通知の許可・スイッチ・外観設定は未到達。同じフェーズのカウントダウン通知予約は152.205秒で成功。両OSの週送りは最初のフェーズで成功し、到着後の枠間隔はiOS26.5が67.099／66.483ms、iOS27.0が44.224／51.061ms。欠落枠と採取中の診断JSON読取は全方向0。
+
+`Transport closed|外部ログ保存先|N06|N14` で過去の転送経路を照合した。B両ジョブの本文取得でコネクターが切断し、公式RESTのジョブ単位の取得は署名先への接続でHTTP403。公式RESTの試行全体のZIP（`actions/runs/<run>/attempts/<attempt>/logs`）は残ジョブの進行中にも取得できた。約29.8MBのZIPから完了済みの対象2ジョブの原ログを分けて確認した。ジョブ単独の転送エラーをテストの失敗理由と混同しない。
+
+`testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent|Button (First Match)|UI query timeout` で正式44700448423を照合。前はアプリ起動返却前、今回は再起動後の対象ボタン照会が停止した。正式528のiOS27 Bは同じカウントダウン検査を完走。`NOTIFICATION_ROW|phase=cancelled|screen("通知")` でN48・U75・正式44513210500の6bc3c18と現行 `openNotificationSettings` を照合。6bc3c18と同じ場所と段階の入力取消が見えた。正式527のiOS26 Bでは同じ入口を通り、今回のiOS26 Aでも同じ入口を使う `testChangedDataProducesOneLocalNotification` を含む全ジョブが成功した。iOS27 Aの修正済み行の再起動確認も、正式528の両OSと今回のiOS26 Aで通った。`d1c3bf7` 以後、失敗した事例のリスト照会、対象カード、通知行の操作に使われる分岐と設定の製品コードに変更はない。実AX照会と入力取消の下位原因は未確定。
+
+このsourceで失敗した3ジョブについて、同じsource・SDK・全ケース・判定を保持して、新しいRunnerかつ初回の手動訂正ジョブが並行しない条件で一度だけ比較する。公開は失敗ジョブの再実行分を含む同じ公式試行の全必須検査を照合する。再試行で同じ接触取消や同じAX照会の停止が続いた場合は、各停止点に対応する照会や送出だけを見直す。

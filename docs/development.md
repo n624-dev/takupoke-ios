@@ -89,6 +89,8 @@ python3 -B -m unittest discover -s tests -p test_application_ui_runner.py -v
 
 Pythonの出力はOCRや配布検査を含む全ワークフローでバッファリングせず、実行中に表示します。ビルド・準備はランナーの段階表示と `TIMING`、ロジック検査は各テストの実行結果を確認してください。
 
+ジョブ単位で長いログの取得が切断された場合は、GitHub RESTの試行別ZIP `GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt}/logs` を所有する一時領域へ取得し、完了した対象ジョブのログを確認します。正式529では他のジョブが実行中の時点でも取得できました。取得時の認証情報や一時ダウンロードURLは表示・保存せず、調査後は一時ファイルを削除します。
+
 ## Swift の保存処理テスト
 
 `bash tools/test-materials.sh` はアプリ本体の `MaterialLibrary.swift` を直接コンパイルし、保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を架空データで検証します。macOS のビルド処理でも IPA 作成前に必ず実行します。失敗すれば配布には進みません。加えて `WebPDFDownloader.swift` を架空のHTTP応答で動かし、PDF取得・条件付きGET・304時の保持・HTTPエラー・サイズ上限・中止を検証します。学校サイトへの通信や実資料の取得は行いません。SwiftUI や File Provider はこのテストの対象外です。
