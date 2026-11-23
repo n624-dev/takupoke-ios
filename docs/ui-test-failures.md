@@ -6020,9 +6020,9 @@ Linuxの局所レイアウト検査で、製品の `private` 型を抽出後に�
 
 ### 正式529・試行1のiOS27 Aで時間割変更の再起動後にAX照会が停止
 
-[iOS27.0／SDK27.2の通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137625383531)、source `86866fd8df355c8483704d3df78903b896023b2f`。 `testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` は10:45:02 UTC、738.024秒で失敗。再起動後に「内容を確認・修正」のタッチ開始と解放が配送され、同タイトルのNavigationBarを確認した。`bodyViewport` 内の `次へ` のボタン列挙までログに記録され、約132秒後に `Navigation.swift:157` で `Timed out while evaluating UI query`。続く修正済み行の確認は未到達。同じXCTestプロセスの23件中、最大文字を含む残り22件は成功。所有アプリのスタック採取は `owned-app-unavailable`。下位原因は未確定。
+[iOS27.0／SDK27.2の通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/45154215506/job/137625383531)、source `86866fd8df355c8483704d3df78903b896023b2f`。 `testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` は10:45:02 UTC、738.024秒で失敗。`RETAINED_CHANGE` は最初の反映直後と再起動後にいずれも `visible=true excluded=true`。実「修正済み」から3・4行目を再編集し、反映後に表示を確認した。10:40:23 UTCに二度目の再起動。その後の「内容を確認・修正」のタッチ開始と解放が配送され、同タイトルのNavigationBarを確認した。`change-edited-rows` を探す表示領域の処理で、`bodyViewport` 内の `次へ` のボタン列挙までログに記録され、約132秒後に `Navigation.swift:157` で `Timed out while evaluating UI query`。二度目の再起動後の3・4行目の内訳の再確認が未到達。同じXCTestプロセスの23件中、最大文字を含む残り22件は成功。所有アプリのスタック採取は `owned-app-unavailable`。下位原因は未確定。
 
-`変更後、架空科目C`、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`、`UI query timeout` でN153と正式44741890239の試行1・2を照合した。先行試行1は同じ再起動後の表示探索で `app.frame` が停止し、試行2は保持科目Cと除外科目Bの確認を通過した。今回は `SetupView.swift` の初期設定専用フッターを探す追加照会が停止箇所で、修正画面への遷移とタッチは観測済み。正式528の同ケースはiOS26・27で成功している。停止中の待ち先と保存結果はこの試行からは確定できない。
+`変更後、架空科目C`、`change-edited-rows`、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`、`UI query timeout` でN153と正式44741890239の試行1・2を照合した。先行試行1は最初の再起動後の表示探索で `app.frame` が停止し、試行2は保持科目Cと除外科目Bの確認を通過した。今回はその確認と初回の「修正済み」への遷移も実行済み。二度目の再起動のあと `SetupView.swift` の初期設定専用フッターを探す追加照会が停止した。正式528の同ケースはiOS26・27で成功している。停止中の待ち先と最後に編集した行の内部状態はこの試行からは確定できない。
 
 ### 正式529・試行1の通常BでカウントダウンのAX照会と通知画面への接触が停止
 
