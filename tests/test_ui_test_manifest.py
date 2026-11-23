@@ -165,15 +165,14 @@ OBSERVE
         self.assertLess(frames.index("XCTWaiter.wait(for: [reportReady]"), frames.index("gridMetrics()"))
         self.assertIn('XCTAssertEqual(record["gridMetricReadsDuringMotion"] as? Int, 0,', frames)
         grid_fixture = (ROOT / "tests/ui/ApplicationFixture+Grid.swift").read_text()
-        self.assertLess(grid_fixture.index("if selection.date == week && !motion.isRecording"),
+        self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
                         grid_fixture.index(".accessibilityValue(read())"))
         self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
-        self.assertNotIn("isDisplayedTimetableWeek", source + grid_fixture)
-        self.assertIn("WeekGridAccessibility(week: week, selection: weekSelection,", source)
-        self.assertIn("let source = window?.source ?? selection.date", source)
-        self.assertIn("let selection = isPrepared ? (motion.selection ?? source) : source", source)
-        observer = source.split("private struct WeekSelectionObserver: View", 1)[1].split("private struct WeekPagesCanvas:", 1)[0]
-        self.assertIn(".onChange(of: selection.date)", observer)
+        project_generator = (ROOT / "tools/app_test_project.py").read_text()
+        app_settings = project_generator.split("if 'INFOPLIST_FILE' in settings:", 1)[1].split("test_target=", 1)[0]
+        self.assertIn("settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='DEBUG'", app_settings)
+        self.assertIn("if check_sources == CHECK_SOURCES:", app_settings)
+        self.assertIn("settings[key] = release_settings[key]", app_settings)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
@@ -196,7 +195,7 @@ OBSERVE
                     app_test_project.instrument_timetable_date(original.replace(site, " " + site, 1), path.name)
 
         source = generated[timetable.name]
-        model = block(source, "@Observable\nfinal class TimetableWeekSelection")
+        model = block(source, "@Observable\nprivate final class TimetableWeekSelection")
         fields = re.findall(r"^    @State (?:private )?(var \w+ = .*SimulatorSelectionFixture\.day.*)$",
                             source, re.MULTILINE)
         actions = re.findall(r"^        ((?:let current|today) = .*SimulatorSelectionFixture\.day.*)$",

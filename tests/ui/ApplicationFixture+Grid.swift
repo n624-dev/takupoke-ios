@@ -21,15 +21,14 @@ final class FixtureGridMeasurements: ObservableObject {
 }
 
 struct FixtureActiveGridMetrics: View {
-    let week: SchoolDate
-    let selection: TimetableWeekSelection
+    @Environment(\.isDisplayedTimetableWeek) private var isDisplayed
     @ObservedObject private var motion = FixtureWeekMotionRecorder.shared
     @ObservedObject var measurements: FixtureGridMeasurements
     let read: () -> String
 
     var body: some View {
         // The layout assertions read this snapshot after the real frame capture.
-        if selection.date == week && !motion.isRecording {
+        if isDisplayed && !motion.isRecording {
             Text("grid metrics").font(.system(size: 1)).foregroundStyle(.clear)
                 .accessibilityIdentifier("fixture-grid-metrics")
                 .accessibilityValue(read())

@@ -17,7 +17,6 @@ struct TimetableView: View {
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
     @State var weekPull = WeekPullProgress()
     @State private var selectedWeek = TimetableWeekSelection(date: SchoolDate.today().displayWeekStart)
-    var weekSelection: TimetableWeekSelection { selectedWeek }
     var weekStart: SchoolDate {
         get { selectedWeek.date }
         nonmutating set {
@@ -208,7 +207,7 @@ struct TimetableView: View {
 }
 
 @Observable
-final class TimetableWeekSelection {
+private final class TimetableWeekSelection {
     var date: SchoolDate
 
     init(date: SchoolDate) {

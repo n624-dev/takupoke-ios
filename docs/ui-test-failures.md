@@ -5995,3 +5995,9 @@ Linuxの生成後Swift構文検査で、変更途中の `WeekGridAccessibility` 
 ### 週送りスタック採取45133851878・所有アプリは照合でき、sampleは期限で終了
 
 [iOS26.5／SDK27.2](https://github.com/n624-dev/takupoke-ios/actions/runs/45133851878/job/137555309949)、診断source `5a81c57`、試行1。週送りの最初の高さ調整で333.099msを観測（08:02:06 UTC）。採取対象の実所有アプリを照合したが、`sample` は期限で終了してスタックを取得できなかった。開始から採取結果の記録まで12.23秒。最大文字は同じ実始点の照合を通って216.509秒で成功。採取を有効にした実行なので、描画の成績は正式配布の判断に使わない。全ジョブ終端。
+
+### 週送り限定45136782217・配置を分けてもiOS27は133.518ms、iOS26はRuntime準備で停止
+
+source `e2b1804`、試行1、SDK27.2。[iOS27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45136782217/job/137564853957)は08:22:06 UTCに `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が39.044秒・高さ中133.518msで停止。診断JSON読取0件、27枠、到着後の最初の設定開始まで約100.5ms。最大文字は153.878秒で成功。[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45136782217/job/137564854270)は08:15:53 UTCに取得済みRuntimeの再登録が30秒内に完了せず、生成アプリのビルドとXCTestの前に停止した。Nativeは成功し、全ジョブは終端。
+
+`Owned asset re-registration did not complete|SWIFT_OPTIMIZATION_LEVEL|Onone|configuration-begin` を確認した。iOS26の準備は限定43767607953の停止と同段階で、条件に合うRuntimeや実行先の判定は維持する。iOS27のアプリのコンパイラ行では `-Onone` を確認した。公開IPAの対象は `Release` の `-O` と `wholemodule`。週配置の試験的な変更は旧製品のコードへ戻す。通常UIの生成アプリ本体には公開版と同じSwift最適化設定を適用し、テストの入力、取得点、合格基準、DEBUGでの架空データ、XCTestと手動訂正用の既存設定を維持する。公開ビルドに近い実行条件で、同じ90msの基準を両OSで検証する。
