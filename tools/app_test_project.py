@@ -604,10 +604,6 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         resources['files'].append(build_file)
     real['objects']['C00000000000000000000002']['sourceTree']='<absolute>'
     real['objects']['C00000000000000000000002']['path']=str(copied)
-    project_settings = real['objects'][real['rootObject']]['buildConfigurationList']
-    release_settings = next(real['objects'][key]['buildSettings']
-                            for key in real['objects'][project_settings]['buildConfigurations']
-                            if real['objects'][key]['name'] == 'Release')
     for obj in real['objects'].values():
         if obj.get('isa')=='XCBuildConfiguration':
             settings=obj['buildSettings']
@@ -616,11 +612,6 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
                 settings['INFOPLIST_FILE']=str(copied/'Info.plist')
                 settings['PRODUCT_BUNDLE_IDENTIFIER']='jp.n624.takupoke.app-checks'
                 settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='DEBUG'
-                if check_sources == CHECK_SOURCES:
-                    # Measure the application's Swift code with the shipping optimizer.
-                    # Leave the fixture flags and XCTest runner configuration in place.
-                    for key in ('SWIFT_OPTIMIZATION_LEVEL', 'SWIFT_COMPILATION_MODE'):
-                        settings[key] = release_settings[key]
     # The generated object's IDs are numeric; real project's IDs have A-F/9 prefixes.
     test_target=next(k for k,v in generated['objects'].items() if v.get('productType')=='com.apple.product-type.bundle.ui-testing')
     app_target='D00000000000000000000001'

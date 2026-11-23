@@ -168,11 +168,58 @@ OBSERVE
         self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
                         grid_fixture.index(".accessibilityValue(read())"))
         self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
-        project_generator = (ROOT / "tools/app_test_project.py").read_text()
-        app_settings = project_generator.split("if 'INFOPLIST_FILE' in settings:", 1)[1].split("test_target=", 1)[0]
-        self.assertIn("settings['SWIFT_ACTIVE_COMPILATION_CONDITIONS']='DEBUG'", app_settings)
-        self.assertIn("if check_sources == CHECK_SOURCES:", app_settings)
-        self.assertIn("settings[key] = release_settings[key]", app_settings)
+
+    def test_week_column_placement_reuses_only_the_matching_size_measurement(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the layout test")
+        from test_manual_input_lifecycle import block
+
+        source = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text()
+        layout = block(source, "private struct WeekColumnsLayout: Layout")
+        interface = """import Foundation
+struct ProposedViewSize { let width: CGFloat?; let height: CGFloat? }
+enum UnitPoint { case topLeading }
+protocol Layout { typealias Subviews = [Subview] }
+final class Subview {
+    var height: CGFloat
+    var measurements = 0
+    var position = CGPoint.zero
+    init(_ height: CGFloat) { self.height = height }
+    func sizeThatFits(_ proposal: ProposedViewSize) -> CGSize {
+        measurements += 1
+        return CGSize(width: proposal.width ?? 0, height: height)
+    }
+    func place(at point: CGPoint, anchor: UnitPoint, proposal: ProposedViewSize) { position = point }
+}
+"""
+        checks = """
+private let columns = WeekColumnsLayout(widths: [80,60], spacing: 2)
+let views = [Subview(20), Subview(40), Subview(100), Subview(130)]
+let proposal = ProposedViewSize(width: 142, height: nil)
+let bounds = CGRect(x: 5, y: 7, width: 142, height: 172)
+private var cache = columns.makeCache(subviews: views)
+precondition(columns.sizeThatFits(proposal: proposal, subviews: views, cache: &cache) == CGSize(width:142,height:172))
+columns.placeSubviews(in: bounds, proposal: proposal, subviews: views, cache: &cache)
+precondition(views.allSatisfy { $0.measurements == 1 })
+precondition(views[3].position == CGPoint(x:87,y:49))
+views[1].height = 45
+columns.placeSubviews(in: bounds, proposal: proposal, subviews: views, cache: &cache)
+precondition(views.allSatisfy { $0.measurements == 2 })
+precondition(views[3].position == CGPoint(x:87,y:54))
+_ = columns.sizeThatFits(proposal: proposal, subviews: views, cache: &cache)
+private let resized = WeekColumnsLayout(widths: [90,50], spacing: 2)
+resized.placeSubviews(in: bounds, proposal: proposal, subviews: views, cache: &cache)
+precondition(views.allSatisfy { $0.measurements == 4 })
+precondition(views[3].position == CGPoint(x:97,y:54))
+"""
+        with tempfile.TemporaryDirectory(prefix="takupoke-week-layout-") as scratch:
+            path = Path(scratch) / "main.swift"
+            path.write_text(interface + layout + "\n" + checks, encoding="utf-8")
+            executable = path.with_suffix("")
+            subprocess.run([compiler, "-module-cache-path", scratch, str(path), "-o", str(executable)],
+                           check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=10)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

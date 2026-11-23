@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`2e8a319e68a721d835c6c377dc9ad5e03934db455f2e2e5ada74600a624ea0f7`
+`0579950cc1f9a9aecde1f3787ffe2d6c0619b796e8cb6f5b6a1fc06f017a329d`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -94,6 +94,7 @@ bash tools/test-app-ui.sh
 - `test_countdown_os_trace_adds_only_fixed_stage_observation`
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
+- `test_week_column_placement_reuses_only_the_matching_size_measurement`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_merged_card_probe_starts_with_only_the_original_case`

@@ -6007,3 +6007,9 @@ source `e2b1804`、試行1、SDK27.2。[iOS27.0](https://github.com/n624-dev/tak
 source `bd586dc`、試行1、SDK27.2。両OSの実コンパイラ行は `Takupoke -O -whole-module-optimization`。[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45140095070/job/137575662106)は08:49:24 UTC、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が40.348秒、到着後134.629msで失敗。採取中の診断JSONは0件、29枠。最大文字は159.088秒で成功。[iOS27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45140095070/job/137575662229)は08:52:42 UTC、同ケースが48.799秒、217.638msで失敗。診断JSONは0件、21枠。続く最大文字では、見出しの下端955ptが可視下端769ptの外にあり、縦ドラッグの候補ラベルを丸ごと表示できる始点が得られず132.607秒で失敗した。Nativeは成功し、両OSは終端。
 
 最大文字の縦移動は `No visible list label|UI_VISIBLE|ObservedScreenGeometry` で限定45127238474と45131022827を照合した。全体が画面に入っている必要があるのは検査対象の見出し。縦スクロールの始点を選ぶ際は、その操作を受けることが確認できた非操作ラベルの可視部分から、始点と終点の両方が画面内に入る点を求める。変更行の入力回避に使う従来の始点選択や、最大文字の見出しの完全包含は維持する。
+
+追加の[スタック採取45143832553](https://github.com/n624-dev/takupoke-ios/actions/runs/45143832553/job/137588120836) は `0b73d32` のiOS26.5／SDK27.2で往復50.270／54.550ms。最初の接触では所有アプリの照合が時間内に完了せず、2回目は接触から6.11秒後に採取コマンドが始まった。コマンド自体は成功したが認識できるメインスレッドの枠はなく、動作中の原因に対応付けられない。最大文字は成功。[最大文字限定45144000876](https://github.com/n624-dev/takupoke-ios/actions/runs/45144000876/job/137588670963) は `1c3ca75` のiOS27.0／SDK27.2で319.609秒、成功。
+
+`WeekColumnsLayout|rowHeights|sizeThatFits|placeSubviews` で現行の週グリッドを確認した。同じ列幅と子Viewの数で、サイズ要求と直後の配置がそれぞれ全見出し・列の自然高を求めていた。サイズ要求で得た測定値は、同じ列幅・子View数の最初の配置に限って再利用する。新しいサイズ要求、単独配置、別の列幅では測り直す。週の選択時刻や90msの基準は維持する。この重複作業が停止時間のどれだけを占めるかは未確定で、限定で比較する。
+
+Linuxの局所レイアウト検査で、製品の `private` 型を抽出後に公開範囲の変数へ入れてSwift型検査で停止した。型の公開範囲を保ち、検査変数にも `private` を付けて同じ式・期待値を実行する。

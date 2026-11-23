@@ -123,6 +123,14 @@ private struct WeekColumnsLayout: Layout {
     let widths: [CGFloat]
     let spacing: CGFloat
 
+    struct Cache {
+        var measuredWidths: [CGFloat] = []
+        var subviewCount = 0
+        var rowHeights: (CGFloat, CGFloat)?
+    }
+
+    func makeCache(subviews: Subviews) -> Cache { Cache() }
+
     private func rowHeights(_ subviews: Subviews) -> (CGFloat, CGFloat) {
         var header: CGFloat = 0, body: CGFloat = 0
         for (index, width) in widths.enumerated() where index + widths.count < subviews.count {
@@ -131,13 +139,18 @@ private struct WeekColumnsLayout: Layout {
         }
         return (header, body)
     }
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
         let (header, body) = rowHeights(subviews)
+        cache = Cache(measuredWidths: widths, subviewCount: subviews.count, rowHeights: (header, body))
         return CGSize(width: widths.reduce(0, +) + CGFloat(max(0, widths.count - 1)) * spacing,
                       height: header + spacing + body)
     }
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let (header, body) = rowHeights(subviews)
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
+        let measured = cache.measuredWidths == widths && cache.subviewCount == subviews.count ? cache.rowHeights : nil
+        let (header, body) = measured ?? rowHeights(subviews)
+        // Consume the measurement once. A later placement without a fresh
+        // size query still measures the current subviews.
+        cache = Cache()
         var x = bounds.minX
         for (index, width) in widths.enumerated() where index + widths.count < subviews.count {
             subviews[index].place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,

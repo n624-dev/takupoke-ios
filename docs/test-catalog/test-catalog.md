@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`56e152e13b37007b31e896dba79d8a6d0aaffe0ddc180d4146e7828033d8897f`
+`64bc6258c862fe69c23b76a8cfe07891165eab1d69da6e976bea0325bfcfa9e1`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -42,6 +42,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_countdown_os_trace_adds_only_fixed_stage_observation`
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
+- `test_week_column_placement_reuses_only_the_matching_size_measurement`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_merged_card_probe_starts_with_only_the_original_case`
