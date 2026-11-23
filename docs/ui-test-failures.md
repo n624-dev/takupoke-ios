@@ -6089,3 +6089,11 @@ source `50f4047d28ca862c7622488b843f2f0737d38761`、Xcode SDK27.2、試行1。[�
 同一sourceで実Runnerが変わる失敗ジョブの再実行を一度行う。前回の正式529の232.996msの停止と異なり、今回の週内容の再構築は0で、同じ製品と操作の限定ではiOS26.5の往復も基準内だった。正式530で基準を超えたのは復路だけで8.333ms。再実行では初回の手動訂正ジョブとの並行もなくなる。Runnerの差が原因かは未確定。90msの基準、往復実操作、実枠の計測と後続の通知検査を維持し、公開は公式試行の全必須ジョブ成功後に行う。
 
 再実行前の差分レビューは `86866fd..50f4047` の製品・テスト・実行コード（27,762 bytes、SHA-256 `0637bcbab3edf63c1a8a39b5fde6cd6b071ece7bf5b043a57986bde948b93d49`）。独立レビューに停止事項はなかった。準備週のキーについて、主担当が週の日付、受理済み資料の識別・解析版・解析日時、時刻・名称の版、表示クラスと設定、テーマ、文字サイズ、幅を現行のレイアウト・時刻・行事の入力と照合した。READMEのGitオブジェクトは `5fb62b8bb905d4ae6698de9b2e418ffa825c7383`。
+
+### 正式530・試行2のiOS26通常Bは文字サイズ設定前にSimulatorが停止
+
+同一source `50f4047d28ca862c7622488b843f2f0737d38761`、iOS26.5／Xcode SDK27.2。[通常iOS26.5 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45201354410/job/137849319575)は16:42:01〜16:53:59 UTCにfailure、16:54 UTCに全ジョブ終端。13成功を試行2のAPIで照合。Runtime準備・Simulator作成・build-for-testingは成功。16:53:27.688に `simctl bootstatus` が `Finished`、16:53:28.916に `bootstatus-complete`、直後のSimの文字サイズ設定で `com.apple.CoreSimulator.SimError` 405／`Unable to lookup in current state: Shutdown`、exit149。XCTestは開始0件。Host診断では停止とサービス接続エラーを観測。後片付けでトレースの子プロセスへのシグナルにpermission errorが出たが、文字サイズ設定での停止より後。Simulatorが落ちた直接の下位原因と週移動の再現性は未確認。公開ジョブは未実行。
+
+`SimError405|current state: Shutdown|simulator-content-size-enter|exit149` でN194・N198と[限定44544262245の試行1・2](https://github.com/n624-dev/takupoke-ios/actions/runs/44544262245/attempts/2)の詳細を確認し、`656cdaa` の `boot-simulator-ui.sh` と `test-app-ui.sh` を `50f4047` と照合した。旧試行1は同じ `bootstatus Finished` 後の最初の文字サイズコマンドで停止。旧試行2は新規所有SimulatorでXCTestを開始し、連続週移動と黄色に成功し、別の実横移動検査まで到達して失敗した。旧試行1のRunnerでは現行のトレース開始自体がなかった。今回の試行1のiOS26 A・Bは同じ完全SHAで検査を開始済み。iOS27通常Bの成功原ログでは週移動・カレンダー179.744秒・日数入力とキーボード中の削除349.868秒・再起動後の個人予定の予約照合と取消112.261秒、および全21 XCTest完了を確認した。
+
+直近は製品の比較に入る前に試行が終了したため、同じSHAから失敗したiOS26 Bだけを新規Runnerで一度起動し、既存13成功を継承する。過去に同じ停止から新規Runnerで実検査へ到達したことを根拠とする。試行1の性能停止が解消したとは扱わず、UI検査、90ms、実枠、範囲は変更しない。同じ起動条件が再び失敗した場合は所有Simulatorの状態遷移と起動時の復旧を見直す。実検査で同じ性能停止が再度出た場合は、到着時の日付の購読範囲を比較する。
