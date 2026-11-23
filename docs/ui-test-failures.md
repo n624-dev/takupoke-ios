@@ -6075,3 +6075,11 @@ iOS26.5の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は13:49
 `testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors` は156.269秒で成功。変更したキーボード実範囲での削除、消失、1日前の保存と再表示まで完走した。カレンダーも190.175秒で成功。`testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch` は315.289秒で失敗。実通知センターの対象2件・別登録2件・対照1件、許可ありを確認して再起動し、設定からカウントダウン画面へのタッチを確認した。復帰後の予定カードの `Button (First Match)` が二度の内部再試行の後、`Navigation.swift:149` の存在照会で時間切れ。再起動後の予約照合と取消は未到達。下位のAX待ち先は未確定。
 
 `testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch|Button (First Match)|UI query timeout` で過去を照合した。45068137098では最初の通知センター応答が止まり、今回は予約と許可が成立した後の画面照会。正式529試行1のiOS27 Bで別ケースのカレンダーも再起動後の同種の照会が止まり、試行2は通過した。`c0f6136` の同じ通知予約ケースはiOS27.0で138.862秒の成功、529試行1のiOS26.5も152.205秒で成功。今回の限定の条件で個人予定の予約処理や保持条件には変更がなく、キーボード実枠を必須にした箇所は日数の削除だけ。正式全体の通常Bは通知フェーズで、今回先に走ったカレンダーと日数のケースとは異なるフェーズ構成で、既存の全検査を同じsourceで確認する。限定は2件成功・1件失敗として記録し、公開の合格に数えない。
+
+### 正式530・試行1のiOS26通常Bが停止
+
+source `50f4047d28ca862c7622488b843f2f0737d38761`、Xcode SDK27.2、試行1。[通常iOS26.5 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45201354410/job/137788644887)は15:11:03〜15:27:21 UTCにfailure。15:49の確認時点で配布、Native、iOS26手動3件、iOS27手動1件は成功し、ほかのジョブは進行中・待ち。ケースと段階はログで照合する。
+
+`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は50.174秒で失敗。横到着後の高さ調整中、往路66.731msは基準内、復路98.333msで90msの基準を超えた。往路30／復路27枠、全方向の欠落・詳細座標／JSON計測・到着後の週ビュー構築は0。復路の到着前最後のサンプルから到着後最初のサンプルまでのmain CPU増加は92.912ms、到着から最初の `configuration-begin` は81.160ms。のちの通知検査には未到達。先の正式529試行2の往路232.996msより短く、その診断で見えた表示内容の再作成は観測されていない。残るSwiftUI内部処理の内訳は未確定。
+
+`weekContentBuildsAfterArrival|configuration-begin|WeekPages` で診断45184977667と、同じ製品・週送りのケースを実行した `a327f2b` のiOS26.5限定を照合。限定では往復50.046／65.900ms、再作成0、全ジョブ成功。正式との違いは同時進行のジョブ、実Runner、後続ケース構成。全ジョブの終端とほかの失敗箇所を確認した後に次の範囲を決める。準備範囲を保ったまま `weekStart` の読み取りを実表示と操作の近くへ移し、上位に伝わる必要がない更新を外す案をローカルで確認する。以前の `e2b1804` と異なり週表示値の再利用が既にあり、実ScrollViewの既存AX修飾は維持する。
