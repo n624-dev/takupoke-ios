@@ -4,7 +4,7 @@
 
 現行iOSはRecovery Schema 2・Validator 8・RecoveryVersion 2・項目抽出Prompt 4・構造提案Prompt 3を使う。
 Strictは394.1で239.1へ復元済みで、復旧専用の取得・Evidence検査とは分離する。
-開発ソースのPDF Parserは通常33・特殊32。1年の学科記号による所属移行は、原文所属を検証した後の共通投影で行う。
+開発ソースのPDF Parserは通常34・特殊39。1年の学科記号による所属移行は、原文所属を検証した後の共通投影で行う。
 最新のCI・配布・実機確認は[検証状況](roadmap.md)と[検証記録](verification.md)を参照する。
 後半の2026-10-04など日付付きの検証・版番号は当時の記録として保持する。
 
@@ -29,6 +29,7 @@ RecoveryDocument / RecoveryResult / RecoveryValidator / RecoveryJob / RecoveryMe
 - 型・構造・Validatorの不正な出力は終端の失敗。複数モデルを試し続けて通る結果を探さない。Runtimeの非対応や実行不能は次Providerへ進められる。iOSの一時的なモデル未準備は待機する。
 - 確認の再利用はPDF SHA、結果、文書全体の意味・Evidence、モデルと各Versionの一致に限定する。初回は利用者による採用が必要。指紋照合だけでValidatorを省略しない。
 - モバイルの更新確認では復旧待ちを記録するだけで、重いモデルをロードしない。失敗・中止でも前回正常結果を保持する。新原本未反映の表示を維持する。
+- 旧版で採用した試験・返却時間割で、PDFに明記された連続時限の時刻をOCRを使わず採用した場合は、現行の解析で確認できるまで表示と通知への反映を保留する。保留中は保存期限まで元PDFと採用記録を保持する。現行の解析で確認できた結果を表示と通知に使う。
 
 ## 原本照合による上限付き手動補助
 
@@ -126,10 +127,6 @@ SystemLanguageModel、llama.cpp、別ビルドのCoreAI runtimeのfieldExtractio
 
 研究branchの同一ソース3c90d6eを使ったCI37200758660では、Macのnative359件すべて成功し、iPhone向けSDK27のapp/runtimeビルドと、実app及びCoreAI SwiftPM bundle内の同一資産byte/SHA照合が成功した。推論は行っていないため、指示の整合性・組込み確認を精度向上や追加モデル品質合格とは扱わない。共通HEAD/COPY対照と評価済み利用者参照文は別課題として保存し、過去の弱い指示や実測出力を変更・再実行しない。資産と仕様は [tools/recovery-prompt-contracts](../tools/recovery-prompt-contracts/README.md) に記録する。
 
-
-### 旧版で採用した連続時限の再確認
-
-旧版で採用した試験・返却時間割のうち、PDFに明記された連続時限の時刻をOCRを使わず採用した結果は、現在の解析で確認できるまでアプリの表示と通知への反映を保留する。保存期間内は元PDFと採用記録を保持する。現行の解析で確認できた結果は、通常どおり表示と通知に使う。
 
 ### 生成AIの使用設定
 
