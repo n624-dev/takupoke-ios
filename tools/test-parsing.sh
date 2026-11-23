@@ -54,4 +54,4 @@ SWIFTPM_MODULECACHE_OVERRIDE="$scratch_dir/modules" \
 python3 -B tools/timed_command.py "Swift package build and tests" swift test --package-path "$scratch_dir/project" \
     --scratch-path "$scratch_dir/build" --cache-path "$scratch_dir/cache" \
     --config-path "$scratch_dir/config" --security-path "$scratch_dir/security" \
-    --disable-dependency-cache --manifest-cache none "${extra_flags[@]}"
+    --disable-dependency-cache --manifest-cache none "${extra_flags[@]}" "$@"

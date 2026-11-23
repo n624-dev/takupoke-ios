@@ -28,8 +28,8 @@ def cases(path):
                 and node.name.startswith("test_")]
     if path.suffix == ".swift":
         pattern = r"\bfunc\s+(test\w+)\s*\("
-        if path.name in {"MaterialLibraryChecks.swift", "WebPDFChecks.swift"}:
-            pattern = r"\bstatic\s+func\s+(main|run)\s*\("
+        if path.name == "WebPDFChecks.swift":
+            pattern = r"\bstatic\s+func\s+(run)\s*\("
     elif path.suffix == ".cs":
         pattern = (r"\[(?:Fact|Theory)(?:\([^]]*\))?\][\s\S]*?\bpublic\s+"
                    r"(?:async\s+)?(?:void|Task)\s+(\w+)\s*\(")

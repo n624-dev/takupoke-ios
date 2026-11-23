@@ -1,4 +1,5 @@
 import Foundation
+@testable import TakupokeParsing
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif

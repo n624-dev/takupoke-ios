@@ -6139,3 +6139,11 @@ source `18a7f5cf6537bb79b3cc47e1d0fd6bf5fcc115b0`、iOS26.5（23F77）／Xcode S
 `testThreeFieldsRequireEachAcknowledgementAndFourRefuses|Settings tab must be selected|NativeTabActivation|phase=cancelled` で旧正式43736804888／`092cc9c` の設定タブ選択失敗、正式44741890239の接触前のタブ画像照会停止、今回と同じケースのApple試行を照合。今回は一意な現在のタブアイコンを使いUIKitまで届いた後の取消。正式530試行1の[同じiOS26の3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45201354410/job/137788645094)と、今回の[iOS27の同ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/45248143697/job/137953426780)は成功。`50f4047` から当該手動テストと `NativeTabActivation` の変更なし。新しいRunnerで一度の接触、元の選択期限と4項目拒否を再検証する。
 
 正式531試行1は21:12:46 UTCまでに全終端。必須14件中11成功、失敗はiOS26の通常Aと手動3項目・単項目の3件、公開は未実行。同じsourceの失敗3件だけを対象とし、成功した通常B両OS、iOS27通常A、その他の成功を引き継ぐ。再実行前の新規GPT-6.2 Sol／Highに `50f4047..18a7f5c` のコード・検査3,941バイト、SHA-256 `42b4e69724a153037124c94d46ef47004caabb6c31c998ce2d47fffc177d9edc` を確認させた。指摘のヘルパー署名と分岐は主担当が確認し、試行1の通常B両OSの実成功でも変更済みの接触と判定が成立した。公開は再試行の14件と公開ジョブが成功した時点で行う。
+
+### 正式531・試行2の公開ジョブはホスト資料テストのコンパイルで停止
+
+source `18a7f5cf6537bb79b3cc47e1d0fd6bf5fcc115b0`、[公開ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/45248143697/job/138055598636)は22:17:36〜22:33:12 UTCでfailure。Xcode SDK27.2の準備、同じ試行の事前検査14件と公開ジョブの実Picker UIまでは成功。`Material compilation`（46.9秒）が `RecoveryValidator.swift:23` の `cannot find 'PDF239SpecialScheduleParser' in scope` と24行の型推論エラーで停止。`tools/build-ios-app.sh` の先頭の資料テスト内。実iPhoneビルドとアップロードには未到達。調査で実行していたLinuxの解析テストと形式が異なる公開ジョブの同じホスト資料コンパイルは事前に実行していなかった。
+
+`git log -S` と `c6f3cd2`、直前に更新した `b2721dc` の資料スクリプト、現行Swift Packageを比較した。曜日証明を導入した `c6f3cd2` で既存 `RecoveryValidator` が試験のStrictパーサーを参照し、資料専用の手動ソース一覧だけに反映されなかった。`ea22ab6` と `220a6c4` にも資料スクリプトの依存追従の修正がある。前回のソース一覧をさらに増やすとStrictから時刻・返却位置・時間割へ依存が広がるため、同じ製品モジュールを使う既存Swift Packageで資料の元シナリオも実行する。元の33入力がLinux／macOSそれぞれのPackageの登録に全て含まれ、Xcodeアプリの183 Swiftファイルは全件・一意に登録されていることを別に点検した。
+
+Linuxの新しい配布登録チェック1回目は30件中1件失敗。対象Swift Packageの `sources` の最後を後続の `resources` の部分一致から取っており、実マニフェスト展開では登録済みの `WebPDFDownloader.swift` を検査側だけが見失った。境界のある `sources` の宣言を抽出し、同じ登録・共有実行経路の条件を再検査する。

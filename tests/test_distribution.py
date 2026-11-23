@@ -21,6 +21,23 @@ COMMIT = "a" * 40
 
 
 class ProjectSourcesTests(unittest.TestCase):
+    def test_native_and_iphone_build_run_the_package_material_checks(self):
+        root = Path(__file__).resolve().parents[1]
+        manifest = (root / "Package.swift").read_text()
+        parsing, checks = manifest.split('.testTarget(name: "ParsingTests",', 1)
+        pattern = r"\bsources: \[([^\]]+)\]"
+        parsing_sources = re.search(pattern, parsing).group(1)
+        check_sources = re.search(pattern, checks).group(1)
+        self.assertIn('"WebPDFDownloader.swift"', parsing_sources)
+        for name in ("MaterialLibraryChecks.swift", "WebPDFChecks.swift"):
+            self.assertIn(f'"{name}"', check_sources)
+
+        workflow = (root / ".github/workflows/ios-release.yml").read_text()
+        native = workflow.split("  native-parsing:\n", 1)[1].split("  simulator-27-a:\n", 1)[0]
+        self.assertIn("run: bash tools/test-parsing.sh\n", native)
+        iphone = (root / "tools/build-ios-app.sh").read_text()
+        self.assertLess(iphone.index("bash tools/test-parsing.sh\n"), iphone.index("xcodebuild"))
+
     def test_application_target_compiles_every_production_swift_file(self):
         root = Path(__file__).resolve().parents[1]
         project = (root / "Takupoke.xcodeproj/project.pbxproj").read_text()

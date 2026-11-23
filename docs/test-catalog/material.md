@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`d0162746ae5dd61200f1dadab2d83f41541a2244700368c84d1af02de36f4d5c`
+`71ee563b13929020de74c63c1507e3f85ada1c8c0925280a09a15ffea592e0c0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -61,7 +61,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/MaterialLibraryChecks.swift](../../tests/MaterialLibraryChecks.swift)
 
-- `main`
+- `testMaterialPersistenceAndWebPDF`
 
 ## [tests/WebPDFChecks.swift](../../tests/WebPDFChecks.swift)
 

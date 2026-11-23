@@ -1,4 +1,6 @@
 import Foundation
+import XCTest
+@testable import TakupokeParsing
 
 private enum CheckError: Error { case failed(String), injectedWriteFailure }
 
@@ -11,11 +13,10 @@ private func expectFailure(_ message: String, _ body: () throws -> Void) throws 
     throw CheckError.failed(message)
 }
 
-@main
-struct MaterialLibraryChecks {
-    static func main() throws {
-        let root = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+final class MaterialLibraryChecks: XCTestCase {
+    func testMaterialPersistenceAndWebPDF() throws {
         let manager = FileManager.default
+        let root = manager.temporaryDirectory.appendingPathComponent("takupoke-material-checks-\(UUID())", isDirectory: true)
         try manager.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? manager.removeItem(at: root) }
         let source = MaterialSource(grant: SourceGrant(bookmark: Data("synthetic".utf8),

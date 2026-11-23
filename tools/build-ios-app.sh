@@ -2,8 +2,7 @@
 set -euo pipefail
 # Scratch directory belongs to build-ios.sh.
 scratch_dir="${1:?Pass the build scratch directory}"
-python3 -B tools/timed_command.py "Material tests" bash tools/test-materials.sh
-python3 -B tools/timed_command.py "Parsing tests" bash tools/test-parsing.sh
+python3 -B tools/timed_command.py "Material and parsing tests" bash tools/test-parsing.sh
 python3 -B tools/timed_command.py "iPhone Release build" xcodebuild \
     -project Takupoke.xcodeproj \
     -scheme Takupoke \

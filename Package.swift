@@ -2,7 +2,7 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift", "WebPDFDownloader.swift"]
+let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
 let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
@@ -10,7 +10,7 @@ let mappingTestExcludes: [String] = []
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift", "WebPDFDownloader.swift"]
+let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
 let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
 #endif
 
@@ -103,7 +103,7 @@ let package = Package(
                     "XLSXReader.swift", "ChangeWorkbookEditor.swift", "XLSXReader+Worksheet.swift",
                     "BoundedXML.swift",
                     "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift",
-                    "MaterialModels.swift",
+                    "MaterialModels.swift", "WebPDFDownloader.swift",
                     "SelectedFileSource.swift",
                     "FileRefreshDiagnostics.swift",
                     "SelectedFilePresenter.swift",
@@ -161,8 +161,6 @@ let package = Package(
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "tests",
                     exclude: [
                     "ui",
-                    "MaterialLibraryChecks.swift",
-                    "WebPDFChecks.swift",
                     "test_distribution.py",
                     "test_change_preview_actions.py",
                     "test_parallel_build.py",
@@ -207,6 +205,7 @@ let package = Package(
                     "LocalDatabaseTests+Legacy.swift",
                     "LocalDatabaseTests+Current.swift",
                     "MaterialPickerLayoutTests.swift",
+                    "MaterialLibraryChecks.swift", "WebPDFChecks.swift",
                     "ObservedScreenGeometryTests.swift", "Support/ObservedScreenGeometry.swift",
                     "SchoolDateTests.swift", "JapaneseDateDisplayTests.swift",
                     "SchoolDataRetentionTests.swift", "SchoolDataRecoveryTests.swift",

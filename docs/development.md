@@ -93,7 +93,7 @@ Pythonの出力はOCRや配布検査を含む全ワークフローでバッフ�
 
 ## Swift の保存処理テスト
 
-`bash tools/test-materials.sh` はアプリ本体の `MaterialLibrary.swift` を直接コンパイルし、保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を架空データで検証します。macOS のビルド処理でも IPA 作成前に必ず実行します。失敗すれば配布には進みません。加えて `WebPDFDownloader.swift` を架空のHTTP応答で動かし、PDF取得・条件付きGET・304時の保持・HTTPエラー・サイズ上限・中止を検証します。学校サイトへの通信や実資料の取得は行いません。SwiftUI や File Provider はこのテストの対象外です。
+`bash tools/test-materials.sh` は共通のSwift Packageから資料のテストだけを実行します。アプリ本体の `MaterialLibrary` で保存・再読み込み・書き込み失敗時の保持・途中終了の回収・破損時の停止を確認します。`WebPDFDownloader` では架空のHTTP応答からPDF取得・条件付きGET・304時の保持・HTTPエラー・サイズ上限・中止を検証します。Nativeの必須検査とIPA作成前には、同じケースを含むPackageの全テストを実行します。学校サイトへの通信や実資料の取得は行いません。SwiftUI や File Provider はこのテストの対象外です。
 
 Swift 6.1以降をPATHに追加して実行します。
 
