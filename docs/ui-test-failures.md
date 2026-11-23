@@ -5953,3 +5953,15 @@ Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate
 `periodHeading|b424|b425|数値境界`でN128・N129と `c23433c`／`cc8fca5` のコードを照合した。既存の隣接グループとUnicode十進数字の扱いを維持し、時計の末尾に続く数値の前にコロンや小数点がある場合も、時刻全体の境界エラーとする。保存済み資料は解析版の既存の再確認で判定し、拒否時に以前の正常データを置き換えない。[#173](https://github.com/n624-dev/takupoke-ios/issues/173)
 
 通常・復旧用の完全パーサーに対策を入れた後で、復旧資料を直接組み立てる別入口を実行した。旧Builderは秒部分を表の外の注記として保持し、同じ架空資料の `09:50〜10:35` が実EngineとValidatorを通った。復旧資料を組み立てる時点で、復旧用パーサーと同じ時刻境界を確認する。
+
+### 正式528・試行1でiOS26通常Bの週送りが到着後199.689ms停止
+
+[iOS26.5／SDK27.2通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137490689520)、source `d1c3bf71ab88c9e9180cdba2a7949474ad0ed53b`。2026年11月23日04:57:09 UTC、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable`（36.799秒）で失敗した。実接触・解放・横到着は成立し、最初の高さ調整中の枠間隔199.689msが90msの基準を超えた。枠間のmain CPUは約182.9ms、到着からスクロール復帰までは約0.70ms、次の設定開始は到着から約161.6ms後。21枠、幾何欠落0。正式527で採用した接触を使用し、計測中の `Wait for … to idle` は今回のログに現れていない。復路と後続ケースは未到達。main threadのCPU時間は観測できたが、その時間を使った呼出しは未確定。
+
+`horizontal-arrival|configuration-begin|0.09|NativeTestContacts` で正式526試行2・4と正式527前の限定を比較した。[限定45016115439のiOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45016115439/job/137188674490)の実ログでは各34枠、最大49.734／49.130ms、到着から設定開始まで約23.5／29.3msで往復成功。正式527から正式528へ週送り本体・計測・テスト操作に差分はなく、今回の週送りケースは従来の通常時間割・行事週の入力を使用する。正式527で除いたXCTestのアイドル照会がなくても再発することを確認した。ホストの混雑やSwiftUI内部の処理の内訳は確定していない。
+
+### 正式528・試行1のiOS26手動原本変更はXCTest前にXcodeが実行先を見失った
+
+[iOS26.5／SDK27.2手動原本変更](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137490689549)、source `d1c3bf71ab88c9e9180cdba2a7949474ad0ed53b`。ビルド・所有Simulatorの起動確認・GUI準備を完了した。05:15:55 UTCに同じUDIDで `test-without-building` を起動し、05:16:59 UTCにXcodeが対照デバイスなしでexit 70。ケース本体は開始せず、タッチの観測は0件。後処理と所有Simulatorの削除処理は終わった。Simulatorがテスト実行先から外れた理由は未確定。
+
+`Unable to find a device matching|destination specifier|bootstatus|exit 70` でN127・限定43769812600試行1・正式44660400847試行1を照合した。いずれも起動を確認してから所有UUIDの実行先解決に失敗した。正式527の同じ原本変更はListの照会まで到達しており、今回はそこより前で停止した。正式527と528の `test-manual-ui.sh`・iOS26のRuntime準備・実行先指定は同一。`Any iOS Simulator Device` を代わりに選ばず、新しい所有Simulatorで同じケース・期限・実行先の照合を行う。
