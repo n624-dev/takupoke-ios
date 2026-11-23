@@ -165,6 +165,7 @@ OBSERVE
         self.assertLess(frames.index("XCTWaiter.wait(for: [reportReady]"), frames.index("gridMetrics()"))
         self.assertIn('XCTAssertEqual(record["gridMetricReadsDuringMotion"] as? Int, 0,', frames)
         self.assertIn('XCTAssertEqual(record["gridGeometryWritesDuringMotion"] as? Int, 0,', frames)
+        self.assertIn('XCTAssertEqual(record["weekContentBuildsAfterArrival"] as? Int, 0,', frames)
         grid_fixture = (ROOT / "tests/ui/ApplicationFixture+Grid.swift").read_text()
         self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
                         grid_fixture.index(".accessibilityValue(read())"))
@@ -197,6 +198,59 @@ precondition(!FixtureGridMeasurements.capturesDetailGeometry(arguments: ["--grid
             subprocess.run([compiler, "-swift-version", "5", str(swift), "-o", str(path / "test")],
                            check=True, timeout=60)
             subprocess.run([str(path / "test"), "--grid-probe"], check=True, timeout=15)
+
+    def test_prepared_week_content_is_lazy_and_expires_with_its_window_or_revision(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify the prepared week cache")
+        source = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text(encoding="utf-8")
+        types = "\n".join(block(source, name) for name in (
+            "@MainActor\nprivate final class WeekPageContent", "private struct WeekPage:",
+            "@MainActor\nprivate final class PreparedWeekPages"))
+        program = '''import Foundation
+typealias SchoolDate = Int
+@MainActor protocol View { associatedtype Body; var body: Body { get } }
+struct AnyView: View {
+    let label: String
+    var body: Never { fatalError("Type erasure fixture has no render tree") }
+}
+''' + types + '''
+@main struct Check {
+    @MainActor static func main() {
+        let cache = PreparedWeekPages()
+        var built: [String] = []
+        func build(_ revision: String) -> (SchoolDate) -> AnyView {
+            { week in
+                let label = "\\(week)-\\(revision)"
+                built.append(label)
+                return AnyView(label: label)
+            }
+        }
+        let first = cache.pages(for: [1, 2, 3], revision: ["A"], build: build("A"))
+        precondition(built.isEmpty)
+        precondition(first[1].content.view().label == "2-A")
+        precondition(first[1].content.view().label == "2-A")
+        let same = cache.pages(for: [1, 2, 3], revision: ["A"], build: build("A"))
+        precondition(same[1].content === first[1].content)
+        let moved = cache.pages(for: [2, 3, 4], revision: ["A"], build: build("A"))
+        precondition(moved.map(\\.id) == [2, 3, 4] && moved[0].content === first[1].content)
+        let returned = cache.pages(for: [1, 2, 3], revision: ["A"], build: build("A"))
+        precondition(returned[0].content !== first[0].content)
+        precondition(returned[0].content.view().label == "1-A")
+        let refreshed = cache.pages(for: [1, 2, 3], revision: ["B"], build: build("B"))
+        precondition(refreshed[1].content !== first[1].content)
+        precondition(refreshed[1].content.view().label == "2-B")
+        precondition(built == ["2-A", "1-A", "2-B"])
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="takupoke-week-content-") as directory:
+            root = Path(directory)
+            swift = root / "check.swift"
+            swift.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", str(swift), "-o", str(root / "check")],
+                           check=True, timeout=60)
+            subprocess.run([str(root / "check")], check=True, timeout=15)
 
     def test_week_column_placement_reuses_only_the_matching_size_measurement(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

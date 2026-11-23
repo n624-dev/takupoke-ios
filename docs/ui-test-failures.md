@@ -6057,3 +6057,13 @@ iOS27.0の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は13:08
 `configuration-begin|WeekPagesCanvas|WeekColumnsLayout|sample-timeout` で正式528・529の同段階と、45133851878／45143832553のスタック採取を照合した。外からの採取は未取得か対象区間より後に始まった。診断用の生成アプリに限り、横到着から高さ調整完了までの週操作・画面構築・週幅測定／配置の呼び出しごとの開始・終了・main CPU差を固定名で測る。観測対象は試行2でCPUが増えた到着後〜最初の枠取得。架空データ、元フレーム条件と期限を使い、計時のための分岐を製品に入れない。計測付きを製品配布の成立とは扱わない。
 
 同じ限定の[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45180196646/job/137711719818)は13:34:02 UTC、GitHub注記 `The job has exceeded the maximum execution time of 30m0s` で終了。シミュレーターbootは約9分、テスト実行開始からケース開始までは約6分30秒。週送りの実ケース59.498秒で往復49.967／51.534ms、29／31枠、診断2種の回数0。最大文字は217.236秒で成功。13:33:46に検査フェーズと所有Simulatorの削除の完了を記録し、その後の外枠が未完了。主担当の取消はなく、ケースの到達点は保持し、ジョブ全体は成功に数えない。上記のiOS27の描画停止とは異なる段階。
+
+### 週送り昇格のCPU診断・iOS26で停止
+
+診断 `60a55abb876619f19b3128557ca613d9a2220574`、Xcode SDK27.2、試行1。[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45184977667/job/137728124723)は13:32:53〜13:56:20 UTCで失敗。[iOS27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45184977667/job/137728124807)とNativeは成功、全ジョブ終端。対象のケース・停止段階・計時の内訳は原ログから確認する。
+
+iOS26.5の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は13:49:45 UTCに166.500ms・38.693秒で停止。最大文字は307.017秒で成功。到着が0.282690秒、次の枠0.449190秒、昇格処理の復帰が0.283111秒、最初の `configuration-begin` は0.388497秒。失敗区間内の `page-content` は4回、main CPUは11.751／5.297／4.685／0.773ms。週操作は2.646ms。記録上限120に到達し、ネストした計時値を足して残りの停止時間と比較できない。iOS27.0は往復49.974／45.555ms、同じ最大文字175.396秒、成功。診断付きの結果は公開の判定には使わない。
+
+`WeekPage|page-content|WeekColumnsLayout|isDisplayedTimetableWeek` で正式528・限定45136782217・45180196646を照合した。到着直後に新しい週を作ることは想定していないが、今の `WeekPage.body` は同じ版でも呼ばれるたびに `content()` で週内容を構築する。週と既存の表示リビジョンで作成済みの表示値を保ち、組み替えた準備範囲から外れた週とリビジョン変更時は破棄する。表示値は最初に必要な時に作り、横移動中に新たな一括構築は行わない。現在の週に切り替わる時点、選択時のVoiceOver対象、実接触・90ms・実枠は維持する。旧44238306393で親だけの `accessibilityHidden` は同じScrollView IDが重複したため、子側の処理は保持する。再構築以外のCPU消費と性能の改善幅は未確定。
+
+準備週の局所Linux検査は、製品の `WeekPage.body: some View` を含めた代替型で `AnyView` に `View` 適合がなく型検査エラーになった。Appleでの既存 `AnyView: View` と同じ適合を代替型に付ける。製品の型、実キャッシュと古い表示値の破棄を照合する検査は保持する。

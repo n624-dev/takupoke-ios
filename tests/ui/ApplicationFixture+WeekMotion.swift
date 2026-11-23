@@ -26,6 +26,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var samples: [[String: Double]] = []
     private var gridMetricReadsDuringMotion = 0
     private var gridGeometryWritesDuringMotion = 0
+    private var weekContentBuildsAfterArrival = 0
     private var checkpoints: [[String: Any]] = []
     private var missingFrames: [Double] = []
     private var records: [[String: Any]] = []
@@ -74,6 +75,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         samples = []; missingFrames = []; checkpoints = []; arrivedAt = nil; finishedAt = nil
         gridMetricReadsDuringMotion = 0
         gridGeometryWritesDuringMotion = 0
+        weekContentBuildsAfterArrival = 0
         isRecording = true
         link?.invalidate()
         let display = CADisplayLink(target: self, selector: #selector(sample(_:)))
@@ -87,6 +89,9 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     }
     func recordGridGeometryWrite() {
         if isRecording { gridGeometryWritesDuringMotion += 1 }
+    }
+    func recordWeekContentBuild() {
+        if isRecording, arrivedAt != nil, finishedAt == nil { weekContentBuildsAfterArrival += 1 }
     }
     func arrived() {
         guard enabled else { return }
@@ -153,7 +158,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
                 "samples": samples, "checkpoints": checkpoints, "missingGeometryFrames": missingFrames, "badge": badge,
                 "badgeReadyObserved": badgeFrame != nil, "badgeDrawAttempts": badgeDrawAttempts,
                 "gridMetricReadsDuringMotion": gridMetricReadsDuringMotion,
-                "gridGeometryWritesDuringMotion": gridGeometryWritesDuringMotion]
+                "gridGeometryWritesDuringMotion": gridGeometryWritesDuringMotion,
+                "weekContentBuildsAfterArrival": weekContentBuildsAfterArrival]
             if let releasePoint {
                 record["releaseX"] = Double(releasePoint.x)
                 record["releaseY"] = Double(releasePoint.y)

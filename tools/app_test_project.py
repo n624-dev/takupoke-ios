@@ -25,6 +25,7 @@ WEEK_MOTION_INSERTIONS = (
      '\n            FixtureWeekMotionRecorder.shared.visible = windowVisible'),
     ('        let minimum = -scroll.adjustedContentInset.left',
      '\n        FixtureWeekMotionRecorder.shared.begin(source: week.iso8601, target: destination.iso8601)'),
+    ('        case .pending(let build):', '\n            FixtureWeekMotionRecorder.shared.recordWeekContentBuild()'),
     ('    private func settle(id: UUID) {', '\n        FixtureWeekMotionRecorder.shared.arrived()'),
     ('    private func promote(_ value: Transition) {',
      '\n        FixtureWeekMotionRecorder.shared.checkpoint("promotion-begin")'),

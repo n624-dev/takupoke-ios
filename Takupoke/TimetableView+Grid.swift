@@ -162,12 +162,54 @@ private struct WeekColumnsLayout: Layout {
     }
 }
 
+@MainActor
+private final class WeekPageContent {
+    private enum State {
+        case pending(() -> AnyView)
+        case ready(AnyView)
+    }
+    private var state: State
+
+    init(build: @escaping () -> AnyView) { state = .pending(build) }
+
+    func view() -> AnyView {
+        switch state {
+        case .ready(let value): return value
+        case .pending(let build):
+            let value = build()
+            state = .ready(value)
+            return value
+        }
+    }
+}
+
 private struct WeekPage: Identifiable, View, Equatable {
     let id: SchoolDate
     let revision: [String]
-    let content: () -> AnyView
+    let content: WeekPageContent
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.revision == rhs.revision }
-    var body: some View { content() }
+    var body: some View { content.view() }
+}
+
+@MainActor
+private final class PreparedWeekPages {
+    private var revision: [String] = []
+    private var byDate: [SchoolDate: WeekPage] = [:]
+
+    func pages(for weeks: [SchoolDate], revision: [String], build: @escaping (SchoolDate) -> AnyView) -> [WeekPage] {
+        if revision != self.revision {
+            self.revision = revision
+            byDate.removeAll(keepingCapacity: true)
+        }
+        let prepared = Set(weeks)
+        byDate = byDate.filter { prepared.contains($0.key) }
+        return weeks.map { week in
+            if let page = byDate[week] { return page }
+            let page = WeekPage(id: week, revision: revision, content: WeekPageContent { build(week) })
+            byDate[week] = page
+            return page
+        }
+    }
 }
 
 private struct WeekPageMeasurement: Equatable {
@@ -200,6 +242,7 @@ private struct WeekPages: View {
     let content: (SchoolDate) -> AnyView
     let arrive: (SchoolDate, SchoolDate) -> Void
     private let motion: WeekPageMotion
+    @State private var preparedPages = PreparedWeekPages()
     @ObservedObject private var preparation: WeekPagePreparation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -218,7 +261,9 @@ private struct WeekPages: View {
         let window = preparation.window
         let weeks = WeekEdgePull.preparedWeeks(selected: window?.source ?? selection, arriving: window?.arrival,
                                               within: bounds)
-        let pages = weeks.map { week in WeekPage(id: week, revision: revision, content: { content(week) }) }
+        // Selection changes can invalidate an already prepared page's body.
+        // Keep its view for the same date and revision while it stays prepared.
+        let pages = preparedPages.pages(for: weeks, revision: revision, build: content)
         WeekPagesCanvas(pages: pages, currentIndex: weeks.firstIndex(of: selection) ?? 0,
                         selection: selection, viewportWidth: viewportWidth, motion: motion)
         .clipped()

@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`3129f42aca5ab73feeca21e85508edeca86b76dc39069a6131825d8b9eb05485`
+`0d8d28c7bb77c03e58e5ceaa122bb98672336ff02a137abf79adf0c760ec34be`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -43,6 +43,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
 - `test_motion_fixture_leaves_detailed_geometry_to_the_sizing_checks`
+- `test_prepared_week_content_is_lazy_and_expires_with_its_window_or_revision`
 - `test_week_column_placement_reuses_only_the_matching_size_measurement`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`

@@ -366,6 +366,8 @@ extension ApplicationChecks {
                            "The final grid snapshot must not compete with frame recording")
             XCTAssertEqual(record["gridGeometryWritesDuringMotion"] as? Int, 0,
                            "Detailed grid geometry belongs to the separate sizing checks")
+            XCTAssertEqual(record["weekContentBuildsAfterArrival"] as? Int, 0,
+                           "Prepared week content should be reused during the height adjustment")
             let samples = try XCTUnwrap(record["samples"] as? [[String: Double]])
             let releaseX = try XCTUnwrap(record["releaseX"] as? Double)
             let releaseY = try XCTUnwrap(record["releaseY"] as? Double)
