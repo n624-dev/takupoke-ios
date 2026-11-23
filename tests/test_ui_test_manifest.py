@@ -1432,7 +1432,7 @@ METHOD
                 self.assertIn("if: always()\n        " + cleanup, block)
                 self.assertLess(block.index("bash tools/test-manual-ui.sh"), block.index(cleanup))
         simulator = workflow.split("  simulator-27-a:\n", 1)[1].split("  manual-27:\n", 1)[0]
-        for ios, shard, minutes in ((27, "a", 75), (27, "b", 75), (26, "a", 80), (26, "b", 80)):
+        for ios, shard, minutes in ((27, "a", 75), (27, "b", 75), (26, "a", 80), (26, "b", 90)):
             block = workflow.split(f"  simulator-{ios}-{shard}:\n", 1)[1]
             block = re.split(r"^  [a-z][a-z0-9-]*:\s*$", block, maxsplit=1, flags=re.MULTILINE)[0]
             self.assertEqual(re.findall(r"^    timeout-minutes: (\d+)$", block, re.MULTILINE),
