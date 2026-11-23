@@ -6013,3 +6013,7 @@ source `bd586dc`、試行1、SDK27.2。両OSの実コンパイラ行は `Takupok
 `WeekColumnsLayout|rowHeights|sizeThatFits|placeSubviews` で現行の週グリッドを確認した。同じ列幅と子Viewの数で、サイズ要求と直後の配置がそれぞれ全見出し・列の自然高を求めていた。サイズ要求で得た測定値は、同じ列幅・子View数の最初の配置に限って再利用する。新しいサイズ要求、単独配置、別の列幅では測り直す。週の選択時刻や90msの基準は維持する。この重複作業が停止時間のどれだけを占めるかは未確定で、限定で比較する。
 
 Linuxの局所レイアウト検査で、製品の `private` 型を抽出後に公開範囲の変数へ入れてSwift型検査で停止した。型の公開範囲を保ち、検査変数にも `private` を付けて同じ式・期待値を実行する。
+
+`84a4e91` のLinux全体検査はSwift 700件・失敗0。Pythonは `test_actual_xctest_comparison_and_pixel_geometry` が幾何ケース数の固定値8に対して9件を見つけ、実Swiftの再実行前に停止した。部分表示ラベルの新ケースをSwift全体は実行済み。`geometry_names|ObservedScreenGeometryTests|test_actual_xctest_comparison_and_pixel_geometry` で、名前を抽出してすべて走らせる既存のLinux補助と台帳を照合した。旧8件と追加1件の期待を同期し、補助からも9件すべてを実行する。
+
+`84a4e91` の[週送り限定45149532016](https://github.com/n624-dev/takupoke-ios/actions/runs/45149532016)は両OSで成功。高さ調整中の最大間隔はiOS26.5で49.854／49.997ms、iOS27.0で33.125／31.640ms。各方向の幾何欠落と採取中の診断JSON呼び出しは0。最大文字は両OSで成功し、iOS26.5は実ラベルからの縦ドラッグを数値ログで確認した。Linux補助の同期後はPython全344件・既定skip2・失敗0。正式公開の全組と同じコミットの結果は別に記録する。

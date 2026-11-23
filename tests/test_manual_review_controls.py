@@ -73,7 +73,8 @@ precondition(Checks([[valid]]).run().1==valid)
         self.assertEqual(len(names),10)
         geometry=(ROOT/'tests/ObservedScreenGeometryTests.swift').read_text()
         geometry_names=re.findall(r'    func (test\w+)\(',geometry)
-        self.assertEqual(len(geometry_names),8)
+        self.assertEqual(len(geometry_names),9)
+        self.assertIn('testClippedScrollLabelOffersOnlyPointsWithBothDragEndpointsVisible',geometry_names)
         runner='\nXCTMain([testCase(['+','.join('("'+n+'",RecoveryManualReviewTests.'+n+')' for n in names)+']),testCase(['+','.join('("'+n+'",ObservedScreenGeometryTests.'+n+')' for n in geometry_names)+'])])\n'
         with tempfile.TemporaryDirectory(prefix='manual-review-controls-') as scratch:
             path=Path(scratch);(path/'main.swift').write_text(tests+geometry+runner)
