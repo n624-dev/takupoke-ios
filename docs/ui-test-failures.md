@@ -6047,3 +6047,11 @@ iOS27.0の週送りは67.800／48.009msで成功。`before-settings` の `testCo
 `gridMetricReadsDuringMotion|fixtureGridMeasurements|onGeometryChange|configuration-begin` で正式528・限定45149532016と比較した。旧候補は計測中の診断JSON生成を除いたが、生成器が追加した各時限カード・日見出しの座標、行事見出しの寸法は表示のたびに取得し、変更を `@Published` の辞書へ書く。週送りの対象ケースは実画面のフレームを別の録画器で取得し、最後の診断JSONは `eventsOnly` だけを読む。座標・寸法の変換と更新をこの計測中に使わない構成で比較する。画面・実測・方向・90ms・PNG・行事週の条件は維持し、計測中の追加収集の書込件数も記録する。通常のカード寸法・最大文字のケースでは従来の座標収集を使う。232.996msの内訳はいまだ未確定で、これが原因とみなすのは実比較の後とする。
 
 `countdown-delete-reminder-0|Present keyboard|Identity Binding|N153` で `contentViewport` と既存の一貫した幾何確認を比較した。今回は個人予定の標準文字で2を実入力し、キーボードの存在が成立したあと、削除行を表示する途中の再照会で幾何が無効だった。N153はキーボード列挙そのもののタイムアウト。現在のframeがとれなければ既存の `ObservedScreenGeometry.bodyViewport` で範囲を未確定にし、既存の探索中は押したりスクロールしたりせず再観測する。削除前の存在・削除後の消失・残った1日前の保存と再表示の元検査は維持する。
+
+### 詳細な座標計測を除いた週送り限定・iOS27ジョブの停止
+
+候補 `c0f6136a024e6fe53e600b4d254fc616f9c89aee`、SDK27.2、試行1。[iOS27.0の週送り限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45180196646/job/137711719890)は13:03:55〜13:13:39 UTCで失敗。Nativeは成功、iOS26.5は13:25確認時点で進行中。同じsourceの[通知日数を含むiOS27限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45180380204/job/137712356522)は成功。失敗した週送り限定のケース・段階・原因は原ログ取得前の時点で未確定。
+
+iOS27.0の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は13:08:40 UTC、30.900秒で失敗。横到着直後の高さ調整で114.370ms、近傍のmain CPU増加は約105ms。31枠・欠落0・診断JSON取得0・個別座標の書込0。最初の配置設定まで到着後約79ms、設定自身は0.070ms。元の最大文字は243.390秒で成功。書き込みを除いても同じ停止が残る。通知日数の削除・元の1日前の保存／再表示は171.726秒で成功し、同じ限定のカレンダー282.946秒、通知予約138.862秒も成功した。
+
+`configuration-begin|WeekPagesCanvas|WeekColumnsLayout|sample-timeout` で正式528・529の同段階と、45133851878／45143832553のスタック採取を照合した。外からの採取は未取得か対象区間より後に始まった。診断用の生成アプリに限り、横到着から高さ調整完了までの週操作・画面構築・週幅測定／配置の呼び出しごとの開始・終了・main CPU差を固定名で測る。観測対象は試行2でCPUが増えた到着後〜最初の枠取得。架空データ、元フレーム条件と期限を使い、計時のための分岐を製品に入れない。計測付きを製品配布の成立とは扱わない。
