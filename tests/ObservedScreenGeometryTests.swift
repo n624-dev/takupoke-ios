@@ -8,17 +8,20 @@ final class ObservedScreenGeometryTests: XCTestCase {
         let tab=CGRect(x:0,y:740,width:400,height:60)
         let keyboard=CGRect(x:0,y:600,width:400,height:200)
         let footer=CGRect(x:0,y:550,width:400,height:50)
-        func project(_ tab:CGRect?,_ keyboards:[CGRect],_ footers:[CGRect])->CGRect {
-            ObservedScreenGeometry.bodyViewport(app:app,navigation:nav,tab:tab,keyboards:keyboards,footers:footers)
+        func project(_ tab:CGRect?,_ keyboards:[CGRect],_ footers:[CGRect], requiresKeyboard: Bool = false)->CGRect {
+            ObservedScreenGeometry.bodyViewport(app:app,navigation:nav,tab:tab,keyboards:keyboards,footers:footers,
+                                                requiresKeyboard:requiresKeyboard)
         }
         XCTAssertEqual(project(tab,[],[]),CGRect(x:0,y:100,width:400,height:640))
         XCTAssertEqual(project(nil,[],[]),CGRect(x:0,y:100,width:400,height:700))
         XCTAssertEqual(project(tab,[keyboard],[]),CGRect(x:0,y:100,width:400,height:500))
+        XCTAssertEqual(project(tab,[keyboard],[],requiresKeyboard:true),project(tab,[keyboard],[]))
         XCTAssertEqual(project(tab,[keyboard],[footer]),CGRect(x:0,y:100,width:400,height:450))
         XCTAssertEqual(project(tab,[],[CGRect(x:0,y:780,width:400,height:20)]),project(tab,[],[]))
         for result in [project(tab,[keyboard,keyboard],[]),project(tab,[],[footer,footer]),
                        project(.zero,[],[]),project(tab,[.infinite],[]),project(tab,[.zero],[]),
                        project(tab,[.null],[]),project(tab,[],[.null]),
+                       project(tab,[],[],requiresKeyboard:true),project(tab,[.null],[],requiresKeyboard:true),
                        ObservedScreenGeometry.bodyViewport(app:.null,navigation:nav,tab:tab,keyboards:[],footers:[]),
                        ObservedScreenGeometry.bodyViewport(app:app,navigation:.zero,tab:tab,keyboards:[],footers:[])] {
             XCTAssertFalse(ObservedScreenGeometry.usable(result))

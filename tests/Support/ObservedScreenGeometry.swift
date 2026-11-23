@@ -9,8 +9,9 @@ enum ObservedScreenGeometry {
     // Project the original body bounds from one coherent AX observation.
     // Multiple/invalid occluders remain unknown rather than granting visibility.
     static func bodyViewport(app: CGRect, navigation: CGRect, tab: CGRect?,
-                             keyboards: [CGRect], footers: [CGRect]) -> CGRect {
+                             keyboards: [CGRect], footers: [CGRect], requiresKeyboard: Bool = false) -> CGRect {
         guard usable(app), usable(navigation), keyboards.count <= 1, footers.count <= 1,
+              !requiresKeyboard || keyboards.count == 1,
               keyboards.allSatisfy(usable), footers.allSatisfy(usable),
               tab.map(usable) ?? true else { return .null }
         var bottom = tab?.minY ?? app.maxY

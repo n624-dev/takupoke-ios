@@ -540,7 +540,7 @@ extension ApplicationChecks {
         showField(in: personal, expected: "0")
         enterDay("2", replacingDigitCount: 1)
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10))
-        let remove = visible(app.buttons["countdown-delete-reminder-0"], navigation: personal)
+        let remove = visible(app.buttons["countdown-delete-reminder-0"], navigation: personal, requiresKeyboard: true)
         XCTAssertTrue(remove.isHittable)
         remove.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 10))

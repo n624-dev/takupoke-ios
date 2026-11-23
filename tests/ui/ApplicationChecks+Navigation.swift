@@ -134,14 +134,15 @@ extension ApplicationChecks {
         if !usable(frame) { print("UI_VIEWPORT keyboard-frame-unavailable") }
         return [frame]
     }
-    func contentViewport(navigation: String?) -> CGRect {
+    func contentViewport(navigation: String?, requiresKeyboard: Bool = false) -> CGRect {
         let frame = app.frame
         let bar = navigation.map { app.navigationBars[$0] } ?? app.navigationBars.firstMatch
         let navigationFrame = bar.frame
         let tab = app.tabBars.firstMatch
         let tabFrame = tab.exists ? tab.frame : nil
         return ObservedScreenGeometry.bodyViewport(app: frame, navigation: navigationFrame, tab: tabFrame,
-                                                   keyboards: observedKeyboardFrames(), footers: [])
+                                                   keyboards: observedKeyboardFrames(), footers: [],
+                                                   requiresKeyboard: requiresKeyboard)
     }
     func contained(_ element: XCUIElement, in viewport: CGRect) -> Bool {
         guard element.exists else { return false }
@@ -149,8 +150,8 @@ extension ApplicationChecks {
         return usable(frame) && usable(viewport)
             && ObservedScreenGeometry.contains(frame, in: viewport, scale: UIScreen.main.scale)
     }
-    func bodyViewport(navigation: String? = nil) -> CGRect {
-        let frame = contentViewport(navigation: navigation)
+    func bodyViewport(navigation: String? = nil, requiresKeyboard: Bool = false) -> CGRect {
+        let frame = contentViewport(navigation: navigation, requiresKeyboard: requiresKeyboard)
         guard usable(frame) else { return .null }
         // These helpers search scrolling content. The separate tapSetupNext
         // observes and operates the footer without using the body viewport.
@@ -168,18 +169,22 @@ extension ApplicationChecks {
         return usable(frame) ? frame : .null
     }
     func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false,
-                 scrollLabels: XCUIElementQuery? = nil, allowPartiallyVisibleScrollLabels: Bool = false) -> XCUIElement {
+                 scrollLabels: XCUIElementQuery? = nil, allowPartiallyVisibleScrollLabels: Bool = false,
+                 requiresKeyboard: Bool = false) -> XCUIElement {
+        func observedViewport() -> CGRect {
+            bodyViewport(navigation: navigation, requiresKeyboard: requiresKeyboard)
+        }
         for _ in 0..<6 {
-            let viewport = bodyViewport(navigation: navigation)
+            let viewport = observedViewport()
             if contained(e, in: viewport) { return e }
             // Do not drag against a navigation transition or a returning
             // scroll bounce. Strict full containment still decides success.
             let settled = XCTNSPredicateExpectation(
                 predicate: NSPredicate { _, _ in
-                    self.contained(e, in: self.bodyViewport(navigation: navigation))
+                    self.contained(e, in: observedViewport())
                 }, object: app)
             if XCTWaiter.wait(for: [settled], timeout: 2) == .completed { return e }
-            let current = bodyViewport(navigation: navigation)
+            let current = observedViewport()
             guard usable(current) else {
                 print("UI_VISIBLE unresolved-viewport;navigation=\(navigation ?? "current")")
                 continue
@@ -225,7 +230,7 @@ extension ApplicationChecks {
                 app.swipeDown()
             } else { app.swipeUp() }
         }
-        let viewport = bodyViewport(navigation: navigation)
+        let viewport = observedViewport()
         print(
             "UI_VISIBLE final-frame=\(e.exists ? e.frame : CGRect.null);viewport=\(viewport);navigation=\(navigation ?? "current")"
         )
