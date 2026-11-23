@@ -162,6 +162,12 @@ OBSERVE
         self.assertIn("WeekMotionSignal.reportReady.remove(observer)", frames)
         self.assertIn("holdBeforeMove: 0.08, holdBeforeLift: 0.30", frames)
         self.assertIn('0.09, "Height adjustment must keep drawing frames"', frames)
+        self.assertLess(frames.index("XCTWaiter.wait(for: [reportReady]"), frames.index("gridMetrics()"))
+        self.assertIn('XCTAssertEqual(record["gridMetricReadsDuringMotion"] as? Int, 0,', frames)
+        grid_fixture = (ROOT / "tests/ui/ApplicationFixture+Grid.swift").read_text()
+        self.assertLess(grid_fixture.index("if isDisplayed && !motion.isRecording"),
+                        grid_fixture.index(".accessibilityValue(read())"))
+        self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

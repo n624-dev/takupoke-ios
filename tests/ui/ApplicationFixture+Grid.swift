@@ -22,11 +22,13 @@ final class FixtureGridMeasurements: ObservableObject {
 
 struct FixtureActiveGridMetrics: View {
     @Environment(\.isDisplayedTimetableWeek) private var isDisplayed
+    @ObservedObject private var motion = FixtureWeekMotionRecorder.shared
     @ObservedObject var measurements: FixtureGridMeasurements
     let read: () -> String
 
     var body: some View {
-        if isDisplayed {
+        // The layout assertions read this snapshot after the real frame capture.
+        if isDisplayed && !motion.isRecording {
             Text("grid metrics").font(.system(size: 1)).foregroundStyle(.clear)
                 .accessibilityIdentifier("fixture-grid-metrics")
                 .accessibilityValue(read())
@@ -43,6 +45,7 @@ extension TimetableView {
     }
 
     func fixtureGridMetrics(columns: [DayGridLayout], days: [SchoolDate], heights: [CGFloat]) -> String {
+        FixtureWeekMotionRecorder.shared.recordGridMetricsRead()
         var cards: [[String: Any]] = []
         for column in columns {
             for (index, positioned) in column.positioned.enumerated() {

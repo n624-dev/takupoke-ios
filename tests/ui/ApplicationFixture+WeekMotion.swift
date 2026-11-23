@@ -13,6 +13,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         init(_ view: UIView) { self.view = view }
     }
     @Published private(set) var report = "[]"
+    @Published private(set) var isRecording = false
     private var bodies: [String: Reference] = [:]
     private weak var source: UIView?
     private weak var target: UIView?
@@ -23,6 +24,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
     private var finishedAt: CFTimeInterval?
     private var releasePoint: CGPoint?
     private var samples: [[String: Double]] = []
+    private var gridMetricReadsDuringMotion = 0
     private var checkpoints: [[String: Any]] = []
     private var missingFrames: [Double] = []
     private var records: [[String: Any]] = []
@@ -69,12 +71,17 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         guard enabled else { return }
         self.source = bodies[source]?.view; self.target = bodies[target]?.view
         samples = []; missingFrames = []; checkpoints = []; arrivedAt = nil; finishedAt = nil
+        gridMetricReadsDuringMotion = 0
+        isRecording = true
         link?.invalidate()
         let display = CADisplayLink(target: self, selector: #selector(sample(_:)))
         let preferred = Float(self.source?.window?.screen.maximumFramesPerSecond ?? 60)
         display.preferredFrameRateRange = CAFrameRateRange(minimum: min(30, preferred), maximum: preferred, preferred: preferred)
         link = display; display.add(to: .main, forMode: .common)
         checkpoint("display-link-registered")
+    }
+    func recordGridMetricsRead() {
+        if isRecording { gridMetricReadsDuringMotion += 1 }
     }
     func arrived() {
         guard enabled else { return }
@@ -123,6 +130,7 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
         }
         if finishedAt.map({ now - $0 >= 0.15 }) == true || now - releasedAt > 1.5 {
             link?.invalidate(); link = nil
+            isRecording = false
             if let bytes = badgeImage?.pngData() {
                 let name = "takupoke-week-badge-\(records.count).png"
                 let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
@@ -138,7 +146,8 @@ final class FixtureWeekMotionRecorder: NSObject, ObservableObject {
             var record: [String: Any] = ["arrived": arrivedAt.map { $0 - releasedAt } ?? -1,
                 "finished": finishedAt.map { $0 - releasedAt } ?? -1,
                 "samples": samples, "checkpoints": checkpoints, "missingGeometryFrames": missingFrames, "badge": badge,
-                "badgeReadyObserved": badgeFrame != nil, "badgeDrawAttempts": badgeDrawAttempts]
+                "badgeReadyObserved": badgeFrame != nil, "badgeDrawAttempts": badgeDrawAttempts,
+                "gridMetricReadsDuringMotion": gridMetricReadsDuringMotion]
             if let releasePoint {
                 record["releaseX"] = Double(releasePoint.x)
                 record["releaseY"] = Double(releasePoint.y)

@@ -5965,3 +5965,9 @@ Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate
 [iOS26.5／SDK27.2手動原本変更](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137490689549)、source `d1c3bf71ab88c9e9180cdba2a7949474ad0ed53b`。ビルド・所有Simulatorの起動確認・GUI準備を完了した。05:15:55 UTCに同じUDIDで `test-without-building` を起動し、05:16:59 UTCにXcodeが対照デバイスなしでexit 70。ケース本体は開始せず、タッチの観測は0件。後処理と所有Simulatorの削除処理は終わった。Simulatorがテスト実行先から外れた理由は未確定。
 
 `Unable to find a device matching|destination specifier|bootstatus|exit 70` でN127・限定43769812600試行1・正式44660400847試行1を照合した。いずれも起動を確認してから所有UUIDの実行先解決に失敗した。正式527の同じ原本変更はListの照会まで到達しており、今回はそこより前で停止した。正式527と528の `test-manual-ui.sh`・iOS26のRuntime準備・実行先指定は同一。`Any iOS Simulator Device` を代わりに選ばず、新しい所有Simulatorで同じケース・期限・実行先の照合を行う。
+
+### 正式528・試行2でもiOS26通常Bの高さ調整中に266.508ms
+
+同じsource `d1c3bf71ab88c9e9180cdba2a7949474ad0ed53b`、iOS26.5／SDK27.2。[通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137518367474) の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は06:28:23 UTCに失敗した。実解放と横到着は成立。到着と最初の整列枠の間が266.508ms、main CPU約256.6ms、21枠から22枠になり幾何欠落0。昇格・スクロール復帰は約0.53ms、最初の設定開始は到着から約216.1ms後。計測中のXCTestアイドル照会はログに現れず、前回より少ない公開前ジョブの状態でも同じ段階の停止が再発した。往路で失敗し後続は未到達。一緒に再実行した[手動原本変更](https://github.com/n624-dev/takupoke-ios/actions/runs/45112946241/job/137518367632)は同じSDKと元の条件で425.135秒、成功。全ジョブ終端、公開は依存ジョブが失敗したため未実行。
+
+再発時は `FixtureActiveGridMetrics|fixtureGridMetrics|isDisplayedTimetableWeek|configuration-begin` も調べた。生成アプリだけのグリッド診断は、選択中の週や測定値の変化でViewを再評価し、メインスレッドで全カードの集計、ファイル読取、JSON変換を行う。既存の週送り検査は枠を採取し終えてから、この診断で到着週が行事だけかを照合する。枠の採取中は診断の組み立てを待ち、診断が実行された回数も記録する。実接触、実座標、描画間隔上限90ms、ガラス画像、終了後の診断と元の週への復帰の検査を維持する。診断処理が過去の遅延をどれだけ占めたかは未確定。iOS26.5／27.0・SDK27.2の週送り限定で検証する。

@@ -362,6 +362,8 @@ extension ApplicationChecks {
             wait(for: [completed], timeout: max(0, deadline - ProcessInfo.processInfo.systemUptime))
             print("TAKUPOKE_WEEK_MOTION " + observedJSON)
             let record = try XCTUnwrap(records.last)
+            XCTAssertEqual(record["gridMetricReadsDuringMotion"] as? Int, 0,
+                           "The final grid snapshot must not compete with frame recording")
             let samples = try XCTUnwrap(record["samples"] as? [[String: Double]])
             let releaseX = try XCTUnwrap(record["releaseX"] as? Double)
             let releaseY = try XCTUnwrap(record["releaseY"] as? Double)
