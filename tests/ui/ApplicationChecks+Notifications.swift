@@ -569,10 +569,11 @@ extension ApplicationChecks {
             screen("カウントダウンを設定")
             let control = visible(app.switches["通知を予約"], navigation: "カウントダウンを設定")
             XCTAssertEqual(control.value as? String, enabled ? "0" : "1", app.debugDescription)
-            tapNativeSwitch(control, navigation: "カウントダウンを設定", dragThumb: true)
+            tapNativeSwitch(control, navigation: "カウントダウンを設定", thumbDragDuration: 0.33)
             let changed = expectation(for: NSPredicate { _, _ in control.value as? String == (enabled ? "1" : "0") },
                                       evaluatedWith: control)
-            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed)
+            XCTAssertEqual(XCTWaiter.wait(for: [changed], timeout: 15), .completed,
+                           "The notification switch must reach \(enabled ? "on" : "off") before saving")
             let save = app.buttons["countdown-save"]
             XCTAssertTrue(save.exists && save.isHittable, app.debugDescription)
             save.tap()

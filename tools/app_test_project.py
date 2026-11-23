@@ -381,7 +381,8 @@ def instrument_countdown_notification_center(text):
 
 COUNTDOWN_TOGGLE = '            Toggle("通知を予約", isOn: $value.notifications)\n'
 COUNTDOWN_TOGGLE_TRACE = '''                .onChange(of:value.notifications) { _, enabled in
-                    if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices") {
+                    let arguments = ProcessInfo.processInfo.arguments
+                    if arguments.contains("--countdown-school-notices") || arguments.contains("--countdown-notifications") {
                         FixtureCITrace.mark(enabled ? "countdown-notice-draft-on" : "countdown-notice-draft-off")
                     }
                 }
