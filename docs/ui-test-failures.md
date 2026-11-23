@@ -5985,3 +5985,13 @@ Linux Swift 6.1.2で、actor境界だけを直した直後の製品の `activate
 `isDisplayedTimetableWeek|weekSection|configuration-begin|WeekGridAccessibility` で #125 の正式526・527、4d30920の限定と今の描画コードを比較。到着直後の選択変化で、準備済みの2つの週の中身にSwiftUIの環境値も伝播していた。候補では、既存の選択状態をアクセシビリティの表示判定だけで読み、UIKitの非表示状態も旧週・新週の実ScrollViewと新規登録時に更新する。準備済みの週の中身に選択状態の環境変更が及ばないようにし、実際の週の選択順・日時表示・接触範囲・VoiceOverの表示対象を維持する。これがCPU時間をどこまで減らすかは未検証。両OSの週送り限定で、90msの元の上限・往復・描画画像・実グリッドと、別ケースの最大文字時の実ドラッグを確認する。
 
 Linuxの生成後Swift構文検査で、変更途中の `WeekGridAccessibility` を2行に分割すると、行を基準にした既存の生成器が引数の途中に観測用Viewを挿入することを確認した。引数のラベルをローカル変数に取り出し、生成器が利用する呼出しを一行で閉じる。生成後のソースを再検査してからAppleの限定に進む。
+
+### 週送り限定45131022827・iOS27で準備済みページの環境更新を外しても148.194ms
+
+[iOS27.0／SDK27.2](https://github.com/n624-dev/takupoke-ios/actions/runs/45131022827/job/137546295053)、source `a60c912`、試行1。`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は07:35:19 UTCに37.559秒で停止。実枠の間隔148.194ms、採取中の診断JSON読取0件。到着から最初の設定開始まで約132.1ms、同区間のmain CPU約130.7ms。準備済みページへの選択環境値だけでは説明できない。後続の `testTimetableCommonClocksAndEventOnlyWeekScale` は252.366秒で成功。Native検査も成功。
+
+同じ限定の[iOS26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45131022827/job/137546294817)も、07:46:33 UTCに到着後149.169msで週送りが停止。後続の最大文字のケースは、リストのラベル `(196.5,635.7)` から縦ドラッグして実画面を移動し、193.980秒で成功した。通常の限定の全ジョブは終端。
+
+### 週送りスタック採取45133851878・所有アプリは照合でき、sampleは期限で終了
+
+[iOS26.5／SDK27.2](https://github.com/n624-dev/takupoke-ios/actions/runs/45133851878/job/137555309949)、診断source `5a81c57`、試行1。週送りの最初の高さ調整で333.099msを観測（08:02:06 UTC）。採取対象の実所有アプリを照合したが、`sample` は期限で終了してスタックを取得できなかった。開始から採取結果の記録まで12.23秒。最大文字は同じ実始点の照合を通って216.509秒で成功。採取を有効にした実行なので、描画の成績は正式配布の判断に使わない。全ジョブ終端。

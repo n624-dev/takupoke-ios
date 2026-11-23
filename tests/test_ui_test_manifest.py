@@ -170,6 +170,10 @@ OBSERVE
         self.assertIn("FixtureWeekMotionRecorder.shared.recordGridMetricsRead()", grid_fixture)
         self.assertNotIn("isDisplayedTimetableWeek", source + grid_fixture)
         self.assertIn("WeekGridAccessibility(week: week, selection: weekSelection,", source)
+        self.assertIn("let source = window?.source ?? selection.date", source)
+        self.assertIn("let selection = isPrepared ? (motion.selection ?? source) : source", source)
+        observer = source.split("private struct WeekSelectionObserver: View", 1)[1].split("private struct WeekPagesCanvas:", 1)[0]
+        self.assertIn(".onChange(of: selection.date)", observer)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

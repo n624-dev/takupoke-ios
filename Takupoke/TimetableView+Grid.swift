@@ -9,7 +9,7 @@ extension TimetableView {
         let revision = detailRevision + [mainColor.selection.rawValue,
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
             String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
-        return WeekPages(selection: weekStart, bounds: weekBounds, revision: revision,
+        return WeekPages(selection: weekSelection, bounds: weekBounds, revision: revision,
                          viewportWidth: gridViewportWidth, pull: weekPull, accent: weekControlColor,
                          content: { AnyView(weekPage(on: $0)) },
                          arrive: { source, target in
@@ -177,7 +177,7 @@ private struct WeekGridAccessibility: ViewModifier {
 }
 
 private struct WeekPages: View {
-    let selection: SchoolDate
+    let selection: TimetableWeekSelection
     let bounds: ClosedRange<SchoolDate>
     let revision: [String]
     let viewportWidth: CGFloat
@@ -189,7 +189,7 @@ private struct WeekPages: View {
     @ObservedObject private var preparation: WeekPagePreparation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(selection: SchoolDate, bounds: ClosedRange<SchoolDate>, revision: [String],
+    init(selection: TimetableWeekSelection, bounds: ClosedRange<SchoolDate>, revision: [String],
          viewportWidth: CGFloat, pull: WeekPullProgress, accent: WeekControlAccent,
          content: @escaping (SchoolDate) -> AnyView, arrive: @escaping (SchoolDate, SchoolDate) -> Void) {
         self.selection = selection; self.bounds = bounds; self.revision = revision
@@ -202,27 +202,31 @@ private struct WeekPages: View {
 
     var body: some View {
         let window = preparation.window
-        let weeks = WeekEdgePull.preparedWeeks(selected: window?.source ?? selection, arriving: window?.arrival,
-                                              within: bounds)
+        // During the handoff the prepared window already determines the pages.
+        // Let the canvas place them without rebuilding this view at arrival.
+        let source = window?.source ?? selection.date
+        let weeks = WeekEdgePull.preparedWeeks(selected: source, arriving: window?.arrival, within: bounds)
         let pages = weeks.map { week in WeekPage(id: week, revision: revision, content: { content(week) }) }
-        WeekPagesCanvas(pages: pages, currentIndex: weeks.firstIndex(of: selection) ?? 0,
-                        selection: selection, viewportWidth: viewportWidth, motion: motion)
+        WeekPagesCanvas(pages: pages, source: source, isPrepared: window != nil,
+                        viewportWidth: viewportWidth, motion: motion)
         .clipped()
         .background(WeekTransitionPullObserver(pull: pull))
+        .background {
+            WeekSelectionObserver(selection: selection) { date in
+                if motion.selection != date {
+                    pull.cancelWeekMove()
+                    motion.selection = date
+                }
+                configure(weeks)
+            }
+        }
         // Glass is deliberately outside the page clip, with measured clearance
         // from all four visible edges (including short, event-only weeks).
         .overlay {
-            WeekPullOverlay(pull: pull, previous: adjacentWeek(-7), next: adjacentWeek(7), accent: accent)
+            WeekPullOverlay(pull: pull, selection: selection, bounds: bounds, accent: accent)
                 .allowsHitTesting(false).accessibilityHidden(true)
         }
-        .onAppear { motion.selection = selection; configure(weeks) }
-        .onChange(of: selection) { _, _ in
-            if motion.selection != selection {
-                pull.cancelWeekMove()
-                motion.selection = selection
-            }
-            configure(weeks)
-        }
+        .onAppear { motion.selection = selection.date; configure(weeks) }
         .onChange(of: weeks) { _, _ in configure(weeks) }
         .onChange(of: bounds) { _, _ in
             pull.cancelWeekMove(); configure(weeks)
@@ -234,11 +238,6 @@ private struct WeekPages: View {
         .onDisappear { pull.completeWeekMove() }
     }
 
-    private func adjacentWeek(_ days: Int) -> SchoolDate? {
-        guard let week = selection.addingDays(days), bounds.contains(week) else { return nil }
-        return week
-    }
-
     private func configure(_ weeks: [SchoolDate]) {
         motion.bounds = bounds
         motion.available = Set(weeks)
@@ -246,8 +245,19 @@ private struct WeekPages: View {
         motion.reduceMotion = reduceMotion
         motion.arrive = arrive
         motion.retain(weeks: motion.available)
-        motion.resetNeighborScrolls(selected: selection)
+        motion.resetNeighborScrolls(selected: selection.date)
         motion.scheduleQueuedMove()
+    }
+}
+
+private struct WeekSelectionObserver: View {
+    let selection: TimetableWeekSelection
+    let changed: (SchoolDate) -> Void
+
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0)
+            .onChange(of: selection.date) { _, date in changed(date) }
+            .allowsHitTesting(false).accessibilityHidden(true)
     }
 }
 
@@ -255,13 +265,15 @@ private struct WeekPages: View {
 // Building page content depends on the week window rather than on every frame.
 private struct WeekPagesCanvas: View {
     let pages: [WeekPage]
-    let currentIndex: Int
-    let selection: SchoolDate
+    let source: SchoolDate
+    let isPrepared: Bool
     let viewportWidth: CGFloat
     @ObservedObject var motion: WeekPageMotion
 
     var body: some View {
-        WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight) {
+        let selection = isPrepared ? (motion.selection ?? source) : source
+        let currentIndex = pages.firstIndex { $0.id == selection } ?? 0
+        return WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight) {
             ForEach(pages) { page in
                 let isDisplayed = page.id == selection
                 page.equatable()
@@ -653,12 +665,12 @@ private struct WeekFooterHandoff: ViewModifier {
 
 private struct WeekPullOverlay: View {
     @ObservedObject var pull: WeekPullProgress
-    let previous: SchoolDate?
-    let next: SchoolDate?
+    let selection: TimetableWeekSelection
+    let bounds: ClosedRange<SchoolDate>
     let accent: WeekControlAccent
     var body: some View {
         let distance = pull.distance
-        if distance != 0, let destination = distance > 0 ? previous : next {
+        if distance != 0, let destination = selection.date.addingDays(distance > 0 ? -7 : 7), bounds.contains(destination) {
             let progress = min(abs(distance) / WeekEdgePull.threshold, 1)
             GeometryReader { geometry in
                 let origin = geometry.frame(in: .global).origin
