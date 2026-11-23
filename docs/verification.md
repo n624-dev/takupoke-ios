@@ -9368,3 +9368,11 @@ Linuxで製品の自動更新処理・取消制御・SQLiteを動かし、Apple�
 `testChangedAccountDataNoticeOpensSharedAcquisition|snapshot timeout` を索引で照合した。過去にはiOS27で取得画面へ移動して完走し、別の試行では移動前のUI取得で停止した。変更を含むiOS27の生成アプリをビルド・起動し、既存のデータ取得画面を限定検査する。OneDrive実通信や物理端末での中止操作はこの検査の対象外。[同じ限定の先行CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45073287792/job/137364850850)
 
 `f437bb6` のiOS27.0／Xcode27.2でアプリのビルドと起動、ホームから取得画面への遷移を21.019秒で確認した。同じコミットのLinux Swift全698件・失敗0、Python全343件・既定skip2・失敗0。iOS27の学校全体の実予約（#129・#161）は現在未確認。[最終アプリCI](https://github.com/n624-dev/takupoke-ios/actions/runs/45084624701/job/137400317406)
+
+## 2026-11-23 バグ修正の正式配布候補
+
+監査ブランチ `7606490` のアプリ・テスト・配布ワークフローを正式配布へ進める。配布文面を試験・返却PDF、カウントダウンと通知、時間割変更とファイル更新、リンク・学校行事の利用者向け修正に更新した。READMEはmainの利用者文面と一致する。Linuxは同じ製品コードでSwift 699件とPython 343件（既定skip2）が失敗0。公開前にmainとの差分でテスト台帳、Strict枝一覧、配布29件、公開ゲート13件、復旧指示の一致と契約を確認した。
+
+`testChangedOriginalCannotSubmitOrReplaceLastGood|manual-settings-list|Timed out while evaluating UI query|N213` を検索した。正式527のiOS26.5／SDK27.2試行1では設定タブ接触とgearshape取得後にListの照会が返らず、同じsource・SDK・ケースの試行2ではListを取得して原本変更の拒否と前回結果の保持まで完走した。通常Bは `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable|0.09|horizontal-arrival` を照合した。正式526の試行4は到着後216.183ms、正式527は両OSの往復とも90ms以内。今回も元の実操作、条件、期限で確認する。[527の原本変更停止](https://github.com/n624-dev/takupoke-ios/actions/runs/45017628980/job/137194296982) · [同ケースの成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45017628980/job/137220093018) · [526の描画停止](https://github.com/n624-dev/takupoke-ios/actions/runs/44997934998/job/137181895048)
+
+`testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed|2003|fixture-ready` も照合した。先行iOS26.5で実予約4件、iOS27.0で許可後の4件がOS応答2003、次候補ではスイッチ操作時に停止した。正式CIの通常Aで両OSの実予約、通常Bで週移動と表示、各OSの手動訂正4検査で採用の条件を確認する。公開は同じ対象コミットの既存の正式配布ゲートに従う。[iOS26.5の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45057062757/job/137314524243) · [iOS27.0の拒否](https://github.com/n624-dev/takupoke-ios/actions/runs/45060928537/job/137326458047)
