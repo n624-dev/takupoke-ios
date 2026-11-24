@@ -20,7 +20,7 @@ struct FileRefreshQueue {
     private(set) var suspended = false
 
     mutating func setForeground(_ value: Bool) {
-        if !value || !foreground { suspended = false }
+        if value && !foreground { suspended = false }
         foreground = value
         if !value { pending.removeAll() }
     }
@@ -29,6 +29,9 @@ struct FileRefreshQueue {
         suspended = true
         pending.removeAll()
     }
+
+    mutating func resume() { suspended = false }
+    mutating func discardPending() { pending.removeAll() }
 
     mutating func request(_ id: String) {
         if foreground && !suspended { pending.insert(id) }

@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`2869d06ef5d652459b4d5318ae3d6ae14953af1b9f09a5ab8d2223d6c5e28aa2`
+`2601e8a2351bdaa6071acf77a8407143e76dd9d194e33704fd0fb44110f043c7`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -109,6 +109,7 @@ bash tools/test-app-ui.sh
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
 - `test_network_rewrite_preserves_standard_xlsx_identifiers_only`
+- `test_service_status_fixture_changes_only_the_network_endpoint`
 - `test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift`
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
@@ -161,6 +162,7 @@ bash tools/test-app-ui.sh
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`
+- `testStatusScreenUsesPublicResourcesAndDataRoutes`
 - `testEmptyDataCanBeConfigured`
 - `testChangedAccountDataNoticeOpensSharedAcquisition`
 - `testFileFailuresKeepResultsAndStayInTheirOwnDetails`

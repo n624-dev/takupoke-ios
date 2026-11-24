@@ -94,6 +94,11 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
 PROBE_GROUPS = {
+    "status-settings": ("testSettingsGroupsAndCompactDataOverviews",
+                        "testStatusScreenUsesPublicResourcesAndDataRoutes",
+                        "testEmptyDataCanBeConfigured",
+                        SETTINGS_TEST,
+                        "testSetupCanBeSkippedAndOffersAllFiles"),
     "system-text-size": (SYSTEM_SIZE_TEST,),
     "yellow-contrast": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",),
     "week-appearance": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
@@ -158,6 +163,7 @@ SHARDS = {
         "testChangedDataProducesOneLocalNotification",
         SCHOOL_COUNTDOWN_NOTIFICATION_TEST,
         "testSettingsGroupsAndCompactDataOverviews",
+        "testStatusScreenUsesPublicResourcesAndDataRoutes",
         "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible",
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",

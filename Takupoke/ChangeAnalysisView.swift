@@ -5,6 +5,7 @@ struct ChangeAnalysisView: View {
     @ObservedObject var mappings: MappingModel
     @AppStorage("changeDefaultSchoolYear") private var year = ""
     @AppStorage("changeAnalysisSelectedClass") private var selectedClass = ""
+    @State private var fileRequest: FileSelectionRequest?
 
     private var defaultYear: Int? {
         ChangeNormalizer.effectiveSchoolYear(configured: year, today: SchoolDate.today())
@@ -25,16 +26,7 @@ struct ChangeAnalysisView: View {
     }
 
     private var skippedRows: [Int] {
-        guard let source = model.state.record(for: .changes) else { return [] }
-        let identity = source.source.selectionID ?? source.storedName
-        if let personal = source.source.personalChanges, personal.year == defaultYear,
-           let rows = personal.rows, rows.sourceIdentity == identity, rows.digest == source.digest,
-           analysis?.matches(record: source, defaultYear: defaultYear) == true {
-            return rows.entries.filter { $0.edit.excluded }.map(\.row)
-        }
-        if let skip = source.source.rowSkipConsent,
-           skip.matches(sourceIdentity: identity, digest: source.digest, defaultYear: defaultYear) { return skip.rows }
-        return []
+        model.state.excludedChangeRows(year: defaultYear)
     }
 
     var body: some View {
@@ -44,19 +36,24 @@ struct ChangeAnalysisView: View {
                     .keyboardType(.numberPad).disabled(model.busy)
                 if !validYear { InlineWarning("西暦1900〜9998の学校年度を入力してください。") }
                 if let source = model.state.record(for: .changes) {
-                    LabeledContent("状態", value: model.analysisStatus(.changes, record: source))
+                    StatusRow(title: source.originalName, status: model.fileStatus(.changes))
                         .accessibilityIdentifier("change-analysis-status")
+                        .accessibilityValue(model.fileStatus(.changes).title)
                 }
                 if model.busy {
-                    LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
+                    LoadingRow(title: model.cancellationRequested ? "中止して処理の終了を待っています⋯" : "ファイルを処理中⋯",
+                               cancel: model.cancellationRequested ? nil : { model.cancelCurrentOperation() })
                 }
                 if let message = model.changeFailureMessage {
                     InlineWarning(message)
-                } else if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
-                    InlineWarning(failure)
+                } else if let attempt = model.state.attempts[MaterialKind.changes.rawValue], let failure = attempt.failure {
+                    if attempt.wasCancelled { Text(failure).foregroundStyle(.secondary) }
+                    else { InlineWarning(failure) }
                 }
+                if model.lastOperationWasCancelled { Text("前回の処理を中止しました。").foregroundStyle(.secondary) }
                 if model.changeFailureMessage == nil, let failure = currentFailure {
-                    InlineWarning(failure.localizedDescription)
+                    if failure.code == .cancelled { Text(failure.localizedDescription).foregroundStyle(.secondary) }
+                    else { InlineWarning(failure.localizedDescription) }
                 }
             } header: { Text("状態").accessibilityIdentifier("material-state-section") }
             if model.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: model.state.record(for: .changes)?.digest ?? "", defaultYear: defaultYear) == true {
@@ -71,17 +68,8 @@ struct ChangeAnalysisView: View {
                         .accessibilityIdentifier("change-skipped-rows")
                 }
             }
-            Section {
-                if model.state.record(for: .changes) != nil {
-                    Button("内容を確認・修正") { model.openChangeEditor() }
-                        .disabled(model.busy || !model.ready || !validYear)
-                }
-                Button("同じファイルを再取得") { model.refresh(.changes) }
-                    .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
-            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: .changes) {
                 Section {
-                    Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
@@ -99,6 +87,19 @@ struct ChangeAnalysisView: View {
                     }
                 } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
+            Section {
+                Button("更新を確認") { model.checkForUpdates(.changes) }
+                    .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
+                if model.state.record(for: .changes) != nil {
+                    Button("内容を確認・修正") { model.openChangeEditor() }
+                        .disabled(model.busy || !model.ready || !validYear)
+                }
+                Button("同じファイルを再取得") { model.refresh(.changes) }
+                    .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
+                Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .material(.changes)) }
+                    .disabled(model.busy || !model.ready)
+                    .accessibilityLabel("時間割変更のファイルを選び直す")
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let analysis = analysis {
                 Section {
                     Text(analysis.sourceName)
@@ -138,6 +139,12 @@ struct ChangeAnalysisView: View {
             }
         }
         .onChange(of: year) { _, _ in model.dismissPreview() }
+        .background(
+            MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
+                type: { $0.type }, instruction: { $0.instruction },
+                selected: { _, selection in model.selectFile(selection, kind: .changes) })
+                .allowsHitTesting(false)
+        )
     }
 
     @ViewBuilder private var parseButton: some View {

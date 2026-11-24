@@ -569,6 +569,20 @@ enum SimulatorEventsYearFixture {
         self.assertNotIn("files.example.invalid", changed)
         self.assertNotIn("fetch=1", changed)
 
+    def test_service_status_fixture_changes_only_the_network_endpoint(self):
+        original = (ROOT / "Takupoke/ServiceStatusModel.swift").read_text()
+        rewritten = app_test_project.rewrite_network_urls(original)
+        generated = app_test_project.instrument_service_status_endpoint(rewritten)
+        self.assertNotIn("status.n624.jp", generated)
+        self.assertEqual(generated.count('.appendingPathComponent("service-status")'), 1)
+        self.assertIn('static let pageURL = URL(string: "https://fixture.example.test")!', generated)
+        self.assertEqual(generated.replace('.appendingPathComponent("service-status")', ''), rewritten)
+        marker = 'nonisolated static let endpoint = URL(string: "https://fixture.example.test")!'
+        for invalid in (rewritten.replace(marker, ''), rewritten + marker):
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_service_status_endpoint(invalid)
+        self.assertEqual(len(re.findall(r'\b(?:let|var) \w+ = URLSessionConfiguration\.(?:ephemeral|default)', generated)), 1)
+
     def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
         launch = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
         self.assertIn('"testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"]', launch)
@@ -1265,7 +1279,8 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 43)
+        self.assertEqual(len(manifest.selected_tests("all")), 44)
+        self.assertIn("testStatusScreenUsesPublicResourcesAndDataRoutes", manifest.SHARDS["A"])
         self.assertIn(manifest.SCHOOL_COUNTDOWN_NOTIFICATION_TEST, manifest.SHARDS["A"])
         self.assertIn(manifest.COUNTDOWN_DELETE_TEST, manifest.SHARDS["A"])
         self.assertIn("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", manifest.SHARDS["B"])
@@ -1603,6 +1618,10 @@ METHOD
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
             ("file-details", ("testFileFailuresKeepResultsAndStayInTheirOwnDetails",
                               "testSetupCanBeSkippedAndOffersAllFiles")),
+            ("status-settings", ("testSettingsGroupsAndCompactDataOverviews",
+                                 "testStatusScreenUsesPublicResourcesAndDataRoutes",
+                                 "testEmptyDataCanBeConfigured", manifest.SETTINGS_TEST,
+                                 "testSetupCanBeSkippedAndOffersAllFiles")),
             ("updates", ("testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
                          "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork")),
             ("auxiliary-store", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",)),

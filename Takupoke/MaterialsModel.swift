@@ -14,6 +14,8 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var ready = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    @Published private(set) var cancellationRequested = false
+    @Published private(set) var lastOperationWasCancelled = false
     @Published private(set) var changePreview: ChangePreview?
     @Published private(set) var pdfURLs: [String: URL] = [:]
     @Published private(set) var timetableReadReport: String?
@@ -37,8 +39,9 @@ final class MaterialsModel: ObservableObject {
     private var control: AcquisitionControl?
     private var backgroundRefreshID: UUID?
     private var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
-    var fileRefreshQueue = FileRefreshQueue()
+    @Published var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+        guard self?.cancellationRequested == false else { return }
         self?.fileRefreshQueue.request(id)
         self?.runPendingFileRefresh()
     }
@@ -209,23 +212,41 @@ final class MaterialsModel: ObservableObject {
         }
         state = MaterialLibraryState(); pdfURLs = [:]; changePreview = nil
         timetableReadReport = nil; timetableFailure = nil
-        ready = false; busy = false; control = nil; message = nil; failed = false
+        ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
 
     func resumeAfterRetention() { retired = false }
 
     func cancel() {
-        FileRefreshDiagnostics.shared.record(.cancelled)
+        pauseAutomaticChecks()
+        cancelCurrentOperation()
+    }
+
+    func pauseAutomaticChecks() {
         fileRefreshQueue.suspend()
         fileMonitor.suspend()
+    }
+
+    func resumeAutomaticChecks() {
+        guard !retired else { return }
+        fileRefreshQueue.resume()
+        fileMonitor.resume()
+    }
+
+    func cancelCurrentOperation() {
+        guard busy else { return }
+        FileRefreshDiagnostics.shared.record(.cancelled)
+        cancellationRequested = true
+        fileRefreshQueue.discardPending()
+        fileMonitor.discardPendingRefreshes()
         pendingSelections.clear()
         control?.cancel()
-        message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
+        message = "中止を要求しました。処理の終了を待っています。"
     }
 
     func refreshInBackground() async -> Bool {
-        guard !busy, !retired, !Task.isCancelled else { return false }
+        guard !fileRefreshQueue.suspended, !busy, !retired, !Task.isCancelled else { return false }
         let id = UUID()
         backgroundRefreshID = id
         let year = automaticChangeSchoolYear
@@ -260,6 +281,8 @@ final class MaterialsModel: ObservableObject {
                  operation: @escaping (MaterialWorker, AcquisitionControl) throws -> Void) {
         guard !busy, !retired else { completion?(false); return }
         busy = true
+        cancellationRequested = false
+        lastOperationWasCancelled = false
         failed = false
         message = nil
         changeFailureContext = changeYear.flatMap { year in
@@ -290,6 +313,11 @@ final class MaterialsModel: ObservableObject {
                 self.timetableFailure = timetableFailure
                 self.busy = false
                 self.control = nil
+                if self.cancellationRequested {
+                    self.fileRefreshQueue.discardPending()
+                    self.fileMonitor.discardPendingRefreshes()
+                }
+                self.cancellationRequested = false
                 self.updateFileMonitoring(retryFailedFor: control.acquiredProviderSources)
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
                 switch result {
@@ -297,12 +325,14 @@ final class MaterialsModel: ObservableObject {
                     self.message = success
                     if !preserveChangePreview || preview != nil || dismissChangePreviewOnSuccess { self.changePreview = preview }
                 case .failure(let error):
-                    self.failed = true
-                    self.message = (error as? ChangeParseError)?.localizedDescription
+                    self.lastOperationWasCancelled = FileOperationOutcome.isCancellation(error)
+                    self.failed = !self.lastOperationWasCancelled
+                    self.message = self.lastOperationWasCancelled ? MaterialError.cancelled.localizedDescription :
+                        (error as? ChangeParseError)?.localizedDescription
                         ?? (error as? PDFParseError)?.localizedDescription
                         ?? ((error as? MaterialError) ?? .unavailable).localizedDescription
                 }
-                completion?(!self.failed)
+                if case .success = result { completion?(true) } else { completion?(false) }
             }
         }
     }

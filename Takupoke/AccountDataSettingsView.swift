@@ -88,7 +88,7 @@ struct AcquisitionStatusRow: View {
     }
 }
 
-private struct LinksDataDetailView: View {
+struct LinksDataDetailView: View {
     @EnvironmentObject private var links: LinksModel
 
     var body: some View {
@@ -114,7 +114,7 @@ private struct LinksDataDetailView: View {
     }
 }
 
-private struct TimetableTimesDetailView: View {
+struct TimetableTimesDetailView: View {
     @EnvironmentObject private var times: TimetableTimesModel
 
     var body: some View {

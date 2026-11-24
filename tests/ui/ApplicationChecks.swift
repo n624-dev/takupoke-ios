@@ -22,6 +22,8 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testHomeClockSettingChangesAcrossBoundariesUpdateTheActualInProgressLabel": ["--home-clock-boundary", "--normal-only"],
             "testLinkPreferencesSurviveRelaunch": ["--fixture-input-trace", "--fixture-link-press-trace", "--loopback-browser-fixture"],
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"],
+            "testSettingsGroupsAndCompactDataOverviews": ["--fixture-input-trace"],
+            "testStatusScreenUsesPublicResourcesAndDataRoutes": ["--fixture-input-trace"],
             "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
             "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size", "--fixture-input-trace"],

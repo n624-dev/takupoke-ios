@@ -34,6 +34,16 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("ステータス") {
+                    NavigationLink {
+                        AppStatusView(materials: materials, specialSchedules: specialSchedules,
+                                      schoolEvents: schoolEvents, mappings: mappings)
+                    } label: {
+                        AppStatusSummaryRow(materials: materials, specialSchedules: specialSchedules,
+                                            schoolEvents: schoolEvents, mappings: mappings)
+                    }
+                    .accessibilityIdentifier("settings-status")
+                }
                 Section("データ") {
                     NavigationLink {
                         MaterialsView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
@@ -57,25 +67,15 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Section("アプリ設定") {
+                Section("時間割・学習") {
                     NavigationLink {
                         TimetablePrimaryClassSelection(classes: TimetableSchedule.selectableClasses, value: $selectedClasses)
                     } label: {
                         LabeledContent("クラス", value: selectedClasses.isEmpty ? "未選択" :
                             TimetableDisplayText.classNames(selectedClasses.split(separator: "|").map(String.init)))
                     }
-                    Toggle("AI・OCRを使用する", isOn: Binding(get: { useAiFeatures }, set: { useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0) }))
-                        .accessibilityIdentifier("use-ai-features")
-                    NavigationLink("端末内AIモデル") { RecoveryModelSettingsView() }
-                    NavigationLink("通知") { NotificationSettingsView() }
                     NavigationLink("カウントダウン") { CountdownManagementView(events: schoolEvents) }
                         .accessibilityIdentifier("countdown-settings")
-                    Picker("メインカラー", selection: colorSelection) {
-                        ForEach(MainColor.allCases) { choice in
-                            Text(choice.title).tag(choice)
-                        }
-                    }
-                    .pickerStyle(.menu)
                     Picker("シラバスの学科", selection: $syllabusDepartmentID) {
                         Text("学科を選択しない").tag("")
                         ForEach(SyllabusLinkPolicy.departments) { department in
@@ -84,6 +84,20 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.navigationLink)
                     .accessibilityIdentifier("syllabus-department")
+                }
+                Section("AI・OCR") {
+                    Toggle("AI・OCRを使用する", isOn: Binding(get: { useAiFeatures }, set: { useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0) }))
+                        .accessibilityIdentifier("use-ai-features")
+                    NavigationLink("端末内AIモデル") { RecoveryModelSettingsView() }
+                }
+                Section("アプリ設定") {
+                    NavigationLink("通知") { NotificationSettingsView() }
+                    Picker("メインカラー", selection: colorSelection) {
+                        ForEach(MainColor.allCases) { choice in
+                            Text(choice.title).tag(choice)
+                        }
+                    }
+                    .pickerStyle(.menu)
                     Picker("リンクの開き方", selection: $linkOpeningMode) {
                         Text("デフォルトのブラウザ").tag(LinkOpeningMode.external.rawValue)
                         Text("アプリ内で開く").tag(LinkOpeningMode.inApp.rawValue)

@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`aa7b8408549332b9117d83436f18dba9657e4063573e64f4930c6ebe9fe82afb`
+`d799b5a9a8a33f8a98e11cce46d7f52f18c1237a62870a4b3fff15723db2f67a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -110,6 +110,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
+- `test_paused_files_do_not_start_background_work_before_foreground_return`
 - `test_special_provider_refresh_keeps_cancellation_separate_from_failure`
 - `test_recovered_timetable_clears_previous_error_only_after_commit`
 - `test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`

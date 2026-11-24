@@ -184,12 +184,14 @@ struct SavedSchoolEventsSourceStatus: Codable, Equatable {
 }
 
 struct SchoolEventsSourcePresentation {
+    enum Evidence { case unknown, checking, matched, differs }
     let message: String
     let warningMessage: String?
     var warning: Bool { warningMessage != nil }
     let lastSuccessfulMessage: String?
     let lastSuccessAt: Date?
     let receivedAt: Date?
+    var evidence: Evidence = .unknown
 
     static func make(saved: SavedSchoolEvents, cached: SavedSchoolEventsSourceStatus?,
                      error: String?, now: Date, firstFailureAt: Date? = nil, checking: Bool = false) -> Self {
@@ -214,7 +216,8 @@ struct SchoolEventsSourcePresentation {
             let detail = mismatch ? "APIと保存済み行事の配信版が一致しないため、更新状況は未確認です。"
                 : checking ? "元PDFの更新状況を確認中です。" : "元PDFの更新状況は未確認です。"
             return .init(message: error ?? detail,
-                         warningMessage: warning, lastSuccessfulMessage: nil, lastSuccessAt: nil, receivedAt: nil)
+                         warningMessage: warning, lastSuccessfulMessage: nil, lastSuccessAt: nil, receivedAt: nil,
+                         evidence: checking && error == nil ? .checking : .unknown)
         }
         let value = cached.response
         let old = value.stale || !cached.isFresh(at: now) || success.map { now.timeIntervalSince($0) >= 24 * 60 * 60 } != false
@@ -231,9 +234,16 @@ struct SchoolEventsSourcePresentation {
         else if cached.previousSuccess != nil { message = "APIから以前の確認結果が返りました。新しい成功結果を保持しています。現在の更新状況は未確認です。" }
         else if old { message = "元PDFの確認結果は古くなっています。現在の更新状況は未確認です。" }
         else { message = description(value.status) }
+        let evidence: Evidence
+        if error != nil { evidence = .unknown }
+        else if checking || (value.checking && cached.isFresh(at: now)) { evidence = .checking }
+        else if value.checking || old || cached.previousSuccess != nil { evidence = .unknown }
+        else if value.status == .matched { evidence = .matched }
+        else if value.status == .source_differs { evidence = .differs }
+        else { evidence = .unknown }
         return .init(message: message, warningMessage: warning,
                      lastSuccessfulMessage: success == nil ? nil : successful?.lastSuccessfulStatus.map(description),
-                     lastSuccessAt: success, receivedAt: cached.receivedAt)
+                     lastSuccessAt: success, receivedAt: cached.receivedAt, evidence: evidence)
     }
 
     private static func description(_ status: SchoolEventsSourceStatus.Status) -> String {

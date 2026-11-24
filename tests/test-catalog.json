@@ -878,6 +878,29 @@
         "tests/test_ocr_code_english_screen.py",
         "tests/test_workflow_source_paths.py"
       ]
+    },
+    {
+      "id": "status",
+      "title": "ステータス・公開監視情報・取消表示",
+      "environment": "Linux Swift（状態判定）／Apple iOS26/27（画面・通信）",
+      "commands": [
+        "bash tools/test-parsing.sh",
+        "bash tools/test-app-ui.sh"
+      ],
+      "sources": [
+        "Takupoke/AppStatusView.swift",
+        "Takupoke/ServiceStatus.swift",
+        "Takupoke/ServiceStatusModel.swift",
+        "Takupoke/ServiceStatusView.swift",
+        "Takupoke/StatusPresentation.swift",
+        "Takupoke/StatusRow.swift"
+      ],
+      "checks": [
+        "tests/ServiceStatusTests.swift",
+        "tests/StatusPresentationTests.swift",
+        "tests/ui/ApplicationChecks+Settings.swift",
+        "tests/test_application_ui_runner.py"
+      ]
     }
   ]
 }

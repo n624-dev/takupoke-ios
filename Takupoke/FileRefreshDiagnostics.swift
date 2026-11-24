@@ -26,7 +26,7 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
     }
     static let shared = FileRefreshDiagnostics()
     private let lock = NSLock()
-    private let started = Date()
+    private let started = ProcessInfo.processInfo.systemUptime
     private let limit: Int
     private var total = 0
     private var entries: [Entry] = []
@@ -38,7 +38,7 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
         defer { lock.unlock() }
         total += 1
         let entry = Entry(sequence: total,
-            elapsedMilliseconds: Int(max(0, Date().timeIntervalSince(started)) * 1000),
+            elapsedMilliseconds: Int(max(0, ProcessInfo.processInfo.systemUptime - started) * 1000),
             step: step, source: source)
         // Keep the initial registration and the latest feedback cycle.
         if entries.count == limit { entries.remove(at: min(32, limit / 2)) }

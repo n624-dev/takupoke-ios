@@ -11,7 +11,7 @@ extension SpecialSchedulesModel {
     }
 
     nonisolated static func refreshSelectedFiles(_ store: SpecialScheduleStore, requested: Set<String>,
-                                                 control: AcquisitionControl) throws {
+                                                 control: AcquisitionControl, force: Bool = false) throws {
             var failure: Error?
             for kind in SpecialScheduleKind.allCases where requested.contains(kind.rawValue) {
                 try control.check()
@@ -37,7 +37,7 @@ extension SpecialSchedulesModel {
                         FileRefreshDiagnostics.shared.record(digest == source.digest ? .hashSame : .hashChanged,
                                                              source: diagnosticSource)
                         try control.check()
-                        if digest == source.digest {
+                        if digest == source.digest && !force {
                             try store.recordSuccessfulCheck(kind, digest: digest, originalName:name)
                         } else {
                             try store.saveSelection(staged: staged, kind: kind, originalName: name,
@@ -49,7 +49,7 @@ extension SpecialSchedulesModel {
                     }
                     // Check the provider before retrying an older local parser failure.
                     // A malformed old copy must not prevent acquiring its replacement.
-                    if changed || needsAnalysis {
+                    if changed || needsAnalysis || force {
                         guard let selectedURL = store.selectedURL(for: kind),
                               let selectedSource = store.sources[kind] else { throw MaterialError.unavailable }
                         let parseCheck: () throws -> Void = {

@@ -26,6 +26,8 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    @Published private(set) var cancellationRequested = false
+    @Published private(set) var lastOperationWasCancelled = false
     private(set) var rejectedRecoveryKinds = Set<SpecialScheduleKind>()
     @Published private(set) var returnPositionsReport: String?
     @Published var fullReadReports: [SpecialScheduleKind: String] = [:]
@@ -38,8 +40,9 @@ final class SpecialSchedulesModel: ObservableObject {
     private var control: AcquisitionControl?
     private var backgroundRefreshID: UUID?
     private var pendingSelections = PendingFileSelections<SpecialScheduleKind, ScopedMaterialSelection>()
-    var fileRefreshQueue = FileRefreshQueue()
+    @Published var fileRefreshQueue = FileRefreshQueue()
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+        guard self?.cancellationRequested == false else { return }
         self?.fileRefreshQueue.request(id)
         self?.runPendingFileRefresh()
     }
@@ -79,23 +82,41 @@ final class SpecialSchedulesModel: ObservableObject {
             }
         }
         store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]; returnPositionsReport = nil
-        ready = false; busy = false; control = nil; message = nil; failed = false
+        ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
 
     func resumeAfterRetention() { retired = false }
 
     func cancel() {
-        FileRefreshDiagnostics.shared.record(.cancelled)
+        pauseAutomaticChecks()
+        cancelCurrentOperation()
+    }
+
+    func pauseAutomaticChecks() {
         fileRefreshQueue.suspend()
         fileMonitor.suspend()
+    }
+
+    func resumeAutomaticChecks() {
+        guard !retired else { return }
+        fileRefreshQueue.resume()
+        fileMonitor.resume()
+    }
+
+    func cancelCurrentOperation() {
+        guard busy else { return }
+        FileRefreshDiagnostics.shared.record(.cancelled)
+        cancellationRequested = true
+        fileRefreshQueue.discardPending()
+        fileMonitor.discardPendingRefreshes()
         pendingSelections.clear()
         control?.cancel()
-        message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
+        message = "中止を要求しました。処理の終了を待っています。"
     }
 
     func refreshInBackground() async -> Bool {
-        guard !busy, !retired, !Task.isCancelled else { return false }
+        guard !fileRefreshQueue.suspended, !busy, !retired, !Task.isCancelled else { return false }
         let id = UUID()
         backgroundRefreshID = id
         let result = await withTaskCancellationHandler {
@@ -126,6 +147,8 @@ final class SpecialSchedulesModel: ObservableObject {
                                                SpecialDiagnosticCapture) throws -> Void) {
         guard !busy, !retired else { completion?(false); return }
         busy = true
+        cancellationRequested = false
+        lastOperationWasCancelled = false
         returnPositionsReport = nil
         failed = false
         message = nil
@@ -152,6 +175,11 @@ final class SpecialSchedulesModel: ObservableObject {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
                 self.control = nil
+                if self.cancellationRequested {
+                    self.fileRefreshQueue.discardPending()
+                    self.fileMonitor.discardPendingRefreshes()
+                }
+                self.cancellationRequested = false
                 self.returnPositionsReport = capture.positionsReport
                 if let kind { self.fullReadReports[kind] = capture.report }
                 if let store = capture.store {
@@ -171,12 +199,14 @@ final class SpecialSchedulesModel: ObservableObject {
                 case .success:
                     self.message = success
                 case .failure(let error):
-                    self.failed = true
-                    self.message = (error as? PDFParseError)?.localizedDescription
+                    self.lastOperationWasCancelled = FileOperationOutcome.isCancellation(error)
+                    self.failed = !self.lastOperationWasCancelled
+                    self.message = self.lastOperationWasCancelled ? MaterialError.cancelled.localizedDescription :
+                        (error as? PDFParseError)?.localizedDescription
                         ?? (error as? MaterialError)?.localizedDescription
                         ?? "\(kind?.title ?? "試験時間割・試験返却時間割")を保存できませんでした。前回の解析結果は保持しています。"
                 }
-                completion?(!self.failed)
+                if case .success = result { completion?(true) } else { completion?(false) }
             }
         }
     }

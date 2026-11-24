@@ -25,25 +25,25 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 
 | 対象 | 宣言数 | 検証する環境 |
 |---|---:|---|
-| [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 74 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [原本取得・更新・保存・File Provider](test-catalog/material.md) | 47 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 75 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [原本取得・更新・保存・File Provider](test-catalog/material.md) | 48 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [ローカルDB・移行・半期削除](test-catalog/database.md) | 41 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [日本時間・学校年度・日付表示](test-catalog/date.md) | 9 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [リンク・検索・設定保持](test-catalog/links.md) | 19 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [名称対応・パッケージ・認証取得](test-catalog/mapping.md) | 54 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [学校行事API・年度別保存](test-catalog/events.md) | 47 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [学校行事API・年度別保存](test-catalog/events.md) | 49 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 45 | Linux Swift／iOS 26.5・27.0シミュレータ |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 107 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [試験・返却PDF](test-catalog/special.md) | 77 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [試験・返却PDF](test-catalog/special.md) | 78 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 121 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 226 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 127 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
 | [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 34 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
-| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 198 | Apple iOS26/27。LinuxはPython契約検査のみ |
+| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 200 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 28 | Apple iOS26/27 UI＋Nativeレイアウト |
-| [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 95 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
+| [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 96 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |
-| [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 80 | Linux Python（隔離Gitリポジトリ） |
+| [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 81 | Linux Python（隔離Gitリポジトリ） |
 | [Windows OCR候補のApple原画素比較（認識器の研究）](test-catalog/ocr-transfer-screen.md) | 9 | Apple macOS26／配布SDK27。iPhone・文書全体・採用合格は対象外 |
 | [iOS CPU Runtimeの原確率・CTC照合（研究）](test-catalog/ocr-ios-runtime-parity.md) | 19 | iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認 |
 | [全PDF原画素・実罫線からのOCR領域取得比較（研究）](test-catalog/ocr-full-source-transfer.md) | 26 | macOS26/PDFKit/Vision・実RecoveryRasterGrid。各条件444値×2描画条件、初期探索であり正式採用・iPhone品質ではない |
@@ -53,3 +53,4 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [全17クラス・5日・全時限の原PDF2x固定比較](test-catalog/ocr-full-scope-source2x.md) | 9 | Apple SDK26。既使用の独立架空6資料、現行2048 V6の失敗とは別条件 |
 | [従来型Vision・原画素4倍反復の認識器探索](test-catalog/ocr-legacy-line-screen.md) | 5 | Linux比較器／Mac SDK26 Native Vision（研究専用） |
 | [原教室コード・英語専用VisionとEnglishV1の独立比較](test-catalog/ocr-code-english-screen.md) | 13 | Linux契約検査／Mac SDK26 Native Vision（研究専用） |
+| [ステータス・公開監視情報・取消表示](test-catalog/status.md) | 44 | Linux Swift（状態判定）／Apple iOS26/27（画面・通信） |

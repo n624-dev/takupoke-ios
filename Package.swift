@@ -36,7 +36,7 @@ let package = Package(
                     "ContentView.swift",
                     "ApplicationData.swift", "BackgroundRefresh.swift",
                     "ScheduleNotifications.swift", "NotificationSettingsView.swift",
-                    "SettingsView.swift",
+                    "SettingsView.swift", "AppStatusView.swift", "ServiceStatusView.swift", "StatusRow.swift", "ServiceStatusModel.swift",
                     "HomeView.swift",
                     "HomeTodayView.swift", "HomeLessonRow.swift",
                     "TimetablePresentation+Details.swift",
@@ -86,7 +86,7 @@ let package = Package(
                     "LinkRow.swift",
                 ] + mappingExcludes,
                 sources: [
-                    "MainColor.swift", "CancellationLinkedTask.swift",
+                    "MainColor.swift", "CancellationLinkedTask.swift", "StatusPresentation.swift", "ServiceStatus.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
                     "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryPromptCatalog.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryStructure.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift", "RecoveryOCRAcquisition.swift", "RecoveryOCRStructure.swift", "RecoveryVisionCapture.swift", "RecoveryManualAssistance.swift", "RecoveryManualReview.swift",
@@ -171,7 +171,7 @@ let package = Package(
                     "test-catalog.json",
                 ] + mappingTestExcludes,
                     sources: [
-                    "MainColorTests.swift", "CancellationLinkedTaskTests.swift",
+                    "MainColorTests.swift", "CancellationLinkedTaskTests.swift", "StatusPresentationTests.swift", "ServiceStatusTests.swift",
                     "FileRefreshTests.swift",
                     "ParsingTests.swift",
                     "ParsingTests+Normalization.swift",

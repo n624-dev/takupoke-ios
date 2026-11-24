@@ -22,6 +22,8 @@ final class ApplicationData: ObservableObject {
     let projections = TimetableProjectionCache(suspended:true)
     let textMeasurements = TimetableTextMeasurements()
     let homeClock = HomeScheduleClock()
+    let serviceStatus = ServiceStatusModel()
+    @Published private(set) var networkPathAvailable: Bool?
 
     func scheduleSourceIndex(materials:MaterialsModel,specials:SpecialSchedulesModel,events:SchoolEventsModel) -> TimetableSchedule.SourceIndex {
         projections.sourceIndex(for:.init(materials:materials.scheduleGeneration,specials:specials.scheduleGeneration,events:events.scheduleGeneration)) {
@@ -53,7 +55,10 @@ final class ApplicationData: ObservableObject {
         specialSchedules.$sources.sink { [weak self] _ in self?.checkNotificationsWhenActive() }.store(in: &observations)
         eventsNetwork.pathUpdateHandler = { [weak self] path in
             let reachable = path.status == .satisfied
-            Task { @MainActor [weak self] in self?.schoolEvents.setNetworkReachable(reachable) }
+            Task { @MainActor [weak self] in
+                self?.networkPathAvailable = reachable
+                self?.schoolEvents.setNetworkReachable(reachable)
+            }
         }
         eventsNetwork.start(queue: DispatchQueue(label: "jp.n624.takupoke.events-network"))
         countdown.onChange = { [weak self] in self?.updateCountdown() }

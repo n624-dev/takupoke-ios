@@ -30,8 +30,10 @@ final class SelectedFileMonitor {
         guard foreground != value else { return }
         FileRefreshDiagnostics.shared.record(value ? .foreground : .background)
         foreground = value
-        suspended = false
-        if value { for source in sources.values { start(source) } }
+        if value {
+            suspended = false
+            for source in sources.values { start(source) }
+        }
         else {
             for id in Array(generations.keys) { stop(id) }
         }
@@ -40,6 +42,17 @@ final class SelectedFileMonitor {
     func suspend() {
         suspended = true
         for id in Array(generations.keys) { stop(id) }
+    }
+
+    func resume() {
+        guard suspended else { return }
+        suspended = false
+        if foreground { for source in sources.values { start(source) } }
+    }
+
+    func discardPendingRefreshes() {
+        notifications.values.forEach { $0.cancel() }
+        notifications.removeAll()
     }
 
     func update(_ selected: [SelectedFileSource], retryFailedFor acquired: Set<String> = []) {

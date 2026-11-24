@@ -115,6 +115,12 @@ def rewrite_network_urls(text):
     return re.sub(r'https?://[^"\s)]+',
                   lambda match: match[0] if match[0] in namespaces else 'https://fixture.example.test', text)
 
+def instrument_service_status_endpoint(text):
+    marker = 'nonisolated static let endpoint = URL(string: "https://fixture.example.test")!'
+    assert text.count(marker) == 1, 'Service status fixture endpoint insertion point missing or duplicated'
+    return text.replace(marker, marker + '.appendingPathComponent("service-status")')
+
+
 TIMETABLE_DATE_SITES = {
     'TimetableView.swift': (
         '    @State private var selectedWeek = TimetableWeekSelection(date: SchoolDate.today().displayWeekStart)\n',
@@ -431,6 +437,8 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         text = rewrite_network_urls(text)
         text = re.sub(r'(\b(?:let|var) (\w+) = URLSessionConfiguration\.(?:ephemeral|default))',
                       lambda match: match[1] + "\n        " + match[2] + ".protocolClasses = [FixtureNetwork.self]", text)
+        if path.name == 'ServiceStatusModel.swift':
+            text = instrument_service_status_endpoint(text)
         if path.name == 'SchoolEventsModel.swift':
             text = instrument_events_cache(text)
             endpoint = 'URL(string: "https://fixture.example.test")!'

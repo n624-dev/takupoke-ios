@@ -1,6 +1,18 @@
 import Foundation
 
 extension MaterialsModel {
+    func checkForUpdates(_ kind: MaterialKind? = nil) {
+        guard ready, !busy else { return }
+        let requested = Set((kind.map { [$0] } ?? [.timetable, .changes]).compactMap {
+            state.record(for: $0) == nil ? nil : $0.rawValue
+        })
+        guard !requested.isEmpty else { return }
+        let year = automaticChangeSchoolYear
+        perform(success: "選択済みファイルの更新を確認しました。", preserveChangePreview: true) { worker, control in
+            try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control)
+        }
+    }
+
     func setFileMonitoring(_ foreground: Bool) {
         fileRefreshQueue.setForeground(foreground)
         fileMonitor.setForeground(foreground)

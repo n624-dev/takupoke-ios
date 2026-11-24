@@ -25,6 +25,7 @@ on:
           - countdown
           - input-delivery
           - file-details
+          - status-settings
           - updates
           - auxiliary-store
           - event-cache-input
