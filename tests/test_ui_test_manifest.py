@@ -329,7 +329,7 @@ precondition(views[2].position == CGPoint(x:5,y:29))
                     app_test_project.instrument_timetable_date(original.replace(site, " " + site, 1), path.name)
 
         source = generated[timetable.name]
-        model = block(source, "@Observable\nprivate final class TimetableWeekSelection")
+        model = block(source, "@Observable\nfinal class TimetableWeekSelection")
         fields = re.findall(r"^    @State (?:private )?(var \w+ = .*SimulatorSelectionFixture\.day.*)$",
                             source, re.MULTILINE)
         actions = re.findall(r"^        ((?:let current|today) = .*SimulatorSelectionFixture\.day.*)$",

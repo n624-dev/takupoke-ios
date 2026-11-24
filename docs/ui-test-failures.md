@@ -6147,3 +6147,17 @@ source `18a7f5cf6537bb79b3cc47e1d0fd6bf5fcc115b0`、[公開ジョブ](https://gi
 `git log -S` と `c6f3cd2`、直前に更新した `b2721dc` の資料スクリプト、現行Swift Packageを比較した。曜日証明を導入した `c6f3cd2` で既存 `RecoveryValidator` が試験のStrictパーサーを参照し、資料専用の手動ソース一覧だけに反映されなかった。`ea22ab6` と `220a6c4` にも資料スクリプトの依存追従の修正がある。前回のソース一覧をさらに増やすとStrictから時刻・返却位置・時間割へ依存が広がるため、同じ製品モジュールを使う既存Swift Packageで資料の元シナリオも実行する。元の33入力がLinux／macOSそれぞれのPackageの登録に全て含まれ、Xcodeアプリの183 Swiftファイルは全件・一意に登録されていることを別に点検した。
 
 Linuxの新しい配布登録チェック1回目は30件中1件失敗。対象Swift Packageの `sources` の最後を後続の `resources` の部分一致から取っており、実マニフェスト展開では登録済みの `WebPDFDownloader.swift` を検査側だけが見失った。境界のある `sources` の宣言を抽出し、同じ登録・共有実行経路の条件を再検査する。
+
+### 正式532・試行1のiOS26通常Bで到着直後の描画間隔が基準を超過
+
+source `9bc80c20c3995c38a5170c3a5c3db43b37bdab82`、iOS26.5／SDK27.2。[通常iOS26 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45282315702/job/138072627994)は22:48:44〜23:08:46 UTCにfailure。`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` は往路で、到着0.265498秒→最初の整列枠0.381667秒が116.169ms、90msを超過。33枠、欠落・到着後の再構築・詳細幾何の書込と読込はいずれも0。到着から返却は約0.49ms、`configuration-begin` は到着の約47.7ms後、直近の到着前後でmain CPUが約109.4ms増えた。方向を反転する後半と通知には未到達。`18a7f5c` から製品差分なし。残るSwiftUIの内訳は未確定。Distribution成功。[Native](https://github.com/n624-dev/takupoke-ios/actions/runs/45282315702/job/138072627946)は818件・既定skip1・失敗0、今回組み込んだ資料とWeb PDFが0.260秒で実行完了した。
+
+`weekContentBuildsAfterArrival|horizontal-arrival|configuration-begin` で正式530試行1の98.333msと試行3の83.039／49.588ms、正式531の両OS、限定45190291935、当時 `a327f2b`／現行を照合した。再作成0でも最新の最初の整列枠で同じ間隔超過。既存の週表示再利用を保ち、先にローカルで用意した `ba91ff8` の製品・計測用差分を `9bc80c2` に適用して別枝で比較する。移動中は準備対象週の親ビューが日付の変更を購読せず、表示中のページ、入力・バッジ・実AXの更新は必要箇所で従来の時点に行う。日付とVoiceOverの反映を遅延させない。表示の計算以外の残りCPUの内訳や効果は未確定。実回帰は元の90ms・往復・実枠・PNG・最大文字のまま両OS限定で測る。正式532の進行中ジョブは取消さず、限定は正式成功に加算しない。
+
+同じ正式532の[iOS27通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/45282315702/job/138072628082)は22:53:11〜23:26:13 UTCにfailure。23:38 UTCの確認で必須成功6、失敗2、進行4、待ち2。注記はexit1だけで、対象ケース・到達段階・原因は原ログ未確定。コネクター単独ログはTransport closed、実行途中の試行別ZIPはHTTP404。正式529・530の先例どおり全ジョブが終端した後の試行別ZIPを使用する。転送失敗を実ケースの失敗理由と区別する。
+
+ジョブの実ステップを照合するとiOS27.0の準備までは成功し、`Exercise app screens with synthetic data` が22:53:29〜23:26:01 UTCにfailure。試行全体が終わるまでは、個別の落ちたケースと実行段階を原ログから確認できていない。
+
+[限定45286730101のiOS27](https://github.com/n624-dev/takupoke-ios/actions/runs/45286730101/job/138084891233)、source `3c36708291e2cf9d9826910292efdee817374e43` は、到着から整列まで往路49.617ms、復路48.521ms、31／30枠で欠落・到着後再構築とも0。往復の実枠とバッジPNGの検査は44.080秒、共通授業時刻・行事だけの週・最大文字の確認は167.079秒で合格。Nativeも成功した。これは候補の限定結果で、正式532のiOS27通常Bの失敗箇所を示すものではない。
+
+[同じ限定のiOS26](https://github.com/n624-dev/takupoke-ios/actions/runs/45286730101/job/138084891647)も、到着から整列まで往路67.573ms、復路29.108ms、各31枠で欠落・到着後再構築とも0。往復ケース50.512秒、共通授業時刻・行事週・最大文字227.718秒。限定3ジョブは全て成功した。正式532は00:13 UTCまでにDistribution、Native、iOS26通常A、両OSの手動訂正8件が成功し、iOS27通常Aのみ進行中。両OS通常Bの失敗はそのまま残る。

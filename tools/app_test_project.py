@@ -36,7 +36,7 @@ WEEK_MOTION_INSERTIONS = (
      '\n            if heightAdjustment != nil { FixtureWeekSequenceRecorder.shared.signalHeightWindow() }'),
     ('    private func configure(_ weeks: [SchoolDate]) {',
      '\n        FixtureWeekMotionRecorder.shared.checkpoint("configuration-begin")'),
-    ('        motion.resetNeighborScrolls(selected: selection)\n        motion.scheduleQueuedMove()',
+    ('        motion.resetNeighborScrolls(selected: selection.date)\n        motion.scheduleQueuedMove()',
      '\n        FixtureWeekMotionRecorder.shared.checkpoint("configuration-end")'),
     ('            selection = value.destination',
      '\n            FixtureWeekSequenceRecorder.shared.observe("arrival", week: value.source, target: value.destination)'),
