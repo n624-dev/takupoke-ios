@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(os.name == "posix", "Bash runner")
 class PickerRunnerTests(unittest.TestCase):
+    def test_picker_lease_typechecks_with_only_picker_dependencies(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to type-check the production picker lease")
+        with tempfile.TemporaryDirectory(prefix="takupoke-picker-lease-") as directory:
+            stubs = Path(directory) / "PickerDependencies.swift"
+            stubs.write_text("""import Foundation
+enum MaterialError: Error { case accessExpired }
+#if !canImport(Darwin)
+extension URL {
+    func startAccessingSecurityScopedResource() -> Bool { true }
+    func stopAccessingSecurityScopedResource() {}
+}
+#endif
+""")
+            subprocess.run(
+                [compiler, "-typecheck", str(stubs), str(ROOT / "Takupoke/ScopedMaterialSelection.swift")],
+                check=True, timeout=30)
+
     def test_preparation_order_exact_completions_failures_and_owned_cleanup(self):
         fake = "#!" + sys.executable + "\n" + r'''
 import json, os, sys

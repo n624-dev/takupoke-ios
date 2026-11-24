@@ -6284,3 +6284,13 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - before-settingsで `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` が16:50:40 UTC、209.985秒、Navigation.swift:237で表示領域外。 `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch` が17:00:00 UTC、75.430秒、WeekAppearance.swift:111で選択タブ文字の画素数0（期待は50超）。8件中6件成功。後段は未実行。
 - カレンダーのケースは設定へ本物のタップで遷移し、取得・保存後の「元PDFの確認、更新待ち」と新しい説明をAXログで確認した。N183-L5と同じ旧文言がUIテストに残っていたため、設定・ホーム・時間割に共通の新しい説明を照合し、設定の状態名は「更新待ち」を別途照合する。限定 `material-detail-navigation` の `countdown-calendar` で既存の保持と訂正後の予定の参照も確認する。
 - `dark readable lettering|WeekAppearance.swift:111|YELLOW_TAB|tint|黄色|タブ` で索引を検索し、#125の44994268172と44996077866で同じSDK・標準ライトの設定タブ文字が暗色だったことを照合した。今回の合成fixture実画面 `yellow-tab-settings-standard` では設定タブのアイコンが黄色、文字が青。黄色設定行のグリフは1104画素、タブの黄色グリフ検査も通過した。この描画の原因は未確定。配色実装・画像による閾値は先行ブランチから変更していないため、成功条件を保って同条件の結果を再確認する。
+
+### N183-CI5 — iPhoneビルドのPicker事前検査で取得依存が不足
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408191)、Xcode／SDK 27.2・iOS 27.0。17:22:25 UTC、独立したPickerテストアプリのビルドで `ScopedMaterialSelection.swift` に追加された `SelectedFileProviding`、`SchoolDataPeriod`、`FilePipeline` が解決できず、終了65。Picker操作と実iPhoneビルドには未到達。
+- `Picker UI|ScopedMaterialSelection|cannot find.*in scope` でN68・45248143697と照合。既往の主アプリ／資料テストの未登録とは別で、今回は選択権限だけを使う独立Pickerターゲットへ取得制御が入った。取得制御を同じアプリのProvider実装へそのまま移し、もとの選択権限の取得・保持とPickerの実ソース構成を維持する。取得制御を抽出するテストの参照先を合わせ、Pickerが必要な依存だけで選択権限のソースを型検査できる回帰を追加する。
+
+### N183-CI6 — iOS 26通常UI Aでジョブが取消
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408040)、Xcode／SDK 27.2・iOS 26.5。生成アプリのビルド後、17:04:28 UTCに最初の補助資料のケースを開始。17:20:07 UTCに実行結果を出さずGitHub側で取消。担当からの取消操作はなく、他のジョブは継続。
+- `cancelled|1440秒|iOS 26` でN183-CI1、N249と比較。今回は通常Aの完了が確認できず、限定のファイル詳細や個々のアサーション結果とは区別する。通常Aの時間枠と検査条件を維持する。

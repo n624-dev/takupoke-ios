@@ -47,7 +47,7 @@ class ChangePreviewActionTests(unittest.TestCase):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required for actual cancellation control")
-        control = block((ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text(), "final class AcquisitionControl")
+        control = block((ROOT / "Takupoke/SelectedFileProvider.swift").read_text(), "final class AcquisitionControl")
         program = r'''import Foundation
 enum MaterialError: Error { case cancelled }
 final class NSFileCoordinator { func cancel() {} }
@@ -142,7 +142,7 @@ SPECIALS
         if not compiler:
             self.skipTest("Swift required to execute production special schedule refresh")
         refresh = (ROOT / "Takupoke/SpecialSchedulesModel+Startup.swift").read_text(encoding="utf-8")
-        access = (ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text(encoding="utf-8")
+        access = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text(encoding="utf-8")
         program = r'''import Foundation
 enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed }
 enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
@@ -347,7 +347,7 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
         if not compiler:
             self.skipTest("Swift required to execute production acquisition")
         access_source = (ROOT / "Takupoke/MaterialAccess.swift").read_text()
-        control_source = (ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text()
+        control_source = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text()
         program = '''import Foundation
 enum MaterialKind: String { case changes }
 enum MaterialError: Error { case cancelled, unavailable, invalidState }
