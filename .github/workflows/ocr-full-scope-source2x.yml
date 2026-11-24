@@ -1,7 +1,7 @@
 name: Measure complete OCR scope at the fixed source2x candidate
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-full-scope-source2x.yml
       - tools/ocr-full-document-transfer/**
@@ -16,6 +16,7 @@ on:
       - tests/test_ocr_document_qualification.py
       - tests/test_ocr_research_receipt.py
       - tests/RecoveryDocumentQualificationTests.swift
+  workflow_dispatch:
 permissions:
   contents: read
 env:

@@ -1,7 +1,7 @@
 name: Compare whole fictional OCR sources without generator regions
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-full-document-transfer.yml
       - tools/ocr-full-document-transfer/**
@@ -12,6 +12,7 @@ on:
       - tools/ocr-ios-runtime-parity/protocol.json
       - tests/test_ocr_full_document_transfer.py
       - tests/RecoveryFullSourceProbeTests.swift
+  workflow_dispatch:
 permissions:
   contents: read
 env:

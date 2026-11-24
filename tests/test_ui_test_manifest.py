@@ -1332,7 +1332,7 @@ METHOD
                          manifest.REQUIRED_JOBS)
         self.assertIn("name: Application iOS ${{ matrix.ios }} UI ${{ matrix.shard }}", simulator)
         self.assertIn("TKPK_UI_SHARD: ${{ matrix.shard }}", simulator)
-        release = workflow.split("  release:\n", 1)[1].split("  development-publish:\n", 1)[0]
+        release = workflow.split("  release:\n", 1)[1]
         dependency = re.search(r"^    needs: \[([^\]]+)\]$", release, re.MULTILINE)
         self.assertIsNotNone(dependency)
         self.assertEqual({name.strip() for name in dependency.group(1).split(",")},
@@ -1345,7 +1345,7 @@ METHOD
         self.assertNotIn("TKPK_SIMULATOR_FRONTEND", workflow.split("jobs:\n", 1)[0])
         self.assertNotIn("TKPK_SIMULATOR_FRONTEND", jobs["checks"])
         self.assertIn("Xcode_26.6.app", jobs["native-parsing"])
-        for job in ("build-check", "development-build", "release"):
+        for job in ("build-check", "release"):
             self.assertIn("TKPK_EXPECTED_IOS_SDK: '27.2'", jobs[job])
             self.assertIn("DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer", jobs[job])
             self.assertIn("TKPK_SIMULATOR_FRONTEND: headless", jobs[job])

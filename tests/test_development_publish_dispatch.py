@@ -124,20 +124,17 @@ class HostedDevelopmentPublishTests(IPAFixture):
             self.assertEqual(github.deleted_releases, [789])
             self.assertIn(777, github.drafts)
 
-    def test_workflow_publisher_is_independent_feature_only_without_build_or_artifact(self):
-        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/ios-release.yml").read_text()
-        publish = workflow.split("  development-publish:\n", 1)[1]
-        self.assertNotIn("needs:", publish)
-        self.assertIn("github.ref == 'refs/heads/codex/pdf-local-recovery'", publish)
-        self.assertIn("inputs.mode == 'development-publish'", publish)
-        self.assertIn("ref: ${{ github.sha }}", publish)
-        self.assertIn("contents: write", publish)
-        self.assertIn("actions: read", publish)
-        self.assertNotIn("build-ios", publish)
+    def test_retired_development_publisher_is_not_invoked_by_actions(self):
+        workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
+        for path in sorted(workflows.glob("*.yml")):
+            with self.subTest(workflow=path.name):
+                self.assertNotIn("development_publish_dispatch.py", path.read_text())
+        workflow = (workflows / "ios-release.yml").read_text()
+        self.assertNotIn("development-publish", workflow)
+        self.assertNotIn("development_run_id", workflow)
+        self.assertNotIn("development_source", workflow)
         self.assertNotIn("upload-artifact", workflow)
         self.assertNotIn("actions/cache", workflow)
-        self.assertIn('--run-id "$TKPK_QUALIFIED_RUN_ID"', publish)
-        self.assertIn('--cleanup-draft "$TKPK_OWNED_DRAFT_ID"', publish)
 
 
 if __name__ == "__main__":

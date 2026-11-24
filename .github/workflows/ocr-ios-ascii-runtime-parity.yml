@@ -1,7 +1,7 @@
 name: Verify ASCII OCR two-input CPU runtime on actual iOS simulators
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-ios-ascii-runtime-parity.yml
       - tools/ocr-ios-ascii-runtime-parity/**
@@ -12,6 +12,7 @@ on:
       - tests/test_ocr_research_receipt.py
       - tests/test_ocr_ios_ascii_runtime_parity.py
       - tests/test_ocr_simulator_cancellation.py
+  workflow_dispatch:
 permissions:
   contents: read
 env:

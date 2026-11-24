@@ -1,11 +1,12 @@
 name: Compare OCR recognizers on fictional source pixels
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-windows-transfer-screen.yml
       - tools/ocr-windows-transfer/**
       - tests/test_ocr_windows_transfer.py
+  workflow_dispatch:
 permissions:
   contents: read
 env:

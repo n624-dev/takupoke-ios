@@ -1,10 +1,11 @@
 name: Diagnose native OCR image input without app changes
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-apple-native-diagnostic.yml
       - tools/ocr-apple-native-diagnostic/**
+  workflow_dispatch:
 permissions:
   contents: read
 env:

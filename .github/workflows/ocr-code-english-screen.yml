@@ -1,13 +1,14 @@
 name: Measure original ASCII code English recognition
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-code-english-screen.yml
       - tools/ocr-code-english-screen/**
       - tools/ocr-full-document-transfer/code_tail.py
       - tools/ocr-windows-transfer/**
       - tests/test_ocr_code_english_screen.py
+  workflow_dispatch:
 permissions:
   contents: read
 env:

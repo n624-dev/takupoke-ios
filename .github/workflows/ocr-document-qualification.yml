@@ -1,7 +1,7 @@
 name: Compare frozen independent full-scope OCR sources
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-document-qualification.yml
       - tools/ocr-full-document-transfer/**
@@ -13,6 +13,7 @@ on:
       - tools/ocr-ios-runtime-parity/protocol.json
       - tests/test_ocr_document_qualification.py
       - tests/RecoveryDocumentQualificationTests.swift
+  workflow_dispatch:
 permissions:
   contents: read
 env:

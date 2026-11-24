@@ -288,22 +288,19 @@ class DevelopmentReleaseTests(IPAFixture):
                     self.assertNotIn(789,f.drafts);self.assertIn(777,f.drafts)
                     self.assertEqual(f.deleted_releases,[789]);self.assertEqual(f.finalizations,[])
 
-    def test_workflow_has_no_artifacts_and_write_scope_is_feature_dispatch_only(self):
+    def test_workflow_has_no_artifacts_and_only_formal_release_can_write(self):
         source=(Path(__file__).resolve().parents[1]/".github/workflows/ios-release.yml").read_text()
         self.assertNotIn("actions/upload-artifact",source)
         helper=(Path(__file__).resolve().parents[1]/"tools/development_release.py").read_text()
         self.assertNotIn("/artifacts",helper)
-        devjob=source.split("  development-build:\n",1)[1].split("  release:\n",1)[0]
-        guard="github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/codex/pdf-local-recovery' && github.event_name == 'workflow_dispatch'"
-        self.assertIn("if: "+guard,devjob)
-        readjob=source.split("  build-check:\n",1)[1].split("  development-build:\n",1)[0]
-        self.assertIn("!("+guard+")",readjob)
-        self.assertNotIn("contents: write",readjob)
-        self.assertIn("name: Check iPhone build outside development distribution",readjob)
-        self.assertIn("name: Check iPhone build without publishing",devjob)
-        self.assertIn("contents: write",devjob)
-        self.assertIn("--stage",devjob);self.assertIn("--cleanup-draft",devjob)
-        self.assertNotIn("--publish",devjob)
+        before_release,release=source.split("  release:\n",1)
+        self.assertNotIn("development-build",source)
+        self.assertNotIn("development_release.py",source)
+        self.assertNotIn("contents: write",before_release)
+        self.assertIn("name: Check iPhone build outside development distribution",before_release)
+        self.assertIn("contents: write",release)
+        self.assertIn("github.ref == 'refs/heads/main'",release)
+        self.assertIn("github.event_name != 'pull_request'",release)
 
     def test_conditionally_skipped_nonfeature_build_has_distinct_name_not_duplicate_credit(self):
         run,jobs,workflow=self.context()

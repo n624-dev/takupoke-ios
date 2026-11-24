@@ -1,7 +1,7 @@
 name: Compare legacy Vision on original and pixel-repeated fictional lines
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/ocr-legacy-line-screen.yml
       - tools/ocr-legacy-line-screen/**
@@ -11,6 +11,7 @@ on:
       - tools/ocr-windows-transfer/requirements.txt
       - tools/ocr-ios-runtime-parity/rasterize.swift
       - tests/test_ocr_legacy_line_screen.py
+  workflow_dispatch:
 permissions:
   contents: read
 env:

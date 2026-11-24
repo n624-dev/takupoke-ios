@@ -96,11 +96,12 @@ else: sys.exit(99)
                 (ROOT / ".github/workflows" / file).read_text(), re.M | re.S))
         shipping = jobs("ios-release.yml")
         keys = ["simulator-27-a", "simulator-27-b", "simulator-26-a", "simulator-26-b",
-                "manual-27", "manual-26", "build-check", "development-build", "release"]
+                "manual-27", "manual-26", "build-check", "release"]
         blocks = [shipping[key] for key in keys]
         blocks += [jobs(file)["focus"] for file in (
             "manual-input-native-probe.yml", "application-relaunch-native-probe.yml")]
         blocks += [jobs("test-tools.yml")["picker"]]
+        blocks += [jobs("ordered-row-proof-native.yml")["build"]]
         for block in blocks:
             selector = "python3 -B tools/select-ci-xcode.py"
             self.assertEqual(block.count(selector), 1)

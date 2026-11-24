@@ -1,7 +1,7 @@
 # iOS CPU Runtimeの原確率・CTC照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`61cb80a87a62a28e7cd5446b0979c964bb433309932be869a36769e2011294da`
+`549d4cff468d8ff04b8868b85fb401702ca6f6c00997a94f59b6663c09b5324a`
 
 環境：iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認
 
@@ -49,3 +49,5 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_new_nested_code_starts_development_catalog_checks`
 - `test_original_code_recognition_tracks_its_shared_implementations`
 - `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`
+- `test_ocr_checks_can_run_without_a_permanent_research_branch`
+- `test_ordered_row_proof_is_manual_and_requires_generated_pdf_fixtures`

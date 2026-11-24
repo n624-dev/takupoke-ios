@@ -2,7 +2,7 @@ name: Development Swift and test tools
 
 on:
   push:
-    branches: [codex/pdf-local-recovery]
+    branches: ['research/ocr/**']
     paths:
       - .github/workflows/**
       - tools/**

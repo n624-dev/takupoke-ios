@@ -1,7 +1,7 @@
 # IPA・AltStore・公開ゲート・ビルド・一時領域
 
 対応関係・宣言名・実行方法のSHA-256：
-`7b008f271539cf0ab418b90c4772964946432b859c4261205df09a74faaf01a3`
+`140c623d803861875f8fef71f1e0a06a0e7cb9608caebc63fc5a521fe97a8207`
 
 環境：Linux Python／Apple iPhone SDK。AltStore導入は実機限定
 
@@ -40,7 +40,7 @@ python3 -B -m unittest discover -s tests -v
 - `test_owned_id_change_refuses_upload_and_preserves_replacement`
 - `test_changed_latest_or_main_is_reported_without_deleting_public_release`
 - `test_upload_failure_records_prior_owned_id_and_preserves_other_draft`
-- `test_workflow_publisher_is_independent_feature_only_without_build_or_artifact`
+- `test_retired_development_publisher_is_not_invoked_by_actions`
 
 ## [tests/test_development_release.py](../../tests/test_development_release.py)
 
@@ -61,7 +61,7 @@ python3 -B -m unittest discover -s tests -v
 - `test_prepare_rerun_during_download_preserves_caller_directory`
 - `test_completed_thirteen_prepare_and_finalize_same_owned_three_assets_with_public_readback`
 - `test_final_upload_failure_or_gate_change_deletes_only_owned_private_draft`
-- `test_workflow_has_no_artifacts_and_write_scope_is_feature_dispatch_only`
+- `test_workflow_has_no_artifacts_and_only_formal_release_can_write`
 - `test_conditionally_skipped_nonfeature_build_has_distinct_name_not_duplicate_credit`
 
 ## [tests/test_distribution.py](../../tests/test_distribution.py)

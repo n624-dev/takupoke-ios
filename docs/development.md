@@ -192,6 +192,8 @@ UI検証用のXcodeプロジェクトは `tools/picker_test_project.py` が一�
 
 `main` への push でテスト・iOS ビルド・配布を実行します。Pull Request はテスト・ビルドのみで公開しません。Actions の手動実行も可能ですが、公開するのはこのリポジトリの `main` だけです。
 
+OCRの研究用ワークフローは必要なときにActionsから手動実行できます。一時的な `research/ocr/` 配下のブランチでは、従来と同じ対象ファイルの変更に限り、自動実行も利用できます。独立生成した架空PDFの追加検証は[原行順による復旧](ordered-row-recovery-contract.md)を参照してください。
+
 既存の`GH_TOKEN`が利用できてもGitのcredential helperが未設定なら、HTTPSのpushだけが認証エラーになる場合があります。
 秘密値を表示せず認証の有効性とhelper設定を確認し、既存認証が使える場合はコマンド限定で
 `git -c credential.helper='!gh auth git-credential' push`を使えます。グローバル設定の変更や利用者の再接続を先に求めません。

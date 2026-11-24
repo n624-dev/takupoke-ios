@@ -6,20 +6,6 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      mode:
-        description: Build and test, or publish a previously verified development build
-        type: choice
-        options: [build, development-publish]
-        default: build
-      development_run_id:
-        description: Completed development build run ID (publication only)
-        type: string
-        default: ''
-      development_source:
-        description: Full 40-character commit of that completed run (publication only)
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -35,7 +21,6 @@ env:
 jobs:
   checks:
     name: Distribution tests
-    if: github.event_name != 'workflow_dispatch' || inputs.mode != 'development-publish'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -337,7 +322,7 @@ jobs:
   build-check:
     name: Check iPhone build outside development distribution
     needs: checks
-    if: inputs.mode != 'development-publish' && (github.repository != 'n624-dev/takupoke-ios' || github.ref != 'refs/heads/main' || github.event_name == 'pull_request') && !(github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/codex/pdf-local-recovery' && github.event_name == 'workflow_dispatch')
+    if: github.repository != 'n624-dev/takupoke-ios' || github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
     runs-on: xcode-27
     timeout-minutes: 40
     env:
@@ -370,63 +355,10 @@ jobs:
         if: always()
         run: rm -rf "$RUNNER_TEMP/takupoke-output"
 
-  development-build:
-    name: Check iPhone build without publishing
-    needs: checks
-    if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/codex/pdf-local-recovery' && github.event_name == 'workflow_dispatch' && inputs.mode != 'development-publish'
-    runs-on: xcode-27
-    timeout-minutes: 40
-    permissions:
-      contents: write
-      actions: read
-    env:
-      TKPK_EXPECTED_IOS_SDK: '27.2'
-      TKPK_SIMULATOR_FRONTEND: headless
-      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.12'
-      - name: Require exact development source
-        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Assign version and build number
-        id: version
-        run: python3 -B tools/release.py version --github-output "$GITHUB_OUTPUT"
-      - name: Validate Xcode project and property lists
-        run: plutil -lint Takupoke.xcodeproj/project.pbxproj Takupoke/Info.plist Takupoke/PrivacyInfo.xcprivacy
-      - name: Select the active Xcode for CLI and GUI services
-        run: python3 -B tools/select-ci-xcode.py
-      - name: Prepare exact iOS 27.0 with the shipping SDK
-        run: python3 -B tools/prepare-ios27-runtime.py
-      - name: Build unsigned IPA and matching AltStore Source locally
-        env:
-          TKPK_VERSION: ${{ steps.version.outputs.version }}
-          TKPK_BUILD: ${{ steps.version.outputs.build }}
-          TKPK_COMMIT: ${{ github.sha }}
-        run: bash tools/build-ios.sh "$RUNNER_TEMP/takupoke-output"
-      - name: Stage only a private owned development draft
-        id: stage
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 -B tools/development_release.py --stage "$RUNNER_TEMP/takupoke-output"
-      - name: Remove only this owned private draft after build-job failure or cancellation
-        if: ${{ (failure() || cancelled()) && steps.stage.outputs.draft_id != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TKPK_OWNED_DRAFT_ID: ${{ steps.stage.outputs.draft_id }}
-        run: python3 -B tools/development_release.py --run-id "$GITHUB_RUN_ID" --commit "$GITHUB_SHA" --cleanup-draft "$TKPK_OWNED_DRAFT_ID"
-      - name: Remove owned local build outputs
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/takupoke-output"
-
   release:
     name: Build and publish AltStore release
     needs: [checks, native-parsing, simulator-27-a, simulator-27-b, simulator-26-a, simulator-26-b, manual-27, manual-26]
-    if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && inputs.mode != 'development-publish'
+    if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: xcode-27
     timeout-minutes: 45
     env:
@@ -472,42 +404,3 @@ jobs:
       - name: Remove build outputs
         if: always()
         run: rm -rf "$RUNNER_TEMP/takupoke-output"
-
-  development-publish:
-    name: Publish previously verified development build
-    if: github.repository == 'n624-dev/takupoke-ios' && github.ref == 'refs/heads/codex/pdf-local-recovery' && github.event_name == 'workflow_dispatch' && inputs.mode == 'development-publish'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: write
-      actions: read
-    concurrency:
-      group: development-publication
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.12'
-      - name: Publish only the prior completed run's owned development draft
-        id: publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TKPK_DEVELOPMENT_MODE: ${{ inputs.mode }}
-          TKPK_DEVELOPMENT_RUN_ID: ${{ inputs.development_run_id }}
-          TKPK_DEVELOPMENT_SOURCE: ${{ inputs.development_source }}
-        run: python3 -B tools/development_publish_dispatch.py --output "$RUNNER_TEMP/takupoke-development-publish"
-      - name: Remove only the recorded prior run's owned private draft on failure or cancellation
-        if: ${{ (failure() || cancelled()) && steps.publish.outputs.draft_id != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TKPK_OWNED_DRAFT_ID: ${{ steps.publish.outputs.draft_id }}
-          TKPK_QUALIFIED_RUN_ID: ${{ steps.publish.outputs.qualified_run_id }}
-          TKPK_QUALIFIED_SOURCE: ${{ steps.publish.outputs.qualified_source }}
-        run: python3 -B tools/development_release.py --run-id "$TKPK_QUALIFIED_RUN_ID" --commit "$TKPK_QUALIFIED_SOURCE" --cleanup-draft "$TKPK_OWNED_DRAFT_ID"
-      - name: Remove owned local publication outputs
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/takupoke-development-publish"

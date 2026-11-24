@@ -1,7 +1,6 @@
 name: Verify bounded ordered-row recovery contracts
 on:
-  push:
-    branches: [research/ios-ordered-row-proof-20261007]
+  workflow_dispatch:
 permissions:
   contents: read
 env:
@@ -18,15 +17,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Check the selected source and native toolchain
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          xcodebuild -version
       - name: Prepare owned Python environment
         run: |
           python3 -m venv "$RUNNER_TEMP/ordered-row-python-owned"
           "$RUNNER_TEMP/ordered-row-python-owned/bin/python" -m pip install --no-cache-dir --disable-pip-version-check -r tools/independent-wide-timetable/requirements.txt
       - name: Generate independent temporary source PDFs
         run: '"$RUNNER_TEMP/ordered-row-python-owned/bin/python" -B tools/ordered-row-e2e/generate.py --output "$RUNNER_TEMP/ordered-row-e2e-owned"'
-      - run: bash tools/test-parsing.sh
+      - name: Run PDFKit regressions with the six independent PDFs
         env:
           TAKUPOKE_ORDERED_ROW_FIXTURES: ${{ runner.temp }}/ordered-row-e2e-owned
+        run: |
+          test -s "$TAKUPOKE_ORDERED_ROW_FIXTURES/manifest.json"
+          bash tools/test-parsing.sh
       - name: Remove all owned generated PDFs and fonts
         if: always()
         run: rm -rf "$RUNNER_TEMP/ordered-row-e2e-owned" "$RUNNER_TEMP/ordered-row-python-owned"
@@ -35,14 +41,19 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 35
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      TKPK_EXPECTED_IOS_SDK: '27.2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Select the active Xcode for CLI and GUI services
+        run: python3 -B tools/select-ci-xcode.py
       - shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = "$TKPK_EXPECTED_IOS_SDK"
           task_dir="$(mktemp -d "${TMPDIR:-/tmp}/takupoke-ordered-build.XXXXXX")"
           trap 'rm -rf "$task_dir"' EXIT
           trap 'exit 130' INT
