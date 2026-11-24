@@ -6266,3 +6266,21 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - ビルド191.4秒、Simulator起動444.1秒。テスト開始は16:37:27 UTC。235.205秒で `ManualAssistanceChecks+Navigation.swift:52` のUI照会が `Timed out while evaluating UI query` となった。終了コード65。全体の2400秒期限とは別の失敗で、当該ケースの訂正保持と再起動までは完了していない。
 - 設定タブの一度の接触と解放がアプリまで届き、`manual-settings-list` の照会後、16:38:22に設定のナビゲーションバーの取得を開始した時点で停止した。訂正入力には未到達。
 - `manual-settings-list|Timed out while evaluating UI query|ManualAssistanceChecks+Navigation.swift:52` で #125正式527試行1とN213を照合。先行例ではList列挙、今回は直後のBar列挙で停止した。対象のナビゲーション補助と設定画面は先行ブランチから変更なし。同じ試行でiOS 26の原本変更とiOS 27の2つの手動ケースは成功。原因の断定やテスト変更は行わず、全ジョブ終端を確認して同じコミットの失敗ジョブを再確認する。
+
+### N183-CI3 — iOS 27通常UI Aの3件
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587407971)、Xcode／SDK 27.2・iOS 27.0、UI A。ビルド124秒、Simulator起動175秒。XCTest実行中の次の3件が失敗し、後続ケースは継続した。
+- `testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` は16:35:38 UTC、465.900秒。 `ApplicationChecks+Navigation.swift:237` で対象要素が表示領域外のまま。
+- `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` は16:37:12 UTC、65.110秒。`ApplicationChecks+Notifications.swift:195` の存在確認で失敗。
+- `testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails` は16:49:33 UTC、28.030秒。`ApplicationChecks+Timetable.swift:39` の期待が成立しなかった。該当画面の分岐とログを照合する。
+- 変更のケースは再起動と「103行」の確認へ進む過程の詳細で、表示範囲はページ先頭（状態とファイル情報の行が可視）。未生成の「内容を確認・修正」に方向指定で先頭へ戻る操作が続いた。各呼び出しが詳細の新規表示直後なのを確認し、ファイル情報より後ろを探す。包含と実タップ、選択・確認・再起動の検査は維持。
+- 試験のケースはホーム・週の初回失敗警告と、試験詳細へ実タップ・遷移まで成功。「保存済みのPDFを見る」は状態・ファイル情報より後ろの行なので、画面内へ出して利用可能かを確認する。解析ボタンも対象のナビゲーションバー内で確認する。
+- カウントダウンはアプリが通知の取消を確認できなかった旨を表示。#134の同観測と照合し、今回の変更に通知取消処理の差がないことを確認した。通知取消の成功条件は維持する。
+- 操作行の2件は限定 `material-detail-navigation` の個別ジョブで実際の操作を再確認する。変更行は既存の `rows` と同じ時間枠・診断条件で実行する。
+
+### N183-CI4 — iOS 27通常UI Bの2件
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408466)、Xcode／SDK 27.2・iOS 27.0、UI B。アプリのビルド・起動と前段の週移動1件は成功。
+- before-settingsで `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` が16:50:40 UTC、209.985秒、Navigation.swift:237で表示領域外。 `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch` が17:00:00 UTC、75.430秒、WeekAppearance.swift:111で選択タブ文字の画素数0（期待は50超）。8件中6件成功。後段は未実行。
+- カレンダーのケースは設定へ本物のタップで遷移し、取得・保存後の「元PDFの確認、更新待ち」と新しい説明をAXログで確認した。N183-L5と同じ旧文言がUIテストに残っていたため、設定・ホーム・時間割に共通の新しい説明を照合し、設定の状態名は「更新待ち」を別途照合する。限定 `material-detail-navigation` の `countdown-calendar` で既存の保持と訂正後の予定の参照も確認する。
+- `dark readable lettering|WeekAppearance.swift:111|YELLOW_TAB` で索引を検索し、今回と同じ文字画素数0の記録は見つからなかった。黄色設定行のグリフは1104画素、タブの黄色グリフ検査は通過した。文字の画素領域で0だった原因は未確定。配色実装・画像による閾値は先行ブランチから変更していないため、成功条件を保って同条件の結果を再確認する。

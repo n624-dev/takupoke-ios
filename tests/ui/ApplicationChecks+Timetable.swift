@@ -36,8 +36,9 @@ extension ApplicationChecks {
             }
             details.tap()
             screen(title)
-            XCTAssertTrue(app.buttons["保存済みのPDFを見る"].exists)
-            XCTAssertTrue(app.buttons["解析する"].exists)
+            let saved = visible(app.buttons["保存済みのPDFを見る"], navigation: title)
+            XCTAssertTrue(saved.exists && saved.isEnabled && saved.isHittable, app.debugDescription)
+            XCTAssertTrue(app.navigationBars[title].buttons["解析する"].exists)
             back(to: "時間割")
         }
         app.terminate(); app.launchArguments.removeAll { $0 == "--reset-fixture" }

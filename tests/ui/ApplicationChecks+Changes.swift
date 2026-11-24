@@ -153,7 +153,9 @@ extension ApplicationChecks {
         }
         let review = "内容を確認・修正"
         func openReview() {
-            visible(app.buttons[review], navigation: "時間割変更", searchEarlierRows: true).tap()
+            // Each entry follows a fresh push of the detail page. The action
+            // follows the file information and may not yet exist in AX.
+            visible(app.buttons[review], navigation: "時間割変更").tap()
             screen(review)
             XCTAssertFalse(app.alerts["曜日を確認できないファイルです"].exists)
         }
