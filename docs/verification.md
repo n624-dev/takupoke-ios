@@ -9572,4 +9572,10 @@ LinuxのPython全349件は既定skip2、失敗0。[mainからの手動実行4533
 
 事前検索: `tools/test_catalog.py search FileRefresh`／`search Provider` によりmaterial、special、既存Python実行ハーネスを確認。初期差分のLinux Swift限定検査は19件成功（新設境界6件を含む）。レビュー後の最終差分にはさらに遅延I/Oエラーのケースを追加し、全ホスト検査で検証する。既存Python `test_change_preview_actions.py` は8件成功。文書記載のローカルtoolchainは新規環境に存在しなかったため、公式 `swift:6.1.2` コンテナにPython3・SQLite／zlibヘッダー・ホストの信頼済みCAを追加。準備時の未到達はN183-L1に記録し、TLS検証は維持。
 
-Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー。修正後のコード・テスト・登録差分SHA-256は `2a6815a739ed539b37521a043f80b08710243e2286312c959939d9657a52fbdf`。遅延エラー時の中止優先と注入時計の同期を補強して再レビューし、blocking指摘なし。実行対象は既存test-toolsのportable全体とApple Native host検査（SDK26.6／27.2）。SwiftUI／実Provider経路の統合、iOS26／27操作、全体配布CI、本番監視は今回のホスト検査と区別し、未実施のまま保持する。
+Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー。修正後のコード・テスト・登録差分SHA-256は `2a6815a739ed539b37521a043f80b08710243e2286312c959939d9657a52fbdf`。遅延エラー時の中止優先と注入時計の同期を補強して再レビューし、blocking指摘なし。実行対象は既存test-toolsのportable全体とApple Native host検査（Xcode26.6／27.2（SDK26.5／27.2））。SwiftUI／実Provider経路の統合、iOS26／27操作、全体配布CI、本番監視は今回のホスト検査と区別し、未実施のまま保持する。
+
+最終コード `f0a13c4` のローカル検証: LinuxコンテナSwift6.1.2で全724件・失敗0（FileRefreshTests20件を含む）、ビルド＋実行276.4秒。Python3.12.3の全352件は失敗0・環境条件skip22、273.953秒。テスト一覧482登録、`check --base 4fdaaa5` 成功。SQLite3.45.1／zlib1.3はコンテナのheaderとlibraryを揃えて使用。Draft PR [#184](https://github.com/n624-dev/takupoke-ios/pull/184) は先行UIブランチをbaseにした共通readerの差分で、Issueを閉じない。
+
+追加の利用者確認: 解析120秒・全体240秒は通常の自動確認／更新確認／再取得へ適用し、明示的なAI・OCR復旧は既存の専用上限を維持する。Issue本文にも追記済み。
+
+[開発ホストCI 45394935097・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45394935097) はcode `f0a13c47108a408040e7a9044fc8e489cb146a8a` で全終端・成功。portable SwiftとCatalogue／runner契約が成功し、Apple NativeはXcode26.6／SDK26.5およびXcode27.2／SDK27.2の双方で841件・失敗0・skip1。skipは独立temporary PDF cohortを別のnative source workflowで実行する既存ケースで、今回の成功に代用しない。固定239.1のStrict互換baselineも両方で成功。最終コードのビルド＋検査はそれぞれ379.0秒／271.8秒。未選択のApple inventory／Pickerはworkflow上skipで、成功検査には含めない。iOS Simulator操作・実機Provider・全体配布CIは未実施。根本停止の解消／Issue全体の完了／正式配布を意味しない。
