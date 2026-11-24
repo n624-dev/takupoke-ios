@@ -6299,3 +6299,9 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `e6ec654` の [全体CI 45448486960](https://github.com/n624-dev/takupoke-ios/actions/runs/45448486960/job/138638727077) は17:26:01 UTC、LinuxのDistribution testsで `Stale test catalogue; run write: docs/test-catalog/app-ui.md`。生成済み一覧が作業ツリーにあり、実行コミットへの追加が抜けていた。N183-CI5のPickerコンパイルより前に停止し、Appleジョブは未実行。
 - `Stale test catalogue|app-ui.md` を索引と開発手順で確認し、生成結果を `2de565b` で追加。コミット後のclean tree上で `test_catalog.py check` 成功。Pickerの新テストは修正前のソースに対して同じ依存不足を再現し、修正後は関連2件と取得制御9件が成功。検査設定と製品コードを維持して再度実行する。
+
+### N183-CI8 — iOS 26通常UI Bにも旧文言と配色の失敗
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408329)、Xcode／SDK 27.2・iOS 26.5。先行する週移動は50.812秒で成功。続くbefore-settingsは8件中6件成功。
+- `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` は17:31:21 UTC、160.559秒、Navigation.swift:237。 `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch` は17:38:57 UTC、78.378秒、WeekAppearance.swift:111、選択タブ文字の画素数0。検索語と比較はN183-CI4に記録済みで、iOS 27と停止段階が共通。旧文言は修正済み。配色の判定は維持し、[両OSの配色限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888) と修正後の全体CIで確認する。
+- 最初の全体CIは17:47:32 UTCに全ジョブ終端。非配布の検証は9件成功、5件失敗、1件取消。公開ジョブはスキップ。[資料詳細の修正後のiOS 27限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45446409831/job/138631295490) は同じ実操作が95.068秒で成功 (Xcode／SDK27.2・iOS27.0)。限定の成功は既存の全体結果を上書きしない。
