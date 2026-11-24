@@ -9,7 +9,6 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: ["timetable", "changes"], check: {}) { kind in
             checked.append(kind)
             if kind == .timetable { throw failure }
-            return false
         }) { error in
             XCTAssertEqual((error as? PDFParseError)?.code, .unsupported)
             XCTAssertEqual((error as? PDFParseError)?.page, 2)
@@ -28,13 +27,21 @@ final class FileRefreshTests: XCTestCase {
     }
 
     func testRefreshCancellationStopsBeforeTheNextSourceAndAfterTheLastRead() {
+        let errors: [Error] = [MaterialError.cancelled, PDFParseError(code: .cancelled),
+                               ChangeParseError(code: .cancelled), CancellationError()]
         for finalSource in [false, true] {
-            var calls: [MaterialKind] = []
-            XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: finalSource ? ["changes"] : ["timetable", "changes"],
-                check: {}) { kind in calls.append(kind); throw MaterialError.cancelled }) { error in
-                XCTAssertEqual(error.localizedDescription, MaterialError.cancelled.localizedDescription)
+            for expected in errors {
+                var calls: [MaterialKind] = []
+                XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: finalSource ? ["changes"] : ["timetable", "changes"],
+                    check: {}) { kind in calls.append(kind); throw expected }) { error in
+                    XCTAssertEqual(String(reflecting: type(of: error)), String(reflecting: type(of: expected)))
+                    XCTAssertEqual(error.localizedDescription, expected.localizedDescription)
+                }
+                XCTAssertEqual(calls, finalSource ? [.changes] : [.timetable])
+                let lastEntry = FileRefreshDiagnostics.shared.snapshot.entries.last
+                XCTAssertEqual(lastEntry?.step, .cancelled)
+                XCTAssertEqual(lastEntry?.source, finalSource ? .changes : .timetable)
             }
-            XCTAssertEqual(calls, finalSource ? [.changes] : [.timetable])
         }
     }
 

@@ -4,14 +4,15 @@ extension MaterialsView {
     @ViewBuilder var fileRows: some View {
         ForEach([MaterialKind.timetable, .changes]) { kind in
             if let record = model.state.record(for: kind) {
+                let status = model.fileStatus(kind)
                 NavigationLink {
                     if kind == .changes { ChangeAnalysisView(model: model, mappings: mappings) }
                     else { PDFAnalysisView(model: model, mappings: mappings, kind: kind) }
                 } label: {
-                    StatusRow(title: kind.title, status: model.fileStatus(kind), subtitle: record.originalName)
+                    StatusRow(title: kind.title, status: status, subtitle: record.originalName)
                 }
                 .accessibilityLabel("\(kind.title)の詳細を見る")
-                .accessibilityValue(model.fileStatus(kind).title)
+                .accessibilityValue(fileAccessibilityValue(status, name: record.originalName))
             } else {
                 Button { fileRequest = FileSelectionRequest(target: .material(kind)) } label: {
                     StatusRow(title: kind.title, status: model.fileStatus(kind), subtitle: "ファイルを選ぶ")
@@ -22,14 +23,15 @@ extension MaterialsView {
         }
         ForEach(SpecialScheduleKind.allCases) { kind in
             if specialSchedules.sources[kind] != nil || specialSchedules.records[kind] != nil {
+                let status = specialSchedules.fileStatus(kind)
+                let name = specialSchedules.sources[kind]?.originalName ?? specialSchedules.records[kind]?.originalName
                 NavigationLink {
                     SpecialScheduleAnalysisView(model: specialSchedules, kind: kind)
                 } label: {
-                    StatusRow(title: kind.title, status: specialSchedules.fileStatus(kind),
-                              subtitle: specialSchedules.sources[kind]?.originalName ?? specialSchedules.records[kind]?.originalName)
+                    StatusRow(title: kind.title, status: status, subtitle: name)
                 }
                 .accessibilityLabel("\(kind.title)の詳細を見る")
-                .accessibilityValue(specialSchedules.fileStatus(kind).title)
+                .accessibilityValue(fileAccessibilityValue(status, name: name))
             } else {
                 Button { fileRequest = FileSelectionRequest(target: .special(kind)) } label: {
                     StatusRow(title: kind.title, status: specialSchedules.fileStatus(kind), subtitle: "ファイルを選ぶ")
@@ -38,6 +40,10 @@ extension MaterialsView {
                 .disabled(specialSchedules.busy || !specialSchedules.ready)
             }
         }
+    }
+
+    private func fileAccessibilityValue(_ status: StatusPresentation, name: String?) -> String {
+        [name, status.title, status.detail].compactMap { $0 }.joined(separator: "、")
     }
 }
 

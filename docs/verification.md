@@ -46,8 +46,16 @@
 
 限定 `status-settings` は設定6区分・停止／再開、ステータスのデータ／サービス詳細、未選択資料の設定、既存のAI許可と4資料詳細、Setupを対象にする。新しいケースは通常Aにも登録し、正式検査から除外しない。現行のSDK・Runtimeで生成アプリの型検査と実操作を確認する。制限時間・正式ゲート・実操作の期待を変更しない。
 Actions開始前に毎回新規GPT-6.2 Sol／Highへ実行対象のコード差分だけを渡し、指摘があれば修正・再確認してから開始する。実行結果、ソース、SDK、runを下へ追記する。
-このLinux作業環境にはApple SDKがなく、GitHub CLIも未認証。公開リポジトリのfetchは成功するが、`git push --dry-run` は認証なしで失敗した。ブラウザーのActions画面も未ログインだった。接続ツールのcommit作成は作者／コミッターを指定できず、リポジトリのnoreply方針を確認できないため使用しない。したがって、この変更のpush・PR作成・Actions起動・Apple型検査／UI操作は未実施。
+引き渡しZIPの作成時点ではLinux環境にApple SDKとGitHub CLI認証がなく、pushとApple側の確認はできなかった。受け取り側のCLIから、同梱コミット `668628e` を `codex/ios-settings-status-ui` へpushした。
 物理端末のOneDrive／File Provider、AltStore導入・配布も未確認。親Issue #183は完了扱いにしない。
+
+### 受け取り後のレビューと限定CIの条件
+
+`9bffdbf` から `668628e` までの実行対象コード差分を新規GPT-6.2 Sol／Highでレビューし、指摘のあった実装を照合した。時間割変更の編集画面の中止を処理だけに適用し、確認再開まで自動確認を止める操作と分離した。更新記録には中止を失敗として記録せず、再解析の有無と実際のハッシュ比較を区別した。選択済みのファイル行でVoiceOverが名称と状態の補足も読めるようにし、回帰検査を既存ケースに追加した。修正後の製品差分を再確認した。
+
+失敗索引を `status-settings|testSettingsGroupsAndCompactDataOverviews|testSettingsAccountDataAndFileDetails|testSetupCanBeSkippedAndOffersAllFiles|file-details` と編集画面の中止で検索し、U10／U23／U73の初期設定表示枠、U74のAI許可、N143のビルド段階を確認した。直近の同SDKの限定 [45243562141](https://github.com/n624-dev/takupoke-ios/actions/runs/45243562141) では設定詳細が467.530秒で成功した。今回の5ケースには、既存の実操作に加えて新しい設定・ステータスとファイル名のアクセシビリティ値を含める。
+
+この修正コミットを `case=status-settings`、`ios=both`、`sdk26=27.2`、`sdk27=27.2` で実行する。生成アプリのビルドと各ケース完了を、iOS 26.5（GUI）と27.0（headless）で照合する。ローカルでは登録481ファイル、セレクター5件、UIマニフェスト44件（skip8）、ワークフローのソース経路5件を確認した。
 
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 

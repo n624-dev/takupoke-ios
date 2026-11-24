@@ -203,7 +203,8 @@ final class MaterialsModel: ObservableObject {
         retired = true
         generation = UUID()
         setFileMonitoring(false)
-        cancel()
+        pauseAutomaticChecks()
+        cancelCurrentOperation()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async {
                 self.worker.close()
@@ -217,11 +218,6 @@ final class MaterialsModel: ObservableObject {
     }
 
     func resumeAfterRetention() { retired = false }
-
-    func cancel() {
-        pauseAutomaticChecks()
-        cancelCurrentOperation()
-    }
 
     func pauseAutomaticChecks() {
         fileRefreshQueue.suspend()

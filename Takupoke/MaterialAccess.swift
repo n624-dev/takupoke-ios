@@ -39,31 +39,33 @@ final class MaterialWorker {
 
     /// Reads the selected provider file again, then reparses only if its content
     /// digest changed, analysis was interrupted, or the parser changed. An unavailable provider preserves the previous result.
-    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int?, control: AcquisitionControl) throws -> Bool {
+    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int?, control: AcquisitionControl) throws {
         if kind == .changes, defaultYear.map({ (1900...9998).contains($0) }) != true { throw ChangeParseError(code: .defaultYear) }
         guard kind == .timetable || kind == .changes,
-              let previous = library?.state.record(for: kind), previous.source.grant != nil else { return false }
+              let previous = library?.state.record(for: kind), previous.source.grant != nil else { return }
         try refresh(kind, control: control)
-        guard let current = library?.state.record(for: kind) else { return false }
-        if current.digest == previous.digest {
-            if kind == .timetable, try library?.recertifyAcceptedTimetable(hash:current.digest) == true { return false }
-            guard let state = library?.state else { return false }
+        guard let current = library?.state.record(for: kind) else { return }
+        let sameDigest = current.digest == previous.digest
+        FileRefreshDiagnostics.shared.record(sameDigest ? .hashSame : .hashChanged,
+                                             source: FileRefreshDiagnostics.Source(rawValue: kind.rawValue))
+        if sameDigest {
+            if kind == .timetable, try library?.recertifyAcceptedTimetable(hash:current.digest) == true { return }
+            guard let state = library?.state else { return }
             if kind == .changes {
                 guard ChangeParseAttempt.needsAnalysis(digest: current.digest, defaultYear: defaultYear,
                     analysis: state.changeAnalysis, attempt: state.changeParseAttempt, weekdayConsent: current.source.weekdayConsent,
-                    rowSkipConsent: current.source.rowSkipConsent, personalSourceIdentity: current.personalChangeIdentity(for: defaultYear)) else { return false }
+                    rowSkipConsent: current.source.rowSkipConsent, personalSourceIdentity: current.personalChangeIdentity(for: defaultYear)) else { return }
             } else {
             let saved = state.pdfAnalyses?[kind.rawValue]
             let analysis = saved.flatMap { RecoveryConversion.trustsAcquisitionCache($0,hash:current.digest) ? $0:nil }
             let attempt = state.pdfParseAttempts?[kind.rawValue]
             guard PDFParseAttempt.needsAnalysis(digest: current.digest, parserVersion: PDFAnalysis.parserVersion,
                 analysisDigest: analysis?.sourceDigest, analysisVersion: analysis?.version, attemptDigest: attempt?.sourceDigest,
-                failure: attempt?.failure, attemptVersion: attempt?.parserVersion) else { return false }
+                failure: attempt?.failure, attemptVersion: attempt?.parserVersion) else { return }
             }
         }
         if kind == .changes { try analyzeChanges(defaultYear: defaultYear, control: control) }
         else { try analyzePDF(kind: kind, control: control) }
-        return true
     }
 
     func fetchEvents(control: AcquisitionControl) throws {

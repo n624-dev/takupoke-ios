@@ -44,7 +44,10 @@ struct ChangeWorkbookEditorView: View {
                     if let message = error ?? model.changeFailureMessage ?? model.changePreviewActionFailure(preview) {
                         InlineWarning(message)
                     }
-                    if model.busy { LoadingRow(title: "資料を確認中⋯", cancel: { model.cancel() }) }
+                    if model.busy {
+                        LoadingRow(title: model.cancellationRequested ? "中止して処理の終了を待っています⋯" : "資料を確認中⋯",
+                                   cancel: model.cancellationRequested ? nil : { model.cancelCurrentOperation() })
+                    }
                     if view.requiresLayoutConfirmation {
                         Text("対象シートと見出しを確認してください。").font(.callout)
                     }

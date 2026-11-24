@@ -108,21 +108,21 @@ struct PendingFileSelections<Kind, Selection> {
 /// source and reports its existing error without changing the accepted data.
 enum SelectedFileRefresher {
     static func refresh(requested: Set<String>, check: () throws -> Void,
-                        refresh: (MaterialKind) throws -> Bool) throws {
+                        refresh: (MaterialKind) throws -> Void) throws {
         var firstFailure: Error?
         for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
             try check()
             let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
             FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
             do {
-                let changed = try refresh(kind)
+                try refresh(kind)
                 try check()
-                FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
             } catch {
+                if FileOperationOutcome.isCancellation(error) {
+                    FileRefreshDiagnostics.shared.record(.cancelled, source: source)
+                    throw error
+                }
                 FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
-                if case MaterialError.cancelled = error { throw error }
-                if error is CancellationError || (error as? PDFParseError)?.code == .cancelled ||
-                    (error as? ChangeParseError)?.code == .cancelled { throw error }
                 try check()
                 if firstFailure == nil { firstFailure = error }
             }

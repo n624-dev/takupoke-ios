@@ -75,7 +75,8 @@ final class SpecialSchedulesModel: ObservableObject {
         retired = true
         generation = UUID()
         setFileMonitoring(false)
-        cancel()
+        pauseAutomaticChecks()
+        cancelCurrentOperation()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async {
                 DispatchQueue.main.async { continuation.resume() }
@@ -87,11 +88,6 @@ final class SpecialSchedulesModel: ObservableObject {
     }
 
     func resumeAfterRetention() { retired = false }
-
-    func cancel() {
-        pauseAutomaticChecks()
-        cancelCurrentOperation()
-    }
 
     func pauseAutomaticChecks() {
         fileRefreshQueue.suspend()

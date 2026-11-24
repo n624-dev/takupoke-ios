@@ -401,10 +401,12 @@ extension ApplicationChecks {
         XCTAssertFalse(app.staticTexts["学校行事"].exists)
         XCTAssertFalse(app.staticTexts["最終取得"].exists)
         XCTAssertFalse(app.staticTexts["件数"].exists)
-        for title in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
+        for (title, filename) in [("通常時間割", "fictional.pdf"), ("時間割変更", "fictional.xlsx"),
+                                  ("試験時間割", "fictional-exam.pdf"), ("試験返却時間割", "fictional-examReturn.pdf")] {
             let rows = app.buttons.matching(NSPredicate(format: "label == %@", "\(title)の詳細を見る"))
-            _ = visible(rows.element(boundBy: 0), navigation: "時間割ファイル")
+            let row = visible(rows.element(boundBy: 0), navigation: "時間割ファイル")
             XCTAssertEqual(rows.count, 1)
+            XCTAssertTrue((row.value as? String)?.contains(filename) == true)
             XCTAssertFalse(app.buttons["\(title)のファイルを選び直す"].exists)
         }
         _ = visible(app.buttons["すべての更新を確認"], navigation: "時間割ファイル")
