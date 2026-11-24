@@ -9452,3 +9452,11 @@ Linux Swift 6.1.2で `bash tools/test-parsing.sh` 701件成功。新しいXCTest
 [限定の両OSとNative](https://github.com/n624-dev/takupoke-ios/actions/runs/45286730101)は全て成功。90msの元基準に対し、iOS26は67.573／29.108ms、iOS27は49.617／48.521ms。4方向の欠落と到着後再構築はいずれも0。現行配布と手順書を照合すると、通常UIのSDKとジョブ依存に旧設定の記載が残っていた。実ワークフローに合わせ、配布SDK27.2、各OSの独立開始、正式14事前検査と公開内ビルド、開発配布15事前検査を明記した。
 
 正式532は全終端し、iOS26 Bの描画とiOS27 Bの再起動で失敗した。後者は二回目の `app.launch()` が実際の準備完了の後にPID取得エラーで返った。失敗索引でU16と正式44700448423試行2の実装も比較した。週の製品・生成差分を限定時と同一に保ち、起動と通知の実ケース、操作回数、閾値、正式配布のゲートを維持して次の正式実行へ進む。LinuxでUIマニフェスト43、配布ゲート13、ワークフローのソース参照3、登録473が成功。正式開始前の新規GPT-6.2 Sol／Highはコード・テスト9,458バイト（SHA-256 `ee907f81bc80e08fe8c8c0638ea2245e0de20a9fde6133818551aca92f4c26db`）を静的に確認し、検証の弱体化・期待値の注入・具体的な回帰懸念の指摘はなかった。
+
+### 2026-11-24 正式0.1.533（533.1）を公開
+
+11月24日11時36分54秒（日本時間）、[0.1.533（533.1）](https://github.com/n624-dev/takupoke-ios/releases/tag/v0.1.533-build.533.1) をAltStore Classic向け最新版として公開した。source `1a87351744bee2829dd277114b87342d6510989f`。[正式533試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45297601510/attempts/1)のDistribution、Native、両OSの通常UI A・B、手動訂正8件の計14ジョブが成功し、同一コミット・実行・試行で[公開ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/45297601510/job/138163686092)も成功した。両OS通常Bは各21件を照合し、週移動の整列は90ms以内、カウントダウンは実再起動後の保持・警告・通知予約と対象限定の取消まで完了。公開ジョブで実Picker3件、資料・Web PDFを含むホスト検査とiPhone Releaseのビルドに成功した。
+
+GitHubの公開ReleaseからIPA・Source・アイコン・配布情報の4添付を認証なしで取得し、IPA内部のバージョン・ビルド・ソースと18,182,382バイトのSHA-256 `602ab841754a90c805802370b118039f8dde5623d9db56e00e932e82d9847e85` を照合した。[固定AltStore Source](https://github.com/n624-dev/takupoke-ios/releases/latest/download/altstore-source.json) はこの版のSourceと同一。実機でのAltStore導入・更新は未確認。
+
+公開後、#91と#126〜182（既に終了していた#132を除く）の57件に、この版・該当検証・正式CIへのリンクを追記して完了として閉じた。GitHubの公開Issue一覧を再取得し、対象57件が一覧に残っていないことを確認した。保存用Actions artifactは0件。
