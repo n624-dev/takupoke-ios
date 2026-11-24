@@ -6350,3 +6350,9 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - `369c6c8`、[iOS 26 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562114)、SDK 27.2／iOS 26.5。通常24件は2658.795秒、失敗0。変更行の保存・再起動と、試験・返却資料の詳細も成功。
 - 続く通知専用の `testChangedDataProducesOneLocalNotification` は21:15:19 UTC、56.729秒、`ApplicationChecks+Notifications.swift:249` の存在待ちで失敗。AXは設定冒頭、AI・OCRの末尾までしか表示していなかった。 `testChangedDataProducesOneLocalNotification|Notifications.swift:249|NOTIFICATION_ROW` でN48/U75と旧44259503653を照合。以前の実接触取消と違い、今回は行の表示前に存在を待ち、行への接触・許可・通知配信には未到達。
 - 既存の可視化を最初に行い、その後の存在確認・有効性・枠内のラベルへの一度の接触を維持する。実通知許可・ファイル更新・配信1件の検証に変更はない。製品コードの差分はない。
+
+### N183-CI17 — 通知の限定再検証と手動訂正の期限
+
+- [iOS 26の通知限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692431) は `8a0a0fc`、SDK27.2／iOS26.5、98.483秒で成功。実設定を開く・許可・更新通知1件の一連のケース。N183-CI16で止まった行の操作も到達した。
+- [iOS 27の同限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692815) は同source、SDK27.2／iOS27.0、134.558秒。通知行の表示と実操作は成功。OS許可要求の開始／戻りは21:38:56 UTC、許可の完了を観測できず21:39:54にNotifications.swift:336で停止。 `notification-auth-request|notification-auth-returned|Native notification switch activation did not complete` で43767607953と比較し、同じ待機中状態で止まることを確認した。ケースの許可・配信条件を維持した。ホストの通知関連12件は成功。
+- [統合版のiOS 26選択訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562469)、`369c6c8`。21:35:24 UTCに最後の再起動で画面準備が成立したが、21:35:31 UTCに外側2400秒期限。個別アサーション失敗は観測していない。起動に445.5秒を要した。N183-CI2のAX timeout、N183-CI15の準備中終了とは別段階で、前回の同ケース成功は [再実行](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805657) に記録した。
