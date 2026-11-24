@@ -257,7 +257,7 @@ extension ApplicationChecks {
             recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
             // The labelled row and the inner native switch have different
             // accessibility bounds. Activate the unique real control directly.
-            tapNativeSwitch(ai, dragThumb: dragThumb, timedTapDuration: dragThumb ? nil : 0.08)
+            tapNativeSwitch(ai, dragThumb: dragThumb, thumbDragDuration: dragThumb ? nil : 0.33)
             let reflected = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: ai)
             let saved = expectation(for: NSPredicate(format: "label == %@", value), evaluatedWith: stored)
             let completion = XCTWaiter.wait(for: [reflected, saved], timeout: 45)

@@ -696,16 +696,11 @@ enum SimulatorEventsYearFixture {
         self.assertIn("thenDragTo: finish, withVelocity: .slow, thenHoldForDuration: 0", drag)
         self.assertEqual(short_contact.count(".press(forDuration:"), 1)
         self.assertEqual(switch.count(".press(forDuration:"), 2)
-        timed_drag = switch.split("if let thumbDragDuration {", 1)[1].split("if let timedTapDuration {", 1)[0]
+        timed_drag = switch.split("if let thumbDragDuration {", 1)[1].split("if dragThumb {", 1)[0]
         self.assertEqual(timed_drag.count("NativeTestContacts.send("), 1)
         self.assertIn('frame.minX + frame.width * (state == "0" ? 0.75 : 0.25)', timed_drag)
         self.assertIn("start: point, end: stop, duration: thumbDragDuration", timed_drag)
         self.assertIn("XCTFail", timed_drag)
-        timed_tap = switch.split("if let timedTapDuration {", 1)[1].split("if dragThumb {", 1)[0]
-        self.assertEqual(timed_tap.count("NativeTestContacts.send("), 1)
-        self.assertIn("start: point, end: point, duration: timedTapDuration", timed_tap)
-        self.assertIn("XCTFail", timed_tap)
-        self.assertIn("return", timed_tap)
         rows = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
         # Checkmarks change the selection for a pending bulk action. Only
         # persisted per-row settings use native switch gestures.
@@ -744,7 +739,7 @@ enum SimulatorEventsYearFixture {
         settings = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
         self.assertIn("func changeAI(to value: String, dragThumb: Bool = false)", settings)
         self.assertIn('for value in ["1", "0", "1"] { changeAI(to: value) }', settings)
-        self.assertEqual(settings.count("tapNativeSwitch(ai, dragThumb: dragThumb, timedTapDuration: dragThumb ? nil : 0.08)"), 1)
+        self.assertEqual(settings.count("tapNativeSwitch(ai, dragThumb: dragThumb, thumbDragDuration: dragThumb ? nil : 0.33)"), 1)
         self.assertEqual(settings.count('changeAI(to: "0", dragThumb: true)'), 1)
         context = settings.split("private func linkContextAction(", 1)[1].split(
             "func testLegalDocumentsAndIndividualLicenses", 1)[0]

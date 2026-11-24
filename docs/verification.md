@@ -67,6 +67,10 @@ Linux x86_64・Swift 6.1.3で `FileRefreshTests`、`ServiceStatusTests`、`Statu
 
 同じ分割実行の設定一覧側でiOS 27は4ケースを完了したが回収中に期限となった。iOS 26は3ケースを完了し、ステータス詳細の最後の検査前に期限となった（N248）。全5ケースを維持してステータス詳細を独立実行に変更した。新規GPT-6.2 Sol／Highで差分をレビューし、指摘はなかった。`status-settings-screen` をSDK 27.2で両OSに実行し、iOS 26.5の最後の操作と、iOS 27.0の回収を含むジョブ完了を確認する。
 
+[ステータス単独のiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180/job/138410696622)はsource `a87d58f560b285d18ddd06aafa964c550c9fa84c`、SDK 27.2／iOS 27.0、試行1。1ケース93.750秒で成功。実行identity、完了件数、回収と外側の照合まで成功した。
+
+[時刻付き静止タップのiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45382618904/job/138405259984)は、UIKitに届いた静止接触が約8.51msで値が変わらなかった（N249）。初回3回だけ既存の0.33秒の実つまみ移動を使い、元の再起動後操作と結果検査を維持する。静止タップの候補経路を除去。新規GPT-6.2 Sol／Highの差分レビュー、変更Swiftの構文、操作の契約検査、登録481ファイルが成功した。SDK 27.2で設定詳細を両OSに実行する。
+
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 
 source `1e3fe81ecad3890ba9086b88c0b0afb373ea5688`、[run39397264222・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)の全15必須チェックが成功、全job終端・保存Actions artifact0。公開後に通常Release／Latestと固定AltStore Sourceを照合した。
