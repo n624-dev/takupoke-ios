@@ -6305,3 +6305,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408329)、Xcode／SDK 27.2・iOS 26.5。先行する週移動は50.812秒で成功。続くbefore-settingsは8件中6件成功。
 - `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` は17:31:21 UTC、160.559秒、Navigation.swift:237。 `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch` は17:38:57 UTC、78.378秒、WeekAppearance.swift:111、選択タブ文字の画素数0。検索語と比較はN183-CI4に記録済みで、iOS 27と停止段階が共通。旧文言は修正済み。配色の判定は維持し、[両OSの配色限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888) と修正後の全体CIで確認する。
 - 最初の全体CIは17:47:32 UTCに全ジョブ終端。非配布の検証は9件成功、5件失敗、1件取消。公開ジョブはスキップ。[資料詳細の修正後のiOS 27限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45446409831/job/138631295490) は同じ実操作が95.068秒で成功 (Xcode／SDK27.2・iOS27.0)。限定の成功は既存の全体結果を上書きしない。
+
+### N183-CI9 — 黄色の選択時にタブ文字だけが青になる
+
+- 対象: `00cefd1`、[配色限定45447828888](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888)、SDK 27.2。iOS 26.5で96.258秒、iOS 27.0で94.563秒。両OSとも設定の黄色グリフは1105／1104画素、選択タブの文字は暗色0画素で停止した。前段の週移動やカレンダー検査から独立させてもN183-CI4／CI8と同じ条件で失敗した。Nativeロジックは成功。
+- `タブ名tint|tintColorDidChange|yellow-tab-settings-standard` で #125の先例と現在の公開APIを比較。元の実装は選択・ウィンドウが変わって見つけ直したときだけ標準バーに色を設定しており、現在のバーの色が戻った後のレイアウトでは再適用しない。原因はまだ確定していない。既存のタブバーに限定して、継承tint変更とレイアウト時に異なる色を再確認する候補を検証する。ページ色、標準背景とアイコン、標準・高コントラストの確認値、操作・待機・実画素条件を維持する。
