@@ -6161,3 +6161,9 @@ source `9bc80c20c3995c38a5170c3a5c3db43b37bdab82`、iOS26.5／SDK27.2。[通常i
 [限定45286730101のiOS27](https://github.com/n624-dev/takupoke-ios/actions/runs/45286730101/job/138084891233)、source `3c36708291e2cf9d9826910292efdee817374e43` は、到着から整列まで往路49.617ms、復路48.521ms、31／30枠で欠落・到着後再構築とも0。往復の実枠とバッジPNGの検査は44.080秒、共通授業時刻・行事だけの週・最大文字の確認は167.079秒で合格。Nativeも成功した。これは候補の限定結果で、正式532のiOS27通常Bの失敗箇所を示すものではない。
 
 [同じ限定のiOS26](https://github.com/n624-dev/takupoke-ios/actions/runs/45286730101/job/138084891647)も、到着から整列まで往路67.573ms、復路29.108ms、各31枠で欠落・到着後再構築とも0。往復ケース50.512秒、共通授業時刻・行事週・最大文字227.718秒。限定3ジョブは全て成功した。正式532は00:13 UTCまでにDistribution、Native、iOS26通常A、両OSの手動訂正8件が成功し、iOS27通常Aのみ進行中。両OS通常Bの失敗はそのまま残る。
+
+正式532試行1は00:18:30 UTCに全終端。必須12件成功、通常Bの両OSが失敗、公開は依存skip。終端後の試行別原ログで、iOS27.0／SDK27.2の通常Bは週移動1件を先に完了し、次の`before-settings`区間の`testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent`だけが385.119秒で失敗した。23:07:46 UTCに `tests/ui/ApplicationChecks.swift:135`、`Application 'jp.n624.takupoke.app-checks' does not have a process ID`。続く同区間の7件は成功。
+
+初回の起動、個人予定・行事登録、登録後のホームに到達。前のPID12509の終了とSpringBoard前面を観測し、`app.launch()`を23:04:15 UTCに一回呼んだ。新PID17022は23:04:50にscene activeとfixture-readyを記録。約212秒経過して起動呼出し自体が失敗し、後続の前面照会と再起動後の警告・保存内容検査は未到達。次のケースは23:07:49に同じPID17022を終了させており、この時点まで起動済みプロセスが存在した。製品のクラッシュやXCTestの内部でPIDを取得できなかった原因は原ログから確定できない。
+
+`does not have a process ID|testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent|app.launch` でU16（正式352、`b765302`）、正式44700448423試行2（`5cc39a5`）と現行を比較した。U16と同じAPI・エラー、44700448423と同じケース・実アプリ準備済み後の起動返却停止で、今回は二回目の起動。前回正式531の `18a7f5c` では同じiOS27 Bの21件が試行1で成功し、`9bc80c2` までの起動ヘルパー・カウントダウンのケースと製品は同一。週の比較候補もこの経路にコード変更なし。iOS26の再現した描画の改善を採り、次の正式実行でiOS27 Bの元ケース・一回起動・期限・保存検査を同じ条件で再検証する。正式532の2失敗、両OS限定の成功と次回の公開条件はそれぞれ記録する。
