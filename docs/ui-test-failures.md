@@ -6319,4 +6319,5 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N183-CI11 — 配色候補の観測とiOS 26の週移動描画
 
 - [配色候補 `8e7b3c2` の限定45455234867・iOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45455234867/job/138662772564)、SDK 27.2／iOS 27.0。18:14:46 UTC、92.504秒でN183-CI9と同じ文字画素0。レイアウトと継承tint変更から再適用する候補だけでは解消しなかった。元の描画コードへ戻し、合成fixtureで対象バーの探索、色の設定、設定直後と次の描画後の色を固定イベントとして測る。暗色・コントラスト・日付の検査は維持する。
+- 同じ候補の [iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45455234867/job/138662772814) も18:22:42 UTC、129.149秒で同じ文字画素0。Nativeは成功。元の描画コードと合成fixtureだけの測定を使う [iOS 27の切り分け](https://github.com/n624-dev/takupoke-ios/actions/runs/45458686064) は `f3cc00c` で開始した。
 - [Picker修正後の全体CIのiOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805088)、`cd7bb15`、SDK 27.2／iOS 26.5。18:16:04 UTC、週移動の先頭ケース49.288秒。最初の到着後の描画間隔133.182msが既存90msを越えた。 `Height adjustment must keep drawing frames|0.09` で #125と比較し、[直前試行](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408329) の同じiOS 26と週描画コードで当該ケースが成功していることを確認した。後段の通常UIは未実行。描画条件と操作は変更しない。
