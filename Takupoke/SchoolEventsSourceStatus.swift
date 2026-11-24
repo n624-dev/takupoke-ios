@@ -16,7 +16,10 @@ struct SchoolEventsSourceStatus: Codable, Equatable {
     let checking: Bool
     let stale: Bool
     var officialSourceURL: URL? {
-        guard schoolYear == 2026 else { return nil }
+        Self.officialSourceURL(for: schoolYear)
+    }
+    static func officialSourceURL(for year: Int) -> URL? {
+        guard year == 2026 else { return nil }
         return URL(string: "https://www.kagawa-nct.ac.jp/school_affairs/event/calender.pdf")
     }
 

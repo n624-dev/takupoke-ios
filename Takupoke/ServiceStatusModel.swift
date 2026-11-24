@@ -24,7 +24,19 @@ final class ServiceStatusModel: ObservableObject {
 
     func featureStatus(_ id: String, for service: MonitoredService, at date: Date) -> StatusPresentation {
         guard !failedFunctional.contains(service) else { return FunctionalStatusSnapshot.unknown }
-        return functional[service]?.feature(id)?.presentation(at: date) ?? FunctionalStatusSnapshot.unknown
+        return functional[service]?.featurePresentation(id, at: date) ?? FunctionalStatusSnapshot.unknown
+    }
+
+    func onlineEventVersion(year: Int, format: String, at now: Date) -> FunctionalStatusSnapshot.EventVersion? {
+        guard !failedFunctional.contains(.api) else { return nil }
+        return functional[.api]?.eventVersion(year: year, format: format, at: now)
+    }
+
+    func eventsPresentation(_ events: SchoolEventsModel, year: Int) -> SchoolEventsSourcePresentation? {
+        let now = Date()
+        let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
+        return eventPublisher.presentation(year: year, format: format, online: onlineEventVersion(year: year, format: format, at: now),
+                                           previous: events.sourcePresentation(year: year), at: now)
     }
 
     func refresh() async {
@@ -80,7 +92,7 @@ final class ServiceStatusModel: ObservableObject {
         expiry?.cancel()
         let now = Date()
         var deadlines = functional.values.flatMap { snapshot in
-            snapshot.features.map(\.validUntil) + [snapshot.data?.events?.validUntil].compactMap { $0 }
+            snapshot.features.map(\.validUntil) + [snapshot.validUntil] + [snapshot.data?.events?.validUntil].compactMap { $0 }
         }
         if let checkedAt = cache.checkedAt { deadlines.append(checkedAt.addingTimeInterval(180)) }
         guard let next = deadlines.filter({ $0 > now }).min() else { expiry = nil; return }

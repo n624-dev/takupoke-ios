@@ -257,6 +257,11 @@ struct FunctionalStatusSnapshot: Decodable, Equatable {
         return matches.count == 1 ? matches.first : nil
     }
 
+    func featurePresentation(_ id: String, at now: Date) -> StatusPresentation {
+        guard checkedAt <= now, now < validUntil else { return Self.unknown }
+        return feature(id)?.presentation(at: now) ?? Self.unknown
+    }
+
     func eventVersion(year: Int, format: String, at now: Date) -> EventVersion? {
         guard let events = data?.events, events.checkedAt <= now, now < events.validUntil else { return nil }
         let matches = events.versions.filter { $0.schoolYear == year && $0.format == format }
@@ -290,6 +295,25 @@ struct EventPublisherStatus {
         let resolution = resolutions[.init(year: year, format: format)]
         if let earlierDifference, resolution.map({ $0.comparedAt < earlierDifference }) ?? true { return true }
         return resolution?.waiting == true
+    }
+
+    func presentation(year: Int, format: String, online: FunctionalStatusSnapshot.EventVersion?,
+                      previous: SchoolEventsSourcePresentation?, at now: Date) -> SchoolEventsSourcePresentation? {
+        let difference = previous?.updateWaiting == true ? previous?.lastSuccessAt : nil
+        if isWaiting(year: year, format: format, earlierDifference: difference) {
+            if let previous, previous.updateWaiting { return previous }
+            let message = "学校の元PDFと採用原本に差異があり、配信元の更新待ちです。"
+            return .init(message: message, warningMessage: message, lastSuccessfulMessage: nil,
+                         lastSuccessAt: online?.sourceCheckedAt, receivedAt: nil, evidence: .differs,
+                         updateWaiting: true, officialSourceURL: SchoolEventsSourceStatus.officialSourceURL(for: year))
+        }
+        let applicable = previous?.updateWaiting == true ? nil : previous
+        if let online, online.sourceState == "matched", let checked = online.sourceCheckedAt, checked <= now,
+           checked >= (applicable?.lastSuccessAt ?? .distantPast) {
+            return .init(message: "元PDFの本文は登録元と一致しています。", warningMessage: nil,
+                         lastSuccessfulMessage: nil, lastSuccessAt: checked, receivedAt: nil, evidence: .matched)
+        }
+        return applicable
     }
 }
 

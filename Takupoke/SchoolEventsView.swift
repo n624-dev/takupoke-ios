@@ -13,6 +13,7 @@ struct SchoolEventsSettingsView: View {
 
 struct SchoolEventsSettingsSection: View {
     @ObservedObject var model: SchoolEventsModel
+    @ObservedObject private var services = ApplicationData.shared.serviceStatus
     @AppStorage("eventsSelectedSchoolYear") private var yearValue = ""
 
     private var year: Int? {
@@ -46,9 +47,10 @@ struct SchoolEventsSettingsSection: View {
                     if model.isChecking(year: year) {
                         Text("学校行事を確認中").font(.caption).foregroundStyle(.secondary)
                     }
-                    if let status = model.sourcePresentation(year: year) {
-                        LabeledContent("元PDFの確認", value: status.message)
+                    if let status = services.eventsPresentation(model, year: year) {
+                        LabeledContent("元PDFの確認", value: status.updateWaiting ? "更新待ち" : status.message)
                             .font(.caption)
+                        if status.updateWaiting { Text(status.message).font(.caption).foregroundStyle(.secondary) }
                         if status.updateWaiting, let url = status.officialSourceURL {
                             Link("学校の元PDFを見る", destination: url)
                         }
@@ -92,6 +94,7 @@ struct SchoolEventsSettingsSection: View {
 
 private struct SchoolEventsResultView: View {
     @ObservedObject var model: SchoolEventsModel
+    @ObservedObject private var services = ApplicationData.shared.serviceStatus
     let year: Int
     let original: SavedSchoolEvents
 
@@ -110,7 +113,7 @@ private struct SchoolEventsResultView: View {
                         Text(checked, format: JapaneseDateDisplay.timestamp)
                     }
                 }
-                if let status = model.sourcePresentation(year: year) {
+                if let status = services.eventsPresentation(model, year: year) {
                     Text(status.message).font(.footnote).foregroundStyle(.secondary)
                     if let success = status.lastSuccessAt {
                         LabeledContent("元資料の最終確認") { Text(success, format: JapaneseDateDisplay.timestamp) }
@@ -138,6 +141,7 @@ private struct SchoolEventsResultView: View {
 /// A failed cache read is independent from the absence of a fetched year.
 struct SchoolEventsWarnings: View {
     @ObservedObject var model: SchoolEventsModel
+    @ObservedObject private var services = ApplicationData.shared.serviceStatus
 
     var body: some View {
         if !model.ready {
@@ -153,9 +157,10 @@ struct SchoolEventsWarnings: View {
             if let warning = model.cacheWarning {
                 InlineWarning(warning)
             }
-            if let warning = model.sourceCheckMessage {
-                InlineWarning(warning)
+            let warnings = model.saved.keys.sorted().compactMap { year in
+                services.eventsPresentation(model, year: year)?.warningMessage.map { "\(year)年度：\($0)" }
             }
+            if !warnings.isEmpty { InlineWarning(warnings.joined(separator: "\n")) }
         }
     }
 }

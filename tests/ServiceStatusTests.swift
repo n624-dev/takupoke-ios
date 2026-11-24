@@ -25,6 +25,11 @@ final class ServiceStatusTests: XCTestCase {
         XCTAssertNil(snapshot.eventVersion(year: 2032, format: "v2", at: snapshot.validUntil))
         XCTAssertEqual(snapshot.feature("events")?.presentation(at: snapshot.validUntil).tone, .unknown)
         XCTAssertEqual(snapshot.feature("events")?.lastSuccessfulAt, snapshot.checkedAt)
+        var shortened = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+        shortened["validUntil"] = "2032-04-01T00:00:01Z"
+        let expired = try FunctionalStatusSnapshot.decode(JSONSerialization.data(withJSONObject: shortened), service: .api)
+        XCTAssertEqual(expired.featurePresentation("events", at: now).tone, .unknown)
+        XCTAssertNotNil(expired.eventVersion(year: 2032, format: "v2", at: now), "Event evidence has its own validity period")
         var publisher = EventPublisherStatus()
         publisher.accept(snapshot, at: now)
         let matched = String(decoding: bytes, as: UTF8.self).replacingOccurrences(of: "source_differs", with: "matched")
@@ -40,6 +45,12 @@ final class ServiceStatusTests: XCTestCase {
         let matchedAt = try XCTUnwrap(updated.eventVersion(year: 2032, format: "v2", at: now)?.sourceCheckedAt)
         XCTAssertFalse(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(-1)))
         XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(1)))
+        let earlier = SchoolEventsSourcePresentation(message: "更新待ち", warningMessage: "更新待ち", lastSuccessfulMessage: nil,
+            lastSuccessAt: matchedAt.addingTimeInterval(-1), receivedAt: nil, evidence: .differs, updateWaiting: true)
+        let reconciled = publisher.presentation(year: 2032, format: "v2", online: updated.eventVersion(year: 2032, format: "v2", at: now),
+                                                previous: earlier, at: now)
+        XCTAssertFalse(try XCTUnwrap(reconciled).updateWaiting)
+        XCTAssertNil(reconciled?.warningMessage)
     }
 
     private func node(_ id: String, _ type: String, _ attributes: [String: Any]) -> [String: Any] {

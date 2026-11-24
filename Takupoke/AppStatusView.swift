@@ -16,31 +16,21 @@ struct AppStatusEvidence {
     let year: Int?
 
     private var onlineEvents: FunctionalStatusSnapshot.EventVersion? {
-        guard let year, !services.failedFunctional.contains(.api) else { return nil }
+        guard let year else { return nil }
         let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
-        return services.functional[.api]?.eventVersion(year: year, format: format, at: Date())
+        return services.onlineEventVersion(year: year, format: format, at: Date())
     }
 
     private var publisherWaiting: Bool {
         guard let year else { return false }
-        let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
-        let previous = events.sourcePresentation(year: year)
-        let difference = previous?.updateWaiting == true ? previous?.lastSuccessAt : nil
-        return services.eventPublisher.isWaiting(year: year, format: format, earlierDifference: difference)
+        return services.eventsPresentation(events, year: year)?.updateWaiting == true
     }
 
     @MainActor var eventsStatus: StatusPresentation {
         guard let year else { return .init(title: "学校年度を確認してください", tone: .attention) }
-        if publisherWaiting {
-            return .init(title: "更新待ち", tone: .attention, detail: "学校の元PDFとの差異を配信元で確認しています。")
-        }
-        let previous = events.sourcePresentation(year: year)
-        var source = previous?.updateWaiting == true ? nil : previous
-        if let version = onlineEvents, version.sourceState == "matched",
-           let checked = version.sourceCheckedAt, checked <= Date(),
-           checked >= (source?.lastSuccessAt ?? .distantPast) {
-            source = .init(message: "元PDFの本文は登録元と一致しています。", warningMessage: nil,
-                           lastSuccessfulMessage: nil, lastSuccessAt: checked, receivedAt: nil, evidence: .matched)
+        let source = services.eventsPresentation(events, year: year)
+        if let source, source.updateWaiting {
+            return .init(title: "更新待ち", tone: .attention, detail: source.warningMessage)
         }
         return .schoolEvents(ready: events.ready, failed: events.failed,
             checking: events.busy || events.isChecking(year: year),
