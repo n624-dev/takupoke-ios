@@ -6259,3 +6259,10 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - 対象: `0d688d8`、[45429156784・試行1のiOS 26ファイル詳細](https://github.com/n624-dev/takupoke-ios/actions/runs/45429156784/job/138569323385)。Xcode／SDK 27.2、iOS 26.5、`testSettingsAccountDataAndFileDetails`。
 - アプリとテストのビルドに成功。iOS 26シミュレーターの起動区間は367.3秒。画面テストは16:06:38 UTCに開始し、16:13:09 UTCに試験返却時間割のナビゲーションバーまで到達。テストの完了前に16:13:34 UTCに外側の1440秒期限が発火した。片付けまで完了し、個別のアサーション失敗は観測されていない。
 - `1440秒|file-details|status-settings-screen|cleanup-enter` でN246・N250付近の既存記録を照合。今回のiOS 27の同ケースは成功、iOS 26の設定一覧も成功。期限・操作・完了照合を変更していない。ファイル詳細の限定失敗は成功に扱わず、[最終コードの別枠の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714) のiOS 26操作結果を確認する。
+
+### N183-CI2 — iOS 26手動訂正のアクセシビリティ照会
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408225)、Xcode／SDK 27.2・iOS 26.5、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。
+- ビルド191.4秒、Simulator起動444.1秒。テスト開始は16:37:27 UTC。235.205秒で `ManualAssistanceChecks+Navigation.swift:52` のUI照会が `Timed out while evaluating UI query` となった。終了コード65。全体の2400秒期限とは別の失敗で、当該ケースの訂正保持と再起動までは完了していない。
+- 設定タブの一度の接触と解放がアプリまで届き、`manual-settings-list` の照会後、16:38:22に設定のナビゲーションバーの取得を開始した時点で停止した。訂正入力には未到達。
+- `manual-settings-list|Timed out while evaluating UI query|ManualAssistanceChecks+Navigation.swift:52` で #125正式527試行1とN213を照合。先行例ではList列挙、今回は直後のBar列挙で停止した。対象のナビゲーション補助と設定画面は先行ブランチから変更なし。同じ試行でiOS 26の原本変更とiOS 27の2つの手動ケースは成功。原因の断定やテスト変更は行わず、全ジョブ終端を確認して同じコミットの失敗ジョブを再確認する。
