@@ -55,7 +55,11 @@ Actions開始前に毎回新規GPT-6.2 Sol／Highへ実行対象のコード差�
 
 失敗索引を `status-settings|testSettingsGroupsAndCompactDataOverviews|testSettingsAccountDataAndFileDetails|testSetupCanBeSkippedAndOffersAllFiles|file-details` と編集画面の中止で検索し、U10／U23／U73の初期設定表示枠、U74のAI許可、N143のビルド段階を確認した。直近の同SDKの限定 [45243562141](https://github.com/n624-dev/takupoke-ios/actions/runs/45243562141) では設定詳細が467.530秒で成功した。今回の5ケースには、既存の実操作に加えて新しい設定・ステータスとファイル名のアクセシビリティ値を含める。
 
-この修正コミットを `case=status-settings`、`ios=both`、`sdk26=27.2`、`sdk27=27.2` で実行する。生成アプリのビルドと各ケース完了を、iOS 26.5（GUI）と27.0（headless）で照合する。ローカルでは登録481ファイル、セレクター5件、UIマニフェスト44件（skip8）、ワークフローのソース経路5件を確認した。
+修正コミット `002aae045d44c7f636e65053c6e3a62d9e45d335` を `case=status-settings`、`ios=both`、`sdk26=27.2`、`sdk27=27.2` で実行する。生成アプリのビルドと各ケース完了を、iOS 26.5（GUI）と27.0（headless）で照合する。
+
+Linux x86_64・Swift 6.1.3で `FileRefreshTests`、`ServiceStatusTests`、`StatusPresentationTests` の計27件、`test_change_preview_actions.py` の8件、`test_ui_test_manifest.py` の44件、ワークフローのソース経路5件が失敗・skipともに0。変更Swiftの構文、登録481ファイル、限定セレクター5件も確認した。
+
+[最初の限定45374452872・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872)は、両OSでApple SDKのビルドと先行3ケースが成功した後、初期設定中に1440秒の期限で終了した。残るステータス画面のケースには未到達。N246に各OSの到達点を記録した。次の実行に向け、同じ `status-settings` を各OSで設定詳細1件と残り4件に分けた。設定詳細の605.354秒と407.742秒を他ケースと別の実行枠に割り当て、5ケース、個別操作条件、両方の実行期限を維持する。独立した新規GPT-6.2 Sol／Highでこの実行構成と照合条件をレビューし、修正を要する指摘はなかった。
 
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 

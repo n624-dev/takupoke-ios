@@ -6184,3 +6184,11 @@ source `9bc80c20c3995c38a5170c3a5c3db43b37bdab82`、iOS26.5／SDK27.2。[通常i
 - N244の依存対処後、Swift packageの715件が失敗0（91.083秒、取得・ビルド込み271.0秒）。N245の初回Python全体は351件・ERROR1・予定skip2で終端し、ハーネス同期後の関連8件は11.247秒・失敗0。取消4分類と背景一時停止の実入口を確認した。Apple型検査・画面操作は別に確認する。
 
 N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0・予定skip2で完了。予定skip2は固定公開フォントを持つ専用環境のOCR資料生成検査で、Swift抽出ハーネスは実行した。
+
+## N246 設定・ステータス限定CIのランナー期限（2026-11-24）
+
+- source `002aae045d44c7f636e65053c6e3a62d9e45d335`、[45374452872・試行1／iOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872/job/138376808545)、SDK 27.2／iOS 27.0。生成アプリのビルド110.8秒と起動130.5秒は成功。
+- `testEmptyDataCanBeConfigured`（73.618秒）、`testSettingsAccountDataAndFileDetails`（605.354秒）、`testSettingsGroupsAndCompactDataOverviews`（101.000秒）が成功。`testSetupCanBeSkippedAndOffersAllFiles` は起動後のアイドル待ちまで進み、10:48:43 UTCに外側の1440秒期限が発火した。セットアップの確認完了前で、`testStatusScreenUsesPublicResourcesAndDataRoutes` は未開始。終了コード124。画面の期待値失敗は観測していない。
+- 同一source／実行の [iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872/job/138376809363)、SDK 27.2／iOS 26.5。ビルド173.9秒・起動150.4秒は成功。同じ3ケースが60.047秒、407.742秒、84.810秒で成功。初期設定で「データを取得」の「次へ」を押した後、10:52:21 UTCに同じ1440秒期限が発火した。初期設定の完了前で、ステータス詳細のケースは未開始。終了124で両ジョブ終端。
+- `Focused relaunch runner|1440秒|file-details|testSettingsAccountDataAndFileDetails` でN162、44456348152、44734888974と当時の限定条件を比較した。複数ケースの前に準備・ビルドとRunner起動があり、先行ケースが後続の実行時間を消費する点が共通。U10／U23／U73のセットアップ内の個別検査失敗は今回は観測していない。今回は両OSが同じ先行3ケースを完了した。シミュレーターの各操作にかかる時間は変動する。
+- 次の限定では `status-settings` の各OSで設定詳細1件を独立ジョブにし、残る4件を別ジョブに割り当てる。全5件の重複なしの実行と、各ジョブの実行結果照合を求める。ジョブ・ランナーの期限、SDK・OS、実操作と公開条件は従来どおり。製品コードの差分は加えない。

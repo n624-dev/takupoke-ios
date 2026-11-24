@@ -93,12 +93,16 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testSettingsAccountDataAndFileDetails",
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
+STATUS_SETTINGS_TESTS = (
+    "testSettingsGroupsAndCompactDataOverviews",
+    "testStatusScreenUsesPublicResourcesAndDataRoutes",
+    "testEmptyDataCanBeConfigured",
+    SETTINGS_TEST,
+    "testSetupCanBeSkippedAndOffersAllFiles",
+)
 PROBE_GROUPS = {
-    "status-settings": ("testSettingsGroupsAndCompactDataOverviews",
-                        "testStatusScreenUsesPublicResourcesAndDataRoutes",
-                        "testEmptyDataCanBeConfigured",
-                        SETTINGS_TEST,
-                        "testSetupCanBeSkippedAndOffersAllFiles"),
+    "status-settings": STATUS_SETTINGS_TESTS,
+    "status-settings-overviews": tuple(test for test in STATUS_SETTINGS_TESTS if test != SETTINGS_TEST),
     "system-text-size": (SYSTEM_SIZE_TEST,),
     "yellow-contrast": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",),
     "week-appearance": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",

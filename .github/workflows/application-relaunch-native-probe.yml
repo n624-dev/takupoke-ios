@@ -68,11 +68,13 @@ env:
 
 jobs:
   focus:
-    name: Relaunch diagnosis iOS ${{ matrix.ios }}
+    name: Relaunch diagnosis iOS ${{ matrix.ios }}${{ inputs.case == 'status-settings' && format(' ({0})', matrix.probe_case) || '' }}
     strategy:
       fail-fast: false
       matrix:
         ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
+        # The account/file-details case alone took over 10 minutes on iOS 27.
+        probe_case: ${{ fromJSON(inputs.case == 'status-settings' && '["testSettingsAccountDataAndFileDetails","status-settings-overviews"]' || format('[{0}]', toJSON(inputs.case))) }}
     runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: ${{ inputs.case == 'rows' && 45 || 30 }}
     env:
@@ -85,7 +87,7 @@ jobs:
       TKPK_UI_RELAUNCH_PROBE: '1'
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
       TKPK_UI_HANG_DIAGNOSTICS: ${{ (inputs.case == 'rows' || inputs.case == 'rows-context') && '1' || '0' }}
-      TKPK_UI_PROBE_CASE: ${{ inputs.case }}
+      TKPK_UI_PROBE_CASE: ${{ matrix.probe_case }}
       TKPK_RELAUNCH_RUNNER_SECONDS: ${{ inputs.case == 'rows' && 2400 || 1440 }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
