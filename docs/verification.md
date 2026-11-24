@@ -9468,3 +9468,5 @@ GitHubの公開ReleaseからIPA・Source・アイコン・配布情報の4添付
 `ordered.row|独立架空PDF|37669800332` で検証記録を検索し、[過去の実行](https://github.com/n624-dev/takupoke-ios/actions/runs/37669800332) の正例2件・拒否4件と元の実装を照合した。独立PDFの生成・Swiftテスト・条件を維持し、`main` から手動起動できるようにした。iOS Simulator向けビルドでは現行のXcode 27.2と実SDKを使用する。旧ブランチに依存していたOCR検証は手動起動と、任意の一時研究ブランチでの従来のパス条件を用意した。
 
 Linuxで6架空PDFの生成とSHA-256、12ワークフローのYAML、既存OCRジョブの処理とパス条件、正式ジョブの本体・依存関係、テスト登録473件を照合した。手動起動前の新規GPT-6.2 Sol／Highには変更のコード・テスト差分26,116バイト（SHA-256 `41caec2edc19b1d490954b521d03fd2011c349764ff1e8f9485668b41392d37e`）を渡し、変更範囲と検査条件を確認した。
+
+LinuxのPython全349件は既定skip2、失敗0。[mainからの手動実行45336506043](https://github.com/n624-dev/takupoke-ios/actions/runs/45336506043/attempts/1)、source `f384fa3da882a10f97d24d5808061da89f705599` で、Xcode26.6のNative 818件・失敗0、独立PDFは正例2件の正式変換と負例4件の拒否を確認した。Xcode27.2のiOS Simulator向けビルドも成功。従来の研究ブランチ2本の復元用バンドルを空リポジトリで検証し、先端SHAを照合した。正式最新版は `0.1.533`。
