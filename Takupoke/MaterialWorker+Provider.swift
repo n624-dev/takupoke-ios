@@ -1,5 +1,4 @@
 import Foundation
-import CryptoKit
 
 extension MaterialWorker {
     func grant(for url: URL) throws -> SourceGrant {
@@ -65,32 +64,8 @@ extension MaterialWorker {
 
     func readMaterial(_ file: URL, copyingTo staged: URL?, kind: MaterialKind,
                               control: AcquisitionControl) throws -> (Int, String) {
-        let input = try FileHandle(forReadingFrom: file)
-        defer { try? input.close() }
-        var output: FileHandle?
-        if let staged = staged {
-            guard FileManager.default.createFile(atPath: staged.path, contents: nil) else { throw MaterialError.unavailable }
-            output = try FileHandle(forWritingTo: staged)
-        }
-        defer { try? output?.close() }
-        var hasher = SHA256()
-        var count = 0
-        var header = Data()
-        while let chunk = try input.read(upToCount: 64 * 1024), !chunk.isEmpty {
-            try control.check()
-            count += chunk.count
-            guard count <= MaterialLibrary.maximumBytes else { throw MaterialError.tooLarge }
-            if header.count < 8 { header.append(chunk.prefix(8 - header.count)) }
-            hasher.update(data: chunk)
-            try output?.write(contentsOf: chunk)
-        }
-        guard count > 0 else { throw MaterialError.invalidFile }
-        if kind == .changes {
-            guard header.starts(with: [0x50, 0x4b, 0x03, 0x04]) else { throw MaterialError.invalidFile }
-        } else {
-            guard header.starts(with: Array("%PDF-".utf8)) else { throw MaterialError.invalidFile }
-        }
-        try output?.synchronize()
-        return (count, hasher.finalize().map { String(format: "%02x", $0) }.joined())
+        let receipt = try MaterialFileReader.copy(file, to: staged, isWorkbook: kind == .changes,
+                                                  check: control.check)
+        return (receipt.count, receipt.digest)
     }
 }

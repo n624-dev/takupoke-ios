@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`daa2e2d197c14f396a005a31a49ce351bc49119845e9fcde4b8614bf22c408cd`
+`b4f4304725ba4e9342916ee61354fbf17b924f91be0c82e4ca70ba8110a1342c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -20,6 +20,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 - [Takupoke/MaterialModels.swift](../../Takupoke/MaterialModels.swift)
 - [Takupoke/MaterialWorker+Analysis.swift](../../Takupoke/MaterialWorker+Analysis.swift)
 - [Takupoke/MaterialWorker+Provider.swift](../../Takupoke/MaterialWorker+Provider.swift)
+- [Takupoke/MaterialFileReader.swift](../../Takupoke/MaterialFileReader.swift)
 - [Takupoke/MaterialsModel+Updates.swift](../../Takupoke/MaterialsModel+Updates.swift)
 - [Takupoke/MaterialsModel.swift](../../Takupoke/MaterialsModel.swift)
 - [Takupoke/MaterialsView+FileSummary.swift](../../Takupoke/MaterialsView+FileSummary.swift)
@@ -35,6 +36,13 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/FileRefreshTests.swift](../../tests/FileRefreshTests.swift)
 
+- `testDiagnosticElapsedTimeUsesInjectedMonotonicClock`
+- `testBlockedReaderRejectsLateBytesAfterCancellation`
+- `testSharedReaderChecksCancellationBeforeReadAndAfterLateBytesOrEOF`
+- `testSharedReaderPrefersCancellationOverLateIOErrors`
+- `testSharedReaderRejectsCancellationDuringSynchronize`
+- `testSharedReaderValidatesSplitHeadersSizeAndDigest`
+- `testSharedReaderCopiesRealFileIntoStagingWithoutChangingSource`
 - `testRefreshPreservesTheFirstFailureAndStillChecksOtherSources`
 - `testRefreshPreservesChangeAndAcquisitionFailureKinds`
 - `testRefreshCancellationStopsBeforeTheNextSourceAndAfterTheLastRead`

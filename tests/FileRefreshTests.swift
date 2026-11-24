@@ -3,6 +3,168 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    func testDiagnosticElapsedTimeUsesInjectedMonotonicClock() {
+        final class Clock: @unchecked Sendable {
+            let lock = NSLock()
+            private var tick: TimeInterval = 100
+            func now() -> TimeInterval { lock.lock(); defer { lock.unlock() }; return tick }
+            func advance() { lock.lock(); defer { lock.unlock() }; tick += 2.5 }
+        }
+        let clock = Clock()
+        let diagnostic = FileRefreshDiagnostics(now: { clock.now() })
+        diagnostic.record(.refreshStarted, source: .changes)
+        clock.advance()
+        diagnostic.record(.cancelled, source: .changes)
+        XCTAssertEqual(diagnostic.snapshot.entries.map(\.elapsedMilliseconds), [0, 2500])
+    }
+
+    func testBlockedReaderRejectsLateBytesAfterCancellation() {
+        final class Provider: @unchecked Sendable {
+            let lock = NSLock()
+            let entered = DispatchSemaphore(value: 0)
+            let release = DispatchSemaphore(value: 0)
+            let finished = DispatchSemaphore(value: 0)
+            var cancelled = false, completed = false, writes = 0, rejected = false
+            func check() throws {
+                lock.lock(); defer { lock.unlock() }
+                if cancelled { throw MaterialError.cancelled }
+            }
+        }
+        let provider = Provider()
+        DispatchQueue.global().async {
+            do {
+                _ = try MaterialFileReader.read(isWorkbook: false, check: provider.check, next: {
+                    provider.entered.signal()
+                    guard provider.release.wait(timeout: .now() + 5) == .success else {
+                        throw MaterialError.unavailable
+                    }
+                    return Data("%PDF-fictional".utf8)
+                }, write: { _ in
+                    provider.lock.lock(); defer { provider.lock.unlock() }
+                    provider.writes += 1
+                }, synchronize: {})
+            } catch MaterialError.cancelled {
+                provider.lock.lock(); provider.rejected = true; provider.lock.unlock()
+            } catch { XCTFail("Unexpected provider result: \(type(of: error))") }
+            provider.lock.lock(); provider.completed = true; provider.lock.unlock()
+            provider.finished.signal()
+        }
+        defer { provider.release.signal() }
+        XCTAssertEqual(provider.entered.wait(timeout: .now() + 5), .success)
+        provider.lock.lock()
+        provider.cancelled = true
+        XCTAssertFalse(provider.completed, "Cancel is a request; the provider still owns the read")
+        provider.lock.unlock()
+        provider.release.signal()
+        XCTAssertEqual(provider.finished.wait(timeout: .now() + 5), .success)
+        provider.lock.lock(); defer { provider.lock.unlock() }
+        XCTAssertTrue(provider.rejected)
+        XCTAssertTrue(provider.completed)
+        XCTAssertEqual(provider.writes, 0, "Late bytes must never reach the staged result")
+    }
+
+    func testSharedReaderChecksCancellationBeforeReadAndAfterLateBytesOrEOF() {
+        for late in [Data("%PDF-fictional".utf8), Data(), nil] {
+            var cancelled = false
+            var reads = 0, writes = 0, syncs = 0
+            XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false, check: {
+                if cancelled { throw MaterialError.cancelled }
+            }, next: {
+                reads += 1
+                cancelled = true // The read returns after the user has cancelled.
+                return late
+            }, write: { _ in writes += 1 }, synchronize: { syncs += 1 })) { error in
+                guard case MaterialError.cancelled = error else { return XCTFail("Expected cancellation") }
+            }
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(writes, 0)
+            XCTAssertEqual(syncs, 0)
+        }
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false,
+            check: { throw MaterialError.cancelled }, next: { XCTFail("Must not read"); return nil },
+            write: { _ in XCTFail("Must not write") }, synchronize: { XCTFail("Must not synchronize") }))
+    }
+
+    func testSharedReaderPrefersCancellationOverLateIOErrors() {
+        enum Failure: Error { case io }
+        for stage in 0...2 {
+            var cancelled = false
+            var chunks = [Data("%PDF-fictional".utf8)]
+            XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false,
+                check: { if cancelled { throw MaterialError.cancelled } }, next: {
+                    if stage == 0 { cancelled = true; throw Failure.io }
+                    return chunks.isEmpty ? nil : chunks.removeFirst()
+                }, write: { _ in
+                    if stage == 1 { cancelled = true; throw Failure.io }
+                }, synchronize: {
+                    if stage == 2 { cancelled = true; throw Failure.io }
+                })) { error in
+                    guard case MaterialError.cancelled = error else { return XCTFail("Expected cancellation") }
+                }
+        }
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false, check: {},
+            next: { throw Failure.io }, write: { _ in }, synchronize: {})) { error in
+                guard case Failure.io = error else { return XCTFail("Must retain genuine I/O errors") }
+            }
+    }
+
+    func testSharedReaderRejectsCancellationDuringSynchronize() {
+        var cancelled = false
+        var chunks = [Data("%PDF-fictional".utf8)]
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false,
+            check: { if cancelled { throw MaterialError.cancelled } },
+            next: { chunks.isEmpty ? nil : chunks.removeFirst() }, write: { _ in },
+            synchronize: { cancelled = true })) { error in
+                guard case MaterialError.cancelled = error else { return XCTFail("Expected cancellation") }
+            }
+    }
+
+    func testSharedReaderValidatesSplitHeadersSizeAndDigest() throws {
+        // Independent SHA-256 reference for the complete fictional byte sequence.
+        let bytes = Data("%PDF-fictional".utf8)
+        var chunks = bytes.map { Data([$0]) }
+        var written = Data(), syncs = 0
+        let receipt = try MaterialFileReader.read(isWorkbook: false, maximumBytes: bytes.count,
+            check: {}, next: { chunks.isEmpty ? nil : chunks.removeFirst() },
+            write: { written.append($0) }, synchronize: { syncs += 1 })
+        XCTAssertEqual(receipt.count, bytes.count)
+        XCTAssertEqual(receipt.digest, "e604a9e2526224c5bddcfba54526a87aa865443e5967c35f05675c532f332060")
+        XCTAssertEqual(written, bytes)
+        XCTAssertEqual(syncs, 1)
+        var reads = 0
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false, maximumBytes: bytes.count - 1,
+            check: {}, next: { reads += 1; return bytes }, write: { _ in XCTFail("Oversize write") },
+            synchronize: { XCTFail("Oversize sync") })) { error in
+                guard case MaterialError.tooLarge = error else { return XCTFail("Expected size rejection") }
+            }
+        XCTAssertEqual(reads, 1)
+        for (workbook, input) in [(false, Data()), (false, Data("invalid".utf8)),
+                                   (true, bytes), (false, Data([0x50, 0x4b, 0x03, 0x04]))] {
+            var chunks = [input]
+            XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: workbook, check: {},
+                next: { chunks.isEmpty ? nil : chunks.removeFirst() }, write: { _ in },
+                synchronize: { XCTFail("Invalid data must not reach success") }))
+        }
+        var zipChunks = [Data([0x50]), Data([0x4b, 0x03]), Data([0x04])]
+        let zip = try MaterialFileReader.read(isWorkbook: true, check: {},
+            next: { zipChunks.isEmpty ? nil : zipChunks.removeFirst() }, write: { _ in }, synchronize: {})
+        XCTAssertEqual(zip.count, 4)
+    }
+
+    func testSharedReaderCopiesRealFileIntoStagingWithoutChangingSource() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("fictional.pdf")
+        let staged = root.appendingPathComponent("staged")
+        let bytes = Data("%PDF-fictional".utf8)
+        try bytes.write(to: source)
+        let receipt = try MaterialFileReader.copy(source, to: staged, isWorkbook: false, check: {})
+        XCTAssertEqual(receipt.count, bytes.count)
+        XCTAssertEqual(try Data(contentsOf: staged), bytes)
+        XCTAssertEqual(try Data(contentsOf: source), bytes)
+    }
+
     func testRefreshPreservesTheFirstFailureAndStillChecksOtherSources() throws {
         let failure = PDFParseError(code: .unsupported, page: 2)
         var checked: [MaterialKind] = []

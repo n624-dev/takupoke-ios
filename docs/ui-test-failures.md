@@ -6219,3 +6219,10 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - source `b5377c08c6ad28b046674bd5d281f11a37f7c574`、[45386853188・試行1／iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901052)、SDK 27.2／iOS 26.5。ビルド179.0秒、起動507.8秒、XCTest開始は12:07:44 UTC。時刻付きの3操作と再起動後の元の1操作で、表示と保存値がすべて変化した。12:11:34 UTC、学校行事から設定へ戻る途中に外側1440秒の期限が発火し、資料詳細までのケース完了は未確認。回収は完了、終了124。
 - 同じ試行の [iOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901566)は同じ4操作、再起動後の保持、4種類の資料詳細を617.959秒で完了。実行identity、完了照合と回収も成功。N246でiOS 26の設定詳細全体に成功したときの起動150.4秒と、今回の507.8秒を照合した。iOS 26の追加実行は4操作の結果を確認できたが、ケース全体とジョブの成功判定には使用しない。
+
+### N183-L1 — 2026-11-24 FileRefreshホスト検査の環境準備
+
+- source: `4fdaaa5` からの未コミットMaterialFileReader差分。Debian13上のDocker `swift:6.1.2`（Ubuntu）。
+- `bash tools/test-parsing.sh --filter FileRefreshTests` はビルド前に `python3: command not found`、exit127。テスト未実行。iOS／UI失敗ではない。
+- 文書にある `/workspace/toolchains` はこの新規環境には存在しない。Swift公式イメージにはPythonが含まれない。Swift・検査条件を変更せず、検証用コンテナへPythonと既存パッケージに必要な開発依存を追加して再試行する。
+- 同じ差分の次試行はPython準備後に依存cloneでTLS証明書検証エラー。テスト・コンパイル未到達。ホストに設定済みのCA bundleを検証コンテナへ渡して信頼連鎖を維持する。TLS検証は無効化しない。

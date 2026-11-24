@@ -58,6 +58,7 @@
         "Takupoke/MaterialModels.swift",
         "Takupoke/MaterialWorker+Analysis.swift",
         "Takupoke/MaterialWorker+Provider.swift",
+        "Takupoke/MaterialFileReader.swift",
         "Takupoke/MaterialsModel+Updates.swift",
         "Takupoke/MaterialsModel.swift",
         "Takupoke/MaterialsView+FileSummary.swift",

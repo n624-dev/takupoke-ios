@@ -9561,3 +9561,15 @@ GitHubの公開ReleaseからIPA・Source・アイコン・配布情報の4添付
 Linuxで6架空PDFの生成とSHA-256、12ワークフローのYAML、既存OCRジョブの処理とパス条件、正式ジョブの本体・依存関係、テスト登録473件を照合した。手動起動前の新規GPT-6.2 Sol／Highには変更のコード・テスト差分26,116バイト（SHA-256 `41caec2edc19b1d490954b521d03fd2011c349764ff1e8f9485668b41392d37e`）を渡し、変更範囲と検査条件を確認した。
 
 LinuxのPython全349件は既定skip2、失敗0。[mainからの手動実行45336506043](https://github.com/n624-dev/takupoke-ios/actions/runs/45336506043/attempts/1)、source `f384fa3da882a10f97d24d5808061da89f705599` で、Xcode26.6のNative 818件・失敗0、独立PDFは正例2件の正式変換と負例4件の拒否を確認した。Xcode27.2のiOS Simulator向けビルドも成功。従来の研究ブランチ2本の復元用バンドルを空リポジトリで検証し、先端SHAを照合した。正式最新版は `0.1.533`。
+
+### 2026-11-24 #183 共通読み取り境界の初期改修
+
+先行UIブランチ `codex/ios-settings-status-ui` の `4fdaaa5` を基に `codex/issue-183-pipeline` を作成。main `9bffdbf` は先行ブランチの祖先であり、既存UIを含む状態から進めた。確定仕様は既存Issue #183の「利用者確認済みの追補方針」に記録。応答30秒／無進捗60秒／解析120秒／全体240秒、旧I/O終了まで同じファイルを待機、3秒後に最大2回再試行が利用者確認済み。
+
+`MaterialFileReader` に通常／変更／試験／返却のバイト取得・SHA-256・形式／容量検証を集約。読み取りの前後、書き込み前、同期の前後で中止を確認する。読み取り・書き込み・同期が中止後にエラーを返す場合も中止を優先し、実際のI/O障害は保持する。DB・原本のコミット境界は変更しない。`FileRefreshDiagnostics` の単調時計を同期可能な `@Sendable` クロージャへ差し替え可能にした。診断の公開スキーマ・512件上限は維持。
+
+新規ケースは分割ヘッダー／SHA-256／容量上限／空・不正形式、実ファイルのコピーと元ファイル保持、読み取り中止後のbytes／空／EOF、同期中止、遅延I/Oエラー、semaphoreで停止させた読み取りの遅延復帰、注入時計。停止テストは共通reader単体であり、NSFileCoordinator・security scope・モデル／SQLiteの所有権や期限切れの終結を検証するものではない。旧処理が無応答のままならreaderは戻らず、独立した監視と取得／保存の隔離が引き続き必要。今回だけで起動停止を修正したとは扱わない。
+
+事前検索: `tools/test_catalog.py search FileRefresh`／`search Provider` によりmaterial、special、既存Python実行ハーネスを確認。初期差分のLinux Swift限定検査は19件成功（新設境界6件を含む）。レビュー後の最終差分にはさらに遅延I/Oエラーのケースを追加し、全ホスト検査で検証する。既存Python `test_change_preview_actions.py` は8件成功。文書記載のローカルtoolchainは新規環境に存在しなかったため、公式 `swift:6.1.2` コンテナにPython3・SQLite／zlibヘッダー・ホストの信頼済みCAを追加。準備時の未到達はN183-L1に記録し、TLS検証は維持。
+
+Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー。修正後のコード・テスト・登録差分SHA-256は `2a6815a739ed539b37521a043f80b08710243e2286312c959939d9657a52fbdf`。遅延エラー時の中止優先と注入時計の同期を補強して再レビューし、blocking指摘なし。実行対象は既存test-toolsのportable全体とApple Native host検査（SDK26.6／27.2）。SwiftUI／実Provider経路の統合、iOS26／27操作、全体配布CI、本番監視は今回のホスト検査と区別し、未実施のまま保持する。

@@ -26,19 +26,24 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
     }
     static let shared = FileRefreshDiagnostics()
     private let lock = NSLock()
-    private let started = ProcessInfo.processInfo.systemUptime
+    private let now: @Sendable () -> TimeInterval
+    private let started: TimeInterval
     private let limit: Int
     private var total = 0
     private var entries: [Entry] = []
 
-    init(limit: Int = 512) { self.limit = max(2, min(512, limit)) }
+    init(limit: Int = 512, now: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+        self.limit = max(2, min(512, limit))
+        self.now = now
+        started = now()
+    }
 
     func record(_ step: Step, source: Source? = nil) {
         lock.lock()
         defer { lock.unlock() }
         total += 1
         let entry = Entry(sequence: total,
-            elapsedMilliseconds: Int(max(0, ProcessInfo.processInfo.systemUptime - started) * 1000),
+            elapsedMilliseconds: Int(max(0, now() - started) * 1000),
             step: step, source: source)
         // Keep the initial registration and the latest feedback cycle.
         if entries.count == limit { entries.remove(at: min(32, limit / 2)) }

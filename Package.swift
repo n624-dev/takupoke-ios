@@ -105,7 +105,7 @@ let package = Package(
                     "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift",
                     "MaterialModels.swift", "WebPDFDownloader.swift",
                     "SelectedFileSource.swift",
-                    "FileRefreshDiagnostics.swift",
+                    "FileRefreshDiagnostics.swift", "MaterialFileReader.swift",
                     "SelectedFilePresenter.swift",
                     "SelectedFileObservation.swift",
                     "SelectedFileMonitor.swift",
