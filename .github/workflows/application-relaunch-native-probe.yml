@@ -22,6 +22,7 @@ on:
           - countdown-delete
           - countdown-notification-route
           - countdown-and-yellow
+          - yellow-contrast
           - countdown-notification-context
           - countdown
           - input-delivery

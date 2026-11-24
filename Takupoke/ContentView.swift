@@ -195,14 +195,7 @@ struct ContentView: View {
 
             override func layoutSubviews() {
                 super.layoutSubviews()
-                if let titleColor, overriddenBar?.tintColor != titleColor { scheduleUpdate() }
-            }
-
-            override func tintColorDidChange() {
-                super.tintColorDidChange()
-                // SwiftUI can update the inherited tint after configuring the
-                // tab items, such as when closing the main-color menu.
-                if titleColor != nil { scheduleUpdate() }
+                if titleColor != nil && overriddenBar == nil { scheduleUpdate() }
             }
 
             func update(titleColor: UIColor?) {
