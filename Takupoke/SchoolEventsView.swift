@@ -49,6 +49,9 @@ struct SchoolEventsSettingsSection: View {
                     if let status = model.sourcePresentation(year: year) {
                         LabeledContent("元PDFの確認", value: status.message)
                             .font(.caption)
+                        if status.updateWaiting, let url = status.officialSourceURL {
+                            Link("学校の元PDFを見る", destination: url)
+                        }
                         if let previous = status.lastSuccessfulMessage, let date = status.lastSuccessAt {
                             LabeledContent("最終成功の結果", value: previous).font(.caption)
                             LabeledContent("元資料の最終確認") {

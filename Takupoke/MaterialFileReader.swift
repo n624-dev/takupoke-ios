@@ -14,7 +14,7 @@ enum MaterialFileReader {
     }
 
     static func copy(_ file: URL, to staged: URL?, isWorkbook: Bool,
-                     check: () throws -> Void) throws -> Receipt {
+                     check: () throws -> Void, progress: () -> Void = {}, digesting: () -> Void = {}) throws -> Receipt {
         try check()
         let input = try FileHandle(forReadingFrom: file)
         defer { try? input.close() }
@@ -28,13 +28,13 @@ enum MaterialFileReader {
         defer { try? output?.close() }
         return try read(isWorkbook: isWorkbook, check: check,
                         next: { try input.read(upToCount: 64 * 1024) },
-                        write: { try output?.write(contentsOf: $0) },
-                        synchronize: { try output?.synchronize() })
+                        write: { try output?.write(contentsOf: $0); progress() },
+                        synchronize: { try output?.synchronize() }, digesting: digesting)
     }
 
     static func read(isWorkbook: Bool, maximumBytes: Int = MaterialLibrary.maximumBytes,
                      check: () throws -> Void, next: () throws -> Data?,
-                     write: (Data) throws -> Void, synchronize: () throws -> Void) throws -> Receipt {
+                     write: (Data) throws -> Void, synchronize: () throws -> Void, digesting: () -> Void = {}) throws -> Receipt {
         var hasher = SHA256()
         var count = 0
         var header = Data()
@@ -60,6 +60,8 @@ enum MaterialFileReader {
         try check()
         do { try synchronize() }
         catch { try check(); throw error }
+        try check()
+        digesting()
         try check()
         return Receipt(count: count, digest: hasher.finalize().map { String(format: "%02x", $0) }.joined())
     }

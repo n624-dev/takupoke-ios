@@ -84,7 +84,9 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         }
         XCTAssertFalse(try present(wire()).warning)
         let differs = try present(wire(status: "source_differs", success: "source_differs"))
-        XCTAssertTrue(differs.warning); XCTAssertTrue(differs.message.contains("影響は確認待ち"))
+        XCTAssertTrue(differs.warning); XCTAssertTrue(differs.message.contains("更新待ち"))
+        XCTAssertTrue(differs.updateWaiting)
+        XCTAssertTrue(differs.message.contains("端末の再取得では解消しません"))
         XCTAssertTrue(try present(wire(status: "unknown", success: nil, date: nil)).message.contains("未確認"))
         let failed = try present(wire(status: "unavailable"))
         XCTAssertFalse(failed.warning); XCTAssertEqual(failed.lastSuccessAt, instant)

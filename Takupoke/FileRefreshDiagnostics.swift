@@ -2,7 +2,7 @@ import Foundation
 
 /// Only fixed event codes and elapsed times; no URLs, bookmarks, names or hashes.
 final class FileRefreshDiagnostics: @unchecked Sendable {
-    enum Source: String, Codable { case timetable, changes, exam, examReturn }
+    enum Source: String, Codable, CaseIterable { case timetable, changes, exam, examReturn }
     enum Step: String, Codable {
         case foreground, background, observationStart, observationStop
         case registrationComplete, registrationFailure, initialRefresh
@@ -11,12 +11,17 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
         case coordinatorMatched, coordinatorUnmatched, scheduled, delivered
         case refreshStarted, hashSame, hashChanged, refreshFailed, cancelled
         case readVersionRecorded, readVersionUnavailable
+        case pipelineStage, pipelineFinished
     }
     struct Entry: Codable {
         let sequence: Int
         let elapsedMilliseconds: Int
         let step: Step
         let source: Source?
+        var operationID: UUID? = nil
+        var reason: FilePipeline.Reason? = nil
+        var stage: FilePipeline.Stage? = nil
+        var attempt: Int? = nil
     }
     struct Snapshot: Codable {
         let schemaVersion: Int
@@ -38,13 +43,13 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
         started = now()
     }
 
-    func record(_ step: Step, source: Source? = nil) {
+    func record(_ step: Step, source: Source? = nil, operationID: UUID? = nil, reason: FilePipeline.Reason? = nil, stage: FilePipeline.Stage? = nil, attempt: Int? = nil) {
         lock.lock()
         defer { lock.unlock() }
         total += 1
         let entry = Entry(sequence: total,
             elapsedMilliseconds: Int(max(0, now() - started) * 1000),
-            step: step, source: source)
+            step: step, source: source, operationID: operationID, reason: reason, stage: stage, attempt: attempt)
         // Keep the initial registration and the latest feedback cycle.
         if entries.count == limit { entries.remove(at: min(32, limit / 2)) }
         entries.append(entry)

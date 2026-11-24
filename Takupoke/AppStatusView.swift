@@ -15,12 +15,51 @@ struct AppStatusEvidence {
     let application: ApplicationData
     let year: Int?
 
+    private var onlineEvents: FunctionalStatusSnapshot.EventVersion? {
+        guard let year, !services.failedFunctional.contains(.api) else { return nil }
+        let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
+        return services.functional[.api]?.eventVersion(year: year, format: format, at: Date())
+    }
+
+    private var publisherWaiting: Bool {
+        guard let year else { return false }
+        let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
+        let previous = events.sourcePresentation(year: year)
+        let difference = previous?.updateWaiting == true ? previous?.lastSuccessAt : nil
+        return services.eventPublisher.isWaiting(year: year, format: format, earlierDifference: difference)
+    }
+
     @MainActor var eventsStatus: StatusPresentation {
         guard let year else { return .init(title: "学校年度を確認してください", tone: .attention) }
+        if publisherWaiting {
+            return .init(title: "更新待ち", tone: .attention, detail: "学校の元PDFとの差異を配信元で確認しています。")
+        }
+        let previous = events.sourcePresentation(year: year)
+        var source = previous?.updateWaiting == true ? nil : previous
+        if let version = onlineEvents, version.sourceState == "matched",
+           let checked = version.sourceCheckedAt, checked <= Date(),
+           checked >= (source?.lastSuccessAt ?? .distantPast) {
+            source = .init(message: "元PDFの本文は登録元と一致しています。", warningMessage: nil,
+                           lastSuccessfulMessage: nil, lastSuccessAt: checked, receivedAt: nil, evidence: .matched)
+        }
         return .schoolEvents(ready: events.ready, failed: events.failed,
             checking: events.busy || events.isChecking(year: year),
             cacheFailed: events.failedCacheYears.contains(year), acquired: events.saved[year] != nil,
-            source: events.sourcePresentation(year: year))
+            source: source)
+    }
+
+    var eventsReview: StatusPresentation {
+        guard let version = onlineEvents, version.reviewState == "reviewed",
+              let date = version.reviewCheckedAt, date <= Date() else { return FunctionalStatusSnapshot.unknown }
+        return .init(title: "確認済み", tone: .good)
+    }
+
+    var eventsRevision: StatusPresentation {
+        guard let year, let saved = events.saved[year] else { return .init(title: "未取得", tone: .neutral) }
+        guard let version = onlineEvents, let savedVersion = saved.dataVersion else { return FunctionalStatusSnapshot.unknown }
+        if savedVersion == version.dataVersion { return .init(title: "配信版と一致", tone: .good) }
+        if publisherWaiting { return .init(title: "保存済み", tone: .neutral) }
+        return .init(title: "更新あり", tone: .attention)
     }
 
     @MainActor var linkStatus: StatusPresentation {
@@ -33,10 +72,13 @@ struct AppStatusEvidence {
         .downloaded(acquired: times.current != nil, updateAvailable: times.updateAvailable, failed: times.failed, busy: times.busy)
     }
     @MainActor var summary: StatusPresentation {
-        var values = [eventsStatus, linkStatus, mappingStatus, timesStatus]
+        var values = [eventsStatus, eventsReview, eventsRevision, linkStatus, mappingStatus, timesStatus]
         values += [MaterialKind.timetable, .changes].map { materials.fileStatus($0) }
         values += SpecialScheduleKind.allCases.map { specials.fileStatus($0) }
         values += MonitoredService.allCases.map { services.cache.presentation(for: $0, at: Date()) }
+        for service in MonitoredService.allCases {
+            values += service.featureIDs.map { services.featureStatus($0, for: service, at: Date()) }
+        }
         values += [networkStatus, storageStatus]
         if materials.lastOperationWasCancelled || specials.lastOperationWasCancelled {
             values.append(.init(title: "前回の処理を中止しました", tone: .neutral))
@@ -204,8 +246,10 @@ struct AppStatusView: View {
                 StatusRow(title: "授業時刻", status: evidence.timesStatus, date: times.current?.fetchedAt, dateLabel: "最終取得")
             }.accessibilityIdentifier("status-times")
             NavigationLink("学校アカウントで取得・更新") { AccountDataSettingsView() }
+            StatusRow(title: "行事の内容レビュー", status: evidence.eventsReview)
+            StatusRow(title: "端末に保存した行事", status: evidence.eventsRevision)
         } header: { Text("配信データ") } footer: {
-            Text("取得済みデータと元PDFの確認結果を表示します。行事の日付・内容の正確さや配信元内部の検証状況は、現在は未確認です。")
+            Text("元PDFとの照合、配信元のレビュー、端末保存版の確認結果をそれぞれ表示します。")
         }
     }
 

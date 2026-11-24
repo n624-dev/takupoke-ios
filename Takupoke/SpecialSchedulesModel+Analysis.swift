@@ -24,6 +24,26 @@ extension SpecialSchedulesModel {
         guard !busy else { return }
         fullReadReports[kind] = nil
         perform(success: "\(kind.title)を解析して保存しました。", reporting: kind) { store, control, capture in
+            defer {
+                if let evidence = store.pipelineEvidence[kind] {
+                    capture.report = evidence.report; capture.failure = evidence.failure; capture.recoveryPages = evidence.pages
+                    capture.evidenceStoredName = evidence.storedName; capture.evidenceDigest = evidence.digest
+                }
+            }
+            try Self.pipeline(store, kind: kind, reason: selection == nil ? .manual : .selection, control: control) { store, control in
+                let isolatedCapture = SpecialDiagnosticCapture()
+                defer {
+                    store.pipelineEvidence[kind] = SpecialPipelineEvidence(storedName: store.sources[kind]?.storedName,
+                        digest: store.sources[kind]?.digest, report: isolatedCapture.report,
+                        failure: isolatedCapture.failure, pages: isolatedCapture.recoveryPages)
+                }
+                try Self.analyzeIsolated(store, kind: kind, selection: selection, control: control, capture: isolatedCapture)
+            }
+        }
+    }
+
+    nonisolated static func analyzeIsolated(_ store: SpecialScheduleStore, kind: SpecialScheduleKind,
+        selection: ScopedMaterialSelection?, control: AcquisitionControl, capture: SpecialDiagnosticCapture) throws {
             let parseCheck: () throws -> Void = {
                 do { try control.check() } catch { throw PDFParseError(code: .cancelled) }
             }
@@ -51,15 +71,18 @@ extension SpecialSchedulesModel {
                     diagnosticURL = staged
                     let (name, count, digest, receipt) = try Self.copy(selection, to: staged, kind: kind, control: control)
                     sourceName = name
+                    control.pipelineTicket?.enter(.access)
                     let grant = try selection.access { url in
                         SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
                             includingResourceValuesForKeys: nil, relativeTo: nil),
                             name: url.lastPathComponent, isFolder: false)
                     }
+                    control.pipelineTicket?.enter(.validating)
                     try control.check()
                     try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                             byteCount: count, digest: digest, grant: grant)
-                    receipt.acknowledge()
+                    if let ticket = control.pipelineTicket { ticket.afterCommit { receipt.acknowledge() } }
+                    else { receipt.acknowledge() }
                     control.recordProviderAcquisition(kind.rawValue)
                 }
                 guard let source = store.sources[kind], let selectedURL = store.selectedURL(for: kind) else {
@@ -67,6 +90,7 @@ extension SpecialSchedulesModel {
                 }
                 diagnosticURL = selectedURL
                 sourceName = source.originalName
+                control.pipelineTicket?.enter(.parsing)
                 let readerCapture = RecoveryReadCapture()
                 defer { capture.recoveryPages = readerCapture.pages }
                 let pages = try PDFKitReader.readSpecial(selectedURL, diagnostics: diagnostics,
@@ -78,9 +102,10 @@ extension SpecialSchedulesModel {
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 inspected = PDFKitReader.diagnose(selectedURL, check: parseCheck)
 #endif
+                control.pipelineTicket?.enter(.validating)
                 try parseCheck()
                 diagnostics.record(.save)
-                do { try store.saveAnalysis(analysis) }
+                do { try store.saveAnalysis(analysis); control.pipelineTicket?.parsed() }
                 catch { throw PDFParseError(code: .storage) }
                 diagnostics.record(.saveComplete)
                 succeeded = true
@@ -93,6 +118,5 @@ extension SpecialSchedulesModel {
                 }
                 throw failure
             }
-        }
     }
 }

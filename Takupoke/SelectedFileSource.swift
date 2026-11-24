@@ -37,10 +37,10 @@ struct FileRefreshQueue {
         if foreground && !suspended { pending.insert(id) }
     }
 
-    mutating func take(ready: Bool, busy: Bool) -> Set<String> {
+    mutating func take(ready: Bool, busy: Bool, blocked: Set<String> = []) -> Set<String> {
         guard foreground, !suspended, ready, !busy else { return [] }
-        let result = pending
-        pending.removeAll()
+        let result = pending.subtracting(blocked)
+        pending.subtract(result)
         return result
     }
 }
@@ -96,9 +96,9 @@ struct PendingFileSelections<Kind, Selection> {
         items.append((kind, selection))
     }
 
-    mutating func take(busy: Bool) -> (kind: Kind, selection: Selection)? {
-        guard !busy, !items.isEmpty else { return nil }
-        return items.removeFirst()
+    mutating func take(busy: Bool, blocked: (Kind) -> Bool = { _ in false }) -> (kind: Kind, selection: Selection)? {
+        guard !busy, let index = items.firstIndex(where: { !blocked($0.kind) }) else { return nil }
+        return items.remove(at: index)
     }
 
     mutating func clear() { items.removeAll() }
@@ -118,7 +118,13 @@ enum SelectedFileRefresher {
                 try refresh(kind)
                 try check()
             } catch {
-                if FileOperationOutcome.isCancellation(error) {
+                if (error as? FilePipeline.Failure) == .cancelled || (error as? FilePipeline.Failure) == .stale {
+                    try check() // Only explicit batch cancellation stops the remaining files.
+                    FileRefreshDiagnostics.shared.record(.cancelled, source: source)
+                    if firstFailure == nil { firstFailure = error }
+                    continue
+                }
+                if (error as? FilePipeline.Failure) != .timedOut && FileOperationOutcome.isCancellation(error) {
                     FileRefreshDiagnostics.shared.record(.cancelled, source: source)
                     throw error
                 }

@@ -21,6 +21,14 @@ struct ServiceStatusView: View {
             } footer: {
                 Text("Better Stackの公開監視結果です。この端末での認証や、配信データの内容の正確さとは別の情報です。表示中は3分ごとに確認します。")
             }
+            Section("機能別の状態") {
+                ForEach(service.featureIDs, id: \.self) { id in
+                    let feature = model.functional[service]?.feature(id)
+                    StatusRow(title: FunctionalStatusSnapshot.Feature.title(for: id),
+                              status: model.featureStatus(id, for: service, at: Date()),
+                              date: feature?.checkedAt, dateLabel: "最終確認")
+                }
+            }
             if let retained = model.cache.retained[service] {
                 let resource = retained.value
                 Section("取得した監視結果") {

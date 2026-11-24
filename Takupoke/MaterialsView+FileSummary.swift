@@ -53,7 +53,11 @@ extension SpecialSchedulesModel {
     }
 
     func fileStatus(_ kind: SpecialScheduleKind) -> StatusPresentation {
-        FileStatusPresentation.special(availability, kind: kind,
+        if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue),
+           let running = FilePipeline.shared.snapshot[source], running.stage != .succeeded && running.stage != .unchanged {
+            return running.presentation
+        }
+        return FileStatusPresentation.special(availability, kind: kind,
                                        recoveryRejected: rejectedRecoveryKinds.contains(kind)).status
     }
 }
@@ -64,6 +68,10 @@ extension MaterialsModel {
     }
 
     func fileStatus(_ kind: MaterialKind) -> StatusPresentation {
+        if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue),
+           let running = FilePipeline.shared.snapshot[source], running.stage != .succeeded && running.stage != .unchanged {
+            return running.presentation
+        }
         var value = FileStatusPresentation.material(state, kind: kind, year: automaticChangeSchoolYear,
                                                    recoveryRejected: rejectedRecoveryKinds.contains(kind.rawValue)).status
         if kind == .changes {

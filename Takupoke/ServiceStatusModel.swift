@@ -8,6 +8,9 @@ final class ServiceStatusModel: ObservableObject {
     static let refreshNanoseconds: UInt64 = 180_000_000_000
     @Published private(set) var cache = ServiceStatusCache()
     @Published private(set) var checking = false
+    @Published private(set) var functional: [MonitoredService: FunctionalStatusSnapshot] = [:]
+    @Published private(set) var failedFunctional = Set<MonitoredService>()
+    @Published private(set) var eventPublisher = EventPublisherStatus()
     private var request: Task<Void, Never>?
     private var requestID: UUID?
     private var observers = Set<UUID>()
@@ -17,6 +20,11 @@ final class ServiceStatusModel: ObservableObject {
     func endObserving(_ owner: UUID) {
         observers.remove(owner)
         if observers.isEmpty { stop() }
+    }
+
+    func featureStatus(_ id: String, for service: MonitoredService, at date: Date) -> StatusPresentation {
+        guard !failedFunctional.contains(service) else { return FunctionalStatusSnapshot.unknown }
+        return functional[service]?.feature(id)?.presentation(at: date) ?? FunctionalStatusSnapshot.unknown
     }
 
     func refresh() async {
@@ -30,19 +38,34 @@ final class ServiceStatusModel: ObservableObject {
             defer {
                 if self.requestID == id { self.request = nil; self.requestID = nil; self.checking = false }
             }
+            async let api = Self.downloadFunctional(.api)
+            async let authentication = Self.downloadFunctional(.authentication)
             do {
-                let result = try await Self.download(etag: self.cache.etag)
+                let result = try await Self.download(Self.endpoint, maximumBytes: ServiceStatusSnapshot.maximumBytes,
+                                                     etag: self.cache.etag)
                 try Task.checkCancellation()
                 guard self.requestID == id else { return }
                 switch result {
                 case .notModified(let etag): try self.cache.revalidate(responseETag: etag, at: Date())
-                case .snapshot(let snapshot, let etag): self.cache.accept(snapshot, etag: etag, at: Date())
+                case .snapshot(let bytes, let etag):
+                    self.cache.accept(try ServiceStatusSnapshot.decode(bytes), etag: etag, at: Date())
                 }
                 self.scheduleExpiry()
             } catch {
                 guard self.requestID == id, !Task.isCancelled else { return }
                 self.cache.recordFailure()
             }
+            let (apiResult, authResult) = await (api, authentication)
+            let results: [(MonitoredService, FunctionalStatusSnapshot?)] = [(.api, apiResult), (.authentication, authResult)]
+            guard self.requestID == id, !Task.isCancelled else { return }
+            for (service, result) in results {
+                if let result {
+                    self.functional[service] = result
+                    self.failedFunctional.remove(service)
+                    if service == .api { self.eventPublisher.accept(result, at: Date()) }
+                } else { self.failedFunctional.insert(service) }
+            }
+            self.scheduleExpiry()
         }
         request = task
         await task.value
@@ -50,22 +73,36 @@ final class ServiceStatusModel: ObservableObject {
 
     private enum Download {
         case notModified(String?)
-        case snapshot(ServiceStatusSnapshot, String?)
+        case snapshot(Data, String?)
     }
 
     private func scheduleExpiry() {
         expiry?.cancel()
+        let now = Date()
+        var deadlines = functional.values.flatMap { snapshot in
+            snapshot.features.map(\.validUntil) + [snapshot.data?.events?.validUntil].compactMap { $0 }
+        }
+        if let checkedAt = cache.checkedAt { deadlines.append(checkedAt.addingTimeInterval(180)) }
+        guard let next = deadlines.filter({ $0 > now }).min() else { expiry = nil; return }
+        let wait = min(180, next.timeIntervalSince(now))
         expiry = Task { @MainActor [weak self] in
-            do { try await Task.sleep(nanoseconds: Self.refreshNanoseconds) }
+            do { try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
             catch { return }
             // Invalidate cached labels even while Settings is idle. This does
             // not perform network work or keep off-screen polling alive.
             self?.objectWillChange.send()
+            self?.scheduleExpiry()
         }
     }
 
     // Streaming and JSON decoding run away from MainActor; no file or account data is sent.
-    private nonisolated static func download(etag: String?) async throws -> Download {
+    private nonisolated static func downloadFunctional(_ service: MonitoredService) async -> FunctionalStatusSnapshot? {
+        let url = URL(string: service == .api ? "https://takupoke-api.n624.jp/status" : "https://takuma-gakunin.n624.jp/status")!
+        guard case .snapshot(let data, _)? = try? await download(url, maximumBytes: FunctionalStatusSnapshot.maximumBytes) else { return nil }
+        return try? FunctionalStatusSnapshot.decode(data, service: service)
+    }
+
+    private nonisolated static func download(_ url: URL, maximumBytes: Int, etag: String? = nil) async throws -> Download {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 20
         configuration.timeoutIntervalForResource = 30
@@ -73,7 +110,7 @@ final class ServiceStatusModel: ObservableObject {
         configuration.httpCookieStorage = nil
         let session = URLSession(configuration: configuration)
         defer { session.invalidateAndCancel() }
-        var request = URLRequest(url: Self.endpoint, cachePolicy: .reloadIgnoringLocalCacheData)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let etag { request.setValue(etag, forHTTPHeaderField: "If-None-Match") }
         let (bytes, response) = try await session.bytes(for: request)
@@ -85,19 +122,18 @@ final class ServiceStatusModel: ObservableObject {
         }
         guard response.statusCode == 200,
               response.mimeType == "application/json" || response.mimeType == "application/vnd.api+json",
-              response.expectedContentLength <= ServiceStatusSnapshot.maximumBytes else {
+              response.url == url, response.expectedContentLength <= maximumBytes else {
             throw ServiceStatusSnapshot.Failure.invalidResponse
         }
         var data = Data()
         for try await byte in bytes {
-            guard data.count < ServiceStatusSnapshot.maximumBytes else { throw ServiceStatusSnapshot.Failure.invalidResponse }
+            guard data.count < maximumBytes else { throw ServiceStatusSnapshot.Failure.invalidResponse }
             data.append(byte)
         }
         try Task.checkCancellation()
-        let snapshot = try ServiceStatusSnapshot.decode(data)
         let value = response.value(forHTTPHeaderField: "ETag")
         let etag = value.flatMap { !$0.isEmpty && $0.utf8.count <= 512 && !$0.contains("\r") && !$0.contains("\n") ? $0 : nil }
-        return .snapshot(snapshot, etag)
+        return .snapshot(data, etag)
     }
 
     /// View disappearance and backgrounding stop this screen's network work.

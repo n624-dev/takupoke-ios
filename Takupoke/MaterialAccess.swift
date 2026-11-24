@@ -1,7 +1,10 @@
 import Foundation
 
 final class MaterialWorker {
+    let ownerQueue = DispatchQueue(label: "io.github.n624dev.takupoke.materials", qos: .userInitiated)
     private(set) var library: MaterialLibrary?
+
+    init(library: MaterialLibrary? = nil) { self.library = library }
     var changePreview: ChangePreview?
     var timetableReadReport: String?
     var timetableFailure: PDFParseError?
@@ -26,6 +29,7 @@ final class MaterialWorker {
             try selection.access { url in
                 guard url.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(url, to: staged, kind: kind, control: control)
+                control.pipelineTicket?.enter(.access)
                 let source = MaterialSource(grant: try grant(for: url), childName: nil)
                 return .downloaded((source, url.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
             }
@@ -49,6 +53,7 @@ final class MaterialWorker {
         FileRefreshDiagnostics.shared.record(sameDigest ? .hashSame : .hashChanged,
                                              source: FileRefreshDiagnostics.Source(rawValue: kind.rawValue))
         if sameDigest {
+            control.pipelineTicket?.unchanged()
             if kind == .timetable, try library?.recertifyAcceptedTimetable(hash:current.digest) == true { return }
             guard let state = library?.state else { return }
             if kind == .changes {
@@ -125,6 +130,7 @@ final class MaterialWorker {
         defer { library.discardStaging(staged) }
         do {
             let result = try read(staged)
+            control.pipelineTicket?.enter(.validating)
             try control.check()
             switch result {
             case .downloaded(let file):
@@ -136,7 +142,8 @@ final class MaterialWorker {
                                    digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged,
                                    legacyChangeSettings:legacySettings)
                 if let receipt = file.receipt {
-                    receipt.acknowledge()
+                    if let ticket = control.pipelineTicket { ticket.afterCommit { receipt.acknowledge() } }
+                    else { receipt.acknowledge() }
                     control.recordProviderAcquisition(kind.rawValue)
                 }
             case .unchanged(let source):

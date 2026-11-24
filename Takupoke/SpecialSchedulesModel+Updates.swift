@@ -13,13 +13,15 @@ extension SpecialSchedulesModel {
     }
 
     func refresh(_ kind: SpecialScheduleKind) {
-        guard ready, !busy, sources[kind]?.grant != nil else { return }
+        guard ready, sources[kind]?.grant != nil else { return }
+        if busy || FilePipeline.shared.isRecovering(kind.rawValue) { pendingManualRefresh.insert(kind); return }
         perform(success: "\(kind.title)を再取得して解析しました。") { store, control, _ in
             try Self.refreshSelectedFiles(store, requested: [kind.rawValue], control: control, force: true)
         }
     }
 
     func setFileMonitoring(_ foreground: Bool) {
+        observePipeline(foreground)
         fileRefreshQueue.setForeground(foreground)
         fileMonitor.setForeground(foreground)
     }

@@ -37,10 +37,10 @@ struct MaterialsView: View {
             } header: { Text("時間割ファイル") } footer: {
                 Text("選択済みの行を開くと、確認日時や解析結果、再取得・選び直しの操作を確認できます。")
             }
-            if model.ready && model.failed, let message = model.message {
+            if model.ready && model.failed && !model.lastOperationUsedPipeline, let message = model.message {
                 Section("通常時間割・時間割変更") { InlineWarning(message) }
             }
-            if specialSchedules.ready && specialSchedules.failed, let message = specialSchedules.message {
+            if specialSchedules.ready && specialSchedules.failed && !specialSchedules.lastOperationUsedPipeline, let message = specialSchedules.message {
                 Section("試験・返却時間割") { InlineWarning(message) }
             }
 

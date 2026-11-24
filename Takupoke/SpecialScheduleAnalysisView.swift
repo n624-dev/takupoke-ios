@@ -51,7 +51,7 @@ struct SpecialScheduleAnalysisView: View {
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
+                        Text(source.lastAcquiredAt ?? source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {

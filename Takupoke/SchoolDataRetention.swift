@@ -28,7 +28,7 @@ struct SchoolDataPeriod: Codable, Equatable, Sendable {
 struct SchoolDataRetention {
     let root: URL
     private var marker: URL { root.appendingPathComponent("school-data-period.json") }
-    static let privatePaths = ["SchoolMaterialsSQLite", "SchoolMaterialsSQLite.initializing",
+    static let privatePaths = ["SchoolFileJobs", "SchoolMaterialsSQLite", "SchoolMaterialsSQLite.initializing",
         "SchoolMaterialsSQLite.lock", "SchoolMaterials", "SpecialSchedulesSQLite", "SpecialSchedules",
         "NameMappings", "LinksAPI", "ScheduleNotifications", "TimetableTimes"]
 

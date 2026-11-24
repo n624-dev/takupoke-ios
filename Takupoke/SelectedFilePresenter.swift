@@ -9,6 +9,11 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
     private let diagnosticSource: FileRefreshDiagnostics.Source?
     private var contentGate = FileContentChangeGate()
     private var active = true
+    private var readEpoch: UInt64 = 0
+    private var acknowledgedEpoch: UInt64 = 0
+    private func reserveReadEpoch() -> UInt64 {
+        lock.lock(); defer { lock.unlock() }; readEpoch &+= 1; return readEpoch
+    }
     private var metadataCoordinator: NSFileCoordinator?
     let presentedItemOperationQueue: OperationQueue = {
         let queue = OperationQueue()
@@ -77,20 +82,23 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         coordinator?.cancel()
     }
 
-    private func acknowledge(_ version: FileContentVersion?) {
+    private func acknowledge(_ version: FileContentVersion?, epoch: UInt64) {
         lock.lock()
         defer { lock.unlock() }
-        guard active else { return }
+        guard active, epoch >= acknowledgedEpoch else { return }
+        acknowledgedEpoch = epoch
         contentGate.record(version)
         FileRefreshDiagnostics.shared.record(version == nil ? .readVersionUnavailable : .readVersionRecorded,
                                              source: diagnosticSource)
     }
 
     struct ReadReceipt {
+        static var unobserved: Self { .init(presenter: nil, version: nil, epoch: 0) }
         fileprivate let presenter: SelectedFilePresenter?
         fileprivate let version: FileContentVersion?
+        fileprivate let epoch: UInt64
 
-        func acknowledge() { presenter?.acknowledge(version) }
+        func acknowledge() { presenter?.acknowledge(version, epoch: epoch) }
     }
 
     func refreshCompleted() {
@@ -113,6 +121,7 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
     struct ReadAccess {
         let coordinator: NSFileCoordinator
         fileprivate let presenter: SelectedFilePresenter?
+        fileprivate let epoch: UInt64
 
         /// Capture the version inside coordination once source handles close.
         /// The caller acknowledges it only after saving the selected source.
@@ -120,7 +129,7 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
             do {
                 let result = try body()
                 let version = presenter.flatMap { _ in SelectedFilePresenter.contentVersion(at: url) }
-                return (result, ReadReceipt(presenter: presenter, version: version))
+                return (result, ReadReceipt(presenter: presenter, version: version, epoch: epoch))
             } catch {
                 presenter?.refreshCompleted()
                 throw error
@@ -134,7 +143,7 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         }
         FileRefreshDiagnostics.shared.record(presenter == nil ? .coordinatorUnmatched : .coordinatorMatched,
                                              source: source ?? presenter?.diagnosticSource)
-        return ReadAccess(coordinator: NSFileCoordinator(filePresenter: presenter), presenter: presenter)
+        return ReadAccess(coordinator: NSFileCoordinator(filePresenter: presenter), presenter: presenter, epoch: presenter?.reserveReadEpoch() ?? 0)
     }
 
     static func coordinator(for url: URL) -> NSFileCoordinator {

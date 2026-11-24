@@ -6226,3 +6226,30 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - `bash tools/test-parsing.sh --filter FileRefreshTests` はビルド前に `python3: command not found`、exit127。テスト未実行。iOS／UI失敗ではない。
 - 文書にある `/workspace/toolchains` はこの新規環境には存在しない。Swift公式イメージにはPythonが含まれない。Swift・検査条件を変更せず、検証用コンテナへPythonと既存パッケージに必要な開発依存を追加して再試行する。
 - 同じ差分の次試行はPython準備後に依存cloneでTLS証明書検証エラー。テスト・コンパイル未到達。ホストに設定済みのCA bundleを検証コンテナへ渡して信頼連鎖を維持する。TLS検証は無効化しない。
+
+### N183-L2 — #183 隔離パイプライン接続後のホストハーネス依存
+
+2026-11-24、`dcae9bf` 上の未コミット隔離パイプライン差分、Swift6.1.2／Linux。`test_change_preview_actions.py` は8件中4件がSwiftハーネスのコンパイルで失敗。実行前の依存不足であり、期待する中止／保存結果の失敗ではない。抽出済みAcquisitionControl・FileOperationOutcome・モデルの既存callerへ追加したFilePipeline型とpipeline入口がハーネスに未登録（cannot find FilePipeline／no member pipeline）。N183-L1の環境準備失敗とは異なり、コンパイラは使用可能。期待値・既存シナリオを維持し、新しい境界をハーネスへ接続して再実行する。Foundation本体の最初のFileRefreshTests実行は成功しているが、その後追加したケースは次試行で確認する。
+
+### N183-L3 — #183 ローカル増分ビルド中の入力変更
+
+2026-11-24、`dcae9bf` 上の未コミット差分、Swift6.1.2／Linux。作業ツリーを直接参照した増分ホスト検査は、コンパイル中に主担当がSelectedFileSource.swiftを編集したため `input file ... was modified during the build` で停止。テストには未到達。N183-L2のハーネス依存は補完後に8件成功。次の増分検査は所有する固定コピーへソースを同期してから開始し、ビルド中はそのコピーを更新しない。既存の隔離実行スクリプトと同じ入力固定条件を維持する。
+- N183-L2追補: 再試行・実行枠接続後の次試行では8件中2件がハーネス型検査で停止。追加した実行枠判定と解析成功通知の依存が不足している。既存の動作期待は維持し、不足したstubの型・関数だけを補う。
+
+### N183-L4 — #183 全ホスト検査の保存日時比較
+
+2026-11-24、`dcae9bf` 上の未コミット候補、Swift6.1.2／Linux。固定入力の全731件で2件が予期しないエラーにより失敗。限定FileRefreshTests29件は成功していたが、これを保存全体の成功に代用しない。全体ログの失敗ケース・保存段階を確認してから修正し、再実行する。並行してレビューで指摘された実行要求世代・バッチ取消・終了投影を補強中のため、この実行は後続補強の最終検証ではない。
+- N183-L4の失敗は `LocalDatabaseTests.testSameDigestAutomaticRefreshReusesOriginalAndPersistsUpdatedModificationDate` と `ParsingTests.testOldRowSkipDecisionSurvivesSQLiteUpgradeAndCurrentRevalidation`。保存後のcurrentSnapshot照合で追加したlastAcquiredAtを可変メタデータとして正規化していなかった。Current側だけでなくSnapshot側の不変原本比較へ同じ正規化を追加し、原本識別・内容・解析版の検査は維持する。
+
+### N183-L5 — 更新待ちの確定文言と既存期待
+
+2026-11-24、固定入力の全734件で失敗2件。N183-L4のSQLite保存2件は修正後成功。残る失敗はSchoolEventsSourceStatusTestsの2ケースが旧文言「確認待ち」を期待しているためで、利用者確認済みの「更新待ち・配信元の対応・再取得では解消しない」へ変更した表示との差。差異判定・警告・旧正常結果保持の期待は緩和せず、新しい責任分担を表す文言へ更新する。APIの最初の型検査は追加functional-status.tsのnullable observation絞り込み4箇所で停止し、ランタイム未到達。既存validObservationの型述語を明示して補う。
+- N183-L2追補: 行確認・プレビューも隔離処理へ接続した次試行は、9件中2件のハーネスでWorker.pipelineとTicketの依存が不足し型検査停止。バッチ取消と子期限の分離ケースは成功。該当する限定stubを補い、既存の却下・保存失敗・プレビュー保持の期待は維持する。
+
+### N183-L6 — Linuxの作業領域不足
+
+`codex/issue-183-pipeline` の保存境界・公開状態の作業差分をLinux x86_64／Swift 6.1.2で検証中、コンパイル・テスト用出力の生成で `other(28)` が発生した。Windowsの対象テストでもテスト用ファイルの配置前に `No space left on device`。共有ディスクの空きは0で、どちらも対象テストは未実行。作業中に作成した依存の重複キャッシュを解放し、テスト条件は変えずに再実行する。変更前の固定入力ではSwift 736件が成功した。
+
+### N183-L7 — PDF照合の互換性とLinuxの抽出テスト
+
+`codex/issue-183-pipeline` のLinux／Swift 6.1.2固定入力で、既存APIの応答を維持する変更後にも `sourceUrl` の検証参照が残り、コンパイルで停止した。APIの全検証で既存契約に追加キーがないことも検査しており、既存応答の変更を取り消す。Python抽出テストは製品側の保存済み原本の存在確認を模擬するURLに `path` がなく、1件がコンパイルで停止した。製品側で原本の存在確認をストアに集約し、抽出テストは既存原本ありを表す境界だけ補う。実際の欠落ファイルの検証はSwiftのファイル・ストア試験で行う。
