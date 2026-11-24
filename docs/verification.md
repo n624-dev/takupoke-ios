@@ -67,9 +67,27 @@ Linux x86_64・Swift 6.1.3で `FileRefreshTests`、`ServiceStatusTests`、`Statu
 
 同じ分割実行の設定一覧側でiOS 27は4ケースを完了したが回収中に期限となった。iOS 26は3ケースを完了し、ステータス詳細の最後の検査前に期限となった（N248）。全5ケースを維持してステータス詳細を独立実行に変更した。新規GPT-6.2 Sol／Highで差分をレビューし、指摘はなかった。`status-settings-screen` をSDK 27.2で両OSに実行し、iOS 26.5の最後の操作と、iOS 27.0の回収を含むジョブ完了を確認する。
 
-[ステータス単独のiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180/job/138410696622)はsource `a87d58f560b285d18ddd06aafa964c550c9fa84c`、SDK 27.2／iOS 27.0、試行1。1ケース93.750秒で成功。実行identity、完了件数、回収と外側の照合まで成功した。
+[ステータス単独実行45384183180・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180)はsource `a87d58f560b285d18ddd06aafa964c550c9fa84c`、SDK 27.2。iOS 26.5は142.175秒、iOS 27.0は93.750秒で成功。両OSで1ケースの実行identity、完了件数、回収と外側の照合を確認した。配信リンク、両サービスの正常状態、APIの監視結果・稼働率・履歴、端末欄、固定記録のコピーボタン、設定への復帰を架空応答で検証した。
 
 [時刻付き静止タップのiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45382618904/job/138405259984)は、UIKitに届いた静止接触が約8.51msで値が変わらなかった（N249）。初回3回だけ既存の0.33秒の実つまみ移動を使い、元の再起動後操作と結果検査を維持する。静止タップの候補経路を除去。新規GPT-6.2 Sol／Highの差分レビュー、変更Swiftの構文、操作の契約検査、登録481ファイルが成功した。SDK 27.2で設定詳細を両OSに実行する。
+
+[実つまみ移動の設定詳細45386853188・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188)はsource `b5377c08c6ad28b046674bd5d281f11a37f7c574`、SDK 27.2。[iOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901566)ではAI・OCRの表示と保存値が `0→1→0→1`、再起動後の解除で `1→0`。元の再起動後の保持と資料詳細を含む1ケース617.959秒が成功した。実行identity、完了件数、回収、外側の照合を確認した。
+
+[同試行のiOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901052)も4操作の表示と保存値は同じ順に変化した。その後、学校行事から設定へ戻る途中で1440秒の制限に達し、回収後に終了124となった（N250）。このOSの設定詳細ケース全体は、同じ製品コードの初回限定45374452872で407.742秒で成功した。
+
+### 両OSで実際に完了したUIケース
+
+製品コードとXcodeプロジェクトは `002aae0` 以降同一。下表は各ケースの成功を確認した結果で、実行全体の合格を示すものではない。期限で終了した実行とスイッチ操作の比較はN246〜N250に記録した。
+
+| ケース | iOS 26.5 | iOS 27.0 |
+| --- | --- | --- |
+| 空の状態から設定 | [69.080秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594171) | [158.937秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594453) |
+| 設定構成・ファイル一覧・一時停止と再開 | [164.084秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594171) | [337.909秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594453) |
+| 初期設定 | [128.453秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594171) | [118.526秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594453) |
+| ステータスの配信・サービス・端末欄 | [142.175秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180/job/138410697080) | [93.750秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180/job/138410696622) |
+| 設定詳細・AI許可・4資料詳細 | [407.742秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872/job/138376809363) | [617.959秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901566) |
+
+実機OneDrive／File Provider、AltStore、正式配布の全必須チェックは未確認。
 
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 
