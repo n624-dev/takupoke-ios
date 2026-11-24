@@ -6339,3 +6339,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - [同iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45469907539/job/138714747373) はSDK 27.2／iOS 26.5。起動・XCTest準備後の実ケース開始は19:46:30 UTC。N183-CI9で失敗した標準ライトの設定・時間割は9.04／9.04で成功。19:52:33に外側の1440秒期限、終了124。アサーション失敗は観測せず、高コントラストとケース全体は未完了。
 - `yellow-contrast|1440秒|Focused relaunch runner` でN183-CI1／N248と照合。SDK・Runtime・検証条件・ケースは維持し、iOS 26のこの限定だけ、外側を既存の長い変更行検査と同じジョブ45分・ランナー2400秒にする。実操作や個々の待機・実画素基準と全体CIの設定は維持する。
 - 先行UI `4fdaaa5` の [iOS 27の比較](https://github.com/n624-dev/takupoke-ios/actions/runs/45470806794/job/138717950851) は19:41:28 UTC、98.411秒で、標準表示の同じ選択タブ文字が0画素。今の取得・解析パイプラインの追加前でも同じ現象が起きることを確認した。
+
+### N183-CI15 — 統合版のiOS 26週移動と訂正ランナー
+
+- `369c6c8`、[iOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562074)、SDK 27.2／iOS 26.5。20:25:59 UTC、週移動の先頭ケース51.964秒。描画間隔115.954ms、条件90ms。 `Height adjustment must keep drawing frames|0.09` でN183-CI11／12と #125の同じ検査を比較。後段は未実行。週移動の実装、操作・描画条件は変えていない。
+- [iOS 26の手動単項目訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562187) はビルド162.2秒、シミュレーター起動321.1秒の後、20:21:20 UTCにXCTestがテスト開始準備中のRunner終了を報告、exit65。訂正操作・採用は未実行。 `Test crashed with signal kill|before.*test` で過去の準備停止を照合し、N183-CI2／12の画面内AX照会失敗と区別する。同じ単項目ケースの[前の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408479)は記録済み。今回の終了原因は確定していない。
