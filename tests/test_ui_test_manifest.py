@@ -472,8 +472,9 @@ enum SimulatorEventsYearFixture {
         self.assertIn('assertRetainedChangeRows(stage: "after-apply")', before)
         self.assertIn('assertRetainedChangeRows(stage: "after-relaunch")', after)
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
-        self.assertIn("timeout-minutes: ${{ matrix.probe_case == 'rows' && 45 || 30 }}", workflow)
-        self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ matrix.probe_case == 'rows' && 2400 || 1440 }}", workflow)
+        long_runner = "(matrix.probe_case == 'rows' || (matrix.ios == 26 && matrix.probe_case == 'yellow-contrast'))"
+        self.assertIn("timeout-minutes: ${{ " + long_runner + " && 45 || 30 }}", workflow)
+        self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ " + long_runner + " && 2400 || 1440 }}", workflow)
         self.assertIn('--timeout "$TKPK_RELAUNCH_RUNNER_SECONDS" --cleanup-grace 120', workflow)
 
     def test_row_apply_uses_the_current_toolbar_and_still_requires_the_real_confirmation(self):

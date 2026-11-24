@@ -79,7 +79,8 @@ jobs:
         # Keep the longer account/details and the new status screen in their own runner budgets.
         probe_case: ${{ fromJSON(inputs.case == 'status-settings' && '["testSettingsAccountDataAndFileDetails","status-settings-overviews","status-settings-screen"]' || inputs.case == 'material-detail-navigation' && '["failed-special-details","rows","countdown-calendar"]' || format('[{0}]', toJSON(inputs.case))) }}
     runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
-    timeout-minutes: ${{ matrix.probe_case == 'rows' && 45 || 30 }}
+    # The iOS 26 color case includes a simulator relaunch after installing the runtime.
+    timeout-minutes: ${{ (matrix.probe_case == 'rows' || (matrix.ios == 26 && matrix.probe_case == 'yellow-contrast')) && 45 || 30 }}
     env:
       DEVELOPER_DIR: >-
         ${{ format('/Applications/Xcode_{0}.app/Contents/Developer', matrix.ios == 26 && inputs.sdk26 || inputs.sdk27) }}
@@ -91,7 +92,7 @@ jobs:
       TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
       TKPK_UI_HANG_DIAGNOSTICS: ${{ (matrix.probe_case == 'rows' || matrix.probe_case == 'rows-context') && '1' || '0' }}
       TKPK_UI_PROBE_CASE: ${{ matrix.probe_case }}
-      TKPK_RELAUNCH_RUNNER_SECONDS: ${{ matrix.probe_case == 'rows' && 2400 || 1440 }}
+      TKPK_RELAUNCH_RUNNER_SECONDS: ${{ (matrix.probe_case == 'rows' || (matrix.ios == 26 && matrix.probe_case == 'yellow-contrast')) && 2400 || 1440 }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
