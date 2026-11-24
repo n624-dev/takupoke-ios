@@ -245,9 +245,8 @@ extension ApplicationChecks {
         return button
     }
     private func openNotificationSettings() {
-        let row = app.buttons["通知"].firstMatch
+        let row = visible(app.buttons["通知"].firstMatch, navigation: "設定")
         XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
-        _ = visible(row)
         XCTAssertTrue(row.isEnabled, app.debugDescription)
         let bounds = row.frame
         XCTAssertTrue(

@@ -6344,3 +6344,9 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `369c6c8`、[iOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562074)、SDK 27.2／iOS 26.5。20:25:59 UTC、週移動の先頭ケース51.964秒。描画間隔115.954ms、条件90ms。 `Height adjustment must keep drawing frames|0.09` でN183-CI11／12と #125の同じ検査を比較。後段は未実行。週移動の実装、操作・描画条件は変えていない。
 - [iOS 26の手動単項目訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562187) はビルド162.2秒、シミュレーター起動321.1秒の後、20:21:20 UTCにXCTestがテスト開始準備中のRunner終了を報告、exit65。訂正操作・採用は未実行。 `Test crashed with signal kill|before.*test` で過去の準備停止を照合し、N183-CI2／12の画面内AX照会失敗と区別する。同じ単項目ケースの[前の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408479)は記録済み。今回の終了原因は確定していない。
+
+### N183-CI16 — 統合版のiOS 26通知専用テストで設定行の照会
+
+- `369c6c8`、[iOS 26 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562114)、SDK 27.2／iOS 26.5。通常24件は2658.795秒、失敗0。変更行の保存・再起動と、試験・返却資料の詳細も成功。
+- 続く通知専用の `testChangedDataProducesOneLocalNotification` は21:15:19 UTC、56.729秒、`ApplicationChecks+Notifications.swift:249` の存在待ちで失敗。AXは設定冒頭、AI・OCRの末尾までしか表示していなかった。 `testChangedDataProducesOneLocalNotification|Notifications.swift:249|NOTIFICATION_ROW` でN48/U75と旧44259503653を照合。以前の実接触取消と違い、今回は行の表示前に存在を待ち、行への接触・許可・通知配信には未到達。
+- 既存の可視化を最初に行い、その後の存在確認・有効性・枠内のラベルへの一度の接触を維持する。実通知許可・ファイル更新・配信1件の検証に変更はない。製品コードの差分はない。
