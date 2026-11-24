@@ -6294,3 +6294,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408040)、Xcode／SDK 27.2・iOS 26.5。生成アプリのビルド後、17:04:28 UTCに最初の補助資料のケースを開始。17:20:07 UTCに実行結果を出さずGitHub側で取消。担当からの取消操作はなく、他のジョブは継続。
 - `cancelled|1440秒|iOS 26` でN183-CI1、N249と比較。今回は通常Aの完了が確認できず、限定のファイル詳細や個々のアサーション結果とは区別する。通常Aの時間枠と検査条件を維持する。
+
+### N183-CI7 — Picker修正のCIがテスト一覧で停止
+
+- `e6ec654` の [全体CI 45448486960](https://github.com/n624-dev/takupoke-ios/actions/runs/45448486960/job/138638727077) は17:26:01 UTC、LinuxのDistribution testsで `Stale test catalogue; run write: docs/test-catalog/app-ui.md`。生成済み一覧が作業ツリーにあり、実行コミットへの追加が抜けていた。N183-CI5のPickerコンパイルより前に停止し、Appleジョブは未実行。
+- `Stale test catalogue|app-ui.md` を索引と開発手順で確認し、生成結果を `2de565b` で追加。コミット後のclean tree上で `test_catalog.py check` 成功。Pickerの新テストは修正前のソースに対して同じ依存不足を再現し、修正後は関連2件と取得制御9件が成功。検査設定と製品コードを維持して再度実行する。
