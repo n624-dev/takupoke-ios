@@ -61,6 +61,10 @@ Linux x86_64・Swift 6.1.3で `FileRefreshTests`、`ServiceStatusTests`、`Statu
 
 [最初の限定45374452872・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872)は、両OSでApple SDKのビルドと先行3ケースが成功した後、初期設定中に1440秒の期限で終了した。残るステータス画面のケースには未到達。N246に各OSの到達点を記録した。次の実行に向け、同じ `status-settings` を各OSで設定詳細1件と残り4件に分けた。設定詳細の605.354秒と407.742秒を他ケースと別の実行枠に割り当て、5ケース、個別操作条件、両方の実行期限を維持する。独立した新規GPT-6.2 Sol／Highでこの実行構成と照合条件をレビューし、修正を要する指摘はなかった。
 
+実行構成を変更したソースは `6f2770bb7a4c190b455ccc43b1e7e11b10a27be6`。製品コードと実UIケースは `002aae0` と同一。LinuxでUIマニフェスト44件、UIランナー18件、登録481ファイルの確認が成功し、`actionlint` で既存のカスタムラベル `xcode-27` の指摘だけを除外してワークフロー構文を確認した。
+
+[分割実行45379230056・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056)のiOS 27設定詳細では、初回のAI・OCR操作でUIと保存値が0のまま失敗した。N247に実スイッチへ届いた約3.66msの開始から解放を記録した。設定詳細ケースの先頭3回に80ms指定の実タップを使う候補を用意した。実スイッチの枠と状態、UIと保存値、45秒、再起動後のドラッグと再起動後の保持確認を維持する。コード差分を新規GPT-6.2 Sol／Highでレビューし、構文、UIマニフェスト44件（失敗・skip 0）、登録481ファイルを確認した。変更箇所を通る `testSettingsAccountDataAndFileDetails` をSDK 27.2で両OSに再実行する。
+
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 
 source `1e3fe81ecad3890ba9086b88c0b0afb373ea5688`、[run39397264222・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)の全15必須チェックが成功、全job終端・保存Actions artifact0。公開後に通常Release／Latestと固定AltStore Sourceを照合した。

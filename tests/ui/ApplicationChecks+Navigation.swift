@@ -240,7 +240,7 @@ extension ApplicationChecks {
         return e
     }
     func tapNativeSwitch(_ row: XCUIElement, navigation: String? = nil, dragThumb: Bool = false,
-                         thumbDragDuration: TimeInterval? = nil) {
+                         thumbDragDuration: TimeInterval? = nil, timedTapDuration: TimeInterval? = nil) {
         _ = visible(row, navigation: navigation)
         // Observe the surrounding layout before retaining a native identity.
         // Revalidate every safety condition inside the original native deadline.
@@ -275,6 +275,7 @@ extension ApplicationChecks {
         let state = proof.state, rowState = proof.rowState
         let point = CGPoint(x: frame.minX + frame.width * (state == "0" ? 0.25 : 0.75), y: frame.midY)
         let gesture = thumbDragDuration.map { "timed-thumb-drag-\($0)" }
+            ?? timedTapDuration.map { "timed-tap-\($0)" }
             ?? (dragThumb ? "thumb-drag" : "short-contact-50ms")
         print(
             "NATIVE_SWITCH row=\(outer);control=\(frame);observedPoint=\(point);rowState=\(rowState);controlState=\(state);target=native-element;method=\(gesture)"
@@ -287,6 +288,15 @@ extension ApplicationChecks {
                                             named: "Native switch thumb drag")
             } catch {
                 XCTFail("Native switch thumb drag failed: \(error)")
+            }
+            return
+        }
+        if let timedTapDuration {
+            do {
+                try NativeTestContacts.send([.init(start: point, end: point, duration: timedTapDuration, pauseAfterLift: 0)],
+                                            named: "Native switch tap")
+            } catch {
+                XCTFail("Native switch tap failed: \(error)")
             }
             return
         }
