@@ -91,39 +91,6 @@ def instrument_retention_recovery(text):
     return text.replace(action, action[:-2] + RETENTION_ACTION_TRACE + ' }').replace(
         observer, RETENTION_DIALOG_TRACE + observer)
 
-def instrument_tab_title_tint(text):
-    insertions = {
-        "            private func apply() {": """
-                let probe = ProcessInfo.processInfo.arguments.contains("--light-theme-probe") &&
-                    UserDefaults.standard.string(forKey: MainColor.storageKey) == MainColor.yellow.rawValue
-                if probe {
-                    if titleColor == nil { FixtureCITrace.mark("tab-tint-no-color") }
-                    if window == nil { FixtureCITrace.mark("tab-tint-no-window") }
-                }""",
-        "                    let bars = nativeBars(in: window)": """
-                    if probe {
-                        FixtureCITrace.mark(bars.isEmpty ? "tab-tint-no-bar" :
-                            bars.count == 1 ? "tab-tint-one-bar" : "tab-tint-multiple-bars")
-                    }""",
-        "                if let bar = overriddenBar, bar.tintColor != titleColor {": """
-                    if probe { FixtureCITrace.mark("tab-tint-writing") }""",
-        "                    appliedColor = titleColor": """
-                    if probe {
-                        FixtureCITrace.mark(bar.tintColor == titleColor ? "tab-tint-set" : "tab-tint-not-set")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak bar] in
-                            guard let bar, bar.window != nil else {
-                                FixtureCITrace.mark("tab-tint-bar-detached")
-                                return
-                            }
-                            FixtureCITrace.mark(bar.tintColor == titleColor ? "tab-tint-kept" : "tab-tint-overwritten")
-                        }
-                    }""",
-    }
-    for marker, insertion in insertions.items():
-        assert text.count(marker) == 1, "Tab title tint observation insertion point missing: " + marker
-        text = text.replace(marker, marker + insertion)
-    return text
-
 
 def instrument_events_cache(text):
     marker = '    func refreshAtStartup() {'
@@ -456,7 +423,6 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
             text = instrument_browser_cover(text)
         if path.name == 'ContentView.swift':
             text = instrument_retention_recovery(text)
-            text = instrument_tab_title_tint(text)
         if path.name == 'NotificationSettingsView.swift':
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':

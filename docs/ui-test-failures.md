@@ -6326,3 +6326,9 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `cd7bb15`、[iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805148)、Xcode／SDK 27.2、iOS 27.0。18:39:59 UTC、週移動の先頭ケース49.745秒で描画間隔99.555ms、既存条件90msを超えた。N183-CI11の26と同じ検査。[直前の27実行](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408466) では先頭ケースが成功。後段は未実行。
 - [iOS 27手動訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805225) は18:36:33 UTC、625.635秒、`ManualAssistanceChecks+Navigation.swift:107` で `manual-ack-cell-1-0:0:room` の実ボタンを確認できなかった。N183-CI2の26は設定の階層照会で停止し、今回は訂正画面の別段階。 `Could not observe the current native Button|manual-ack-cell` で関連記録を照合。 [直前の同じ27ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408558) は成功しており、当該アプリの機能・テストは同じ。照会が止まった原因は確定していない。週移動、訂正とも合格条件を維持する。
+
+### N183-CI13 — タブバーの色と文字の描画を切り分け
+
+- [iOS 27の計測45458686064](https://github.com/n624-dev/takupoke-ios/actions/runs/45458686064/job/138674995814)、`f3cc00c`、SDK27.2／iOS27.0。19:17:42 UTC、一つの実タブバーを発見し、期待する `tintColor` を設定。設定直後と約0.28秒後の両方で一致。その後最初の標準ライトの設定タブ文字検査が文字画素0で失敗（98.910秒）。後続の上書き有無は未確認。
+- `tab-tint-kept|tintColor|選択タブ` でN183-CI9／11、#125の日付tintの回帰を照合。標準バーの色設定だけで現在の文字を検証できないため、候補は現行バーの選択項目の文字にUIKitの公開APIで直接指定する。文字色を設定した項目から移る場合、変更した色だけを復元する。ツールによる計測を整理し、製品のページtint・アイコン・背景、撮影と既存の暗色・コントラスト条件を維持する。
+- [`c0cec6c` のiOS 27変更行](https://github.com/n624-dev/takupoke-ios/actions/runs/45456001287/job/138665483283) は415.945秒で全工程成功。初回の除外と反映、再起動後の保持、保存済み行の編集・再保存、最後の再起動後の保持を確認。
