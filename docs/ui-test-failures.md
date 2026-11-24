@@ -6356,3 +6356,10 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - [iOS 26の通知限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692431) は `8a0a0fc`、SDK27.2／iOS26.5、98.483秒で成功。実設定を開く・許可・更新通知1件の一連のケース。N183-CI16で止まった行の操作も到達した。
 - [iOS 27の同限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692815) は同source、SDK27.2／iOS27.0、134.558秒。通知行の表示と実操作は成功。OS許可要求の開始／戻りは21:38:56 UTC、許可の完了を観測できず21:39:54にNotifications.swift:336で停止。 `notification-auth-request|notification-auth-returned|Native notification switch activation did not complete` で43767607953と比較し、同じ待機中状態で止まることを確認した。ケースの許可・配信条件を維持した。ホストの通知関連12件は成功。
 - [統合版のiOS 26選択訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562469)、`369c6c8`。21:35:24 UTCに最後の再起動で画面準備が成立したが、21:35:31 UTCに外側2400秒期限。個別アサーション失敗は観測していない。起動に445.5秒を要した。N183-CI2のAX timeout、N183-CI15の準備中終了とは別段階で、前回の同ケース成功は [再実行](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805657) に記録した。
+
+### N183-CI18 — 統合版のiOS 27通常UIと曜日除外
+
+- `369c6c8`、[iOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562025)。通常UIの実行中にGitHubのホストランナーとの通信が切れ、当該ステップは取消、ジョブは失敗。ログ保存先に対象blobがなく、最後の個別ケースの到達点は確認不能。実行側からの取消はない。
+- [iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562377) は週移動、学校行事、標準・高コントラスト配色、設定と4資料詳細、Dynamic Typeなどが成功。21:48:32 UTC、`testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups` が83.660秒、Navigation.swift:237で停止。初期と再起動後の「同じファイルを再取得」はどちらも詳細を開いた直後に使うが、行がまだAXにないときにページ先頭側を探し続けた。
+- `testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups|同じファイルを再取得|material-actions-section` でN183-CI3／10と変更詳細の行順を照合した。AXはページ上部に留まり、操作見出しはy711、再取得はさらに後ろ。新規表示から下へ探す。実タップ・再取得完了、45行／90行、確認／取消・再起動を含む元の条件は維持。製品の差分はない。
+- [統合版の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382) は11月25日07:01 JSTに終端。検証15ジョブは成功9・失敗6。公開はスキップ。

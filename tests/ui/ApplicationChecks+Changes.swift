@@ -16,7 +16,7 @@ extension ApplicationChecks {
             screen(detail)
         }
         func refresh() {
-            let button = visible(app.buttons["同じファイルを再取得"], navigation: detail, searchEarlierRows: true)
+            let button = visible(app.buttons["同じファイルを再取得"], navigation: detail)
             XCTAssertTrue(button.isEnabled && button.isHittable)
             button.tap()
             let ready = expectation(for: NSPredicate { _, _ in button.exists && button.isEnabled }, evaluatedWith: button)
