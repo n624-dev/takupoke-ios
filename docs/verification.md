@@ -9579,3 +9579,11 @@ Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー�
 追加の利用者確認: 解析120秒・全体240秒は通常の自動確認／更新確認／再取得へ適用し、明示的なAI・OCR復旧は既存の専用上限を維持する。Issue本文にも追記済み。
 
 [開発ホストCI 45394935097・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45394935097) はcode `f0a13c47108a408040e7a9044fc8e489cb146a8a` で全終端・成功。portable SwiftとCatalogue／runner契約が成功し、Apple NativeはXcode26.6／SDK26.5およびXcode27.2／SDK27.2の双方で841件・失敗0・skip1。skipは独立temporary PDF cohortを別のnative source workflowで実行する既存ケースで、今回の成功に代用しない。固定239.1のStrict互換baselineも両方で成功。最終コードのビルド＋検査はそれぞれ379.0秒／271.8秒。未選択のApple inventory／Pickerはworkflow上skipで、成功検査には含めない。iOS Simulator操作・実機Provider・全体配布CIは未実施。根本停止の解消／Issue全体の完了／正式配布を意味しない。
+
+### 2026-11-25 #183 共通パイプラインと非配布の統合検証
+
+- 前段の共通読み取りに、4種類のProvider取得・解析・保存の共通処理を接続。差し替え可能なProviderと単調時計、実行IDとファイルごとの段階により、無応答、無進捗、中止後の遅延、重複通知・再試行を再現。期限内の保存開始、開始後の完了またはロールバック、資料と期間の一致を検査する。旧I/Oは同じファイルの取得を待たせ、他ファイルの進行を保持する。
+- 設定・ステータスから段階と確認・取得・解析の成功時刻を参照する。行事は元PDF、配信内容レビュー、端末保存版をそれぞれ確認し、元PDF差異は「更新待ち」。/statusの機能情報、公開監視の履歴も独立して取得する。API・たくにん・Windowsの状況は関連Issueに記録した。
+- Linux Swift 6.1.2でアプリ本体 `033c479` の738件が成功。Pickerの依存分離後のPython全354件は失敗0、環境条件によるskip22。Picker単独型検査の新ケースは修正前の依存不足を再現し、修正後に成功した。取得制御の実コードを抽出する9件も成功。カタログ489ファイルはコミット済み入力で再照合した。
+- [先行する限定UI 45429156784](https://github.com/n624-dev/takupoke-ios/actions/runs/45429156784) はiOS 27の3ジョブとiOS 26の2ジョブが成功。26の資料詳細は外側の期限に達し未完了。[全体CI 45433219714](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714) のApple Nativeは858件、失敗0、skip1。UI・Pickerの失敗と後続の対応は [失敗索引](ui-test-failures.md) のN183-CI1〜7に記録した。
+- [資料と学校行事の限定再検証](https://github.com/n624-dev/takupoke-ios/actions/runs/45446409831)、[配色の限定再検証](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888)、[Picker依存修正後の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241) を作業ブランチで実行。物理端末でのOneDriveの停止原因と解消は継続確認事項。アプリ公開・サービスの本番反映・Better Stack設定変更を含めない。
