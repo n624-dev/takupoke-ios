@@ -26,6 +26,7 @@ on:
           - input-delivery
           - file-details
           - status-settings
+          - status-settings-screen
           - updates
           - auxiliary-store
           - event-cache-input
@@ -73,8 +74,8 @@ jobs:
       fail-fast: false
       matrix:
         ios: ${{ fromJSON(inputs.ios == 'both' && '[27,26]' || inputs.ios == '26' && '[26]' || '[27]') }}
-        # The account/file-details case alone took over 10 minutes on iOS 27.
-        probe_case: ${{ fromJSON(inputs.case == 'status-settings' && '["testSettingsAccountDataAndFileDetails","status-settings-overviews"]' || format('[{0}]', toJSON(inputs.case))) }}
+        # Keep the longer account/details and the new status screen in their own runner budgets.
+        probe_case: ${{ fromJSON(inputs.case == 'status-settings' && '["testSettingsAccountDataAndFileDetails","status-settings-overviews","status-settings-screen"]' || format('[{0}]', toJSON(inputs.case))) }}
     runs-on: ${{ matrix.ios == 26 && inputs.sdk26 == '26.6' && 'macos-26' || 'xcode-27' }}
     timeout-minutes: ${{ inputs.case == 'rows' && 45 || 30 }}
     env:

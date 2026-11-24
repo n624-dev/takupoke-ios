@@ -65,6 +65,8 @@ Linux x86_64・Swift 6.1.3で `FileRefreshTests`、`ServiceStatusTests`、`Statu
 
 [分割実行45379230056・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056)のiOS 27設定詳細では、初回のAI・OCR操作でUIと保存値が0のまま失敗した。N247に実スイッチへ届いた約3.66msの開始から解放を記録した。設定詳細ケースの先頭3回に80ms指定の実タップを使う候補を用意した。実スイッチの枠と状態、UIと保存値、45秒、再起動後のドラッグと再起動後の保持確認を維持する。コード差分を新規GPT-6.2 Sol／Highでレビューし、構文、UIマニフェスト44件（失敗・skip 0）、登録481ファイルを確認した。変更箇所を通る `testSettingsAccountDataAndFileDetails` をSDK 27.2で両OSに再実行する。
 
+同じ分割実行の設定一覧側でiOS 27は4ケースを完了したが回収中に期限となった。iOS 26は3ケースを完了し、ステータス詳細の最後の検査前に期限となった（N248）。全5ケースを維持してステータス詳細を独立実行に変更した。新規GPT-6.2 Sol／Highで差分をレビューし、指摘はなかった。`status-settings-screen` をSDK 27.2で両OSに実行し、iOS 26.5の最後の操作と、iOS 27.0の回収を含むジョブ完了を確認する。
+
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 
 source `1e3fe81ecad3890ba9086b88c0b0afb373ea5688`、[run39397264222・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)の全15必須チェックが成功、全job終端・保存Actions artifact0。公開後に通常Release／Latestと固定AltStore Sourceを照合した。
