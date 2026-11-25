@@ -6385,3 +6385,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `71ec2dd`、[全体45527221520 試行1のiOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915388058)、SDK27.2。先頭 `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` で、2026-11-25 02:23:52 UTCに横到着後の次枠まで116.517ms、条件90msを超過（WeekAppearance.swift:466、ケース31.668秒）。到着0.281091秒、次の実枠0.397608秒、直前サンプルからのmain CPU増加108.285ms。昇格からスクロール復帰まで約0.99ms、最初の配置設定は到着後30.63ms・設定0.11ms。28枠、幾何欠落0。先頭で止まり、配色修正と他の通常B検査はこのジョブで未到達。製品、週操作、測定条件に差分なし。
 - `Height adjustment must keep drawing frames|0.09` でN183-CI11／12、CI15、N183-CI19の同OS成功と比較。[40a4c5aのiOS 26 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177257) は同じ製品・実操作・判定で週移動を通過。変更は後段の通知テストの再起動後の行表示だけ。到着後のCPU処理の内訳は今回も未確定であり、外部要因と断定できない。通常26 Bは後段が一切実行されていないため、最新ソースの後段を確認する目的で、他ジョブ終端後に既存90msを保った新しいRunnerで一度比較する。
+
+### N183-CI23 — iOS 26 UI B再実行でXcodeが起動済み端末を列挙できない
+
+- `71ec2dd`、[全体45527221520 試行2のiOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138956018583)、SDK27.2。ビルド109.2秒、端末起動104.8秒、`simulator-ready` 後の `test-without-building` で、2026-11-25 03:39:44 UTCに `Unable to find a device matching the provided destination specifier`。対象端末IDをXcodeが候補に出さず、XCTestは開始せず、アプリのイベント0。失敗後の同端末のsimctl照会は `runtime=available, device=Booted`、所有端末の清掃成功。週送りの動作計測自体は未到達であり、N183-CI22と停止段階が異なる。Xcodeとsimctlの列挙の差が生じた下位原因は未確定。
+- `Unable to find a device matching|destination specifier|bootstatus|exit 70` でN127（40051510584）・43769812600・正式528（45112946241）を比較。N127は同じ通常26 Bでbootstatus後に実行先の列挙が失敗し、新しいRunnerで元の全操作が完走した。正式528の同段階は別の手動ケース。今回もビルドと起動後の実行先解決で、N183-CI22の描画間隔は測定されていない。作業ブランチ前回の通常26 Bは同じ作成・起動・実ID指定で実テストに到達済み。ハードウェア、合格基準、SDK、実行先の指定や準備順は維持し、試行2の全終端後、同じ実行の残存失敗を新しいRunnerで一度確認する根拠とする。
