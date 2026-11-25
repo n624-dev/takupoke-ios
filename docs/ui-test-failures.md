@@ -6363,3 +6363,9 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - [iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562377) は週移動、学校行事、標準・高コントラスト配色、設定と4資料詳細、Dynamic Typeなどが成功。21:48:32 UTC、`testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups` が83.660秒、Navigation.swift:237で停止。初期と再起動後の「同じファイルを再取得」はどちらも詳細を開いた直後に使うが、行がまだAXにないときにページ先頭側を探し続けた。
 - `testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups|同じファイルを再取得|material-actions-section` でN183-CI3／10と変更詳細の行順を照合した。AXはページ上部に留まり、操作見出しはy711、再取得はさらに後ろ。新規表示から下へ探す。実タップ・再取得完了、45行／90行、確認／取消・再起動を含む元の条件は維持。製品の差分はない。
 - [統合版の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382) は11月25日07:01 JSTに終端。検証15ジョブは成功9・失敗6。公開はスキップ。
+
+### N183-CI19 — 両OSの通知フェーズで再起動後の配色行を確認できない
+
+- `40a4c5a`、[全体CI 45503335049 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/attempts/1)、SDK27.2。[iOS 27.0 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177075) は2026-11-24 23:45:03 UTC、85.363秒、[iOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177257) は同日23:56:35 UTC、130.973秒。`testNotificationControlsAndAppearance` の `ApplicationChecks+Notifications.swift:385` で再起動後の「メインカラー、緑」の実ボタン照会が失敗した。両方で変更通知と試験・返却通知の許可応答、緑・外部ブラウザの選択、終了、再起動、fixture-ready、設定タブの実選択、設定バーの表示までは観測済み。その直後にボタンの存在を一度照会して停止した。再起動後の永続値・外部ブラウザの行、既定色と青の再起動確認には未到達。
+- 両UI Bで週移動、設定と資料詳細、曜日除外の引き継ぎ、文字サイズ、個人予定の実通知予約は成功。両UI Aでファイル更新の実通知1件、両OSの手動訂正計8件、Apple Native 858件（既定skip1）と非配布のiPhoneビルドも成功。検証15ジョブは13成功・2失敗、公開はスキップ。
+- `ApplicationChecks+Notifications.swift:385|testNotificationControlsAndAppearance|メインカラー.*再起動` でN122、N183-CI16〜18、現行設定の「アプリ設定」内の行順を照合。N122は青の保存未観測、CI17は許可callback未観測で、今回は緑の選択・許可応答の後に設定先頭から即時照会した。通知行より後ろの配色とリンクを、再起動後すぐに複合ラベルで探していた。候補は設定画面を開いた直後の配色行とリンク行を、既存の可視化操作でそれぞれ表示してから、その実ラベルの選択値を調べる。リンクの後で配色へ戻る場合は前の行を探す。緑・既定・青の実選択、実保存観測、3回の再起動、外部ブラウザ・通知許可の旧条件を維持する。製品に差分なし。

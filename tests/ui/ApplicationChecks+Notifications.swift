@@ -342,6 +342,12 @@ extension ApplicationChecks {
         XCTAssertTrue(touch.waitForNonExistence(timeout: 10), app.debugDescription)
     }
     func testNotificationControlsAndAppearance() {
+        func checkAppearanceSetting(_ title: String, displays value: String) {
+            let buttons = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
+            let row = visible(buttons.firstMatch, navigation: "設定")
+            XCTAssertTrue(row.exists && row.label.contains(value), app.debugDescription)
+        }
+
         tab("設定")
         openNotificationSettings()
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
@@ -382,16 +388,10 @@ extension ApplicationChecks {
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
         tab("設定")
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "緑")
-            ).firstMatch.exists)
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "リンクの開き方", "デフォルトのブラウザ")
-            ).firstMatch.exists)
+        checkAppearanceSetting("メインカラー", displays: "緑")
+        checkAppearanceSetting("リンクの開き方", displays: "デフォルトのブラウザ")
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "green")
-        tap("メインカラー")
+        tap("メインカラー", searchEarlierRows: true)
         app.buttons["デフォルト"].tap()
         let cleared = expectation(
             for: NSPredicate(format: "label == %@", "未設定"),
@@ -400,10 +400,7 @@ extension ApplicationChecks {
         app.terminate()
         launchReady()
         tab("設定")
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "デフォルト")
-            ).firstMatch.exists)
+        checkAppearanceSetting("メインカラー", displays: "デフォルト")
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "未設定")
         tap("メインカラー")
         tap("青")
@@ -419,10 +416,7 @@ extension ApplicationChecks {
         app.terminate()
         launchReady()
         tab("設定")
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "青")
-            ).firstMatch.exists)
+        checkAppearanceSetting("メインカラー", displays: "青")
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "blue")
     }
     func testChangedDataProducesOneLocalNotification() {
