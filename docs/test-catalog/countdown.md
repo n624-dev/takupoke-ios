@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`7743fed9596ccc8597a93aa0a7d13acc6aa65199963775073ce1013d7b087731`
+`89c49ce514269f4ad14c81137d651828738477a432fb1f04034bcc2af9a62ab4`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -34,6 +34,7 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testClassProgressSharesOnlyAnUnambiguousExamPeriod`
 - `testAutomaticProgressMigrationBindsOnlyTheSuppliedTargetAndKeepsPreferences`
 - `testCountdownClassProgressStorageCommitsAtomicallyAndExpiresWithPrivateData`
+- `testClassMigrationKeepsOldDateAndPublicEditsWhenPrivateSnapshotCannotBeWritten`
 - `testProgressLabelDistinguishesDefaultAndWhitespaceAcrossStorage`
 - `testCustomOriginFollowsExamIdentityWithoutChangingNotificationDates`
 - `testClassExamDistinguishesAbsentUnloadedAndUnconfirmedChanges`

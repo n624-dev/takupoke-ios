@@ -603,6 +603,25 @@ struct CountdownStore {
         return stored.period == period ? stored : .init(period: period)
     }
 
+    func saveMigratingProgress(_ library: CountdownLibrary, to target: CountdownExamProgressKey?,
+                               classProgress: CountdownClassProgress?) throws -> CountdownLibrary {
+        var migrated = library
+        let availableTarget = target?.isPrivate == true && classProgress == nil ? nil : target
+        if let entry = migrated.migrateProgress(to: availableTarget), var classProgress {
+            classProgress.entries.append(entry)
+            do {
+                return try save(migrated, with: classProgress)
+            } catch {
+                // Keep the old personal date available for explicit application
+                // when the target's private snapshot cannot be committed.
+                migrated = library
+                _ = migrated.migrateProgress(to: nil)
+            }
+        }
+        try save(migrated)
+        return migrated
+    }
+
     // Publish a new private snapshot by atomically replacing its public pointer.
     // An unsuccessful write leaves the previous pointer and snapshot readable.
     func save(_ library: CountdownLibrary, with progress: CountdownClassProgress) throws -> CountdownLibrary {

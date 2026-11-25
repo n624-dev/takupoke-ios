@@ -413,6 +413,39 @@ extension CountdownTests {
         XCTAssertEqual(try store.loadClassProgress(file: reference, period: nextPeriod).entries, [])
     }
 
+    func testClassMigrationKeepsOldDateAndPublicEditsWhenPrivateSnapshotCannotBeWritten() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent(SchoolDataRetention.countdownProgressDirectory)
+        let obstruction = Data("fixture".utf8)
+        try obstruction.write(to: directory)
+        let store = CountdownStore(root: root)
+        let start = day("2032-05-02")
+        let exam = day("2032-05-15")
+        let scope = String(repeating: "a", count: 64)
+        var legacy = CountdownLibrary(version: 1)
+        legacy.automatic.mode = .selectedClass
+        legacy.automatic.preferences.progressStart = start
+        legacy.automatic.preferences.notifications = true
+        try JSONEncoder().encode(legacy).write(to: root.appendingPathComponent("Countdown.json"))
+
+        var migrated = try store.saveMigratingProgress(store.load(), to: .classDay(scope: scope, day: exam),
+                                                        classProgress: .init(period: SchoolDataPeriod(day: exam)))
+        XCTAssertEqual(try store.load(), migrated)
+        XCTAssertEqual(migrated.version, CountdownLibrary.currentVersion)
+        XCTAssertEqual(migrated.automatic.unlinkedProgressStart, start)
+        XCTAssertNil(migrated.automatic.preferences.progressStart)
+        XCTAssertTrue(migrated.automatic.preferences.showsProgress)
+        XCTAssertTrue(migrated.automatic.preferences.notifications)
+        XCTAssertNil(migrated.classProgressFile)
+        XCTAssertEqual(try Data(contentsOf: directory), obstruction)
+
+        migrated.automatic.preferences.progressLabel = "架空の進捗"
+        try store.save(migrated)
+        XCTAssertEqual(try store.load(), migrated)
+    }
+
     func testProgressLabelDistinguishesDefaultAndWhitespaceAcrossStorage() throws {
         var value = CountdownPreferences(progressStart: day("2032-04-02"))
         XCTAssertEqual(value.displayedProgressLabel, CountdownPreferences.defaultProgressLabel)

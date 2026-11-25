@@ -385,16 +385,17 @@ final class CountdownModel: ObservableObject {
                 }
                 decidedLegacyProgressTarget = true
             }
-            var migrated = updated
             let currentKey = currentExam?.examProgress?.key
-            let target = currentKey == legacyProgressTarget &&
-                (currentKey?.isPrivate != true || privateProgress != nil) ? currentKey : nil
-            let classEntry = migrated.migrateProgress(to: target)
-            if let classEntry { privateProgress?.entries.append(classEntry) }
-            if commit(migrated, notify: false, privateProgress: classEntry == nil ? nil : privateProgress) {
+            let target = currentKey == legacyProgressTarget ? currentKey : nil
+            do {
+                library = try store.saveMigratingProgress(updated, to: target, classProgress: privateProgress)
+                loadedClassProgress = nil
                 legacyProgressTarget = nil
+                message = nil
                 update(using: app, at: now)
                 return
+            } catch {
+                message = "カウントダウンを移行できません。前の設定を保持しています。"
             }
         }
         let nextProgress = currentExam?.examProgress
