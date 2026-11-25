@@ -1,5 +1,14 @@
 # Sourced by UI runners. This observer owns only its process and device log stream.
 simulator_ci_trace_pid=""
+simulator_ci_failure_screen_attempted=0
+
+capture_failed_simulator_screen() {
+    local status="$1" device="$2" scratch="$3"
+    if [[ "$status" != 0 && -n "$device" && "$simulator_ci_failure_screen_attempted" == 0 ]]; then
+        simulator_ci_failure_screen_attempted=1
+        python3 -B tools/simulator_failure_screenshot.py "$device" "$scratch" || true
+    fi
+}
 
 start_simulator_ci_trace() {
     python3 -B tools/simulator_ci_trace.py "$1" &

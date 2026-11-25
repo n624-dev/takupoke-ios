@@ -8,6 +8,7 @@ from pathlib import Path
 import queue
 import signal
 import subprocess
+import sys
 import threading
 import time
 
@@ -143,6 +144,15 @@ def remove_owned_simulator(identity):
         command('xcrun', 'simctl', 'shutdown', identity, timeout=60, allow_nonzero=True)
     finally:
         command('xcrun', 'simctl', 'delete', identity, timeout=60)
+
+
+def capture_failed_simulator_screen(identity, scratch):
+    if identity and sys.exc_info()[0] is not None:
+        try:
+            subprocess.run([sys.executable, '-B', str(ROOT.parent / 'simulator_failure_screenshot.py'),
+                            identity, str(scratch)], timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            print('TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable', flush=True)
 
 
 def main():
@@ -302,6 +312,7 @@ def main():
     finally:
         cancel_scope.begin_cleanup()
         try:
+            capture_failed_simulator_screen(owned, args.study)
             if process and process.poll() is None:
                 process.terminate()
                 try:

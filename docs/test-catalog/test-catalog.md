@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`be147fe02365ade6462d53742e8a6b49e9e94e415e9c4e90e33be2ed5f341ab8`
+`da790d8280bf8f1160ad0e95d5222be1d3021968613273964b32c167c1b33b77`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -110,5 +110,6 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_new_nested_code_starts_development_catalog_checks`
 - `test_original_code_recognition_tracks_its_shared_implementations`
 - `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`
+- `test_both_ocr_simulator_workflows_track_the_shared_failure_screenshot`
 - `test_ocr_checks_can_run_without_a_permanent_research_branch`
 - `test_ordered_row_proof_is_manual_and_requires_generated_pdf_fixtures`

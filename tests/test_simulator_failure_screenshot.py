@@ -1,0 +1,58 @@
+import base64
+from contextlib import redirect_stdout
+import hashlib
+import io
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+import simulator_failure_screenshot as screenshot
+
+DEVICE = "00000000-0000-0000-0000-000000000001"
+IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFh0AAAAASUVORK5CYII=")
+
+
+class SimulatorFailureScreenshotTests(unittest.TestCase):
+    def test_capture_exact_device_once_with_checksummed_image_and_owned_cleanup(self):
+        def run(args, **kwargs):
+            self.assertEqual(args[:-1], ["xcrun", "simctl", "io", DEVICE, "screenshot", "--type=png"])
+            self.assertEqual(kwargs["timeout"], 8)
+            Path(args[-1]).write_bytes(IMAGE)
+            return subprocess.CompletedProcess(args, 0)
+
+        with tempfile.TemporaryDirectory() as scratch, patch.object(screenshot.subprocess, "run", side_effect=run) as command:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                screenshot.capture(DEVICE, scratch)
+            command.assert_called_once()
+            self.assertEqual(list(Path(scratch).iterdir()), [])
+        begin, data, end = output.getvalue().splitlines()
+        self.assertEqual(begin, f"TAKUPOKE_UI_IMAGE BEGIN simulator-failure {hashlib.sha256(IMAGE).hexdigest()} {len(IMAGE)}")
+        self.assertEqual(base64.b64decode(data.split()[-1], validate=True), IMAGE)
+        self.assertEqual(end, "TAKUPOKE_UI_IMAGE END simulator-failure 1")
+
+    def test_rejects_device_alias_command_failure_and_invalid_image(self):
+        def run(args, **_):
+            if self.mode == "timeout":
+                raise subprocess.TimeoutExpired(args, 8)
+            image = IMAGE[:-1] if self.mode == "truncated" else b"x" * (screenshot.MAX_IMAGE_BYTES + 1)
+            Path(args[-1]).write_bytes(image)
+            return subprocess.CompletedProcess(args, 1 if self.mode == "error" else 0)
+
+        with tempfile.TemporaryDirectory() as scratch, patch.object(screenshot.subprocess, "run", side_effect=run) as command:
+            screenshot.capture("booted", scratch)
+            screenshot.capture("", scratch)
+            command.assert_not_called()
+            for self.mode in ("timeout", "error", "truncated", "large"):
+                with self.subTest(mode=self.mode):
+                    output = io.StringIO()
+                    with redirect_stdout(output):
+                        screenshot.capture(DEVICE, scratch)
+                    self.assertIn("TAKUPOKE_SIMULATOR_FAILURE_SCREEN", output.getvalue())
+                    self.assertNotIn("TAKUPOKE_UI_IMAGE", output.getvalue())
+                    self.assertEqual(list(Path(scratch).iterdir()), [])

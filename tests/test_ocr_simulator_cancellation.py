@@ -45,7 +45,11 @@ def boot(identity, developer):
     assert identity == "owned-fictional-id"
     (root / "ready").touch()
     time.sleep(30)
-module.command = command; module.boot_owned_simulator = boot
+def screenshot(identity, scratch):
+    assert identity == "owned-fictional-id" and scratch == root
+    assert sys.exc_info()[0] is SystemExit
+    record("failure-screen")
+module.command = command; module.boot_owned_simulator = boot; module.capture_failed_simulator_screen = screenshot
 if hasattr(module, "shared"): module.shared.command = command
 module.args = SimpleNamespace(study=root)
 module.runtime = {"identifier": "fictional-runtime", "version": "26.5"}
@@ -76,7 +80,7 @@ exec(compile(ast.Module(body=prefix + [owned_try], type_ignores=[]), str(path), 
                         (root / "release").touch()
                         output, _ = process.communicate(timeout=6)
                         self.assertEqual(process.returncode, 143, output)
-                        self.assertEqual((root / "calls").read_text().splitlines(), ["create", "shutdown", "delete"])
+                        self.assertEqual((root / "calls").read_text().splitlines(), ["create", "failure-screen", "shutdown", "delete"])
                     finally:
                         if process.poll() is None: process.kill()
                         process.communicate(timeout=5)

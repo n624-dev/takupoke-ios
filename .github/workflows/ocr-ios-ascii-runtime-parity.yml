@@ -6,12 +6,14 @@ on:
       - .github/workflows/ocr-ios-ascii-runtime-parity.yml
       - tools/ocr-ios-ascii-runtime-parity/**
       - tools/ocr-ios-runtime-parity/**
+      - tools/simulator_failure_screenshot.py
       - tools/ocr-windows-transfer/**
       - tests/test_ocr_ios_runtime_parity.py
       - tools/ocr-research-receipt.py
       - tests/test_ocr_research_receipt.py
       - tests/test_ocr_ios_ascii_runtime_parity.py
       - tests/test_ocr_simulator_cancellation.py
+      - tests/test_simulator_failure_screenshot.py
   workflow_dispatch:
 permissions:
   contents: read

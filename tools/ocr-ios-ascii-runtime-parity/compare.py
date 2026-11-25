@@ -22,6 +22,7 @@ verify_native_identity = shared.verify_native_identity
 command = shared.command
 boot_owned_simulator = shared.boot_owned_simulator
 remove_owned_simulator = shared.remove_owned_simulator
+capture_failed_simulator_screen = shared.capture_failed_simulator_screen
 
 
 def compare_reject(expected, actual, tolerance):
@@ -232,6 +233,7 @@ def main():
     finally:
         cancel_scope.begin_cleanup()
         try:
+            capture_failed_simulator_screen(owned, args.study)
             if process and process.poll() is None:
                 process.terminate()
                 try:

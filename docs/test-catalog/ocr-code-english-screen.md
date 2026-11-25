@@ -1,7 +1,7 @@
 # 原教室コード・英語専用VisionとEnglishV1の独立比較
 
 対応関係・宣言名・実行方法のSHA-256：
-`4eb202cc34d701f674a63fe4a1ee7617d6e635506d54e402c1a96952e5b9678b`
+`3507817d2215e4a706506a4d7939b0a48a5612f550a9264eec0909ea14eaa810`
 
 環境：Linux契約検査／Mac SDK26 Native Vision（研究専用）
 
@@ -38,5 +38,6 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_new_nested_code_starts_development_catalog_checks`
 - `test_original_code_recognition_tracks_its_shared_implementations`
 - `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`
+- `test_both_ocr_simulator_workflows_track_the_shared_failure_screenshot`
 - `test_ocr_checks_can_run_without_a_permanent_research_branch`
 - `test_ordered_row_proof_is_manual_and_requires_generated_pdf_fixtures`
