@@ -660,13 +660,15 @@ enum SimulatorEventsYearFixture {
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertIn('"notRequested"', checks)
         self.assertIn('changes=false;saved=false;specials=false;savedSpecials=false;', checks)
-        self.assertEqual(checks.count('tapNativeSwitch(toggle)'), 1)
+        activate_switch = 'tapNativeSwitch(toggle, thumbDragDuration: thumbDragDuration)'
+        self.assertEqual(len(re.findall(r"\btapNativeSwitch\s*\(\s*toggle\b", checks)), 1)
+        self.assertEqual(checks.count(activate_switch), 1)
         before = checks.index('"NOTIFICATION_SWITCH before row=')
-        single_tap = checks.index('tapNativeSwitch(toggle)', before)
-        self.assertNotIn('recoveryScreenshot(', checks[before:single_tap])
+        single_contact = checks.index(activate_switch, before)
+        self.assertNotIn('recoveryScreenshot(', checks[before:single_contact])
         self.assertIn('recoveryScreenshot("notification-switch-unresolved")', checks)
         self.assertIn('recoveryScreenshot("notification-system-unresolved", systemScreen: true)', checks)
-        activation = checks.split('tapNativeSwitch(toggle)', 1)[1]
+        activation = checks.split(activate_switch, 1)[1]
         pending = activation.split('guard didEnable else {', 1)[0]
         self.assertNotIn("touch.tap()", pending)
         self.assertEqual(pending.count("allow.tap()"), 1)
