@@ -6395,3 +6395,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `71ec2dd`、[全体45527221520 試行3のiOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138969495025)、SDK27.2。週送り（48.333秒）、設定と資料詳細、曜日除外、既存の文字・配色まで成功。通知フェーズの `testNotificationControlsAndAppearance` は設定行とOFFを確認し、2026-11-25 05:14:38 UTCに実Switchの25%位置で短い静止接触の開始・解放がUIKitへ到達。値は0、`requesting=false`・保存falseのままで、アプリのBinding変更・OS許可要求は観測なし。`ApplicationChecks+Notifications.swift:336` に05:15:29、ケース122.946秒で停止。後続の個人予定実通知は許可と予約を確認して成功（143.165秒）。前の試行のXcode実行先の問題と、N183-CI20の許可を要求済みだが未応答の状態とも異なる。試行3は14成功・1失敗、公開スキップ。
 - `short-contact-50ms|testNotificationControlsAndAppearance|Special notification switch|thumb-drag` でN239、N249、正式526試行3、正式530試行3と照合した。正式526は2個目の通知Switchの静止接触が取消、今回は最初の接触を通常終了しても値が変わらない。同じ試行で個人通知に使った既存の0.33秒の実つまみドラッグは実許可と保存・予約に到達。候補ではiOS 26の当該Bケースの2つのSwitchに、その既存実つまみドラッグを一回ずつ使う。iOS 27とUI Aの実短接触、実枠の一意性・包含・hittability、45秒/10秒、OSの実許可、保存と再起動、週送り判定は維持する。接触非反映の下位原因は未確定。iOS 26限定の同じケースで、実接触・値・許可・再起動を確認する。
+
+### N183-CI25 — iOS 26の通知限定がXCTest開始前に取消
+
+- `ea7531c`、[限定45553651442 試行1、iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45553651442/job/139000448658)、SDK27.2。初回依存解決のエラーからビルドを完了し、2026-11-25 05:38:18 UTCに所有端末の `simulator-ready` を記録。05:38:34にGitHubは `The operation was canceled` を報告。XCTestの開始、通知の接触、実値、許可、保存は全て未到達。05:41:32に取消で終端。作業側からの取消操作はなく、取消の発生理由は未確定。外側1440秒を迎える前。
+- `The operation was canceled|simulator-ready|bootstatus` で正式490と正式44800663590の手動単項目を比較した。正式490はケース実行中、44800663590は起動準備中で同じGitHubメッセージにより終了し、当時も個別ケースの合格判定は行わなかった。今回は準備成功後かつXCTest開始前。対象ケースの実操作データが無いため、変更済みの同一コミット・SDK・実端末で新しいRunnerを一度比較する。期限、所有先、ケース、実許可と設定値の条件は維持する。
