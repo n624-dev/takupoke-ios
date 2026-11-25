@@ -11,7 +11,66 @@ from test_manual_input_lifecycle import block
 ROOT = Path(__file__).resolve().parents[1]
 
 
+# These admission/legacy-boundary harnesses do not execute asynchronous jobs.
+# Real isolation, deadlines and late work are tested by FileRefreshTests.
+PIPELINE_STUBS = r"""
+struct SchoolDataPeriod { static func current() -> Self { Self() } }
+protocol SelectedFileProviding {}
+struct SystemSelectedFileProvider: SelectedFileProviding {}
+final class FilePipeline {
+    enum Failure: Error { case cancelled, timedOut, stale }
+    enum Reason { case selection, manual, automatic, background, review }
+    enum Stage { case parsing, validating }
+    enum Source { case timetable, changes, exam, examReturn }
+    final class Ticket {
+        var failure: FilePipeline.Failure?
+        func check() throws { if let failure { throw failure } }
+        func cancel() { failure = .cancelled }
+        func enter(_ stage: Stage) {}
+        func acquired() {}
+        func parsed() {}
+        func unchanged() {}
+        func onAbort(_ callback: (() -> Void)?) {}
+        func afterCommit(_ callback: @escaping () -> Void) { callback() }
+    }
+    var intentSnapshot: [String: UInt64] { [:] }
+    static let shared = FilePipeline()
+    func cancel(_ sources: [Source]) {}
+    func cancel(_ source: String) {}
+    func isRecovering(_ source: String) -> Bool { false }
+}
+"""
+
+
 class ChangePreviewActionTests(unittest.TestCase):
+    def test_batch_cancellation_is_separate_from_child_deadline(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for actual cancellation control")
+        control = block((ROOT / "Takupoke/SelectedFileProvider.swift").read_text(), "final class AcquisitionControl")
+        program = r'''import Foundation
+enum MaterialError: Error { case cancelled }
+final class NSFileCoordinator { func cancel() {} }
+CONTROL
+let outer = AcquisitionControl(), inner = AcquisitionControl()
+let timedOut = FilePipeline.Ticket()
+timedOut.failure = .timedOut
+outer.registerCancellationTarget(timedOut)
+try outer.check() // A child's timeout must not discard the other file in a batch.
+inner.pipelineTicket = timedOut
+do { try inner.check(); preconditionFailure("Inner must honor its deadline") }
+catch FilePipeline.Failure.timedOut {}
+outer.cancel()
+do { try outer.check(); preconditionFailure("Explicit batch cancel must stop all") }
+catch MaterialError.cancelled {}
+precondition(timedOut.failure == .cancelled)
+'''.replace("CONTROL", control)
+        with tempfile.TemporaryDirectory(prefix="batch-ticket-control-") as scratch:
+            root = Path(scratch)
+            (root / "main.swift").write_text(PIPELINE_STUBS + program)
+            subprocess.run([compiler, "-swift-version", "5", str(root / "main.swift"), "-o", str(root / "probe")], check=True, timeout=60)
+            subprocess.run([str(root / "probe")], check=True, timeout=10)
+
     def test_paused_files_do_not_start_background_work_before_foreground_return(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
@@ -38,7 +97,7 @@ final class Control { func check() throws {}; func cancel() {} }
     func perform(success: String?, completion: @escaping (Bool) -> Void, operation: (Worker, Control) throws -> Void) {
         dispatches += 1; completion(true)
     }
-    nonisolated static func refreshSelectedFiles(_ worker: Worker, requested: Set<String>, year: Int?, control: Control) throws {}
+    nonisolated static func refreshSelectedFiles(_ worker: Worker, requested: Set<String>, year: Int?, control: Control, reason: FilePipeline.Reason = .automatic) throws {}
 MATERIALS
 }
 @MainActor final class SpecialSchedulesModel {
@@ -48,7 +107,7 @@ MATERIALS
     func perform(success: String?, completion: @escaping (Bool) -> Void, operation: (Store, Control, Bool) throws -> Void) {
         dispatches += 1; completion(true)
     }
-    nonisolated static func refreshSelectedFiles(_ store: Store, requested: Set<String>, control: Control) throws {}
+    nonisolated static func refreshSelectedFiles(_ store: Store, requested: Set<String>, control: Control, reason: FilePipeline.Reason = .automatic) throws {}
 SPECIALS
 }
 @main struct Probe {
@@ -72,7 +131,7 @@ SPECIALS
 '''.replace("QUEUE", queue).replace("MATERIALS", materials).replace("SPECIALS", specials)
         with tempfile.TemporaryDirectory(prefix="paused-file-refresh-") as scratch:
             path = Path(scratch)
-            (path / "probe.swift").write_text(program)
+            (path / "probe.swift").write_text(PIPELINE_STUBS + program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
                             "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
                             "-o", str(path / "probe")], check=True)
@@ -83,7 +142,7 @@ SPECIALS
         if not compiler:
             self.skipTest("Swift required to execute production special schedule refresh")
         refresh = (ROOT / "Takupoke/SpecialSchedulesModel+Startup.swift").read_text(encoding="utf-8")
-        access = (ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text(encoding="utf-8")
+        access = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text(encoding="utf-8")
         program = r'''import Foundation
 enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed }
 enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
@@ -137,6 +196,7 @@ final class SpecialScheduleStore {
     func newStagingURL() -> URL { URL() }
     func discardStaging(_ url: URL) { discarded += 1 }
     func selectedURL(for kind: SpecialScheduleKind) -> URL? { URL() }
+    func hasSelectedFile(_ kind: SpecialScheduleKind) -> Bool { true }
     func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String) throws { confirmed.append(kind) }
     func recordAcquisitionFailure(kind: SpecialScheduleKind) throws { failed.append(kind) }
     func recordFailure(_ error: PDFParseError, kind: SpecialScheduleKind) throws {
@@ -149,6 +209,16 @@ final class SpecialScheduleStore {
 }
 CONTROL
 enum SpecialSchedulesModel {
+    static func pipeline(_ store: SpecialScheduleStore, kind: SpecialScheduleKind, reason: FilePipeline.Reason,
+        control: AcquisitionControl, operation: (SpecialScheduleStore, AcquisitionControl) throws -> Void) throws {
+        // This harness models only the final authorized attempt; retry and
+        // live-store isolation are exercised by the native pipeline tests.
+        do { try operation(store, control) }
+        catch {
+            if !FileOperationOutcome.isCancellation(error) { try store.recordAcquisitionFailure(kind: kind) }
+            throw error
+        }
+    }
     struct Receipt { let acknowledge: () -> Void }
     static var cancelled = false, succeed = false, copied = [SpecialScheduleKind](), acknowledged = [SpecialScheduleKind]()
     static func copy(_ selection: ScopedMaterialSelection, to staged: URL, kind: SpecialScheduleKind,
@@ -217,8 +287,8 @@ do {
     check(error.code == .cancelled, "the parser cancellation should reach the caller")
 } catch { check(false, "unexpected PDF read error") }
 check(SpecialSchedulesModel.copied == [.exam], "parser cancellation must stop the batch")
-check(interruptedStore.parseCancellations == [.exam] && interruptedStore.failed.isEmpty && interruptedStore.analyses == 0,
-      "persist the cancelled attempt without reporting an acquisition failure or saving a new analysis")
+check(interruptedStore.parseCancellations.isEmpty && interruptedStore.failed.isEmpty && interruptedStore.analyses == 0,
+      "cancelled candidates must not publish live parse failures, acquisition failures or analyses")
 let terminal = FileRefreshDiagnostics.shared.events.filter { $0 == .cancelled || $0 == .refreshFailed }
 check(terminal == [.cancelled], "cancelled PDF reading must use the cancellation trace")
 if !failures.isEmpty { print(failures.joined(separator: "\n")); exit(1) }
@@ -228,7 +298,7 @@ if !failures.isEmpty { print(failures.joined(separator: "\n")); exit(1) }
         with tempfile.TemporaryDirectory(prefix="special-provider-refresh-") as scratch:
             root = Path(scratch)
             source = root / "main.swift"
-            source.write_text(program, encoding="utf-8")
+            source.write_text(PIPELINE_STUBS + program, encoding="utf-8")
             subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(root / "modules"),
                             str(source), "-o", str(root / "probe")], check=True, timeout=60)
             subprocess.run([str(root / "probe")], check=True, timeout=15)
@@ -267,7 +337,7 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
         with tempfile.TemporaryDirectory(prefix="recovered-timetable-commit-") as scratch:
             directory = Path(scratch)
             swift = directory / "main.swift"
-            swift.write_text(program, encoding="utf-8")
+            swift.write_text(PIPELINE_STUBS + program, encoding="utf-8")
             subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(directory / "modules"),
                             str(swift), "-o", str(directory / "probe")], check=True, timeout=60)
             subprocess.run([str(directory / "probe")], check=True, timeout=15)
@@ -277,7 +347,7 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
         if not compiler:
             self.skipTest("Swift required to execute production acquisition")
         access_source = (ROOT / "Takupoke/MaterialAccess.swift").read_text()
-        control_source = (ROOT / "Takupoke/ScopedMaterialSelection.swift").read_text()
+        control_source = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text()
         program = '''import Foundation
 enum MaterialKind: String { case changes }
 enum MaterialError: Error { case cancelled, unavailable, invalidState }
@@ -367,7 +437,7 @@ ACQUIRE
            .replace("ACQUIRE", block(access_source, "private func acquire(_"))
         with tempfile.TemporaryDirectory(prefix="provider-commit-") as scratch:
             path = Path(scratch)
-            (path / "probe.swift").write_text(program)
+            (path / "probe.swift").write_text(PIPELINE_STUBS + program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
                             "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
                             "-o", str(path / "probe")], check=True)
@@ -406,6 +476,9 @@ CANCELLATION
 REFRESH_QUEUE
 final class Monitor { var discarded = 0; func discardPendingRefreshes() { discarded += 1 } }
 final class AcquisitionControl {
+    let operationID = UUID()
+    let usedPipeline = false
+    init(intents: [String: UInt64] = [:]) {}
     var acquiredProviderSources = Set<String>()
     var cancelled = false
     func cancel() { cancelled = true }
@@ -428,8 +501,10 @@ final class MaterialWorker {
 }
 @MainActor final class MaterialsModel {
     var busy = false, retired = false, failed = false, ready = true
+    var messageOperationID: UUID?, lastOperationUsedPipeline = false
     var cancellationRequested = false, lastOperationWasCancelled = false
     var fileRefreshQueue = FileRefreshQueue()
+    var pendingManualRefresh = Set<MaterialKind>()
     var pendingSelections = PendingFileSelections<MaterialKind, Int>()
     let fileMonitor = Monitor()
     var message: String?, changePreview: ChangePreview? = ChangePreview()
@@ -497,7 +572,7 @@ CANCEL_OPERATION
            .replace("REFRESH_QUEUE", block((ROOT / "Takupoke/SelectedFileSource.swift").read_text(), "struct FileRefreshQueue"))
         with tempfile.TemporaryDirectory(prefix="change-review-completion-") as scratch:
             path = Path(scratch)
-            (path / "probe.swift").write_text(program)
+            (path / "probe.swift").write_text(PIPELINE_STUBS + program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
                             "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
                             "-o", str(path / "probe")], check=True)
@@ -531,12 +606,14 @@ struct ChangeParseError: Error, LocalizedError {
 }
 struct ChangeWorkbookReview {}
 struct ChangeRowEdit {}
-struct Control { func check() throws {} }
+struct Control { var pipelineTicket: FilePipeline.Ticket? = nil; func check() throws {} }
 struct Library {
     func saveChangeEditor(_ view: ChangeWorkbookReview, year: Int, expectedIdentity: String, expectedDigest: String,
                           edits: [Int: ChangeRowEdit], manual: Bool, check: () throws -> Void) throws {}
 }
 struct Worker {
+    func pipeline(_ kind: MaterialKind, reason: FilePipeline.Reason, control: Control,
+        operation: (Worker, Control) throws -> Void) throws { try operation(self, control) }
     var library: Library? = Library()
     func refresh(_ kind: MaterialKind, control: Control) throws {}
     func correctWeekdays(_ p: ChangePreview, defaultYear: Int, control: Control) throws {}
@@ -582,7 +659,7 @@ METHODS
 '''.replace("METHODS", methods)
         with tempfile.TemporaryDirectory(prefix="change-preview-admission-") as scratch:
             path = Path(scratch)
-            (path / "probe.swift").write_text(program)
+            (path / "probe.swift").write_text(PIPELINE_STUBS + program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
                             "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
                             "-o", str(path / "probe")], check=True)
@@ -600,7 +677,7 @@ struct ChangeParseError: Error {
     enum Code { case unsupported, cancelled, storage, weekdayOnly }
     var code: Code
 }
-struct AcquisitionControl { func check() throws {} }
+struct AcquisitionControl { var pipelineTicket: FilePipeline.Ticket? = nil; func check() throws {} }
 struct ChangePreview {
     var canSkipRows = true, defaultYear: Int? = 2032
     var sourceDigest: String? = "reviewed", sourceIdentity: String? = "original"
@@ -618,6 +695,10 @@ final class Library {
     }
 }
 final class MaterialWorker {
+    func pipeline(_ kind: MaterialKind, reason: FilePipeline.Reason, control: AcquisitionControl,
+        operation: (MaterialWorker, AcquisitionControl) throws -> Void) throws {
+        var inner = control; inner.pipelineTicket = FilePipeline.Ticket(); try operation(self, inner)
+    }
     var library: Library? = Library(), replaceDigest = false, replaceSelection = false
     func refresh(_ kind: MaterialKind, control: AcquisitionControl) throws {
         if replaceDigest { library?.state.current.digest = "new-content" }
@@ -644,7 +725,7 @@ METHOD
 '''.replace("METHOD", method)
         with tempfile.TemporaryDirectory(prefix="change-preview-worker-") as scratch:
             path = Path(scratch)
-            (path / "probe.swift").write_text(program)
+            (path / "probe.swift").write_text(PIPELINE_STUBS + program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
                             "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
                             "-o", str(path / "probe")], check=True)
@@ -672,6 +753,8 @@ struct ChangeParseError: Error, LocalizedError {
 }
 final class MaterialWorker {
     var reads: [MaterialKind] = [], pdfs: [MaterialKind] = [], years: [Int?] = []
+    func pipeline(_ kind: MaterialKind, reason: FilePipeline.Reason, control: AcquisitionControl,
+        operation: (MaterialWorker, AcquisitionControl) throws -> Void) throws { try operation(self, control) }
     func selectFile(_ url: ScopedMaterialSelection, kind: MaterialKind, control: AcquisitionControl) throws { reads.append(kind) }
     func refresh(_ kind: MaterialKind, control: AcquisitionControl) throws { reads.append(kind) }
     func analyzeChanges(defaultYear: Int?, control: AcquisitionControl) throws { years.append(defaultYear) }
@@ -681,6 +764,7 @@ QUEUE
 @MainActor final class MaterialsModel {
     var retired = false, busy = false, failed = false, message: String?
     var automaticChangeSchoolYear: Int? = nil
+    var pendingManualRefresh = Set<MaterialKind>()
     var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
     let worker = MaterialWorker()
     var dispatches = 0
@@ -713,7 +797,7 @@ METHODS
 '''.replace("METHODS", methods).replace("QUEUE", queue)
         with tempfile.TemporaryDirectory(prefix="change-year-admission-") as scratch:
             path = Path(scratch)
-            (path / "probe.swift").write_text(program)
+            (path / "probe.swift").write_text(PIPELINE_STUBS + program)
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library",
                             "-module-cache-path", str(path / "modules"), str(path / "probe.swift"),
                             "-o", str(path / "probe")], check=True)

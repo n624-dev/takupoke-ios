@@ -5,6 +5,54 @@ import XCTest
 final class ServiceStatusTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
+    func testFunctionalStatusSeparatesFreshFeaturesAndEventEvidence() throws {
+        let bytes = Data("""
+        {"schemaVersion":1,"service":"takupoke-api","state":"ok",
+         "checkedAt":"2032-04-01T00:00:00.123Z","validUntil":"2032-04-01T00:03:00.123Z",
+         "features":[{"id":"events","required":true,"state":"ok","checkedAt":"2032-04-01T00:00:00.123Z",
+          "validUntil":"2032-04-01T00:03:00.123Z","lastSuccessfulAt":"2032-04-01T00:00:00.123Z"}],
+         "data":{"events":{"checkedAt":"2032-04-01T00:00:00.123Z","validUntil":"2032-04-01T00:03:00.123Z","versions":[
+          {"schoolYear":2032,"format":"v2","dataVersion":"sha256-\(String(repeating: "a", count: 64))",
+           "sourceState":"source_differs","sourceCheckedAt":"2032-03-31T23:59:00Z","reviewState":"unknown","reviewCheckedAt":null}]}}}
+        """.utf8)
+        let snapshot = try FunctionalStatusSnapshot.decode(bytes, service: .api)
+        XCTAssertThrowsError(try FunctionalStatusSnapshot.decode(bytes, service: .authentication))
+        let now = snapshot.checkedAt.addingTimeInterval(1)
+        XCTAssertEqual(snapshot.feature("events")?.presentation(at: now).tone, .good)
+        XCTAssertEqual(snapshot.eventVersion(year: 2032, format: "v2", at: now)?.sourceState, "source_differs")
+        XCTAssertNil(snapshot.eventVersion(year: 2032, format: "v1", at: now))
+        XCTAssertNil(snapshot.eventVersion(year: 2031, format: "v2", at: now))
+        XCTAssertNil(snapshot.eventVersion(year: 2032, format: "v2", at: snapshot.validUntil))
+        XCTAssertEqual(snapshot.feature("events")?.presentation(at: snapshot.validUntil).tone, .unknown)
+        XCTAssertEqual(snapshot.feature("events")?.lastSuccessfulAt, snapshot.checkedAt)
+        var shortened = try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+        shortened["validUntil"] = "2032-04-01T00:00:01Z"
+        let expired = try FunctionalStatusSnapshot.decode(JSONSerialization.data(withJSONObject: shortened), service: .api)
+        XCTAssertEqual(expired.featurePresentation("events", at: now).tone, .unknown)
+        XCTAssertNotNil(expired.eventVersion(year: 2032, format: "v2", at: now), "Event evidence has its own validity period")
+        var publisher = EventPublisherStatus()
+        publisher.accept(snapshot, at: now)
+        let matched = String(decoding: bytes, as: UTF8.self).replacingOccurrences(of: "source_differs", with: "matched")
+        publisher.accept(try FunctionalStatusSnapshot.decode(Data(matched.utf8), service: .api), at: now)
+        XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2"))
+        let reviewed = matched.replacingOccurrences(of: "\"unknown\",\"reviewCheckedAt\":null",
+            with: "\"reviewed\",\"reviewCheckedAt\":\"2032-03-31T23:55:00Z\"")
+        let updated = try FunctionalStatusSnapshot.decode(Data(reviewed.utf8), service: .api)
+        publisher.accept(updated, at: snapshot.validUntil)
+        XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2"))
+        publisher.accept(updated, at: now)
+        XCTAssertFalse(publisher.isWaiting(year: 2032, format: "v2"))
+        let matchedAt = try XCTUnwrap(updated.eventVersion(year: 2032, format: "v2", at: now)?.sourceCheckedAt)
+        XCTAssertFalse(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(-1)))
+        XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(1)))
+        let earlier = SchoolEventsSourcePresentation(message: "更新待ち", warningMessage: "更新待ち", lastSuccessfulMessage: nil,
+            lastSuccessAt: matchedAt.addingTimeInterval(-1), receivedAt: nil, evidence: .differs, updateWaiting: true)
+        let reconciled = publisher.presentation(year: 2032, format: "v2", online: updated.eventVersion(year: 2032, format: "v2", at: now),
+                                                previous: earlier, at: now)
+        XCTAssertFalse(try XCTUnwrap(reconciled).updateWaiting)
+        XCTAssertNil(reconciled?.warningMessage)
+    }
+
     private func node(_ id: String, _ type: String, _ attributes: [String: Any]) -> [String: Any] {
         ["id": id, "type": type, "attributes": attributes]
     }

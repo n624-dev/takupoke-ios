@@ -210,7 +210,7 @@ extension ApplicationChecks {
 
 extension ApplicationChecks {
     func testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent() throws {
-        let warning = "学校の元PDFに差異があります。行事内容への影響は確認待ちです。"
+        let warning = "学校の元PDFと採用原本に差異があるため、配信データは更新待ちです。配信元による内容の確認・必要な更新が必要です。端末の再取得では解消しません。保存済みの行事を表示しています。"
         func identifying(_ identifier: String, title: String) -> XCUIElement {
             app.buttons.matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@", identifier, title)).firstMatch
         }
@@ -302,6 +302,8 @@ extension ApplicationChecks {
         fetchCurrentEvents(initial: false)
         let current = visible(matchingWarning())
         XCTAssertTrue(current.waitForExistence(timeout: 25), app.debugDescription)
+        let sourceStatus = app.staticTexts["元PDFの確認、更新待ち"]
+        XCTAssertTrue(visible(sourceStatus, navigation: "学校行事", searchEarlierRows: true).exists, app.debugDescription)
         back(to: "設定")
         openCountdown()
         let restored = visible(identifying("countdown-list-card", title: "Fictional exam alias"))

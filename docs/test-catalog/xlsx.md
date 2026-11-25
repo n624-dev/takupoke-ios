@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`2c1a748d6a91801a1226749fc3ed6ca8cb9a8866d6655068fb73b043ff488fb0`
+`12339479d2a84fcbae1b431f3b9172834efc44aa070d351fd3ce8a203cf714a7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -25,6 +25,7 @@ bash tools/test-parsing.sh
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
+- `test_batch_cancellation_is_separate_from_child_deadline`
 - `test_paused_files_do_not_start_background_work_before_foreground_return`
 - `test_special_provider_refresh_keeps_cancellation_separate_from_failure`
 - `test_recovered_timetable_clears_previous_error_only_after_commit`

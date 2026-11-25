@@ -32,7 +32,7 @@ PDF / XLSX / CSV などは初期設定でまとめて除外しています。将
 ### 更新確認の固定コード記録
 
 ステータスの「更新確認の記録をコピー」は `FileRefreshDiagnostics.Snapshot` のみを出力します。
-固定のSource／Step enum、連番、単調時計による経過ミリ秒、件数、schemaVersionだけを持ち、最大512件をメモリで保持します。経過時間計測の `systemUptime` は `PrivacyInfo.xcprivacy` で `NSPrivacyAccessedAPICategorySystemBootTime` / `35F9.1` として宣言します（[Apple公式](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype)）。起動時刻そのものは記録しません。
+固定のSource／Step、実行理由と段階、連番、再試行番号、単調時計による経過ミリ秒、件数、schemaVersionを持ちます。処理IDはアプリ内で一時生成し、同じ要求内の段階と再試行を結び付けます。最大512件をメモリで保持します。経過時間計測の `systemUptime` は `PrivacyInfo.xcprivacy` で `NSPrivacyAccessedAPICategorySystemBootTime` / `35F9.1` として宣言します（[Apple公式](https://developer.apple.com/documentation/bundleresources/app-privacy-configuration/nsprivacyaccessedapitypes/nsprivacyaccessedapitype)）。起動時刻そのものは記録しません。
 ファイル名・URL・パス・bookmark・digest・本文・自由記述エラー・認証情報は格納できません。
 マーカーは `TAKUPOKE-REFRESH-TRACE-1`。利用者の明示的なコピー操作だけで、端末内限定・10分失効のクリップボードへ出します。自動送信はありません。
 配布検査は従来の汎用診断コピー文言・全文マーカー・全文コピー操作・内部更新診断操作を常に拒否します。固定記録のマーカーがあっても、この禁止は解除しません。

@@ -1,7 +1,7 @@
 # ファイル選択・再選択・背景・キャンセル
 
 対応関係・宣言名・実行方法のSHA-256：
-`2179b63c730dc5e94780692214a0d21f7b8fde5c190ee9cc2e9ffe9d522f9223`
+`b5af99333bcfdf864630b57df33e429e1d65166dab9f09d941b067eba31204cc`
 
 環境：Apple iOS26/27 UI＋Nativeレイアウト
 
@@ -32,6 +32,7 @@ bash tools/test-picker-ui.sh
 
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 
+- `test_picker_lease_typechecks_with_only_picker_dependencies`
 - `test_preparation_order_exact_completions_failures_and_owned_cleanup`
 
 ## [tests/test_simulator_frontend.py](../../tests/test_simulator_frontend.py)

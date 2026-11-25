@@ -20,9 +20,12 @@ struct StatusPresentation: Equatable {
     }
 
     static func summary(_ values: [Self], checking: Bool = false, paused: Bool = false) -> Self {
-        let attention = values.filter(\.needsAttention).count
-        if attention > 0 {
-            return .init(title: "要確認 \(attention)件", tone: .attention,
+        let attention = values.filter(\.needsAttention)
+        if !attention.isEmpty {
+            if attention.allSatisfy({ $0.title == "更新待ち" }) {
+                return .init(title: "更新待ち", tone: .attention, detail: attention.first?.detail)
+            }
+            return .init(title: "要確認 \(attention.count)件", tone: .attention,
                          detail: checking ? "更新状況も確認しています。" : "詳しい状態と対処方法を確認できます。")
         }
         if checking || values.contains(where: { $0.tone == .checking }) {
@@ -60,6 +63,9 @@ struct StatusPresentation: Equatable {
                          tone: failed ? .unavailable : .checking)
         }
         if cacheFailed { return .init(title: "再取得が必要", tone: .attention) }
+        if acquired, let source, source.updateWaiting || source.evidence == .differs {
+            return .init(title: "更新待ち", tone: .attention, detail: source.warningMessage ?? source.message)
+        }
         if checking {
             return .init(title: acquired ? "行事データを確認中" : "行事データを取得中", tone: .checking)
         }
@@ -74,7 +80,7 @@ struct StatusPresentation: Equatable {
         }
         switch source.evidence {
         case .matched: return .init(title: "元PDFの一致を確認", tone: .good, detail: "行事内容の正確さを保証する判定ではありません。")
-        case .differs: return .init(title: "元PDFに差異あり", tone: .attention, detail: source.message)
+        case .differs: return .init(title: "更新待ち", tone: .attention, detail: source.message)
         case .checking: return .init(title: "元PDFを確認中", tone: .checking)
         case .unknown: return .init(title: "元PDFは未確認", tone: .unknown, detail: source.message)
         }
@@ -84,6 +90,7 @@ struct StatusPresentation: Equatable {
 enum FileOperationOutcome {
     static func isCancellation(_ error: Error) -> Bool {
         if case MaterialError.cancelled = error { return true }
+        if (error as? FilePipeline.Failure) == .cancelled { return true }
         return error is CancellationError || (error as? PDFParseError)?.code == .cancelled ||
             (error as? ChangeParseError)?.code == .cancelled
     }
@@ -185,5 +192,29 @@ extension MaterialLibraryState {
         if let skip = source.source.rowSkipConsent,
            skip.matches(sourceIdentity: identity, digest: source.digest, defaultYear: year) { return skip.rows }
         return []
+    }
+}
+
+
+extension FilePipeline.Status {
+    var presentation: StatusPresentation {
+        if waitingForWorker {
+            return .init(title: stage == .cancelled ? "中止しました・終了待ち" : "期限切れ・終了待ち", tone: stage == .cancelled ? .neutral : .attention,
+                         detail: "前回の正常結果を保持しています。同じファイルは旧処理の終了後に再取得できます。")
+        }
+        switch stage {
+        case .queued: return .init(title: "確認待ち", tone: .checking)
+        case .access: return .init(title: "ファイルへのアクセス待ち", tone: .checking)
+        case .acquiring: return .init(title: "ファイルを取得中", tone: .checking)
+        case .checkingDigest: return .init(title: "内容の変更を確認中", tone: .checking)
+        case .parsing: return .init(title: "ファイルを解析中", tone: .checking)
+        case .validating: return .init(title: "解析結果を検証中", tone: .checking)
+        case .saving: return .init(title: "解析結果を保存中", tone: .checking)
+        case .cancelled: return .init(title: "確認を中止しました", tone: .neutral)
+        case .timedOut: return .init(title: "更新確認が期限切れになりました", tone: .attention, detail: "前回の正常結果は保持しています。再取得できます。")
+        case .recovering: return .init(title: "旧処理の終了待ち", tone: .neutral)
+        case .failed: return .init(title: "更新を確認できませんでした", tone: .attention)
+        case .succeeded, .unchanged: return .init(title: "更新確認済み", tone: .good)
+        }
     }
 }

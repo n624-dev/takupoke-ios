@@ -184,6 +184,9 @@ struct ContentView: View {
             private var titleColor: UIColor?
             private var appliedColor: UIColor?
             private weak var overriddenBar: UITabBar?
+            private weak var overriddenItem: UITabBarItem?
+            private var previousItemColor: UIColor?
+            private var appliedItemColor: UIColor?
             private var updatePending = false
             private var isDismantled = false
 
@@ -229,13 +232,43 @@ struct ContentView: View {
                     guard bars.count == 1 else { return }
                     overriddenBar = bars.first
                 }
-                if let bar = overriddenBar, bar.tintColor != titleColor {
+                guard let bar = overriddenBar else { return }
+                if bar.tintColor != titleColor {
                     bar.tintColor = titleColor
                     appliedColor = titleColor
                 }
+                applyItemTitle(to: bar.selectedItem, color: titleColor)
+            }
+
+            private func applyItemTitle(to item: UITabBarItem?, color: UIColor) {
+                if item !== overriddenItem {
+                    clearItemTitle()
+                    overriddenItem = item
+                    previousItemColor = item?.titleTextAttributes(for: .selected)?[.foregroundColor] as? UIColor
+                }
+                guard let item else { return }
+                var attributes = item.titleTextAttributes(for: .selected) ?? [:]
+                guard attributes[.foregroundColor] as? UIColor != color else { return }
+                attributes[.foregroundColor] = color
+                item.setTitleTextAttributes(attributes, for: .selected)
+                appliedItemColor = color
+            }
+
+            private func clearItemTitle() {
+                if let item = overriddenItem, let appliedItemColor {
+                    var attributes = item.titleTextAttributes(for: .selected) ?? [:]
+                    if attributes[.foregroundColor] as? UIColor == appliedItemColor {
+                        attributes[.foregroundColor] = previousItemColor
+                        item.setTitleTextAttributes(attributes.isEmpty ? nil : attributes, for: .selected)
+                    }
+                }
+                overriddenItem = nil
+                previousItemColor = nil
+                appliedItemColor = nil
             }
 
             private func clearOverride() {
+                clearItemTitle()
                 if let bar = overriddenBar, let appliedColor, bar.tintColor == appliedColor {
                     bar.tintColor = nil
                 }

@@ -1,7 +1,7 @@
 # ステータス・公開監視情報・取消表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`330d2c4c493c94fd8e9a2d97dac5783830d137e421f61efb1a8098b135f69d42`
+`cbd86c4341550b44c55787568d956bcaa457b80c2516a59effd29c0372ee5b1a`
 
 環境：Linux Swift（状態判定）／Apple iOS26/27（画面・通信）
 
@@ -21,6 +21,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ServiceStatusTests.swift](../../tests/ServiceStatusTests.swift)
 
+- `testFunctionalStatusSeparatesFreshFeaturesAndEventEvidence`
 - `testUsesLinkedIDsAndIgnoresUnrelatedOutageAndNames`
 - `testUnlinkedMissingDuplicateWrongTypeAndUnknownStateNeverBecomeHealthy`
 - `testHistoryKeepsUnmonitoredRecoveryAndUnknownDaysWithoutInventingDates`
@@ -32,6 +33,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/StatusPresentationTests.swift](../../tests/StatusPresentationTests.swift)
 
+- `testSourceDifferenceIsPublisherUpdateWaitingEvenDuringRecheck`
 - `testCancellationIsNeutralAndKeepsTheSavedResult`
 - `testUnknownAndUnselectedDoNotBecomeFailuresOrAllNormal`
 - `testAccountAcquisitionDoesNotAssertLatestOrAuthentication`

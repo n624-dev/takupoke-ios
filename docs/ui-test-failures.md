@@ -6219,3 +6219,200 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - source `b5377c08c6ad28b046674bd5d281f11a37f7c574`、[45386853188・試行1／iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901052)、SDK 27.2／iOS 26.5。ビルド179.0秒、起動507.8秒、XCTest開始は12:07:44 UTC。時刻付きの3操作と再起動後の元の1操作で、表示と保存値がすべて変化した。12:11:34 UTC、学校行事から設定へ戻る途中に外側1440秒の期限が発火し、資料詳細までのケース完了は未確認。回収は完了、終了124。
 - 同じ試行の [iOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901566)は同じ4操作、再起動後の保持、4種類の資料詳細を617.959秒で完了。実行identity、完了照合と回収も成功。N246でiOS 26の設定詳細全体に成功したときの起動150.4秒と、今回の507.8秒を照合した。iOS 26の追加実行は4操作の結果を確認できたが、ケース全体とジョブの成功判定には使用しない。
+
+### N183-L1 — 2026-11-24 FileRefreshホスト検査の環境準備
+
+- source: `4fdaaa5` からの未コミットMaterialFileReader差分。Debian13上のDocker `swift:6.1.2`（Ubuntu）。
+- `bash tools/test-parsing.sh --filter FileRefreshTests` はビルド前に `python3: command not found`、exit127。テスト未実行。iOS／UI失敗ではない。
+- 文書にある `/workspace/toolchains` はこの新規環境には存在しない。Swift公式イメージにはPythonが含まれない。Swift・検査条件を変更せず、検証用コンテナへPythonと既存パッケージに必要な開発依存を追加して再試行する。
+- 同じ差分の次試行はPython準備後に依存cloneでTLS証明書検証エラー。テスト・コンパイル未到達。ホストに設定済みのCA bundleを検証コンテナへ渡して信頼連鎖を維持する。TLS検証は無効化しない。
+
+### N183-L2 — #183 隔離パイプライン接続後のホストハーネス依存
+
+2026-11-24、`dcae9bf` 上の未コミット隔離パイプライン差分、Swift6.1.2／Linux。`test_change_preview_actions.py` は8件中4件がSwiftハーネスのコンパイルで失敗。実行前の依存不足であり、期待する中止／保存結果の失敗ではない。抽出済みAcquisitionControl・FileOperationOutcome・モデルの既存callerへ追加したFilePipeline型とpipeline入口がハーネスに未登録（cannot find FilePipeline／no member pipeline）。N183-L1の環境準備失敗とは異なり、コンパイラは使用可能。期待値・既存シナリオを維持し、新しい境界をハーネスへ接続して再実行する。Foundation本体の最初のFileRefreshTests実行は成功しているが、その後追加したケースは次試行で確認する。
+
+### N183-L3 — #183 ローカル増分ビルド中の入力変更
+
+2026-11-24、`dcae9bf` 上の未コミット差分、Swift6.1.2／Linux。作業ツリーを直接参照した増分ホスト検査は、コンパイル中に主担当がSelectedFileSource.swiftを編集したため `input file ... was modified during the build` で停止。テストには未到達。N183-L2のハーネス依存は補完後に8件成功。次の増分検査は所有する固定コピーへソースを同期してから開始し、ビルド中はそのコピーを更新しない。既存の隔離実行スクリプトと同じ入力固定条件を維持する。
+- N183-L2追補: 再試行・実行枠接続後の次試行では8件中2件がハーネス型検査で停止。追加した実行枠判定と解析成功通知の依存が不足している。既存の動作期待は維持し、不足したstubの型・関数だけを補う。
+
+### N183-L4 — #183 全ホスト検査の保存日時比較
+
+2026-11-24、`dcae9bf` 上の未コミット候補、Swift6.1.2／Linux。固定入力の全731件で2件が予期しないエラーにより失敗。限定FileRefreshTests29件は成功していたが、これを保存全体の成功に代用しない。全体ログの失敗ケース・保存段階を確認してから修正し、再実行する。並行してレビューで指摘された実行要求世代・バッチ取消・終了投影を補強中のため、この実行は後続補強の最終検証ではない。
+- N183-L4の失敗は `LocalDatabaseTests.testSameDigestAutomaticRefreshReusesOriginalAndPersistsUpdatedModificationDate` と `ParsingTests.testOldRowSkipDecisionSurvivesSQLiteUpgradeAndCurrentRevalidation`。保存後のcurrentSnapshot照合で追加したlastAcquiredAtを可変メタデータとして正規化していなかった。Current側だけでなくSnapshot側の不変原本比較へ同じ正規化を追加し、原本識別・内容・解析版の検査は維持する。
+
+### N183-L5 — 更新待ちの確定文言と既存期待
+
+2026-11-24、固定入力の全734件で失敗2件。N183-L4のSQLite保存2件は修正後成功。残る失敗はSchoolEventsSourceStatusTestsの2ケースが旧文言「確認待ち」を期待しているためで、利用者確認済みの「更新待ち・配信元の対応・再取得では解消しない」へ変更した表示との差。差異判定・警告・旧正常結果保持の期待は緩和せず、新しい責任分担を表す文言へ更新する。APIの最初の型検査は追加functional-status.tsのnullable observation絞り込み4箇所で停止し、ランタイム未到達。既存validObservationの型述語を明示して補う。
+- N183-L2追補: 行確認・プレビューも隔離処理へ接続した次試行は、9件中2件のハーネスでWorker.pipelineとTicketの依存が不足し型検査停止。バッチ取消と子期限の分離ケースは成功。該当する限定stubを補い、既存の却下・保存失敗・プレビュー保持の期待は維持する。
+
+### N183-L6 — Linuxの作業領域不足
+
+`codex/issue-183-pipeline` の保存境界・公開状態の作業差分をLinux x86_64／Swift 6.1.2で検証中、コンパイル・テスト用出力の生成で `other(28)` が発生した。Windowsの対象テストでもテスト用ファイルの配置前に `No space left on device`。共有ディスクの空きは0で、どちらも対象テストは未実行。作業中に作成した依存の重複キャッシュを解放し、テスト条件は変えずに再実行する。変更前の固定入力ではSwift 736件が成功した。
+
+### N183-L7 — PDF照合の互換性とLinuxの抽出テスト
+
+`codex/issue-183-pipeline` のLinux／Swift 6.1.2固定入力で、既存APIの応答を維持する変更後にも `sourceUrl` の検証参照が残り、コンパイルで停止した。APIの全検証で既存契約に追加キーがないことも検査しており、既存応答の変更を取り消す。Python抽出テストは製品側の保存済み原本の存在確認を模擬するURLに `path` がなく、1件がコンパイルで停止した。製品側で原本の存在確認をストアに集約し、抽出テストは既存原本ありを表す境界だけ補う。実際の欠落ファイルの検証はSwiftのファイル・ストア試験で行う。
+
+### N183-CI1 — iOS 26のファイル詳細が限定ランナーの上限に到達
+
+- 対象: `0d688d8`、[45429156784・試行1のiOS 26ファイル詳細](https://github.com/n624-dev/takupoke-ios/actions/runs/45429156784/job/138569323385)。Xcode／SDK 27.2、iOS 26.5、`testSettingsAccountDataAndFileDetails`。
+- アプリとテストのビルドに成功。iOS 26シミュレーターの起動区間は367.3秒。画面テストは16:06:38 UTCに開始し、16:13:09 UTCに試験返却時間割のナビゲーションバーまで到達。テストの完了前に16:13:34 UTCに外側の1440秒期限が発火した。片付けまで完了し、個別のアサーション失敗は観測されていない。
+- `1440秒|file-details|status-settings-screen|cleanup-enter` でN246・N250付近の既存記録を照合。今回のiOS 27の同ケースは成功、iOS 26の設定一覧も成功。期限・操作・完了照合を変更していない。ファイル詳細の限定失敗は成功に扱わず、[最終コードの別枠の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714) のiOS 26操作結果を確認する。
+
+### N183-CI2 — iOS 26手動訂正のアクセシビリティ照会
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408225)、Xcode／SDK 27.2・iOS 26.5、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。
+- ビルド191.4秒、Simulator起動444.1秒。テスト開始は16:37:27 UTC。235.205秒で `ManualAssistanceChecks+Navigation.swift:52` のUI照会が `Timed out while evaluating UI query` となった。終了コード65。全体の2400秒期限とは別の失敗で、当該ケースの訂正保持と再起動までは完了していない。
+- 設定タブの一度の接触と解放がアプリまで届き、`manual-settings-list` の照会後、16:38:22に設定のナビゲーションバーの取得を開始した時点で停止した。訂正入力には未到達。
+- `manual-settings-list|Timed out while evaluating UI query|ManualAssistanceChecks+Navigation.swift:52` で #125正式527試行1とN213を照合。先行例ではList列挙、今回は直後のBar列挙で停止した。対象のナビゲーション補助と設定画面は先行ブランチから変更なし。同じ試行でiOS 26の原本変更とiOS 27の2つの手動ケースは成功。原因の断定やテスト変更は行わず、全ジョブ終端を確認して同じコミットの失敗ジョブを再確認する。
+
+### N183-CI3 — iOS 27通常UI Aの3件
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587407971)、Xcode／SDK 27.2・iOS 27.0、UI A。ビルド124秒、Simulator起動175秒。XCTest実行中の次の3件が失敗し、後続ケースは継続した。
+- `testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` は16:35:38 UTC、465.900秒。 `ApplicationChecks+Navigation.swift:237` で対象要素が表示領域外のまま。
+- `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` は16:37:12 UTC、65.110秒。`ApplicationChecks+Notifications.swift:195` の存在確認で失敗。
+- `testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails` は16:49:33 UTC、28.030秒。`ApplicationChecks+Timetable.swift:39` の期待が成立しなかった。該当画面の分岐とログを照合する。
+- 変更のケースは再起動と「103行」の確認へ進む過程の詳細で、表示範囲はページ先頭（状態とファイル情報の行が可視）。未生成の「内容を確認・修正」に方向指定で先頭へ戻る操作が続いた。各呼び出しが詳細の新規表示直後なのを確認し、ファイル情報より後ろを探す。包含と実タップ、選択・確認・再起動の検査は維持。
+- 試験のケースはホーム・週の初回失敗警告と、試験詳細へ実タップ・遷移まで成功。「保存済みのPDFを見る」は状態・ファイル情報より後ろの行なので、画面内へ出して利用可能かを確認する。解析ボタンも対象のナビゲーションバー内で確認する。
+- カウントダウンはアプリが通知の取消を確認できなかった旨を表示。#134の同観測と照合し、今回の変更に通知取消処理の差がないことを確認した。通知取消の成功条件は維持する。
+- 操作行の2件は限定 `material-detail-navigation` の個別ジョブで実際の操作を再確認する。変更行は既存の `rows` と同じ時間枠・診断条件で実行する。
+
+### N183-CI4 — iOS 27通常UI Bの2件
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408466)、Xcode／SDK 27.2・iOS 27.0、UI B。アプリのビルド・起動と前段の週移動1件は成功。
+- before-settingsで `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` が16:50:40 UTC、209.985秒、Navigation.swift:237で表示領域外。 `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch` が17:00:00 UTC、75.430秒、WeekAppearance.swift:111で選択タブ文字の画素数0（期待は50超）。8件中6件成功。後段は未実行。
+- カレンダーのケースは設定へ本物のタップで遷移し、取得・保存後の「元PDFの確認、更新待ち」と新しい説明をAXログで確認した。N183-L5と同じ旧文言がUIテストに残っていたため、設定・ホーム・時間割に共通の新しい説明を照合し、設定の状態名は「更新待ち」を別途照合する。限定 `material-detail-navigation` の `countdown-calendar` で既存の保持と訂正後の予定の参照も確認する。
+- `dark readable lettering|WeekAppearance.swift:111|YELLOW_TAB|tint|黄色|タブ` で索引を検索し、#125の44994268172と44996077866で同じSDK・標準ライトの設定タブ文字が暗色だったことを照合した。今回の合成fixture実画面 `yellow-tab-settings-standard` では設定タブのアイコンが黄色、文字が青。黄色設定行のグリフは1104画素、タブの黄色グリフ検査も通過した。この描画の原因は未確定。配色実装・画像による閾値は先行ブランチから変更していないため、成功条件を保って同条件の結果を再確認する。
+
+### N183-CI5 — iPhoneビルドのPicker事前検査で取得依存が不足
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408191)、Xcode／SDK 27.2・iOS 27.0。17:22:25 UTC、独立したPickerテストアプリのビルドで `ScopedMaterialSelection.swift` に追加された `SelectedFileProviding`、`SchoolDataPeriod`、`FilePipeline` が解決できず、終了65。Picker操作と実iPhoneビルドには未到達。
+- `Picker UI|ScopedMaterialSelection|cannot find.*in scope` でN68・45248143697と照合。既往の主アプリ／資料テストの未登録とは別で、今回は選択権限だけを使う独立Pickerターゲットへ取得制御が入った。取得制御を同じアプリのProvider実装へそのまま移し、もとの選択権限の取得・保持とPickerの実ソース構成を維持する。取得制御を抽出するテストの参照先を合わせ、Pickerが必要な依存だけで選択権限のソースを型検査できる回帰を追加する。
+
+### N183-CI6 — iOS 26通常UI Aでジョブが取消
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408040)、Xcode／SDK 27.2・iOS 26.5。生成アプリのビルド後、17:04:28 UTCに最初の補助資料のケースを開始。17:20:07 UTCに実行結果を出さずGitHub側で取消。担当からの取消操作はなく、他のジョブは継続。
+- `cancelled|1440秒|iOS 26` でN183-CI1、N249と比較。今回は通常Aの完了が確認できず、限定のファイル詳細や個々のアサーション結果とは区別する。通常Aの時間枠と検査条件を維持する。
+
+### N183-CI7 — Picker修正のCIがテスト一覧で停止
+
+- `e6ec654` の [全体CI 45448486960](https://github.com/n624-dev/takupoke-ios/actions/runs/45448486960/job/138638727077) は17:26:01 UTC、LinuxのDistribution testsで `Stale test catalogue; run write: docs/test-catalog/app-ui.md`。生成済み一覧が作業ツリーにあり、実行コミットへの追加が抜けていた。N183-CI5のPickerコンパイルより前に停止し、Appleジョブは未実行。
+- `Stale test catalogue|app-ui.md` を索引と開発手順で確認し、生成結果を `2de565b` で追加。コミット後のclean tree上で `test_catalog.py check` 成功。Pickerの新テストは修正前のソースに対して同じ依存不足を再現し、修正後は関連2件と取得制御9件が成功。検査設定と製品コードを維持して再度実行する。
+
+### N183-CI8 — iOS 26通常UI Bにも旧文言と配色の失敗
+
+- 対象: `033c479`、[全体CI 45433219714・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408329)、Xcode／SDK 27.2・iOS 26.5。先行する週移動は50.812秒で成功。続くbefore-settingsは8件中6件成功。
+- `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent` は17:31:21 UTC、160.559秒、Navigation.swift:237。 `testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch` は17:38:57 UTC、78.378秒、WeekAppearance.swift:111、選択タブ文字の画素数0。検索語と比較はN183-CI4に記録済みで、iOS 27と停止段階が共通。旧文言は修正済み。配色の判定は維持し、[両OSの配色限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888) と修正後の全体CIで確認する。
+- 最初の全体CIは17:47:32 UTCに全ジョブ終端。非配布の検証は9件成功、5件失敗、1件取消。公開ジョブはスキップ。[資料詳細の修正後のiOS 27限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45446409831/job/138631295490) は同じ実操作が95.068秒で成功 (Xcode／SDK27.2・iOS27.0)。限定の成功は既存の全体結果を上書きしない。
+
+### N183-CI9 — 黄色の選択時にタブ文字だけが青になる
+
+- 対象: `00cefd1`、[配色限定45447828888](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888)、SDK 27.2。iOS 26.5で96.258秒、iOS 27.0で94.563秒。両OSとも設定の黄色グリフは1105／1104画素、選択タブの文字は暗色0画素で停止した。前段の週移動やカレンダー検査から独立させてもN183-CI4／CI8と同じ条件で失敗した。Nativeロジックは成功。
+- `タブ名tint|tintColorDidChange|yellow-tab-settings-standard` で #125の先例と現在の公開APIを比較。元の実装は選択・ウィンドウが変わって見つけ直したときだけ標準バーに色を設定しており、現在のバーの色が戻った後のレイアウトでは再適用しない。原因はまだ確定していない。既存のタブバーに限定して、継承tint変更とレイアウト時に異なる色を再確認する候補を検証する。ページ色、標準背景とアイコン、標準・高コントラストの確認値、操作・待機・実画素条件を維持する。
+
+### N183-CI10 — 時間割変更の再起動後に操作行を逆方向へ探す
+
+- 対象: `a1ca3f4`、[限定45446409831・変更行](https://github.com/n624-dev/takupoke-ios/actions/runs/45446409831/job/138631296060)、SDK 27.2・iOS 27.0。18:02:19 UTC、281.329秒、Navigation.swift:237。「内容を確認・修正」を最初は実タップし、選択・確認、103行の除外、再起動前後のC保持とB除外を確認した。
+- `RETAINED_CHANGE|change-skipped-count|内容を確認・修正` でN183-CI3、旧#124と比較。その後は保持を確認した行のあるページ下方から操作へ戻る必要があったが、新規表示用と同じ下向き検索を繰り返した。操作位置が最初と同じという前提が誤っていた。保存済みの行を読んだ直後だけ先頭側を探し、新規で開いた2回は後方を探す。実タップ前に行の有効性・操作可能を明示確認し、再起動・確認ダイアログ・保存の期待値は維持する。
+
+### N183-CI11 — 配色候補の観測とiOS 26の週移動描画
+
+- [配色候補 `8e7b3c2` の限定45455234867・iOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45455234867/job/138662772564)、SDK 27.2／iOS 27.0。18:14:46 UTC、92.504秒でN183-CI9と同じ文字画素0。レイアウトと継承tint変更から再適用する候補だけでは解消しなかった。元の描画コードへ戻し、合成fixtureで対象バーの探索、色の設定、設定直後と次の描画後の色を固定イベントとして測る。暗色・コントラスト・日付の検査は維持する。
+- 同じ候補の [iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45455234867/job/138662772814) も18:22:42 UTC、129.149秒で同じ文字画素0。Nativeは成功。元の描画コードと合成fixtureだけの測定を使う [iOS 27の切り分け](https://github.com/n624-dev/takupoke-ios/actions/runs/45458686064) は `f3cc00c` で開始した。
+- [Picker修正後の全体CIのiOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805088)、`cd7bb15`、SDK 27.2／iOS 26.5。18:16:04 UTC、週移動の先頭ケース49.288秒。最初の到着後の描画間隔133.182msが既存90msを越えた。 `Height adjustment must keep drawing frames|0.09` で #125と比較し、[直前試行](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408329) の同じiOS 26と週描画コードで当該ケースが成功していることを確認した。後段の通常UIは未実行。描画条件と操作は変更しない。
+
+### N183-CI12 — 再実行のiOS 27の週移動と手動訂正
+
+- `cd7bb15`、[iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805148)、Xcode／SDK 27.2、iOS 27.0。18:39:59 UTC、週移動の先頭ケース49.745秒で描画間隔99.555ms、既存条件90msを超えた。N183-CI11の26と同じ検査。[直前の27実行](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408466) では先頭ケースが成功。後段は未実行。
+- [iOS 27手動訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805225) は18:36:33 UTC、625.635秒、`ManualAssistanceChecks+Navigation.swift:107` で `manual-ack-cell-1-0:0:room` の実ボタンを確認できなかった。N183-CI2の26は設定の階層照会で停止し、今回は訂正画面の別段階。 `Could not observe the current native Button|manual-ack-cell` で関連記録を照合。 [直前の同じ27ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408558) は成功しており、当該アプリの機能・テストは同じ。照会が止まった原因は確定していない。週移動、訂正とも合格条件を維持する。
+
+### N183-CI13 — タブバーの色と文字の描画を切り分け
+
+- [iOS 27の計測45458686064](https://github.com/n624-dev/takupoke-ios/actions/runs/45458686064/job/138674995814)、`f3cc00c`、SDK27.2／iOS27.0。19:17:42 UTC、一つの実タブバーを発見し、期待する `tintColor` を設定。設定直後と約0.28秒後の両方で一致。その後最初の標準ライトの設定タブ文字検査が文字画素0で失敗（98.910秒）。後続の上書き有無は未確認。
+- `tab-tint-kept|tintColor|選択タブ` でN183-CI9／11、#125の日付tintの回帰を照合。標準バーの色設定だけで現在の文字を検証できないため、候補は現行バーの選択項目の文字にUIKitの公開APIで直接指定する。文字色を設定した項目から移る場合、変更した色だけを復元する。ツールによる計測を整理し、製品のページtint・アイコン・背景、撮影と既存の暗色・コントラスト条件を維持する。
+- [`c0cec6c` のiOS 27変更行](https://github.com/n624-dev/takupoke-ios/actions/runs/45456001287/job/138665483283) は415.945秒で全工程成功。初回の除外と反映、再起動後の保持、保存済み行の編集・再保存、最後の再起動後の保持を確認。
+
+### N183-CI14 — 配色の設定とiOS 26の限定ランナー期限
+
+- `4c0b54e`、[配色候補45469907539のiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45469907539/job/138714747891) は225.092秒で成功。SDK 27.2／iOS 27.0。設定／時間割の文字コントラストは標準8.98／9.06、高コントラスト16.61／16.91。黄色アイコン、日付ボタン、週の選択、他色と再起動後の保持も確認した。
+- [同iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45469907539/job/138714747373) はSDK 27.2／iOS 26.5。起動・XCTest準備後の実ケース開始は19:46:30 UTC。N183-CI9で失敗した標準ライトの設定・時間割は9.04／9.04で成功。19:52:33に外側の1440秒期限、終了124。アサーション失敗は観測せず、高コントラストとケース全体は未完了。
+- `yellow-contrast|1440秒|Focused relaunch runner` でN183-CI1／N248と照合。SDK・Runtime・検証条件・ケースは維持し、iOS 26のこの限定だけ、外側を既存の長い変更行検査と同じジョブ45分・ランナー2400秒にする。実操作や個々の待機・実画素基準と全体CIの設定は維持する。
+- 先行UI `4fdaaa5` の [iOS 27の比較](https://github.com/n624-dev/takupoke-ios/actions/runs/45470806794/job/138717950851) は19:41:28 UTC、98.411秒で、標準表示の同じ選択タブ文字が0画素。今の取得・解析パイプラインの追加前でも同じ現象が起きることを確認した。
+
+### N183-CI15 — 統合版のiOS 26週移動と訂正ランナー
+
+- `369c6c8`、[iOS 26 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562074)、SDK 27.2／iOS 26.5。20:25:59 UTC、週移動の先頭ケース51.964秒。描画間隔115.954ms、条件90ms。 `Height adjustment must keep drawing frames|0.09` でN183-CI11／12と #125の同じ検査を比較。後段は未実行。週移動の実装、操作・描画条件は変えていない。
+- [iOS 26の手動単項目訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562187) はビルド162.2秒、シミュレーター起動321.1秒の後、20:21:20 UTCにXCTestがテスト開始準備中のRunner終了を報告、exit65。訂正操作・採用は未実行。 `Test crashed with signal kill|before.*test` で過去の準備停止を照合し、N183-CI2／12の画面内AX照会失敗と区別する。同じ単項目ケースの[前の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714/job/138587408479)は記録済み。今回の終了原因は確定していない。
+
+### N183-CI16 — 統合版のiOS 26通知専用テストで設定行の照会
+
+- `369c6c8`、[iOS 26 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562114)、SDK 27.2／iOS 26.5。通常24件は2658.795秒、失敗0。変更行の保存・再起動と、試験・返却資料の詳細も成功。
+- 続く通知専用の `testChangedDataProducesOneLocalNotification` は21:15:19 UTC、56.729秒、`ApplicationChecks+Notifications.swift:249` の存在待ちで失敗。AXは設定冒頭、AI・OCRの末尾までしか表示していなかった。 `testChangedDataProducesOneLocalNotification|Notifications.swift:249|NOTIFICATION_ROW` でN48/U75と旧44259503653を照合。以前の実接触取消と違い、今回は行の表示前に存在を待ち、行への接触・許可・通知配信には未到達。
+- 既存の可視化を最初に行い、その後の存在確認・有効性・枠内のラベルへの一度の接触を維持する。実通知許可・ファイル更新・配信1件の検証に変更はない。製品コードの差分はない。
+
+### N183-CI17 — 通知の限定再検証と手動訂正の期限
+
+- [iOS 26の通知限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692431) は `8a0a0fc`、SDK27.2／iOS26.5、98.483秒で成功。実設定を開く・許可・更新通知1件の一連のケース。N183-CI16で止まった行の操作も到達した。
+- [iOS 27の同限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692815) は同source、SDK27.2／iOS27.0、134.558秒。通知行の表示と実操作は成功。OS許可要求の開始／戻りは21:38:56 UTC、許可の完了を観測できず21:39:54にNotifications.swift:336で停止。 `notification-auth-request|notification-auth-returned|Native notification switch activation did not complete` で43767607953と比較し、同じ待機中状態で止まることを確認した。ケースの許可・配信条件を維持した。ホストの通知関連12件は成功。
+- [統合版のiOS 26選択訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562469)、`369c6c8`。21:35:24 UTCに最後の再起動で画面準備が成立したが、21:35:31 UTCに外側2400秒期限。個別アサーション失敗は観測していない。起動に445.5秒を要した。N183-CI2のAX timeout、N183-CI15の準備中終了とは別段階で、前回の同ケース成功は [再実行](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805657) に記録した。
+
+### N183-CI18 — 統合版のiOS 27通常UIと曜日除外
+
+- `369c6c8`、[iOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562025)。通常UIの実行中にGitHubのホストランナーとの通信が切れ、当該ステップは取消、ジョブは失敗。ログ保存先に対象blobがなく、最後の個別ケースの到達点は確認不能。実行側からの取消はない。
+- [iOS 27 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382/job/138737562377) は週移動、学校行事、標準・高コントラスト配色、設定と4資料詳細、Dynamic Typeなどが成功。21:48:32 UTC、`testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups` が83.660秒、Navigation.swift:237で停止。初期と再起動後の「同じファイルを再取得」はどちらも詳細を開いた直後に使うが、行がまだAXにないときにページ先頭側を探し続けた。
+- `testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups|同じファイルを再取得|material-actions-section` でN183-CI3／10と変更詳細の行順を照合した。AXはページ上部に留まり、操作見出しはy711、再取得はさらに後ろ。新規表示から下へ探す。実タップ・再取得完了、45行／90行、確認／取消・再起動を含む元の条件は維持。製品の差分はない。
+- [統合版の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382) は11月25日07:01 JSTに終端。検証15ジョブは成功9・失敗6。公開はスキップ。
+
+### N183-CI19 — 両OSの通知フェーズで再起動後の配色行を確認できない
+
+- `40a4c5a`、[全体CI 45503335049 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/attempts/1)、SDK27.2。[iOS 27.0 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177075) は2026-11-24 23:45:03 UTC、85.363秒、[iOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177257) は同日23:56:35 UTC、130.973秒。`testNotificationControlsAndAppearance` の `ApplicationChecks+Notifications.swift:385` で再起動後の「メインカラー、緑」の実ボタン照会が失敗した。両方で変更通知と試験・返却通知の許可応答、緑・外部ブラウザの選択、終了、再起動、fixture-ready、設定タブの実選択、設定バーの表示までは観測済み。その直後にボタンの存在を一度照会して停止した。再起動後の永続値・外部ブラウザの行、既定色と青の再起動確認には未到達。
+- 両UI Bで週移動、設定と資料詳細、曜日除外の引き継ぎ、文字サイズ、個人予定の実通知予約は成功。両UI Aでファイル更新の実通知1件、両OSの手動訂正計8件、Apple Native 858件（既定skip1）と非配布のiPhoneビルドも成功。検証15ジョブは13成功・2失敗、公開はスキップ。
+- `ApplicationChecks+Notifications.swift:385|testNotificationControlsAndAppearance|メインカラー.*再起動` でN122、N183-CI16〜18、現行設定の「アプリ設定」内の行順を照合。N122は青の保存未観測、CI17は許可callback未観測で、今回は緑の選択・許可応答の後に設定先頭から即時照会した。通知行より後ろの配色とリンクを、再起動後すぐに複合ラベルで探していた。候補は設定画面を開いた直後の配色行とリンク行を、既存の可視化操作でそれぞれ表示してから、その実ラベルの選択値を調べる。リンクの後で配色へ戻る場合は前の行を探す。緑・既定・青の実選択、実保存観測、3回の再起動、外部ブラウザ・通知許可の旧条件を維持する。製品に差分なし。
+
+### N183-CI20 — 設定の限定検証でiOS 27の通知許可応答を確認できない
+
+- `697777a`、[限定45523762015 試行1、iOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45523762015/job/138901879736)、SDK27.2。生成・ビルド・起動と通知行の実操作は成功。2026-11-25 01:20:54 UTCに実スイッチから `notification-auth-request` と `notification-auth-returned` を観測した。許可UIへの実Allowとcallbackは観測できず、01:21:43に `testNotificationControlsAndAppearance` の元の許可判定（Notifications.swift:336）で停止。113.143秒。修正した配色・ブラウザの再起動経路はこのジョブで未到達。通知サービス内部の原因は未確定。
+- `notification-auth-returned|permission and enablement|Notifications.swift:336` でN183-CI17、43767607953、45243562141と比較した。単独または短い先行ケースでも実許可の返却を確認できない場合がある。[修正前の全体27 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177075) は同一SDK・同一OS、同じ通知実装で2種類の許可返却を確認し、再起動後の設定行まで進んだ。27の正式構成では通常画面、文字サイズ、VoiceOverの後、同じ所有Simulatorで通知専用フェーズへ入る。同じ単独条件を繰り返さず、通常シナリオを先に通る全体CIで修正後の到達を確認する。OS許可の要求・待機・実操作・条件は維持する。
+- [同iOS 26.5限定](https://github.com/n624-dev/takupoke-ios/actions/runs/45523762015/job/138901879186) は223.792秒で成功。起動ごとに最初の配色行が未生成で、既存スクロール後に見つかった。2種類の実許可、緑・外部ブラウザ、既定・青の再起動後の表示と実保存まで到達。これを根拠に設定の可視化のみを変更し、全体の合格条件に変更を加えない。
+
+### N183-CI21 — iOS 26の明示選択訂正で消去後のUI照会が時間切れ
+
+- `71ec2dd`、[全体45527221520 試行1のiOS 26.5明示選択訂正](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915387966)、SDK27.2。実起動、1欄目の消去・入力後、2026-11-25 02:05:11 UTCに2欄目の教員の消去が配送され、`manual-binding-clear` と編集開始、キーボード表示を観測。直後の `manual-value-cell-1-0:0:teacher` のAX列挙が約60秒返らず、02:06:25に `ManualAssistanceChecks+Input.swift:78` でXCTestが失敗を報告（ケース423.926秒、exit65）。個別の空欄確認、2欄目の入力以後は未到達。外側の2400秒期限には達していない。
+- `Input.swift:78|manual-binding-clear|Timed out while evaluating UI query` でN52、正式526試行1/2（44997934998）と照合。526のiOS 26単項目では同じ照会が科目消去後に停止し、後の同条件の実行では完走した。今回と[前回成功の同一iOS 26明示選択ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177411) の製品、入力テスト、SDK、Runtimeに差はない。今回も消去と実キーボード表示までは成立しているが、AX応答遅延の下位原因は未確定。全ジョブ終端後、同一ソースの失敗分を新しいRunnerで一度比較する根拠とする。空欄の見え方、実入力・承認、保存・再起動と期限を維持する。
+
+### N183-CI22 — iOS 26の週送りで高さ調整初期の描画間隔が再発
+
+- `71ec2dd`、[全体45527221520 試行1のiOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915388058)、SDK27.2。先頭 `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` で、2026-11-25 02:23:52 UTCに横到着後の次枠まで116.517ms、条件90msを超過（WeekAppearance.swift:466、ケース31.668秒）。到着0.281091秒、次の実枠0.397608秒、直前サンプルからのmain CPU増加108.285ms。昇格からスクロール復帰まで約0.99ms、最初の配置設定は到着後30.63ms・設定0.11ms。28枠、幾何欠落0。先頭で止まり、配色修正と他の通常B検査はこのジョブで未到達。製品、週操作、測定条件に差分なし。
+- `Height adjustment must keep drawing frames|0.09` でN183-CI11／12、CI15、N183-CI19の同OS成功と比較。[40a4c5aのiOS 26 B](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/job/138835177257) は同じ製品・実操作・判定で週移動を通過。変更は後段の通知テストの再起動後の行表示だけ。到着後のCPU処理の内訳は今回も未確定であり、外部要因と断定できない。通常26 Bは後段が一切実行されていないため、最新ソースの後段を確認する目的で、他ジョブ終端後に既存90msを保った新しいRunnerで一度比較する。
+
+### N183-CI23 — iOS 26 UI B再実行でXcodeが起動済み端末を列挙できない
+
+- `71ec2dd`、[全体45527221520 試行2のiOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138956018583)、SDK27.2。ビルド109.2秒、端末起動104.8秒、`simulator-ready` 後の `test-without-building` で、2026-11-25 03:39:44 UTCに `Unable to find a device matching the provided destination specifier`。対象端末IDをXcodeが候補に出さず、XCTestは開始せず、アプリのイベント0。失敗後の同端末のsimctl照会は `runtime=available, device=Booted`、所有端末の清掃成功。週送りの動作計測自体は未到達であり、N183-CI22と停止段階が異なる。Xcodeとsimctlの列挙の差が生じた下位原因は未確定。
+- `Unable to find a device matching|destination specifier|bootstatus|exit 70` でN127（40051510584）・43769812600・正式528（45112946241）を比較。N127は同じ通常26 Bでbootstatus後に実行先の列挙が失敗し、新しいRunnerで元の全操作が完走した。正式528の同段階は別の手動ケース。今回もビルドと起動後の実行先解決で、N183-CI22の描画間隔は測定されていない。作業ブランチ前回の通常26 Bは同じ作成・起動・実ID指定で実テストに到達済み。ハードウェア、合格基準、SDK、実行先の指定や準備順は維持し、試行2の全終端後、同じ実行の残存失敗を新しいRunnerで一度確認する根拠とする。
+
+### N183-CI24 — iOS 26通常Bの変更通知Switchに実接触は届くが値が変わらない
+
+- `71ec2dd`、[全体45527221520 試行3のiOS 26.5 UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138969495025)、SDK27.2。週送り（48.333秒）、設定と資料詳細、曜日除外、既存の文字・配色まで成功。通知フェーズの `testNotificationControlsAndAppearance` は設定行とOFFを確認し、2026-11-25 05:14:38 UTCに実Switchの25%位置で短い静止接触の開始・解放がUIKitへ到達。値は0、`requesting=false`・保存falseのままで、アプリのBinding変更・OS許可要求は観測なし。`ApplicationChecks+Notifications.swift:336` に05:15:29、ケース122.946秒で停止。後続の個人予定実通知は許可と予約を確認して成功（143.165秒）。前の試行のXcode実行先の問題と、N183-CI20の許可を要求済みだが未応答の状態とも異なる。試行3は14成功・1失敗、公開スキップ。
+- `short-contact-50ms|testNotificationControlsAndAppearance|Special notification switch|thumb-drag` でN239、N249、正式526試行3、正式530試行3と照合した。正式526は2個目の通知Switchの静止接触が取消、今回は最初の接触を通常終了しても値が変わらない。同じ試行で個人通知に使った既存の0.33秒の実つまみドラッグは実許可と保存・予約に到達。候補ではiOS 26の当該Bケースの2つのSwitchに、その既存実つまみドラッグを一回ずつ使う。iOS 27とUI Aの実短接触、実枠の一意性・包含・hittability、45秒/10秒、OSの実許可、保存と再起動、週送り判定は維持する。接触非反映の下位原因は未確定。iOS 26限定の同じケースで、実接触・値・許可・再起動を確認する。
+
+### N183-CI25 — iOS 26の通知限定がXCTest開始前に取消
+
+- `ea7531c`、[限定45553651442 試行1、iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45553651442/job/139000448658)、SDK27.2。初回依存解決のエラーからビルドを完了し、2026-11-25 05:38:18 UTCに所有端末の `simulator-ready` を記録。05:38:34にGitHubは `The operation was canceled` を報告。XCTestの開始、通知の接触、実値、許可、保存は全て未到達。05:41:32に取消で終端。作業側からの取消操作はなく、取消の発生理由は未確定。外側1440秒を迎える前。
+- `The operation was canceled|simulator-ready|bootstatus` で正式490と正式44800663590の手動単項目を比較した。正式490はケース実行中、44800663590は起動準備中で同じGitHubメッセージにより終了し、当時も個別ケースの合格判定は行わなかった。今回は準備成功後かつXCTest開始前。対象ケースの実操作データが無いため、変更済みの同一コミット・SDK・実端末で新しいRunnerを一度比較する。期限、所有先、ケース、実許可と設定値の条件は維持する。
+
+### N183-CI26 — iOS 27通常Aでカウントダウン確認のボタン照会が時間切れ
+
+- `4a08a7a`、[全体45557966509 試行1のiOS 27.0 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457269)、SDK27.2。`testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` は破損警告、通知取消、初期化アラートのキャンセルを通過。2026-11-25 06:42:58 UTCに2回目の「元のファイルを保全して初期化」の実接触を観測し、アラート存在は成立。子Button照会の応答に時間を要し、元の10秒条件で `ApplicationChecks+Notifications.swift:173` の「初期化」操作可判定が失敗（06:43:49、ケース217.903秒）。失敗時のAXツリーには同アラートと「初期化」「キャンセル」が存在する。確定操作は未送出。iOS 26 UI Aは同じケースを含み成功。AX照会遅延の下位原因は未確定。
+- `Dialog button never became tappable|初期化|testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` でN183-CI3と45050646373の両OS、[71ec2ddの成功したiOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915387927) を比較。先行の失敗は通知取消後の完了文、または最初の確認ダイアログ不在。今回は2回目のアラートは出ており、子ボタン照会で停止。前の統合成功から製品・当該テスト・SDKに変更はなく、今回のiOS 26 UI Aも完走。全体の結果確定後、この実行の失敗分を一度別Runnerで比較する根拠とする。確定・取消・保全・新規登録の実操作、10秒の条件を維持する。
+
+### N183-CI27 — iOS 26の3項目手動訂正がGitHubジョブの上限で取消
+
+- `4a08a7a`、[全体45557966509 試行1のiOS 26.5手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457314)、SDK27.2。GitHubのチェック注記は `The job has exceeded the maximum execution time of 45m0s`。ソース確認は成功、ケース実行ステップは失敗、所有Runtimeの回収ステップは結果未確定。2026-11-25 07:44:42 UTCに取消で終端した。単独ジョブログは取得時に `BlobNotFound`。具体的なケース到達点や内側2400秒の経過は、完了後の試行アーカイブを確認する。N183-CI25のジョブ上限に達する前の原因不明の取消とは区別する。
+- 試行1の全終端後に取得した試行ZIPにも当該手動ジョブログはなかった。 `maximum execution time of 45m|BlobNotFound|manual-26` でN243、N183-CI17と[同じiOS 26手動3項目の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915387917)を照合した。N243の対処後と同じ準備込み2400秒・ジョブ45分で、今回は具体的な停止段階を判定できない。前回成功から手動用コード・条件は同じなので、新しいRunnerで一度比較し、元の成功条件と回収を維持する。
+
+### N183-CI28 — iOS 26手動3項目の再実行でXcode起動要求が時間切れ
+
+- `4a08a7a`、[全体45557966509 試行2のiOS 26.5手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139062265471)、SDK27.2。ビルド124.2秒、所有Simulatorの起動493.0秒。2026-11-25 08:22:58 UTCに実プロセスのfixture-readyは観測したが、最初の `app.launch()` からXCTestに正常に返らず08:23:43に `ManualAssistanceChecks.swift:71` の `Timed out while launching application via Xcode`、ケース228.645秒、exit65。アプリの準備・起動APIの復帰を区別し、訂正操作は未実行。試行1のGitHubジョブ全体の期限とは別段階。
+- `Timed out while launching application via Xcode|fixture-ready|ManualAssistanceChecks.swift:71` で正式503、44499001313、44660400847と比較。503／44660400847は初回のXcode起動返却、44499001313は採用後の再起動で停止。今回の最初の起動についても、生成アプリ準備成立とテスト起動API未返却をログで区別した。試行1の詳細が欠落しており、同じ停止だったとは判定できない。前の全体CIで同一製品・SDK・ケースが通った実績と、今回の訂正操作未到達を根拠に、全体の終端後に新しいRunnerで同一ケースを確認する。起動を成功とみなす条件、起動回数、実操作、回収は維持する。
+- [試行3の同じケース](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139093060268) は同一ソースで実起動、3項目の確認、4項目目の拒否・採用・再起動と回収まで成功（375.270秒）。同じ試行の必須15件は全成功、公開はスキップ。試行1／2の停止と下位原因の不確定は記録として残す。

@@ -120,6 +120,7 @@ PROBE_GROUPS = {
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
+    "failed-special-details": ("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails",),
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-school-notices": (SCHOOL_COUNTDOWN_NOTIFICATION_TEST,),

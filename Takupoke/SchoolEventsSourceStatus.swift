@@ -15,6 +15,13 @@ struct SchoolEventsSourceStatus: Codable, Equatable {
     let nextAttemptAt: String?
     let checking: Bool
     let stale: Bool
+    var officialSourceURL: URL? {
+        Self.officialSourceURL(for: schoolYear)
+    }
+    static func officialSourceURL(for year: Int) -> URL? {
+        guard year == 2026 else { return nil }
+        return URL(string: "https://www.kagawa-nct.ac.jp/school_affairs/event/calender.pdf")
+    }
 
     static func isHash(_ value: String) -> Bool {
         value.utf8.count == 64 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
@@ -192,6 +199,8 @@ struct SchoolEventsSourcePresentation {
     let lastSuccessAt: Date?
     let receivedAt: Date?
     var evidence: Evidence = .unknown
+    var updateWaiting: Bool = false
+    var officialSourceURL: URL? = nil
 
     static func make(saved: SavedSchoolEvents, cached: SavedSchoolEventsSourceStatus?,
                      error: String?, now: Date, firstFailureAt: Date? = nil, checking: Bool = false) -> Self {
@@ -243,13 +252,15 @@ struct SchoolEventsSourcePresentation {
         else { evidence = .unknown }
         return .init(message: message, warningMessage: warning,
                      lastSuccessfulMessage: success == nil ? nil : successful?.lastSuccessfulStatus.map(description),
-                     lastSuccessAt: success, receivedAt: cached.receivedAt, evidence: evidence)
+                     lastSuccessAt: success, receivedAt: cached.receivedAt, evidence: evidence,
+                     updateWaiting: successful?.lastSuccessfulStatus == .source_differs && warning != nil,
+                     officialSourceURL: cached.response.officialSourceURL)
     }
 
     private static func description(_ status: SchoolEventsSourceStatus.Status) -> String {
         switch status {
         case .matched: return "元PDFの本文は登録元と一致しています。"
-        case .source_differs: return "学校の元PDFに差異があります。行事内容への影響は確認待ちです。保存済みの行事を表示しています。"
+        case .source_differs: return "学校の元PDFと採用原本に差異があるため、配信データは更新待ちです。配信元による内容の確認・必要な更新が必要です。端末の再取得では解消しません。保存済みの行事を表示しています。"
         case .unavailable: return "更新状況を確認できません。"
         case .unknown: return "未確認です。"
         }

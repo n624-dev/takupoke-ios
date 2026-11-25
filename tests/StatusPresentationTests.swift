@@ -3,6 +3,15 @@ import XCTest
 @testable import TakupokeParsing
 
 final class StatusPresentationTests: XCTestCase {
+    func testSourceDifferenceIsPublisherUpdateWaitingEvenDuringRecheck() {
+        let source = SchoolEventsSourcePresentation(message: "更新待ち。端末の再取得では解消しません。", warningMessage: "配信元の更新待ちです。",
+            lastSuccessfulMessage: nil, lastSuccessAt: Date(), receivedAt: Date(), evidence: .differs, updateWaiting: true)
+        let value = StatusPresentation.schoolEvents(ready: true, failed: false, checking: true, cacheFailed: false, acquired: true, source: source)
+        XCTAssertEqual(value.title, "更新待ち")
+        XCTAssertEqual(value.tone, .attention)
+        XCTAssertTrue(value.needsAttention)
+    }
+
     func testCancellationIsNeutralAndKeepsTheSavedResult() {
         var state = MaterialLibraryState()
         state.records = [MaterialRecord(kind: .changes, source: MaterialSource(), originalName: "fictional.xlsx",

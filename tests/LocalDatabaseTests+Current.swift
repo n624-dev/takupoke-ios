@@ -123,11 +123,14 @@ extension LocalDatabaseTests {
         }
         try commit(time)
         let firstName = try XCTUnwrap(library.state.record(for:.timetable)?.storedName)
+        let firstAcquisition = try XCTUnwrap(library.state.record(for:.timetable)?.lastAcquiredAt)
         let updated = time.addingTimeInterval(30)
         try commit(updated)
         XCTAssertEqual(library.state.record(for:.timetable)?.storedName,firstName)
         XCTAssertEqual(library.state.record(for:.timetable)?.sourceModifiedAt,updated)
         XCTAssertEqual(try db.load().record(for:.timetable)?.sourceModifiedAt,updated)
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(library.state.record(for:.timetable)?.lastAcquiredAt), firstAcquisition)
+        XCTAssertEqual(try db.load().record(for:.timetable)?.lastAcquiredAt, library.state.record(for:.timetable)?.lastAcquiredAt)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:runtime.appendingPathComponent("files").path),[firstName])
         let reopened = try LocalMaterialDatabase(url:runtime.appendingPathComponent("library.sqlite")); defer { try? reopened.close() }
         XCTAssertEqual(try reopened.load().record(for:.timetable)?.storedName,firstName)

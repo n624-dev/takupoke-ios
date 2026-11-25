@@ -66,7 +66,9 @@ struct FileRefreshControls: View {
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specials: SpecialSchedulesModel
     private var paused: Bool { materials.fileRefreshQueue.suspended || specials.fileRefreshQueue.suspended }
-    private var busy: Bool { materials.busy || specials.busy }
+    private var busy: Bool {
+        materials.busy || specials.busy || !FilePipeline.shared.activeSources.isEmpty
+    }
     private var hasRefreshableSelection: Bool {
         (materials.ready && (materials.state.record(for: .timetable) != nil || materials.state.record(for: .changes) != nil)) ||
             (specials.ready && !specials.sources.isEmpty)
@@ -102,19 +104,16 @@ struct FileRefreshControls: View {
             StatusLabel(value: .init(title: "前回の処理を中止しました", tone: .neutral))
                 .font(.footnote)
         }
-        if materials.busy {
-            LoadingRow(title: materials.cancellationRequested ? "中止して処理の終了を待っています⋯" :
-                        "通常時間割・時間割変更を処理中⋯")
-        }
-        if specials.busy {
-            LoadingRow(title: specials.cancellationRequested ? "中止して処理の終了を待っています⋯" :
-                        "試験・返却時間割を処理中⋯")
+        ForEach([FileRefreshDiagnostics.Source.timetable, .changes, .exam, .examReturn], id: \.rawValue) { source in
+            if let status = FilePipeline.shared.snapshot[source], FilePipeline.shared.isRecovering(source) {
+                StatusRow(title: source.title, status: status.presentation)
+            }
         }
         if busy {
             Button("処理を中止", role: .cancel) {
                 materials.cancelCurrentOperation(); specials.cancelCurrentOperation()
             }
-            .disabled((!materials.busy || materials.cancellationRequested) && (!specials.busy || specials.cancellationRequested))
+            .disabled(!busy)
         }
         Button("すべての更新を確認", systemImage: "arrow.clockwise") {
             materials.checkForUpdates(); specials.checkForUpdates()
@@ -147,5 +146,17 @@ struct FileRefreshMenu: View {
             }
         }
         .accessibilityIdentifier("file-refresh-menu")
+    }
+}
+
+
+extension FileRefreshDiagnostics.Source {
+    var title: String {
+        switch self {
+        case .timetable: return "通常時間割"
+        case .changes: return "時間割変更"
+        case .exam: return "試験時間割"
+        case .examReturn: return "試験返却時間割"
+        }
     }
 }

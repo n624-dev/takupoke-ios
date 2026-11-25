@@ -5,7 +5,7 @@ import Foundation
 final class MaterialLibrary {
     static let maximumBytes = 50 * 1024 * 1024
     private let root: URL
-    private let files: URL
+    let files: URL
     private let staging: URL
     private let manifest: URL
     private let persistence: MaterialLibraryPersistence?
@@ -131,12 +131,14 @@ final class MaterialLibrary {
               byteCount > 0, byteCount <= Self.maximumBytes else { throw MaterialError.invalidFile }
         if reuseUnchanged, let index = state.records.firstIndex(where: { $0.kind == kind }),
            state.records[index].digest == digest, state.records[index].byteCount == byteCount,
-           state.records[index].originalName == originalName {
+           state.records[index].originalName == originalName,
+           FileManager.default.fileExists(atPath: files.appendingPathComponent(state.records[index].storedName).path) {
             var next = state
             let now = Date()
             next.records[index].source = source
             next.records[index].sourceModifiedAt = modifiedAt
             next.records[index].lastCheckedAt = now
+            next.records[index].lastAcquiredAt = now
             next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
             try persist(next)
             return
@@ -152,7 +154,7 @@ final class MaterialLibrary {
         next.records.removeAll { $0.kind == kind }
         next.records.append(MaterialRecord(kind: kind, source: source, originalName: originalName,
                                            storedName: name, byteCount: byteCount, digest: digest,
-                                           sourceModifiedAt: modifiedAt, acquiredAt: now, lastCheckedAt: now))
+                                           sourceModifiedAt: modifiedAt, acquiredAt: now, lastAcquiredAt: now, lastCheckedAt: now))
         next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
         do {
             #if os(iOS)
@@ -172,6 +174,19 @@ final class MaterialLibrary {
 
     func localURL(for kind: MaterialKind) -> URL? {
         state.record(for: kind).map { files.appendingPathComponent($0.storedName) }
+    }
+
+
+    func retirePipelineFiles(_ names: Set<String>) {
+        guard !names.isEmpty, let database = persistence as? LocalMaterialDatabase else { return }
+        let directory = files
+        DispatchQueue.global(qos: .utility).async {
+            // GRDB serializes this read. Failure conservatively retains originals.
+            guard let keep = try? database.retainedStoredNames() else { return }
+            for name in names where !keep.contains(name) {
+                try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
+            }
+        }
     }
 
     private func removeUnreferencedFiles() throws {

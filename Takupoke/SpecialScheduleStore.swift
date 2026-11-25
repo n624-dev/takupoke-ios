@@ -4,16 +4,19 @@ import GRDB
 /// The special PDFs have their own source and parser contract. This sidecar
 /// SQLite store leaves the existing material database and parser untouched.
 final class SpecialScheduleStore {
+    let ownerQueue: DispatchQueue
+    var pipelineEvidence: [SpecialScheduleKind: SpecialPipelineEvidence] = [:]
     enum StoreError: Error { case invalidState }
 
     private let root: URL
-    private let files: URL
+    let files: URL
     private let staging: URL
-    private let queue: DatabaseQueue
-    private(set) var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
-    private(set) var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
+    let queue: DatabaseQueue
+    var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
+    var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
 
-    init(root: URL) throws {
+    init(root: URL, ownerQueue: DispatchQueue = DispatchQueue(label: "io.github.n624dev.takupoke.special-owner", qos: .userInitiated)) throws {
+        self.ownerQueue = ownerQueue
         self.root = root
         files = root.appendingPathComponent("files", isDirectory: true)
         staging = root.appendingPathComponent("staging", isDirectory: true)
@@ -178,6 +181,10 @@ final class SpecialScheduleStore {
         sources[kind].map { files.appendingPathComponent($0.storedName) }
     }
 
+    func hasSelectedFile(_ kind: SpecialScheduleKind) -> Bool {
+        selectedURL(for: kind).map { FileManager.default.fileExists(atPath: $0.path) } == true
+    }
+
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String,
                        byteCount: Int, digest: String, grant: SourceGrant? = nil) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
@@ -189,7 +196,7 @@ final class SpecialScheduleStore {
         let now = Date()
         let source = SpecialScheduleSource(kind: kind, originalName: originalName,
             storedName: storedName, byteCount: byteCount, digest: digest,
-            acquiredAt: now, lastCheckedAt: now, failure: nil, grant: grant)
+            acquiredAt: now, lastAcquiredAt: now, lastCheckedAt: now, failure: nil, grant: grant)
         do {
             let payload = try JSONEncoder().encode(source)
             try queue.write { db in
@@ -211,6 +218,7 @@ final class SpecialScheduleStore {
             source.originalName = originalName
         }
         source.lastCheckedAt = checkedAt
+        source.lastAcquiredAt = checkedAt
         source.acquisitionFailure = nil
         let payload = try JSONEncoder().encode(source)
         try queue.write { db in
