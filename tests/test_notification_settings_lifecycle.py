@@ -277,7 +277,11 @@ METHODS
         originEdit.onChange = { true }
         precondition(originEdit.save(originEdit.library.automatic, originEdit: change))
         precondition(originEdit.library.automatic.customOrigins?.first?.date == origin)
-        originEdit.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
+        originEdit.onChange = { [weak originEdit] in
+            precondition(originEdit?.automaticProgress?.key == firstExam)
+            originEdit?.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
+            return true
+        }
         precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
         precondition(originEdit.library.automatic.customOrigins?.first?.key == firstExam && originEdit.store!.saves == 1)
 
