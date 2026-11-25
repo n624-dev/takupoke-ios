@@ -6426,3 +6426,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `0294c79`、[全体45714093730・試行1のiOS 26.5手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970143)、SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。2欄目で実消去、フォーカス、入力まで進み、2026-11-25 23:00:02 UTCに `ManualAssistanceChecks+Input.swift:126` で期限内の完了ボタンを確認できず、203.834秒で失敗。終了時のAXには背後の通常時間割のナビゲーションバーがあった。入力確定、採用、再起動は未確認。完了ボタンを確認できなかった原因は未確定。
 - `manual-edit-done|keyboard-will-hide|text-edit-ended|N191|N183-CI21` を照合した。今回は待機開始時にキーボードが閉じて `text-edit-ended` が出ており、終了時AXには復旧バーも残った。N191と似た症状だがSDKが異なり、N183-CI21では消去後に止まっており入力に未到達。直前の全体CI 45557966509では同じiOS 26.5・SDK 27.2の[元ケースが成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457641)。入力テストと復旧画面に変更はなく、キーボードが閉じた理由は未確定。全ジョブの終端後、この実行の失敗分を新しいRunnerで比較する。操作と合格条件を維持する。
+
+### N185-CI2 — iOS 27の手動明示選択で確認画面を期限内に照合できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 27.0手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970184)、SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。少なくとも科目・教員の入力と編集終了まで確認。2026-11-25 23:28:37 UTCに `ManualAssistanceChecks+Review.swift:45` で元の待機が時間切れとなり、535.490秒で失敗。原因は未確定。後続の採用と再起動は未確認。
+- `Review.swift:45|manual-coordinator-state|review=true|高信頼` を照合した。最初の科目だけの確認状態は成立。後の失敗時AXにも科目＋教員の `review=true;preview=false` が出ていたが、20秒の元の待機では照会できなかった。[前回の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457266) では同じSDK・OS、同じ復旧画面と手動テストで完走。N185-CI1とは失敗段階が異なる。全ジョブを待ち、同一ソース・同一条件で失敗分を比較する。
