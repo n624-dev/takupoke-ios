@@ -9613,4 +9613,5 @@ Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー�
 - 失敗索引を `CountdownRegistersFollowsCalendar`、`countdown-progress`、`ProgressView`、`N183-CI4`、`N183-CI8` で照合した。既存ケースでは学校行事の初回取得、AXによる操作判定、Xcodeの起動返却に失敗した履歴がある。新ケースは架空の保存済みv2本文を使い、実際のホームと設定を開いて、起点日前の非表示と表示名変更後の再起動を確認する。画面到達と対象要素は実AXで確認し、学校の本番APIへ接続しない。
 - LinuxでSwift構文検査とテストカタログ489ファイルを確認した。PythonのUI manifest 44件（既定skip8）、UIランナー18件、テストカタログ14件、ワークフローの差分判定5件が成功した。
 - Linux（Swift 6.1.2）でSwiftパッケージ747件、うちカウントダウン21件が成功した。SwiftPMはこの環境に保存されている固定コミットの依存とGRDBのサブモジュールを使用した。iOS専用のSwiftUIコードはLinuxで構文を確認した。
-- [Draft PR #186](https://github.com/n624-dev/takupoke-ios/pull/186) のベースはPR #184の作業ブランチ。iOS 26.5・27.0、SDK 27.2の限定検証は、GitHub APIがHTTP 500を返し `3adf386` の実行が作成されなかった。検証ジョブの取消や結果は発生していない。
+- Linuxで配布ゲートのPython一式354件を実行し、332件成功・環境によるskip22件だった。通知・保存の検証用スタブ不足による初回のエラー4件を修正した（N185-L1）。保存直前の再確認中に試験が切り替わるようにした追加検証も、`2fe1082` のケース単独で成功した。
+- [Draft PR #186](https://github.com/n624-dev/takupoke-ios/pull/186) のベースはPR #184の作業ブランチ。iOS 26.5・27.0、SDK 27.2の限定検証を `3adf386` と `2fe1082` で要求した。GitHub CLIとREST APIはHTTP 500を返し、どちらのコミットにも実行は作成されなかった。実機・シミュレーターでの画面操作と全体CIは未確認。アプリ公開、本番反映、監視設定更新は未実施。
