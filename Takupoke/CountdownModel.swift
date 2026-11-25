@@ -324,7 +324,6 @@ final class CountdownModel: ObservableObject {
         }
         var schoolExams: [PublicEvent] = []
         var automaticCards = CountdownAutomaticCards([])
-        var currentExam: CountdownCard?
         var privateProgress: CountdownClassProgress?
         let selection = classSelection()
         let initialScope = initialClassScope
@@ -351,7 +350,6 @@ final class CountdownModel: ObservableObject {
                                 completeYears: completeYears, custom: automatic.customOrigins ?? [],
                                 unconfirmedYear: events.countdownAnnouncementCoverage))
                     }
-                    currentExam = targets.first
                     automaticCards = CountdownAutomaticCards(targets, fixedReferences: Set(fixed.compactMap(\.reference)))
                 }
             case .selectedClass:
@@ -373,13 +371,13 @@ final class CountdownModel: ObservableObject {
                     }
                     return card
                 }
-                currentExam = targets.first
                 automaticCards = CountdownAutomaticCards(targets)
                 if automatic.preferences.notifications, automaticCards.displayed?.availability == .loading {
                     loadingClassScope = selection.scope
                 }
             }
         }
+        let currentExam = automaticCards.displayed
         if library.version == 1 {
             if !decidedLegacyProgressTarget {
                 if let currentExam, currentExam.availability.allowsNotification {
@@ -394,6 +392,7 @@ final class CountdownModel: ObservableObject {
             let classEntry = migrated.migrateProgress(to: target)
             if let classEntry { privateProgress?.entries.append(classEntry) }
             if commit(migrated, notify: false, privateProgress: classEntry == nil ? nil : privateProgress) {
+                legacyProgressTarget = nil
                 update(using: app, at: now)
                 return
             }
@@ -492,6 +491,7 @@ final class CountdownModel: ObservableObject {
 
     func expirePrivateNotices(removeDelivered: Bool) async -> Bool {
         loadedClassProgress = nil
+        if legacyProgressTarget?.isPrivate == true { legacyProgressTarget = nil }
         if automaticProgress?.key.isPrivate == true { automaticProgress = nil }
         cards.removeAll { $0.isPrivate }
         notificationCards = notificationCards?.filter { !$0.value.isPrivate }

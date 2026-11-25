@@ -577,6 +577,11 @@ private struct CountdownAutomaticEditor: View {
             if automatic.enabled {
                 CountdownPreferencesFields(value: $automatic.preferences, reminderDays: $reminderDays) { originFields }
             }
+            if originEdit != nil && (!automatic.enabled || !automatic.preferences.showsProgress) {
+                Section("起点日の変更") {
+                    Button("起点日の変更を取り消す") { originEdit = nil }
+                }
+            }
             if let message = model.message { InlineWarning(message) }
         }
         .environment(\.calendar, SchoolDate.japanCalendar)
