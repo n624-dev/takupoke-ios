@@ -49,7 +49,8 @@ final class CountdownTests: XCTestCase {
         XCTAssertEqual(next.progress(from: next.start, on: today), .invalid)
         XCTAssertEqual(next.progress(from: day("2032-03-21"), on: today), .value(5.0 / 11))
         XCTAssertEqual(next.progress(from: today, on: next.start), .value(1))
-        XCTAssertEqual(next.progress(from: day("2032-03-29"), on: today), .value(0))
+        XCTAssertEqual(next.progress(from: day("2032-03-29"), on: today), .hidden)
+        XCTAssertEqual(next.progress(from: today, on: today), .value(0))
     }
 
     func testNotificationDeadlineAndSourcePauseApplyOnlyToTheirOwnTargets() throws {
@@ -266,7 +267,7 @@ final class CountdownTests: XCTestCase {
         try FileManager.default.removeItem(at:dataFile)
         try FileManager.default.moveItem(at:stored,to:dataFile)
         XCTAssertEqual(try store.load(),CountdownLibrary())
-        let future = Data(#"{"version":2,"differentShape":true}"#.utf8)
+        let future = Data(#"{"version":3,"differentShape":true}"#.utf8)
         try future.write(to:dataFile,options:.atomic)
         XCTAssertThrowsError(try store.load()) { error in
             guard case CountdownStore.ReadError.unsafeFile = error else { return XCTFail("Expected unsupported format") }
@@ -274,6 +275,175 @@ final class CountdownTests: XCTestCase {
         XCTAssertThrowsError(try store.preserveCorruptFileAndReset())
         XCTAssertEqual(try Data(contentsOf:dataFile),future)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path),["Countdown.json"])
+    }
+}
+
+extension CountdownTests {
+    private func announcement(_ id: String, _ first: String, title: String = "試験発表",
+                              tag: String = "行事メモ", extra: [String] = []) -> CountdownPublicEvent {
+        let firstDay = day(first)
+        return .init(reference: .init(year: firstDay.schoolYear, eventID: id),
+                     dates: .init(title: title, ranges: ([first] + extra).map {
+                         CountdownRange(start: day($0), end: day($0))
+                     }), tag: tag)
+    }
+
+    func testExamAnnouncementUsesClampedCalendarMonthAndFirstDay() {
+        let exam = day("2032-03-31")
+        let lower = announcement("lower", "2032-02-29")
+        let candidates = [
+            announcement("too-early", "2032-02-28"),
+            lower,
+            announcement("same-day", "2032-03-31"),
+            announcement("stronger-sounding", "2032-03-30", title: "国家試験発表"),
+            announcement("return", "2032-03-29", title: "試験返却日"),
+            announcement("after", "2032-04-01"),
+        ]
+        XCTAssertEqual(exam.previousMonth(), day("2032-02-29"))
+        XCTAssertEqual(day("2031-03-31").previousMonth(), day("2031-02-28"))
+        XCTAssertEqual(day("2032-01-31").previousMonth(), day("2031-12-31"))
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: candidates, completeYears: [2031]),
+                       .announcement(lower.dates.start, lower.reference))
+        let recent = announcement("tie-a", "2032-03-21", title: " \n試験発表\t", extra: ["2032-03-24"])
+        let tie = announcement("tie-b", "2032-03-21")
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: candidates + [tie, recent],
+                                                             completeYears: [2031]),
+                       .announcement(day("2032-03-21"), recent.reference))
+    }
+
+    func testExamAnnouncementDistinguishesUnconfirmedYearsAndCompleteAbsence() {
+        let exam = day("2032-04-15")
+        let older = announcement("early", "2032-03-25")
+        let recent = announcement("late", "2032-04-09")
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: [older], completeYears: [2031]),
+                       .pending)
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: [older], completeYears: [2031],
+                                                             unconfirmedYear: { _ in .checking }), .checking)
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: [older], completeYears: [2031],
+                                                             unconfirmedYear: { _ in .unavailable }), .unavailable)
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: [], completeYears: [2032]), .pending)
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: [], completeYears: [2031, 2032]), .unset)
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: exam, events: [older, recent], completeYears: [2032]),
+                       .announcement(recent.dates.start, recent.reference))
+        XCTAssertEqual(CountdownProgressOrigin.announcement(before: day("2032-04-01"), events: [older], completeYears: [2031]),
+                       .announcement(older.dates.start, older.reference))
+    }
+
+    func testClassProgressSharesOnlyAnUnambiguousExamPeriod() {
+        let scope = String(repeating: "a", count: 64)
+        let otherScope = String(repeating: "b", count: 64)
+        let exam = announcement("exam", "2032-06-01", title: "架空の前期試験", tag: "テスト", extra: ["2032-06-04"])
+        let overlap = announcement("overlap", "2032-06-04", title: "架空の別試験", tag: "テスト")
+        let first = CountdownExamProgressKey.forClass(scope: scope, day: day("2032-06-01"), events: [exam])
+        let later = CountdownExamProgressKey.forClass(scope: scope, day: day("2032-06-04"), events: [exam])
+        XCTAssertEqual(first.0, later.0)
+        XCTAssertEqual(later.1, first.1)
+        XCTAssertNotEqual(later.0, CountdownExamProgressKey.forClass(scope: otherScope,
+                                                                      day: day("2032-06-04"), events: [exam]).0)
+        for (date, events) in [("2032-06-02", [exam]), ("2032-06-04", [exam, overlap])] {
+            let target = day(date)
+            let fallback = CountdownExamProgressKey.forClass(scope: scope, day: target, events: events)
+            XCTAssertEqual(fallback.0, .classDay(scope: scope, day: target))
+            XCTAssertEqual(fallback.1, target)
+        }
+    }
+
+    func testAutomaticProgressMigrationBindsOnlyTheSuppliedTargetAndKeepsPreferences() throws {
+        let first = CountdownExamProgressKey.school(.init(year: 2032, eventID: "exam-a"))
+        let second = CountdownExamProgressKey.school(.init(year: 2032, eventID: "exam-b"))
+        let date = day("2032-05-01")
+        var legacy = CountdownLibrary(version: 1)
+        legacy.automatic.preferences.progressStart = date
+        legacy.automatic.preferences.notifications = true
+        legacy.automatic.preferences.lookahead = .month
+        let old = try JSONDecoder().decode(CountdownLibrary.self, from: JSONEncoder().encode(legacy))
+        var migrated = old
+        XCTAssertNil(migrated.migrateProgress(to: first))
+        XCTAssertEqual(migrated.automatic.customOrigins, [.init(key: first, date: date)])
+        XCTAssertTrue(migrated.automatic.preferences.showsProgress)
+        XCTAssertNil(migrated.automatic.preferences.progressStart)
+        XCTAssertEqual(migrated.automatic.preferences.lookahead, .month)
+        XCTAssertTrue(migrated.automatic.preferences.notifications)
+        XCTAssertNil(migrated.migrateProgress(to: second))
+        XCTAssertEqual(migrated.automatic.customOrigins?.first?.key, first)
+
+        var unresolved = old
+        XCTAssertNil(unresolved.migrateProgress(to: nil))
+        XCTAssertNil(unresolved.migrateProgress(to: second))
+        XCTAssertEqual(unresolved.automatic.unlinkedProgressStart, date)
+        XCTAssertNil(unresolved.automatic.customOrigins)
+        var disabled = CountdownLibrary(version: 1)
+        XCTAssertNil(disabled.migrateProgress(to: first))
+        XCTAssertFalse(disabled.automatic.preferences.showsProgress)
+    }
+
+    func testCountdownClassProgressStorageCommitsAtomicallyAndExpiresWithPrivateData() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = CountdownStore(root: root)
+        let start = day("2032-05-02")
+        let period = SchoolDataPeriod(day: start)
+        let nextPeriod = SchoolDataPeriod(day: day("2032-10-01"))
+        let scope = String(repeating: "a", count: 64)
+        let entry = CountdownCustomProgress(key: .classDay(scope: scope, day: day("2032-05-15")), date: start)
+        let progress = CountdownClassProgress(period: period, entries: [entry])
+        var original = CountdownLibrary(version: 1)
+        original.automatic.preferences.progressStart = start
+        let migrated = try XCTUnwrap(original.migrateProgress(to: entry.key))
+        XCTAssertEqual(migrated, entry)
+        original.automatic.preferences.progressLabel = "試験まで"
+        let committed = try store.save(original, with: progress)
+        let reference = try XCTUnwrap(committed.classProgressFile)
+        XCTAssertEqual(try store.load(), committed)
+        XCTAssertEqual(try store.loadClassProgress(file: reference, period: period), progress)
+        XCTAssertEqual(try store.loadClassProgress(file: reference, period: nextPeriod).entries, [])
+        let publicFile = root.appendingPathComponent("Countdown.json")
+        XCTAssertFalse(try String(contentsOf: publicFile, encoding: .utf8).contains(scope))
+        var tooLarge = committed
+        tooLarge.automatic.preferences.progressLabel = String(repeating: "a", count: 2_000_000)
+        XCTAssertThrowsError(try store.save(tooLarge, with: progress))
+        XCTAssertEqual(try store.load(), committed)
+        XCTAssertEqual(try store.loadClassProgress(file: reference, period: period), progress)
+        let directory = root.appendingPathComponent(SchoolDataRetention.countdownProgressDirectory)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path).count, 1)
+        try SchoolDataRetention(root: root).replace(with: nextPeriod)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.path))
+        XCTAssertEqual(try store.load().automatic.preferences.displayedProgressLabel, "試験まで")
+        XCTAssertEqual(try store.loadClassProgress(file: reference, period: nextPeriod).entries, [])
+    }
+
+    func testProgressLabelDistinguishesDefaultAndWhitespaceAcrossStorage() throws {
+        var value = CountdownPreferences(progressStart: day("2032-04-02"))
+        XCTAssertEqual(value.displayedProgressLabel, CountdownPreferences.defaultProgressLabel)
+        value.progressEnabled = false
+        value.progressLabel = " \t"
+        let restored = try JSONDecoder().decode(CountdownPreferences.self, from: JSONEncoder().encode(value))
+        XCTAssertFalse(restored.showsProgress)
+        XCTAssertEqual(restored.progressStart, value.progressStart)
+        XCTAssertEqual(restored.displayedProgressLabel, "")
+    }
+
+    func testCustomOriginFollowsExamIdentityWithoutChangingNotificationDates() {
+        let first = CountdownExamProgressKey.school(.init(year: 2032, eventID: "exam-a"))
+        let second = CountdownExamProgressKey.school(.init(year: 2032, eventID: "exam-b"))
+        let origin = day("2032-05-10")
+        let entries = CountdownCustomProgress.replacing(first, with: origin, in: [])
+        XCTAssertEqual(entries.first { $0.key == first }?.date, origin)
+        XCTAssertNil(entries.first { $0.key == second })
+
+        let moved = day("2032-06-03")
+        var card = CountdownCard(id: CountdownAutomatic.identity, title: "架空の試験", dates: .init(title: "架空の試験",
+            ranges: [.init(start: moved, end: moved)]), preferences: .init(notifications: true, progressEnabled: true),
+            availability: .available)
+        let target = card.noticeTarget
+        let reminders = card.preferences.reminders
+        card.examProgress = .init(key: first, goal: moved, origin: .custom(origin))
+        XCTAssertEqual(card.progress(on: origin), .value(0))
+        XCTAssertEqual(card.progress(on: moved), .value(1))
+        XCTAssertEqual(card.noticeTarget, target)
+        XCTAssertEqual(card.dates?.start, moved)
+        XCTAssertEqual(card.preferences.reminders, reminders)
     }
 }
 

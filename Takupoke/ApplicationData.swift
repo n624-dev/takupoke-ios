@@ -61,7 +61,7 @@ final class ApplicationData: ObservableObject {
             }
         }
         eventsNetwork.start(queue: DispatchQueue(label: "jp.n624.takupoke.events-network"))
-        countdown.onChange = { [weak self] in self?.updateCountdown() }
+        countdown.onChange = { [weak self] in self?.updateCountdown() == true }
         schoolEvents.$saved.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         schoolEvents.$sourcePresentationRevision.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$state.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
@@ -94,9 +94,11 @@ final class ApplicationData: ObservableObject {
         }
     }
 
-    func updateCountdown() {
-        guard readyForCurrentPeriod, UIApplication.shared.isProtectedDataAvailable else { return }
+    @discardableResult
+    func updateCountdown() -> Bool {
+        guard readyForCurrentPeriod, UIApplication.shared.isProtectedDataAvailable else { return false }
         countdown.update(using: self, at: homeClock.currentDate)
+        return true
     }
 
     private func checkNotificationsWhenActive() {

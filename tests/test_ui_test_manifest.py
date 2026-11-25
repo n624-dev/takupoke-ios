@@ -1282,7 +1282,7 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 44)
+        self.assertEqual(len(manifest.selected_tests("all")), 45)
         self.assertIn("testStatusScreenUsesPublicResourcesAndDataRoutes", manifest.SHARDS["A"])
         self.assertIn(manifest.SCHOOL_COUNTDOWN_NOTIFICATION_TEST, manifest.SHARDS["A"])
         self.assertIn(manifest.COUNTDOWN_DELETE_TEST, manifest.SHARDS["A"])

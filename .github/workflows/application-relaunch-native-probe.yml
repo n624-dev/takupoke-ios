@@ -16,6 +16,7 @@ on:
           - rows-context
           - weekday-carryover
           - countdown-calendar
+          - countdown-progress
           - countdown-notifications
           - countdown-school-notices
           - countdown-storage

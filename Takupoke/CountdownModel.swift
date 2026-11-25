@@ -7,12 +7,7 @@ import UserNotifications
 final class CountdownModel: ObservableObject {
     enum StorageState { case unloaded, ready, unavailable, corrupt }
 
-    struct PublicEvent: Identifiable, Equatable {
-        let reference: CountdownEventReference
-        let dates: CountdownDates
-        let tag: String
-        var id: String { reference.key }
-    }
+    typealias PublicEvent = CountdownPublicEvent
 
     @Published private(set) var library = CountdownLibrary()
     @Published private(set) var cards: [CountdownCard] = []
@@ -23,15 +18,20 @@ final class CountdownModel: ObservableObject {
     @Published private(set) var notificationStatuses: [CountdownNoticeTarget: String] = [:]
     @Published private(set) var publicEvents: [PublicEvent] = []
     @Published private(set) var automaticSchoolExams: [PublicEvent] = []
+    @Published private(set) var automaticProgress: CountdownExamProgress?
+    @Published private(set) var classProgressUnavailable = false
     @Published private var notificationCards: [CountdownNoticeTarget: CountdownCard]?
     private var store: CountdownStore?
+    private var loadedClassProgress: (file: UUID?, value: CountdownClassProgress)?
+    private var legacyProgressTarget: CountdownExamProgressKey?
+    private var decidedLegacyProgressTarget = false
     private let center = UNUserNotificationCenter.current()
     private var request: NoticePlan?
     private var worker: NotificationWork?
     private var applyingPlan: NoticePlan?
     private var revision = UUID()
     private lazy var initialClassScope = classSelection().scope
-    var onChange: (() -> Void)?
+    var onChange: (() -> Bool)?
 
     private struct NoticePlan {
         let revision: UUID
@@ -77,6 +77,7 @@ final class CountdownModel: ObservableObject {
         do {
             let store = try openStore()
             library = try store.load()
+            store.discardUnusedClassProgress(keeping: library.classProgressFile)
             self.store = store
             storageState = .ready
             message = nil
@@ -94,7 +95,7 @@ final class CountdownModel: ObservableObject {
 
     func retryStorageLoad() {
         load(reportFailure:true)
-        if storageState == .ready { onChange?() }
+        if storageState == .ready { _ = onChange?() }
     }
 
     func recoverCorruptStorage() async {
@@ -103,6 +104,7 @@ final class CountdownModel: ObservableObject {
         do {
             let store = try openStore()
             try store.preserveCorruptFileAndReset()
+            store.discardUnusedClassProgress(keeping: nil)
             let removed = await removeUnavailableStorageNotices()
             self.store = store
             library = CountdownLibrary()
@@ -110,14 +112,14 @@ final class CountdownModel: ObservableObject {
             message = removed ? "元のファイルを保全して、カウントダウンを初期化しました。"
                 : "元のファイルを保全して初期化しました。以前の予約済み通知は確認できていません。"
             storageActionInProgress = false
-            onChange?()
+            _ = onChange?()
         } catch CountdownStore.ReadError.noLongerCorrupt {
             storageActionInProgress = false
             retryStorageLoad()
         } catch {
             storageActionInProgress = false
             load()
-            if storageState == .ready { onChange?() }
+            if storageState == .ready { _ = onChange?() }
             else { message = "初期化できませんでした。元のファイルを保持しています。" }
         }
     }
@@ -159,9 +161,48 @@ final class CountdownModel: ObservableObject {
     }
 
     @discardableResult
-    func save(_ automatic: CountdownAutomatic) -> Bool {
-        var next = library; next.automatic = automatic
-        return commit(next)
+    func save(_ automatic: CountdownAutomatic, originEdit: CountdownOriginEdit? = nil) -> Bool {
+        if case .change = originEdit, onChange?() != true {
+            message = "現在の試験を確認できません。設定を開き直してください。"
+            return false
+        }
+        var next = library
+        next.automatic = automatic
+        next.automatic.customOrigins = library.automatic.customOrigins
+        next.automatic.unlinkedProgressStart = library.automatic.unlinkedProgressStart
+        var privateProgress: CountdownClassProgress?
+        switch originEdit {
+        case nil: break
+        case .discardUnlinked: next.automatic.unlinkedProgressStart = nil
+        case .change(let key, let date, let useUnlinked):
+            guard automatic.mode == library.automatic.mode, let current = automaticProgress, current.key == key else {
+                message = "対象の試験が変わりました。設定を開き直してください。"
+                return false
+            }
+            guard date.map({ $0.isValidCalendarDay && $0 < current.goal }) != false else {
+                message = "進捗の起点日は、目標日より前に設定してください。"
+                return false
+            }
+            if useUnlinked { next.automatic.unlinkedProgressStart = nil }
+            if key.isPrivate {
+                guard var scoped = loadedClassProgress?.value else {
+                    message = "この試験の起点日を読み込めません。設定を保存する前に再試行してください。"
+                    return false
+                }
+                // The fallback key describes just this one day. Remove it
+                // when the user explicitly edits the now-known period.
+                if case .classPeriod(let scope, _) = key {
+                    scoped.entries = CountdownCustomProgress.replacing(.classDay(scope: scope, day: current.goal),
+                                                                        with: nil, in: scoped.entries)
+                }
+                scoped.entries = CountdownCustomProgress.replacing(key, with: date, in: scoped.entries)
+                privateProgress = scoped
+            } else {
+                next.automatic.customOrigins = CountdownCustomProgress.replacing(key, with: date,
+                    in: next.automatic.customOrigins ?? [])
+            }
+        }
+        return commit(next, privateProgress: privateProgress)
     }
 
     func delete(_ id: UUID) -> Bool {
@@ -170,16 +211,24 @@ final class CountdownModel: ObservableObject {
     }
 
     @discardableResult
-    private func commit(_ next: CountdownLibrary, notify: Bool = true) -> Bool {
+    private func commit(_ draft: CountdownLibrary, notify: Bool = true,
+                        privateProgress: CountdownClassProgress? = nil) -> Bool {
         guard let store else { return false }
         do {
-            try store.save(next)
+            let next: CountdownLibrary
+            if let privateProgress {
+                next = try store.save(draft, with: privateProgress)
+                loadedClassProgress = (next.classProgressFile, privateProgress)
+            } else {
+                try store.save(draft)
+                next = draft
+            }
             let previous = library
             library = next
             message = nil
             if notify {
                 removeDisabledNotices(from: previous)
-                onChange?()
+                _ = onChange?()
             }
             return true
         } catch {
@@ -236,7 +285,7 @@ final class CountdownModel: ObservableObject {
 
     func update(using app: ApplicationData, at now: Date) {
         load()
-        guard store != nil else { return }
+        guard let store else { return }
         let today = TimetableDaySchedule.schoolDay(at: now)
         if today != day { day = today }
         let events = app.schoolEvents
@@ -246,6 +295,9 @@ final class CountdownModel: ObservableObject {
             }
         }.sorted { ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) }
         if publicEvents != nextEvents { publicEvents = nextEvents }
+        let completeYears = Set(events.saved.compactMap { year, snapshot in
+            snapshot.payload.identifiedEvents == nil ? nil : year
+        })
         let indexed = Dictionary(uniqueKeysWithValues: nextEvents.map { ($0.reference, $0) })
         var updated = library
         for index in updated.registrations.indices {
@@ -253,7 +305,7 @@ final class CountdownModel: ObservableObject {
                   let item = indexed[reference], item.dates != old else { continue }
             updated.registrations[index].target = .school(reference, lastSaved: item.dates, alias: alias)
         }
-        if updated != library { commit(updated, notify: false) }
+        if updated.version == CountdownLibrary.currentVersion, updated != library { commit(updated, notify: false) }
         let fixed = library.registrations.map { registration -> CountdownCard in
             switch registration.target {
             case .personal(let dates):
@@ -272,6 +324,8 @@ final class CountdownModel: ObservableObject {
         }
         var schoolExams: [PublicEvent] = []
         var automaticCards = CountdownAutomaticCards([])
+        var currentExam: CountdownCard?
+        var privateProgress: CountdownClassProgress?
         let selection = classSelection()
         let initialScope = initialClassScope
         var loadingClassScope: String?
@@ -292,18 +346,62 @@ final class CountdownModel: ObservableObject {
                     let targets = candidates.map { event in
                         CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
                             preferences: automatic.preferences, availability: events.countdownSourceState(year: event.reference.year, at: now),
-                            reference: event.reference)
+                            reference: event.reference, examProgress: resolveProgress(key: .school(event.reference),
+                                examStart: event.dates.start, goal: event.dates.start, events: nextEvents,
+                                completeYears: completeYears, custom: automatic.customOrigins ?? [],
+                                unconfirmedYear: events.countdownAnnouncementCoverage))
                     }
+                    currentExam = targets.first
                     automaticCards = CountdownAutomaticCards(targets, fixedReferences: Set(fixed.compactMap(\.reference)))
                 }
             case .selectedClass:
-                automaticCards = CountdownAutomaticCards(selectedClassCards(automatic, selection: selection,
-                    using: app, today: today, now: now))
+                if let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
+                    if let cached = loadedClassProgress, cached.file == library.classProgressFile, cached.value.period == period {
+                        privateProgress = cached.value
+                    } else {
+                        privateProgress = try? store.loadClassProgress(file: library.classProgressFile, period: period)
+                        loadedClassProgress = privateProgress.map { (library.classProgressFile, $0) }
+                    }
+                }
+                let targets = selectedClassCards(automatic, selection: selection, using: app, today: today, now: now).map { card in
+                    var card = card
+                    if let scope = card.classScope, let goal = card.dates?.start {
+                        let (key, start) = CountdownExamProgressKey.forClass(scope: scope, day: goal, events: nextEvents)
+                        card.examProgress = resolveProgress(key: key, examStart: start, goal: goal, events: nextEvents,
+                            completeYears: completeYears, custom: privateProgress?.entries ?? [],
+                            fallback: .classDay(scope: scope, day: goal), unconfirmedYear: events.countdownAnnouncementCoverage)
+                    }
+                    return card
+                }
+                currentExam = targets.first
+                automaticCards = CountdownAutomaticCards(targets)
                 if automatic.preferences.notifications, automaticCards.displayed?.availability == .loading {
                     loadingClassScope = selection.scope
                 }
             }
         }
+        if library.version == 1 {
+            if !decidedLegacyProgressTarget {
+                if let currentExam, currentExam.availability.allowsNotification {
+                    legacyProgressTarget = currentExam.examProgress?.key
+                }
+                decidedLegacyProgressTarget = true
+            }
+            var migrated = updated
+            let currentKey = currentExam?.examProgress?.key
+            let target = currentKey == legacyProgressTarget &&
+                (currentKey?.isPrivate != true || privateProgress != nil) ? currentKey : nil
+            let classEntry = migrated.migrateProgress(to: target)
+            if let classEntry { privateProgress?.entries.append(classEntry) }
+            if commit(migrated, notify: false, privateProgress: classEntry == nil ? nil : privateProgress) {
+                update(using: app, at: now)
+                return
+            }
+        }
+        let nextProgress = currentExam?.examProgress
+        if automaticProgress != nextProgress { automaticProgress = nextProgress }
+        let classUnavailable = nextProgress?.key.isPrivate == true && privateProgress == nil
+        if classProgressUnavailable != classUnavailable { classProgressUnavailable = classUnavailable }
         if schoolExams != automaticSchoolExams { automaticSchoolExams = schoolExams }
         var resolved = fixed
         if let displayed = automaticCards.displayed { resolved.append(displayed) }
@@ -312,6 +410,17 @@ final class CountdownModel: ObservableObject {
         planNotifications(for: fixed + automaticCards.notificationTargets, at: now,
                           loadingClassScope: loadingClassScope,
                           acceptsLegacyClassNotice: loadingClassScope == initialScope)
+    }
+
+    private func resolveProgress(key: CountdownExamProgressKey, examStart: SchoolDate, goal: SchoolDate,
+                                 events: [PublicEvent], completeYears: Set<Int>, custom: [CountdownCustomProgress],
+                                 fallback: CountdownExamProgressKey? = nil,
+                                 unconfirmedYear: (Int) -> CountdownAnnouncementCoverage) -> CountdownExamProgress {
+        let saved = custom.first { $0.key == key } ?? custom.first { $0.key == fallback }
+        let origin = saved.map { CountdownProgressOrigin.custom($0.date) } ??
+            CountdownProgressOrigin.announcement(before: examStart, events: events, completeYears: completeYears,
+                                                 unconfirmedYear: unconfirmedYear)
+        return .init(key: key, goal: goal, origin: origin)
     }
 
     private func placeholder(_ automatic: CountdownAutomatic, _ availability: CountdownAvailability) -> CountdownCard {
@@ -382,6 +491,8 @@ final class CountdownModel: ObservableObject {
     }
 
     func expirePrivateNotices(removeDelivered: Bool) async -> Bool {
+        loadedClassProgress = nil
+        if automaticProgress?.key.isPrivate == true { automaticProgress = nil }
         cards.removeAll { $0.isPrivate }
         notificationCards = notificationCards?.filter { !$0.value.isPrivate }
         // Invalidate the old plan without cancelling an in-flight add. It may
