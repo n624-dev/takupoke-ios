@@ -140,11 +140,14 @@ jobs:
           scratch="$(mktemp -d "$RUNNER_TEMP/takupoke-screen-proof.XXXXXX")"
           owned=""
           cleanup() {
+            local status=$? delete_status=0
             if [[ -n "$owned" ]]; then
               xcrun simctl shutdown "$owned" || true
-              xcrun simctl delete "$owned"
+              xcrun simctl delete "$owned" || delete_status=$?
             fi
             rm -rf "$scratch"
+            if [[ "$status" != 0 ]]; then return "$status"; fi
+            return "$delete_status"
           }
           trap cleanup EXIT
           trap 'exit 130' INT
