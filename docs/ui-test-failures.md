@@ -6410,3 +6410,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `4a08a7a`、[全体45557966509 試行1のiOS 26.5手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457314)、SDK27.2。GitHubのチェック注記は `The job has exceeded the maximum execution time of 45m0s`。ソース確認は成功、ケース実行ステップは失敗、所有Runtimeの回収ステップは結果未確定。2026-11-25 07:44:42 UTCに取消で終端した。単独ジョブログは取得時に `BlobNotFound`。具体的なケース到達点や内側2400秒の経過は、完了後の試行アーカイブを確認する。N183-CI25のジョブ上限に達する前の原因不明の取消とは区別する。
 - 試行1の全終端後に取得した試行ZIPにも当該手動ジョブログはなかった。 `maximum execution time of 45m|BlobNotFound|manual-26` でN243、N183-CI17と[同じiOS 26手動3項目の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915387917)を照合した。N243の対処後と同じ準備込み2400秒・ジョブ45分で、今回は具体的な停止段階を判定できない。前回成功から手動用コード・条件は同じなので、新しいRunnerで一度比較し、元の成功条件と回収を維持する。
+
+### N183-CI28 — iOS 26手動3項目の再実行でXcode起動要求が時間切れ
+
+- `4a08a7a`、[全体45557966509 試行2のiOS 26.5手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139062265471)、SDK27.2。ビルド124.2秒、所有Simulatorの起動493.0秒。2026-11-25 08:22:58 UTCに実プロセスのfixture-readyは観測したが、最初の `app.launch()` からXCTestに正常に返らず08:23:43に `ManualAssistanceChecks.swift:71` の `Timed out while launching application via Xcode`、ケース228.645秒、exit65。アプリの準備・起動APIの復帰を区別し、訂正操作は未実行。試行1のGitHubジョブ全体の期限とは別段階。
+- `Timed out while launching application via Xcode|fixture-ready|ManualAssistanceChecks.swift:71` で正式503、44499001313、44660400847と比較。503／44660400847は初回のXcode起動返却、44499001313は採用後の再起動で停止。今回の最初の起動についても、生成アプリ準備成立とテスト起動API未返却をログで区別した。試行1の詳細が欠落しており、同じ停止だったとは判定できない。前の全体CIで同一製品・SDK・ケースが通った実績と、今回の訂正操作未到達を根拠に、全体の終端後に新しいRunnerで同一ケースを確認する。起動を成功とみなす条件、起動回数、実操作、回収は維持する。
