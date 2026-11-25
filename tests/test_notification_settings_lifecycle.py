@@ -13,6 +13,14 @@ from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
 
+COUNTDOWN_EXPIRY_STATE = r'''
+    struct ProgressKey { let isPrivate: Bool }
+    struct Progress { let key: ProgressKey }
+    var loadedClassProgress: Int? = 1
+    var legacyProgressTarget: ProgressKey? = .init(isPrivate: true)
+    var automaticProgress: Progress? = .init(key: .init(isPrivate: true))
+'''
+
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
     def test_disabling_update_notices_removes_owned_ids_now_and_after_a_late_write(self):
@@ -140,6 +148,19 @@ METHODS
 struct CountdownReminder { let key: String }
 struct Preferences { var notifications = true; var reminders = [CountdownReminder(key:"7-20-0")] }
 struct Reference { let key: String }
+struct SchoolDate: Comparable, Codable, Hashable {
+    let day: Int
+    var isValidCalendarDay: Bool { (1...31).contains(day) }
+    static func < (lhs: Self, rhs: Self) -> Bool { lhs.day < rhs.day }
+}
+enum CountdownExamProgressKey: Codable, Hashable {
+    case school(String), classPeriod(scope: String, exam: String), classDay(scope: String, day: SchoolDate)
+    var isPrivate: Bool { if case .school = self { return false }; return true }
+    var valid: Bool { true }
+}
+struct CountdownExamProgress { let key: CountdownExamProgressKey; let goal: SchoolDate }
+struct CountdownClassProgress { var entries: [CountdownCustomProgress] = [] }
+PROGRESS
 struct CountdownRegistration {
     let id: UUID
     var preferences = Preferences()
@@ -149,11 +170,15 @@ struct CountdownAutomatic {
     static let identity = UUID()
     var id: UUID { Self.identity }
     var enabled = true
+    var mode = "school"
     var preferences = Preferences()
+    var customOrigins: [CountdownCustomProgress]?
+    var unlinkedProgressStart: SchoolDate?
 }
 struct CountdownLibrary {
     var registrations: [CountdownRegistration]
     var automatic = CountdownAutomatic()
+    var classProgressFile: UUID?
 }
 struct CountdownNoticeTarget: Hashable { let id: UUID; let key: String }
 struct CountdownNotice {
@@ -171,6 +196,12 @@ struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; le
         if reject { throw CocoaError(.fileWriteOutOfSpace) }
         saves += 1
     }
+    func save(_ library: CountdownLibrary, with progress: CountdownClassProgress) throws -> CountdownLibrary {
+        try save(library)
+        var written = library
+        written.classProgressFile = UUID()
+        return written
+    }
 }
 @MainActor final class Center {
     var pending = Set<String>(), delivered = Set<String>()
@@ -181,7 +212,9 @@ struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; le
     let center = Center()
     var store: Store? = Store()
     var library: CountdownLibrary
-    var message: String?, onChange: (() -> Void)?
+    var message: String?, onChange: (() -> Bool)?
+    var automaticProgress: CountdownExamProgress?
+    var loadedClassProgress: (file: UUID?, value: CountdownClassProgress)?
     var notificationCards: [CountdownNoticeTarget:CountdownCard]?
     var notificationStatuses = [CountdownNoticeTarget:String]()
     private var request: NoticePlan?, applyingPlan: NoticePlan?
@@ -234,6 +267,20 @@ METHODS
         precondition(h.queuedIdentifiers.isEmpty && h.loadingScope == nil && h.acceptsLegacy == false)
         precondition(h.notificationStatuses.isEmpty && h.store!.saves == 3)
 
+        let originEdit = Harness(.init(registrations: []))
+        let origin = SchoolDate(day: 10), goal = SchoolDate(day: 20)
+        let firstExam = CountdownExamProgressKey.school("fictional-first")
+        originEdit.automaticProgress = .init(key: firstExam, goal: goal)
+        originEdit.onChange = { false }
+        let change = CountdownOriginEdit.change(firstExam, date: origin, useUnlinked: false)
+        precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
+        originEdit.onChange = { true }
+        precondition(originEdit.save(originEdit.library.automatic, originEdit: change))
+        precondition(originEdit.library.automatic.customOrigins?.first?.date == origin)
+        originEdit.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
+        precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
+        precondition(originEdit.library.automatic.customOrigins?.first?.key == firstExam && originEdit.store!.saves == 1)
+
         for invalidated in [false,true] {
             let interrupted = Harness(.init(registrations:[first,second]))
             interrupted.queue([], applying:[.init(identifier:firstKey,targetID:first.id), .init(identifier:secondKey,targetID:second.id)])
@@ -245,7 +292,10 @@ METHODS
         }
     }
 }
-'''.replace("IDENTIFIER", block(planning, "static func identifier(for target:")).replace("METHODS", methods)
+'''.replace("IDENTIFIER", block(planning, "static func identifier(for target:")) \
+           .replace("PROGRESS", "\n".join(block(planning, marker) for marker in (
+               "struct CountdownCustomProgress:", "enum CountdownOriginEdit:"))) \
+           .replace("METHODS", methods)
         self.run_probe(compiler, program)
 
     def test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current(self):
@@ -546,10 +596,11 @@ ACTION
 enum CountdownNotice {
 PREFIX
 }
-struct CountdownLibrary {}
+struct CountdownLibrary { var classProgressFile: UUID? }
 final class CountdownStore {
     enum ReadError: Error { case noLongerCorrupt, corrupt, unsafeFile }
     var fails = false, writes = 0
+    var clearedSnapshots = [UUID?]()
     var readError: ReadError? = .corrupt
     func load() throws -> CountdownLibrary {
         if let readError { throw readError }
@@ -559,6 +610,7 @@ final class CountdownStore {
         if fails { throw CocoaError(.fileWriteOutOfSpace) }
         writes += 1
     }
+    func discardUnusedClassProgress(keeping file: UUID?) { clearedSnapshots.append(file) }
 }
 @MainActor final class FakeCenter {
     struct Request: Sendable { var identifier: String }
@@ -588,7 +640,7 @@ typealias UNNotificationRequest = FakeCenter.Request
     let center = FakeCenter(), availableStore = CountdownStore()
     var store: CountdownStore?, library = CountdownLibrary(), message: String?
     var storageState = StorageState.unavailable, storageActionInProgress = false
-    var onChange: (() -> Void)?, revision = UUID(), request: Int? = 1, worker: Task<Void, Never>?
+    var onChange: (() -> Bool)?, revision = UUID(), request: Int? = 1, worker: Task<Void, Never>?
     func openStore() throws -> CountdownStore { availableStore }
     LOAD
     RETRY
@@ -627,9 +679,11 @@ typealias UNNotificationRequest = FakeCenter.Request
             precondition(reset.storageState == .ready && !reset.storageActionInProgress)
             precondition(reset.center.state == unchanged)
             callbacks += 1
+            return true
         }
         await reset.recoverCorruptStorage()
         precondition(callbacks == 1 && reset.availableStore.writes == 1 && reset.center.reads == 1)
+        precondition(reset.availableStore.clearedSnapshots == [nil])
         await reset.stopNoticesWhileStorageIsUnavailable()
         precondition(reset.center.reads == 1)
 
@@ -1154,6 +1208,7 @@ struct Card { let isPrivate: Bool }
     let center = UNUserNotificationCenter()
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
+EXPIRY_STATE
     var revision = UUID()
     var request: Int? = 0
     var worker: NotificationWork?
@@ -1184,6 +1239,7 @@ EXPIRY
         let first = await cancelled.value
         precondition(!first && h.worker == nil && h.request == nil)
         precondition(h.cards.map(\.isPrivate) == [false] && h.notificationCards?.keys.sorted() == [1])
+        precondition(h.loadedClassProgress == nil && h.legacyProgressTarget == nil && h.automaticProgress == nil)
         precondition(center.removed.isEmpty && center.removedDelivered.isEmpty)
         center.pending?(center.all.map(UNNotificationRequest.init))
 
@@ -1209,7 +1265,8 @@ EXPIRY
         precondition(center.removedDelivered == ["fictional.private.1"])
     }
 }
-'''.replace("BRIDGES", bridges).replace("EXPIRY", block(model, "func expirePrivateNotices(")) + "\n@MainActor\n" + block(
+'''.replace("BRIDGES", bridges).replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE).replace(
+            "EXPIRY", block(model, "func expirePrivateNotices(")) + "\n@MainActor\n" + block(
             notifications, "final class NotificationWork {")
         self.run_probe(compiler, program)
 
@@ -1264,6 +1321,7 @@ RESET_UPDATES
     let center = Center()
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
+EXPIRY_STATE
     var revision = UUID(), request: Int? = 1
     var worker: NotificationWork?
     func start(_ identifier: String) {
@@ -1277,6 +1335,8 @@ EXPIRE
 @main struct Probe {
     @MainActor static func main() async {
         let countdown = Countdown(), publicCountdown = Countdown(), updates = ScheduleNotifications()
+        publicCountdown.legacyProgressTarget = .init(isPrivate: false)
+        publicCountdown.automaticProgress = .init(key: .init(isPrivate: false))
         countdown.start("fictional.private.countdown")
         publicCountdown.start("fictional.new.public.countdown")
         updates.start()
@@ -1292,6 +1352,9 @@ EXPIRE
         precondition(updates.reconcileTask?.task.isCancelled == true)
         precondition(countdown.center.pendingReads == 0 && updates.loaded && updates.baseline == 1)
         precondition(countdown.request == nil && updates.pending == nil && countdown.cards.map(\.isPrivate) == [false])
+        precondition(countdown.loadedClassProgress == nil && countdown.legacyProgressTarget == nil && countdown.automaticProgress == nil)
+        precondition(publicCountdown.loadedClassProgress == nil && publicCountdown.legacyProgressTarget?.isPrivate == false)
+        precondition(publicCountdown.automaticProgress?.key.isPrivate == false)
         precondition(countdown.center.removedPending.isEmpty && updates.center.removedPending.isEmpty)
 
         let retry = Task { await countdown.expirePrivateNotices(removeDelivered:true) }
@@ -1320,6 +1383,7 @@ EXPIRE
 }
 '''.replace("STOP_UPDATES", block(notifications, "func suspendForUnavailableData("))
         program = program.replace("RESET_UPDATES", block(notifications, "func resetForRetention("))
+        program = program.replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE)
         program = program.replace("EXPIRE", block(countdown, "func expirePrivateNotices("))
         program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
         self.run_probe(compiler, program)
