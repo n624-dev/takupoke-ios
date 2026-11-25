@@ -6400,3 +6400,13 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `ea7531c`、[限定45553651442 試行1、iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45553651442/job/139000448658)、SDK27.2。初回依存解決のエラーからビルドを完了し、2026-11-25 05:38:18 UTCに所有端末の `simulator-ready` を記録。05:38:34にGitHubは `The operation was canceled` を報告。XCTestの開始、通知の接触、実値、許可、保存は全て未到達。05:41:32に取消で終端。作業側からの取消操作はなく、取消の発生理由は未確定。外側1440秒を迎える前。
 - `The operation was canceled|simulator-ready|bootstatus` で正式490と正式44800663590の手動単項目を比較した。正式490はケース実行中、44800663590は起動準備中で同じGitHubメッセージにより終了し、当時も個別ケースの合格判定は行わなかった。今回は準備成功後かつXCTest開始前。対象ケースの実操作データが無いため、変更済みの同一コミット・SDK・実端末で新しいRunnerを一度比較する。期限、所有先、ケース、実許可と設定値の条件は維持する。
+
+### N183-CI26 — iOS 27通常Aでカウントダウン確認のボタン照会が時間切れ
+
+- `4a08a7a`、[全体45557966509 試行1のiOS 27.0 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457269)、SDK27.2。`testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` は破損警告、通知取消、初期化アラートのキャンセルを通過。2026-11-25 06:42:58 UTCに2回目の「元のファイルを保全して初期化」の実接触を観測し、アラート存在は成立。子Button照会の応答に時間を要し、元の10秒条件で `ApplicationChecks+Notifications.swift:173` の「初期化」操作可判定が失敗（06:43:49、ケース217.903秒）。失敗時のAXツリーには同アラートと「初期化」「キャンセル」が存在する。確定操作は未送出。iOS 26 UI Aは同じケースを含み成功。AX照会遅延の下位原因は未確定。
+- `Dialog button never became tappable|初期化|testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` でN183-CI3と45050646373の両OS、[71ec2ddの成功したiOS 27 UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915387927) を比較。先行の失敗は通知取消後の完了文、または最初の確認ダイアログ不在。今回は2回目のアラートは出ており、子ボタン照会で停止。前の統合成功から製品・当該テスト・SDKに変更はなく、今回のiOS 26 UI Aも完走。全体の結果確定後、この実行の失敗分を一度別Runnerで比較する根拠とする。確定・取消・保全・新規登録の実操作、10秒の条件を維持する。
+
+### N183-CI27 — iOS 26の3項目手動訂正がGitHubジョブの上限で取消
+
+- `4a08a7a`、[全体45557966509 試行1のiOS 26.5手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457314)、SDK27.2。GitHubのチェック注記は `The job has exceeded the maximum execution time of 45m0s`。ソース確認は成功、ケース実行ステップは失敗、所有Runtimeの回収ステップは結果未確定。2026-11-25 07:44:42 UTCに取消で終端した。単独ジョブログは取得時に `BlobNotFound`。具体的なケース到達点や内側2400秒の経過は、完了後の試行アーカイブを確認する。N183-CI25のジョブ上限に達する前の原因不明の取消とは区別する。
+- 試行1の全終端後に取得した試行ZIPにも当該手動ジョブログはなかった。 `maximum execution time of 45m|BlobNotFound|manual-26` でN243、N183-CI17と[同じiOS 26手動3項目の成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/job/138915387917)を照合した。N243の対処後と同じ準備込み2400秒・ジョブ45分で、今回は具体的な停止段階を判定できない。前回成功から手動用コード・条件は同じなので、新しいRunnerで一度比較し、元の成功条件と回収を維持する。
