@@ -133,16 +133,47 @@ jobs:
               raise SystemExit("Comparison requires unchanged iOS 27.0 runtime")
           print("Comparison runtime: iOS 27.0")'
           fi
-      - name: Exercise launch, native switches, permission, busy work and relaunch without retry or adoption credit
+      - name: Verify a native failure screenshot on a disposable simulator
         run: |
           set -euo pipefail
-          python3 -B tools/timed_command.py --timeout "$TKPK_RELAUNCH_RUNNER_SECONDS" --cleanup-grace 120 \
-            "Focused relaunch runner" bash tools/test-app-ui.sh 2>&1 | tee "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
-          selection=(--relaunch-probe)
-          if [[ "$TKPK_UI_PROBE_CASE" != all ]]; then
-            selection+=(--probe-case "$TKPK_UI_PROBE_CASE")
-          fi
-          python3 -B tools/ui_test_manifest.py "${selection[@]}" --mode verify --ios "$TKPK_TEST_IOS" --runner-log --log "$RUNNER_TEMP/takupoke-relaunch-runner-owned.log"
+          source tools/simulator-ci-trace.sh
+          scratch="$(mktemp -d "$RUNNER_TEMP/takupoke-screen-proof.XXXXXX")"
+          owned=""
+          cleanup() {
+            if [[ -n "$owned" ]]; then
+              xcrun simctl shutdown "$owned" || true
+              xcrun simctl delete "$owned"
+            fi
+            rm -rf "$scratch"
+          }
+          trap cleanup EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          owned="$(xcrun simctl create 'Takupoke fictional failure screenshot proof' com.apple.CoreSimulator.SimDeviceType.iPhone-16 com.apple.CoreSimulator.SimRuntime.iOS-27-0)"
+          xcrun simctl boot "$owned"
+          python3 -B tools/timed_command.py --timeout 360 --cleanup-grace 10 'Screenshot proof simulator boot' xcrun simctl bootstatus "$owned" -b
+          capture_failed_simulator_screen 0 "$owned" "$scratch" > "$scratch/success.log"
+          test ! -s "$scratch/success.log"
+          observed_status=0
+          false || observed_status=$?
+          {
+            capture_failed_simulator_screen "$observed_status" "$owned" "$scratch"
+            capture_failed_simulator_screen "$observed_status" "$owned" "$scratch"
+          } | tee "$scratch/failure.log"
+          python3 -B - "$scratch/failure.log" <<'PY'
+          import base64, hashlib, sys
+          from pathlib import Path
+          rows = [line.split() for line in Path(sys.argv[1]).read_text().splitlines()]
+          assert rows[0][:3] == ["TAKUPOKE_UI_IMAGE", "BEGIN", "simulator-failure"]
+          assert rows[-1][:3] == ["TAKUPOKE_UI_IMAGE", "END", "simulator-failure"]
+          assert int(rows[-1][3]) == len(rows) - 2
+          for i, row in enumerate(rows[1:-1]):
+              assert row[:4] == ["TAKUPOKE_UI_IMAGE", "DATA", "simulator-failure", str(i)]
+          data = base64.b64decode("".join(row[4] for row in rows[1:-1]), validate=True)
+          assert data.startswith(b"\x89PNG\r\n\x1a\n")
+          assert len(data) == int(rows[0][4]) and hashlib.sha256(data).hexdigest() == rows[0][3]
+          print(f"Verified one native failure PNG ({len(data)} bytes), no success capture and no duplicate capture.")
+          PY
       - name: Remove the owned relaunch runner log
         if: always()
         run: python3 -B -c 'import os; from pathlib import Path; (Path(os.environ["RUNNER_TEMP"])/"takupoke-relaunch-runner-owned.log").unlink(missing_ok=True)'
