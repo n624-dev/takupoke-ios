@@ -6431,3 +6431,17 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `0294c79`、[全体45714093730・試行1のiOS 27.0手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970184)、SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。少なくとも科目・教員の入力と編集終了まで確認。2026-11-25 23:28:37 UTCに `ManualAssistanceChecks+Review.swift:45` で元の待機が時間切れとなり、535.490秒で失敗。原因は未確定。後続の採用と再起動は未確認。
 - `Review.swift:45|manual-coordinator-state|review=true|高信頼` を照合した。最初の科目だけの確認状態は成立。後の失敗時AXにも科目＋教員の `review=true;preview=false` が出ていたが、20秒の元の待機では照会できなかった。[前回の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457266) では同じSDK・OS、同じ復旧画面と手動テストで完走。N185-CI1とは失敗段階が異なる。全ジョブを待ち、同一ソース・同一条件で失敗分を比較する。
+
+### N185-CI3 — iOS 27の手動1項目で確認画面を期限内に照合できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 27.0手動1項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970157)、SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。2026-11-25 23:48:15 UTCに `ManualAssistanceChecks+Review.swift:45` の待機が時間切れとなり、516.582秒で失敗。採用・再起動までは未確認。
+
+### N185-CI4 — iOS 27通常UI Bがジョブ時間の上限に到達
+
+- `0294c79`、[全体45714093730・試行1のiOS 27.0通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970051)、SDK 27.2。2026-11-25 23:53:21 UTCにGitHub上で取消。チェック注記の理由は75分のジョブ上限。個別ログは取得時に拒否され、最後に到達したケースは未確認。手動取消は行っていない。
+- 同じケース内では確認画面の成立2回と背景復帰後の同一プロセス・確認状態の保持を観測。失敗直後のAXにも `review=true;preview=false` が出た。N185-CI2とは同じ待機だが、今回の停止は背景復帰後の再確認。両ケースを同一コード・同一期限で再検証する。
+
+### N187-CI1 — 失敗時画面の実機構成テストが撮影前の起動で停止
+
+- `bf7f27d`、[実シミュレーター撮影の専用検証45721609887](https://github.com/n624-dev/takupoke-ios/actions/runs/45721609887/job/139581068431)、SDK 27.2・iOS 27.0。専用ワークフローでsimctlの直接起動を行い、2026-11-25 23:54:27 UTCにbootstatusの期限到達。プロセスの回収中にOperation not permitted。画面の取得処理には未到達。
+- `bootstatus|Operation not permitted|frontend` で通常iOS27の起動失敗と前回の限定成功を比較した。前回の[限定成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45710773715/job/139544317881) は既存の起動ヘルパーを使用した。専用検証の直接起動を既存ヘルパーに揃え、実画面1枚・成功時0枚・PNGバイトの照合を維持する。全体CIの成否には合算しない。
