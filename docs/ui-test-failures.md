@@ -6544,3 +6544,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - `8d131dd`、[正式544・試行3のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139917030279)、SDK 27.2。Runtime準備成功後、14:13:35 UTCにGitHubによる取消。注記は `maximum execution time of 1h30m0s`。この試行は公開がスキップされ、12件成功・1件失敗・1件取消だった。
 - N544-CI10は、通知取消とは独立したAPI呼出しも無応答だった。`permissionAllowButton|requestAuthorization|countdown-storage` で、実予約を検査する既存ケースと、最初の通知許可を要求していない復旧fixtureとの差を照合した。限定fixtureで実際の通知許可を確定してから通知一覧の実応答を待つ。許可が必要な場合は実システムダイアログを操作する。製品の取消処理・10秒の成功条件・保存復旧の操作はそのまま続ける。
 - N544-CI11のRunnerのジョブログは試行終端後に取得して、どの操作まで到達したかを確認する。
+
+### N544-CI12 — iOS 27 headlessの通知許可も応答しない
+
+- `6c83920`、[限定45838239995・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45838239995/job/139972717280)、SDK 27.2。2026-11-26 14:32:20 UTCに許可要求を記録し、14:33:12に `ApplicationChecks+Notifications.swift:201` の45秒待機が時間切れ（86.519秒）。許可完了と一覧要求の開始はなく、画面は「通知の許可を確認中」。
+- `headless27|DeviceHub|実Allow` で既往の45066765115と、GUIで実一覧・復旧まで成功した [iOS 26限定45835440369](https://github.com/n624-dev/takupoke-ios/actions/runs/45835440369/job/139962966954) を照合。iOS 27の既存SDK・Runtime・実許可と一覧・取消操作を維持し、フロントエンドだけをGUIに替えて比較する。GUIの効果は未確定。

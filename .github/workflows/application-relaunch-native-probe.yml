@@ -90,7 +90,7 @@ jobs:
       TKPK_UI_PROBE_SDK27: ${{ inputs.sdk27 }}
       TKPK_UI_PROBE_SDK26: ${{ inputs.sdk26 }}
       TKPK_UI_RELAUNCH_PROBE: '1'
-      TKPK_SIMULATOR_FRONTEND: ${{ matrix.ios == 26 && 'gui' || 'headless' }}
+      TKPK_SIMULATOR_FRONTEND: ${{ (matrix.ios == 26 || matrix.probe_case == 'countdown-storage') && 'gui' || 'headless' }}
       TKPK_UI_HANG_DIAGNOSTICS: ${{ (matrix.probe_case == 'rows' || matrix.probe_case == 'rows-context') && '1' || '0' }}
       TKPK_UI_PROBE_CASE: ${{ matrix.probe_case }}
       TKPK_RELAUNCH_RUNNER_SECONDS: ${{ (matrix.probe_case == 'rows' || (matrix.ios == 26 && matrix.probe_case == 'yellow-contrast')) && 2400 || 1440 }}
