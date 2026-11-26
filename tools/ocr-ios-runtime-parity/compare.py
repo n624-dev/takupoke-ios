@@ -149,7 +149,7 @@ def remove_owned_simulator(identity):
 
 def select_runtime(simulation, ios):
     # Model-specific simulator runtimes cannot create the owned iPhone 16.
-    identifier = re.compile(r'com\.apple\.CoreSimulator\.SimRuntime\.iOS-' + str(ios) + r'-[0-9]+')
+    identifier = re.compile(r'com\.apple\.CoreSimulator\.SimRuntime\.iOS-' + str(ios) + r'(?:-[0-9]+){1,2}')
     available = [runtime for runtime in simulation['runtimes'] if runtime.get('isAvailable') and
                  identifier.fullmatch(runtime['identifier']) and int(runtime['version'].split('.')[0]) == ios]
     if not available:

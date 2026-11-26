@@ -33,6 +33,10 @@ class IOSRuntimeParityTests(unittest.TestCase):
         simulation = dict(runtimes=[runtime('26-5', '26.5'), compatible,
                                     runtime('27-2-iPhone19-4', '27.2'), runtime('27-1', '27.1', False)])
         self.assertEqual(compare.select_runtime(simulation, 27), compatible)
+        patch = runtime('27-0-1', '27.0.1')
+        simulation['runtimes'].append(patch)
+        self.assertEqual(compare.select_runtime(simulation, 27), patch)
+        simulation['runtimes'].remove(patch)
         simulation['runtimes'].remove(compatible)
         with self.assertRaisesRegex(ValueError, 'iPhone 16'):
             compare.select_runtime(simulation, 27)
