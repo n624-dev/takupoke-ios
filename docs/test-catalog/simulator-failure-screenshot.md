@@ -1,7 +1,7 @@
 # シミュレーター失敗時の画面記録
 
 対応関係・宣言名・実行方法のSHA-256：
-`bdc109e3d172f198474ff8c85be49c9bb5367970e8e4585c5516010c6718b920`
+`210ca3484d10e0a8126e7b52d6954e1606624a2458032891d3839ffa6f087655`
 
 環境：macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査
 
@@ -17,6 +17,7 @@ python3 -B -m unittest discover -s tests -p test_simulator_failure_screenshot.py
 
 - `test_capture_exact_device_once_with_checksummed_image_and_owned_cleanup`
 - `test_rejects_device_alias_command_failure_and_invalid_image`
+- `test_normalizes_unusable_native_output_to_a_bounded_png`
 
 ## [tests/test_application_ui_runner.py](../../tests/test_application_ui_runner.py)
 

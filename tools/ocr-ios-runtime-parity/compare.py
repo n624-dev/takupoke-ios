@@ -6,6 +6,7 @@ import importlib.util
 import json
 from pathlib import Path
 import queue
+import re
 import signal
 import subprocess
 import sys
@@ -146,11 +147,21 @@ def remove_owned_simulator(identity):
         command('xcrun', 'simctl', 'delete', identity, timeout=60)
 
 
+def select_runtime(simulation, ios):
+    # Model-specific simulator runtimes cannot create the owned iPhone 16.
+    identifier = re.compile(r'com\.apple\.CoreSimulator\.SimRuntime\.iOS-' + str(ios) + r'-[0-9]+')
+    available = [runtime for runtime in simulation['runtimes'] if runtime.get('isAvailable') and
+                 identifier.fullmatch(runtime['identifier']) and int(runtime['version'].split('.')[0]) == ios]
+    if not available:
+        raise ValueError('Required iOS Runtime for the iPhone 16 is unavailable')
+    return max(available, key=lambda runtime: tuple(map(int, runtime['version'].split('.'))))
+
+
 def capture_failed_simulator_screen(identity, scratch):
     if identity and sys.exc_info()[0] is not None:
         try:
             subprocess.run([sys.executable, '-B', str(ROOT.parent / 'simulator_failure_screenshot.py'),
-                            identity, str(scratch)], timeout=17)
+                            identity, str(scratch)], timeout=22)
         except (OSError, subprocess.TimeoutExpired):
             print('TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable', flush=True)
 
@@ -220,11 +231,7 @@ def main():
     options = ort.SessionOptions(); options.intra_op_num_threads = 2; options.inter_op_num_threads = 1; options.log_severity_level = 3
     session = ort.InferenceSession(str(models / protocol['model']['file']), sess_options=options, providers=['CPUExecutionProvider'])
     simulation = json.loads(command('xcrun', 'simctl', 'list', '-j'))
-    available = [r for r in simulation['runtimes'] if r.get('isAvailable') and
-                 r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-') and int(r['version'].split('.')[0]) == args.ios]
-    if not available:
-        raise ValueError('Required iOS Runtime is unavailable; never substitute another OS')
-    runtime = max(available, key=lambda r: tuple(map(int, r['version'].split('.'))))
+    runtime = select_runtime(simulation, args.ios)
     device = next(d for d in simulation['devicetypes'] if d['name'] == 'iPhone 16')
     cancel_scope = OwnedSimulatorCancellation()
     owned = None; process = None
