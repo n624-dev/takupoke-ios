@@ -9615,3 +9615,9 @@ Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー�
 - Linux（Swift 6.1.2）でSwiftパッケージ747件、うちカウントダウン21件が成功した。SwiftPMはこの環境に保存されている固定コミットの依存とGRDBのサブモジュールを使用した。iOS専用のSwiftUIコードはLinuxで構文を確認した。
 - Linuxで配布ゲートのPython一式354件を実行し、332件成功・環境によるskip22件だった。通知・保存の検証用スタブ不足による初回のエラー4件を修正した（N185-L1）。保存直前の再確認中に試験が切り替わるようにした追加検証も、`2fe1082` のケース単独で成功した。
 - [Draft PR #186](https://github.com/n624-dev/takupoke-ios/pull/186) のベースはPR #184の作業ブランチ。iOS 26.5・27.0、SDK 27.2の限定検証を `3adf386` と `2fe1082` で要求した。GitHub CLIとREST APIはHTTP 500を返し、どちらのコミットにも実行は作成されなかった。実機・シミュレーターでの画面操作と全体CIは未確認。アプリ公開、本番反映、監視設定更新は未実施。
+
+### 全シミュレーターCIの失敗時スクリーンショット
+
+- [Draft PR #187](https://github.com/n624-dev/takupoke-ios/pull/187) で通常UI、手動訂正、ファイル選択、標準OCR、ASCII OCRへ共通の出力形式を接続。Linuxで通常UI18件、手動ランナー7件、ファイル選択ランナー、OCRランタイム22件、OCRの取消、撮影処理4件を確認した。
+- [iOS 27の専用検証45731870539](https://github.com/n624-dev/takupoke-ios/actions/runs/45731870539/job/139615598664) は、元の画面テストのランナーが失敗を返すことと、XCTestから画像が一つだけ出力されることを検証した。ログから復元したPNGは472×1024、129448バイトで、SHA-256の一致と画像のデコード、架空のカウントダウンカードが実際に写ったことを確認した。専用の意図的な失敗を全体CIの合格に合算していない。
+- [標準OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45730020333) と [ASCII OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45729990968) は、既存の固定製品スナップショットとの一致を維持した専用ブランチで、両OSとも成功した。SDKと推論の比較条件を維持した。
