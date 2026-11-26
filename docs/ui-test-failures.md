@@ -6435,11 +6435,11 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N185-CI3 — iOS 27の手動1項目で確認画面を期限内に照合できない
 
 - `0294c79`、[全体45714093730・試行1のiOS 27.0手動1項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970157)、SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。2026-11-25 23:48:15 UTCに `ManualAssistanceChecks+Review.swift:45` の待機が時間切れとなり、516.582秒で失敗。採用・再起動までは未確認。
+- 同じケース内では確認画面の成立2回と背景復帰後の同一プロセス・確認状態の保持を観測。失敗直後のAXにも `review=true;preview=false` が出た。N185-CI2とは同じ待機だが、今回の停止は背景復帰後の再確認。両ケースを同一コード・同一期限で再検証する。
 
 ### N185-CI4 — iOS 27通常UI Bがジョブ時間の上限に到達
 
 - `0294c79`、[全体45714093730・試行1のiOS 27.0通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970051)、SDK 27.2。2026-11-25 23:53:21 UTCにGitHub上で取消。チェック注記の理由は75分のジョブ上限。個別ログは取得時に拒否され、最後に到達したケースは未確認。手動取消は行っていない。
-- 同じケース内では確認画面の成立2回と背景復帰後の同一プロセス・確認状態の保持を観測。失敗直後のAXにも `review=true;preview=false` が出た。N185-CI2とは同じ待機だが、今回の停止は背景復帰後の再確認。両ケースを同一コード・同一期限で再検証する。
 
 ### N187-CI1 — 失敗時画面の実機構成テストが撮影前の起動で停止
 
