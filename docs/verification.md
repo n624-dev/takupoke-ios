@@ -9621,3 +9621,4 @@ Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー�
 - [Draft PR #187](https://github.com/n624-dev/takupoke-ios/pull/187) で通常UI、手動訂正、ファイル選択、標準OCR、ASCII OCRへ共通の出力形式を接続。Linuxで通常UI18件、手動ランナー7件、ファイル選択ランナー、OCRランタイム22件、OCRの取消、撮影処理5件を確認した。
 - [iOS 27の専用検証45731870539](https://github.com/n624-dev/takupoke-ios/actions/runs/45731870539/job/139615598664) は、元の画面テストのランナーが失敗を返すことと、XCTestから画像が一つだけ出力されることを検証した。ログから復元したPNGは472×1024、129448バイトで、SHA-256の一致と画像のデコード、架空のカウントダウンカードが実際に写ったことを確認した。専用の意図的な失敗を全体CIの合格に合算していない。
 - [標準OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45730020333) と [ASCII OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45729990968) は、既存の固定製品スナップショットとの一致を維持した専用ブランチで、両OSとも成功した。SDKと推論の比較条件を維持した。
+- [撮影変更を含む最初の全体CI 45734255299](https://github.com/n624-dev/takupoke-ios/actions/runs/45734255299/job/139623539027) は `b0dcdf5` でLinuxの配布検査に失敗した。手動UIの後処理を抽出する既存テストのコマンド代役が、追加の撮影呼び出しを未登録として終了コード99で止めた。元の終了コードと後処理の順序を検査し続け、撮影の失敗と取消時の挙動も代役に反映する。iOSのジョブは未実行。
