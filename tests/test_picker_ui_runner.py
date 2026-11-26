@@ -113,6 +113,11 @@ elif args[:2] == ['simctl', 'launch']:
                     self.assertIn("never", builds[1])
                 launches = [row for row in commands if row[:3] == ["xcrun", "simctl", "launch"]]
                 self.assertEqual(len(launches), int(mode in ("success", "transition-fails")))
+                screenshots = [row for row in commands if row[:3] == ["xcrun", "simctl", "io"] and row[4] == "screenshot"]
+                self.assertEqual(len(screenshots), int(mode != "success"), result.stdout + result.stderr)
+                if screenshots:
+                    deletion = ["xcrun", "simctl", "delete", screenshots[0][3]]
+                    self.assertLess(commands.index(screenshots[0]), commands.index(deletion))
                 self.assertIn(["xcrun", "simctl", "delete", "00000000-0000-0000-0000-000000000001"], commands)
                 self.assertEqual(list(scratch.iterdir()), [])
 

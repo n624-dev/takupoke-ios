@@ -6484,3 +6484,7 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N185-CI9 — iOS 26通常UI Bの試行3で週送りの描画が100ms空いた
 
 - `0294c79`、[全体45714093730・試行3のiOS 26通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139644913399)、SDK 27.2・iOS 26.5。2026-11-26 03:14:55 UTCに `ApplicationChecks+WeekAppearance.swift:466`、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が100.309msの描画間隔を観測し、元90ms条件で失敗。42.960秒。試行1はこのケースを通過し、試行2はRuntime取得前の失敗だった。N183-CI22の近接した描画間隔と照合し、元の合格条件を維持する。
+
+### N187-CI6 — 全体のiOS 26通常UI Aで連続週送りの4接触が揃わない
+
+- `99fa7e2`、[全体45736484307・試行1のiOS 26通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/job/139632621700)、SDK 27.2・iOS 26.5。2026-11-26 02:54:34 UTCに `ApplicationChecks+WeekAppearance.swift:274`、`testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating` が「4回のネイティブドラッグと最後の高さ調整」を確認できず28.005秒で失敗。同ジョブの残りのテストは進行し、全体では14件成功、公開はスキップ。XCTestで失敗時の画像が1枚記録され、129290バイトのPNGの出力を確認した。

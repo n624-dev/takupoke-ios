@@ -60,7 +60,8 @@ class ManualRunnerTests(unittest.TestCase):
             for folder in ("tools", "bin", "scratch"):
                 (root / folder).mkdir()
             for name in ("test-manual-ui.sh", "timed_command.py", "resolve-xcode-packages.sh", "boot-simulator-ui.sh",
-                         "notification_service_trace.py", "ui_test_manifest.py", "simulator-ci-trace.sh", "simulator_ci_trace.py"):
+                         "notification_service_trace.py", "ui_test_manifest.py", "simulator-ci-trace.sh", "simulator_ci_trace.py",
+                         "simulator_failure_screenshot.py"):
                 shutil.copyfile(ROOT / "tools" / name, root / "tools" / name)
             (root / "tools/manual_ui_project.py").write_text(
                 "import sys; from pathlib import Path; Path(sys.argv[1]).mkdir(parents=True)\n")
@@ -111,6 +112,11 @@ elif args[:2] == ['simctl', 'create']: print('00000000-0000-0000-0000-0000000000
             result = subprocess.run(["bash", "tools/test-manual-ui.sh"], cwd=root,
                                     env=environment, capture_output=True, text=True, timeout=20)
             recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+            screenshots = [call for call in recorded if call[:3] == ["xcrun", "simctl", "io"] and call[4] == "screenshot"]
+            self.assertEqual(len(screenshots), int(result.returncode != 0), result.stdout + result.stderr)
+            if screenshots:
+                deletion = ["xcrun", "simctl", "delete", screenshots[0][3]]
+                self.assertLess(recorded.index(screenshots[0]), recorded.index(deletion))
             self.assertEqual(list((root / "scratch").iterdir()), [])
             self.assertIn(["xcrun", "simctl", "delete", "00000000-0000-0000-0000-000000000001"], recorded)
             build = next(i for i, call in enumerate(recorded)

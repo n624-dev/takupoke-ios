@@ -38,6 +38,12 @@ class WorkflowSourcePathTests(unittest.TestCase):
         for path in ["tools/ocr-windows-transfer/infer.py", "tools/ocr-windows-transfer/prepare.py", "tools/ocr-windows-transfer/frames.py", "tools/ocr-windows-transfer/requirements.txt"]:
             with self.subTest(path=path): self.assertTrue(selected("ocr-ios-runtime-parity.yml", path))
 
+    def test_both_ocr_simulator_workflows_track_the_shared_failure_screenshot(self):
+        for workflow in ("ocr-ios-runtime-parity.yml", "ocr-ios-ascii-runtime-parity.yml"):
+            with self.subTest(workflow=workflow):
+                self.assertTrue(selected(workflow, "tools/simulator_failure_screenshot.py"))
+                self.assertTrue(selected(workflow, "tests/test_simulator_failure_screenshot.py"))
+
     def test_ocr_checks_can_run_without_a_permanent_research_branch(self):
         names = (
             "ocr-apple-native-diagnostic.yml", "ocr-code-english-screen.yml", "ocr-document-qualification.yml",

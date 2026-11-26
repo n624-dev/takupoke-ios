@@ -598,6 +598,24 @@
       ]
     },
     {
+      "id": "simulator-failure-screenshot",
+      "title": "シミュレーター失敗時の画面記録",
+      "environment": "macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査",
+      "commands": [
+        "python3 -B -m unittest discover -s tests -p test_simulator_failure_screenshot.py"
+      ],
+      "sources": [
+        "tools/simulator_failure_screenshot.py"
+      ],
+      "checks": [
+        "tests/test_simulator_failure_screenshot.py",
+        "tests/test_application_ui_runner.py",
+        "tests/test_manual_ui_runner.py",
+        "tests/test_picker_ui_runner.py",
+        "tests/test_ocr_simulator_cancellation.py"
+      ]
+    },
+    {
       "id": "release",
       "title": "IPA・AltStore・公開ゲート・ビルド・一時領域",
       "environment": "Linux Python／Apple iPhone SDK。AltStore導入は実機限定",

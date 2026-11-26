@@ -1,7 +1,7 @@
 # iOS CPU Runtimeの原確率・CTC照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`549d4cff468d8ff04b8868b85fb401702ca6f6c00997a94f59b6663c09b5324a`
+`47c5bb7f454b1357ddb872f7cb7c9001a91ccd63d9e462fab6bcaeabb1afb607`
 
 環境：iOS26／27 Simulator実プロセス＋実iPhoneSDKリンク。物理iPhone・全文書採用は別確認
 
@@ -26,6 +26,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 
 ## [tests/test_ocr_ios_runtime_parity.py](../../tests/test_ocr_ios_runtime_parity.py)
 
+- `test_runtime_selection_excludes_model_specific_and_other_os_runtimes`
 - `test_full_probability_drift_rejects_even_when_greedy_text_is_unchanged`
 - `test_crossing_selected_piece_floor_rejects_within_numeric_tolerance`
 - `test_identical_native_probabilities_keep_spaces_and_ctc_intervals`
@@ -49,5 +50,6 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_new_nested_code_starts_development_catalog_checks`
 - `test_original_code_recognition_tracks_its_shared_implementations`
 - `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`
+- `test_both_ocr_simulator_workflows_track_the_shared_failure_screenshot`
 - `test_ocr_checks_can_run_without_a_permanent_research_branch`
 - `test_ordered_row_proof_is_manual_and_requires_generated_pdf_fixtures`

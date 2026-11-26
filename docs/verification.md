@@ -9621,3 +9621,11 @@ Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー�
 - [全体CI・試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/2) は同じ `0294c79` で13件成功・2件失敗、公開はスキップ。iOS 27の通常UI Bと残っていた手動訂正2件が成功。iOS 26の通常UI BはAppleのランタイム取得、手動明示選択は前回より後の3件の状態照合で止まった（N185-CI6・7）。この2件を同じコミットで再検証する。
 - [全体CI・試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/3) は13件成功。iOS 26手動明示選択はAppleカタログのネットワークエラー、iOS 26通常UI Bは週送りの描画間隔100.309msが既存90msの条件を超えた（N185-CI8・9）。
 - [全体CI・試行4](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/4) で同一ソース `0294c79d6e928c660f571c9ce523318e04df7f6d`・試行4の検証15件がすべて成功し、公開1件はスキップされた。最後のiOS 26通常UI Bと手動明示選択も元の条件で完了。結果は試行別の全16ジョブのSHA・試行番号・結論を照合した。
+
+### 全シミュレーターCIの失敗時スクリーンショット
+
+- [Draft PR #187](https://github.com/n624-dev/takupoke-ios/pull/187) で通常UI、手動訂正、ファイル選択、標準OCR、ASCII OCRへ共通の出力形式を接続。Linuxで通常UI18件、手動ランナー7件、ファイル選択ランナー、OCRランタイム22件、OCRの取消、撮影処理5件を確認した。
+- [iOS 27の専用検証45731870539](https://github.com/n624-dev/takupoke-ios/actions/runs/45731870539/job/139615598664) は、元の画面テストのランナーが失敗を返すことと、XCTestから画像が一つだけ出力されることを検証した。ログから復元したPNGは472×1024、129448バイトで、SHA-256の一致と画像のデコード、架空のカウントダウンカードが実際に写ったことを確認した。専用の意図的な失敗を全体CIの合格に合算していない。
+- [標準OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45730020333) と [ASCII OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45729990968) は、既存の固定製品スナップショットとの一致を維持した専用ブランチで、両OSとも成功した。SDKと推論の比較条件を維持した。
+- [撮影変更を含む最初の全体CI 45734255299](https://github.com/n624-dev/takupoke-ios/actions/runs/45734255299/job/139623539027) は `b0dcdf5` でLinuxの配布検査に失敗した。手動UIの後処理を抽出する既存テストのコマンド代役が、追加の撮影呼び出しを未登録として終了コード99で止めた。元の終了コードと後処理の順序を検査し続け、撮影の失敗と取消時の挙動も代役に反映する。iOSのジョブは未実行。
+- [撮影対応を含む全体CI 45736484307・試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/attempts/2) は `99fa7e2d8d8f28f826c726bd08bfe18a132aae07`。GitHubの試行別APIで同じソース・試行2の検証15件すべて成功と、公開1件のスキップを確認した。試行1のiOS 26通常UI Aの週送りは元の合格条件のまま、試行2の新しいRunnerで完了した。試行1では同じケースの実際の失敗時にXCTestのPNG出力も確認した（N187-CI6）。製品コードはPR #186の `0294c79` と同じ。
