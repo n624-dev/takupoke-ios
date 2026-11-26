@@ -9619,3 +9619,5 @@ Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー�
 - 同じ `0294c79` の[限定CI 45710773715](https://github.com/n624-dev/takupoke-ios/actions/runs/45710773715) は SDK 27.2、iOS 26.5で221.670秒、iOS 27.0で137.875秒の実操作を完了し両OS成功。起点日前の非表示、自動起点の表示、ラベル変更と再起動の反映を確認した。
 - [全体CI 45714093730・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/1) は `0294c79` で15検証ジョブ中10成功、4失敗、1取消。公開はスキップ。限定の新機能ケースは全体の通常UI Bでも両OS成功。失敗は手動訂正3件、iOS 26の配色メニュー、iOS 27 UI Bのジョブ上限（N185-CI1〜5）。残件を同じコミット・合格条件で再検証した。
 - [全体CI・試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/2) は同じ `0294c79` で13件成功・2件失敗、公開はスキップ。iOS 27の通常UI Bと残っていた手動訂正2件が成功。iOS 26の通常UI BはAppleのランタイム取得、手動明示選択は前回より後の3件の状態照合で止まった（N185-CI6・7）。この2件を同じコミットで再検証する。
+- [全体CI・試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/3) は13件成功。iOS 26手動明示選択はAppleカタログのネットワークエラー、iOS 26通常UI Bは週送りの描画間隔100.309msが既存90msの条件を超えた（N185-CI8・9）。
+- [全体CI・試行4](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/4) で同一ソース `0294c79d6e928c660f571c9ce523318e04df7f6d`・試行4の検証15件がすべて成功し、公開1件はスキップされた。最後のiOS 26通常UI Bと手動明示選択も元の条件で完了。結果は試行別の全16ジョブのSHA・試行番号・結論を照合した。
