@@ -6466,3 +6466,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `0294c79`、[全体45714093730・試行1のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970148)、SDK 27.2。週送りと通常画面の区間は成功。2026-11-26 00:58:33 UTCに `testNotificationControlsAndAppearance` の `ApplicationChecks+Notifications.swift:379` でメインカラーの選択肢の実存在を確認できず失敗。通知と新しい進捗テストは通過。試行1のiOS 27では同じメインカラー操作が成功した。合格条件を保って全体試行2で照合する。
 - N185-CI4の試行ZIPを確認。iOS 27通常UI Bでは通知2件と実文字サイズの先行2ケースが成功し、3ケース目の起動中にGitHubの上限へ到達した。元のケース・端末条件を維持して再検証する。
+
+### N185-CI6 — iOS 26通常UI Bの再実行でAppleカタログ取得が失敗
+
+- `0294c79`、[全体45714093730・試行2のiOS 26通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139622073331)。2026-11-26 01:09:50 UTCにApple MobileAssetのカタログ取得がネットワークエラーで失敗し、iOS 26.5（23F77）の取得コマンドが70を返した。SDK選択まで成功、実Runtimeの準備とXCTestは未実行。
+- `MobileAssetError.Download|tryAgainLater|23F77` とN185-CI5を比較。試行1は同じRuntimeの準備と画面操作まで成立し停止箇所も異なる。試行2のほかのジョブが終了した後、同じSDKとRuntimeの要求を維持して再検証する。
