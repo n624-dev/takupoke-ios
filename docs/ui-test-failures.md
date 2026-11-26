@@ -6471,3 +6471,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `0294c79`、[全体45714093730・試行2のiOS 26通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139622073331)。2026-11-26 01:09:50 UTCにApple MobileAssetのカタログ取得がネットワークエラーで失敗し、iOS 26.5（23F77）の取得コマンドが70を返した。SDK選択まで成功、実Runtimeの準備とXCTestは未実行。
 - `MobileAssetError.Download|tryAgainLater|23F77` とN185-CI5を比較。試行1は同じRuntimeの準備と画面操作まで成立し停止箇所も異なる。試行2のほかのジョブが終了した後、同じSDKとRuntimeの要求を維持して再検証する。
+
+### N185-CI7 — iOS 26手動明示選択の再実行で3項目目の保存状態を照会できない
+
+- `0294c79`、[全体45714093730・試行2のiOS 26手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139622074047)、SDK 27.2・iOS 26.5。試行1の完了ボタン待機を通過し、2026-11-26 01:39:29 UTCに `ManualAssistanceChecks+Review.swift:148` で3件の一意な項目IDが確認できず失敗（544.086秒）。取得値は `nil, ambiguous=false`。採用と再起動まで未確認。
+- `manual-field-ids|distinct field IDs|Review.swift:148` を照合した。試行1のiOS 26は入力、試行1のiOS 27は確認画面の照合で止まっており、今回は異なる段階。前回全体の同一OS・SDKでは実操作・採用・再起動を完了している。成功したiOS 27の試行2と同じ合格条件で、残件を再検証する。
