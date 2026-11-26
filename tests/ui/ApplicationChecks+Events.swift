@@ -209,6 +209,46 @@ extension ApplicationChecks {
 }
 
 extension ApplicationChecks {
+    func testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel() {
+        let label = "Fictional progress"
+        let settings = "試験の自動表示"
+        let cards = app.buttons.matching(identifier: "countdown-home-card")
+        let card = cards.matching(NSPredicate(format: "label CONTAINS %@", "架空の進捗試験")).firstMatch
+        tab("ホーム")
+        XCTAssertTrue(visible(card, navigation: "たくポケ").exists, app.debugDescription)
+        let progress = card.descendants(matching: .any)["countdown-progress"]
+        XCTAssertFalse(progress.exists)
+        XCTAssertFalse(card.label.contains("設定期間の経過率"), app.debugDescription)
+
+        tab("設定")
+        tap("カウントダウン")
+        screen("カウントダウン")
+        let automatic = visible(app.buttons["countdown-automatic"], navigation: "カウントダウン")
+        XCTAssertTrue(automatic.isHittable, app.debugDescription)
+        automatic.tap()
+        screen(settings)
+        let origin = app.descendants(matching: .any)["countdown-origin"]
+        XCTAssertTrue(visible(origin, navigation: settings).exists, app.debugDescription)
+        XCTAssertTrue((origin.label + (origin.value as? String ?? "")).contains("・自動"), app.debugDescription)
+        let field = visible(app.textFields["countdown-progress-label"], navigation: settings)
+        XCTAssertTrue(field.isHittable, app.debugDescription)
+        let previous = field.value as? String ?? ""
+        XCTAssertEqual(previous, "設定期間の経過率")
+        field.tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: previous.count) + label)
+        XCTAssertEqual(field.value as? String, label)
+        tapToolbar("countdown-save", bar: settings)
+        screen("カウントダウン")
+
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--reset-fixture" }
+        app.launchArguments.append("--countdown-progress-announced")
+        launchReady()
+        tab("ホーム")
+        XCTAssertTrue(visible(card, navigation: "たくポケ").exists, app.debugDescription)
+        XCTAssertTrue(card.label.contains(label) || (progress.exists && progress.label.contains(label)), app.debugDescription)
+    }
+
     func testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent() throws {
         let warning = "学校の元PDFと採用原本に差異があるため、配信データは更新待ちです。配信元による内容の確認・必要な更新が必要です。端末の再取得では解消しません。保存済みの行事を表示しています。"
         func identifying(_ identifier: String, title: String) -> XCUIElement {

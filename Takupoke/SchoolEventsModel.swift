@@ -49,6 +49,7 @@ final class SchoolEventsModel: ObservableObject {
     }
     private var requests: [Int: Request] = [:]
     private var states: [Int: SchoolEventsRefreshState] = [:]
+    private var failedBodyYears = Set<Int>()
     private var store: SchoolEventsStore?
     private var active: Bool
     private var reachable = true
@@ -110,6 +111,13 @@ final class SchoolEventsModel: ObservableObject {
         guard states[year]?.targetMismatch != true, observation.lastSuccessfulStatus == .matched,
               !cached.response.stale, time <= date, date.timeIntervalSince(time) < 86_400 else { return .sourcePending }
         return .available
+    }
+
+    func countdownAnnouncementCoverage(year: Int) -> CountdownAnnouncementCoverage {
+        if runningRequest(year: year)?.checksBody == true || (!ready && !failed) { return .checking }
+        if failedCacheYears.contains(year) || failedBodyYears.contains(year) ||
+            states[year]?.body.firstFailureAt != nil || (!ready && failed) { return .unavailable }
+        return .missing
     }
 
     func loadIfNeeded() {
@@ -191,7 +199,9 @@ final class SchoolEventsModel: ObservableObject {
         failed = false
         message = nil
         guard let request = start(year: year, demand: .manual) else {
+            failedBodyYears.insert(year)
             failed = true; message = SchoolEventsError.unavailable.localizedDescription
+            sourcePresentationRevision += 1
             return
         }
         manualYear = year
@@ -527,6 +537,7 @@ final class SchoolEventsModel: ObservableObject {
     private func confirmBody(year: Int, manual: Bool) async -> Bool {
         do {
             let changed = try await fetchOne(year: year)
+            failedBodyYears.remove(year)
             if var state = states[year] { state.body = SchoolEventsRetry(); record(state) }
             if manualYear == year || manual {
                 message = changed ? "\(year)年度の学校行事を取得しました。" : "\(year)年度の学校行事に更新はありません。"
@@ -534,6 +545,7 @@ final class SchoolEventsModel: ObservableObject {
             return true
         } catch {
             guard !Task.isCancelled, canAccessData() else { return false }
+            failedBodyYears.insert(year)
             if var state = states[year] { state.body.fail(at: now()); record(state) }
             if manualYear == year || manual {
                 failed = true

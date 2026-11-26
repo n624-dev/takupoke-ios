@@ -113,7 +113,7 @@ struct Clock { let currentDate=Date(timeIntervalSince1970: 42) }
     let foreground = Task { await app.activate() }
     while app.backgroundRefresh?.isCancelled != true { await Task.yield() }
     precondition(!app.preparing && app.ready == !crossedBoundary && screen.showsData == !crossedBoundary)
-    app.updateCountdown()
+    precondition(app.updateCountdown() == !crossedBoundary)
     precondition(app.countdown.updatedAt.count == (crossedBoundary ? 0 : 1))
     app.heldWork?.resume(); app.heldWork = nil
     await foreground.value

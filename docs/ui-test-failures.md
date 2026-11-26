@@ -6416,3 +6416,71 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - `4a08a7a`、[全体45557966509 試行2のiOS 26.5手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139062265471)、SDK27.2。ビルド124.2秒、所有Simulatorの起動493.0秒。2026-11-25 08:22:58 UTCに実プロセスのfixture-readyは観測したが、最初の `app.launch()` からXCTestに正常に返らず08:23:43に `ManualAssistanceChecks.swift:71` の `Timed out while launching application via Xcode`、ケース228.645秒、exit65。アプリの準備・起動APIの復帰を区別し、訂正操作は未実行。試行1のGitHubジョブ全体の期限とは別段階。
 - `Timed out while launching application via Xcode|fixture-ready|ManualAssistanceChecks.swift:71` で正式503、44499001313、44660400847と比較。503／44660400847は初回のXcode起動返却、44499001313は採用後の再起動で停止。今回の最初の起動についても、生成アプリ準備成立とテスト起動API未返却をログで区別した。試行1の詳細が欠落しており、同じ停止だったとは判定できない。前の全体CIで同一製品・SDK・ケースが通った実績と、今回の訂正操作未到達を根拠に、全体の終端後に新しいRunnerで同一ケースを確認する。起動を成功とみなす条件、起動回数、実操作、回収は維持する。
 - [試行3の同じケース](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139093060268) は同一ソースで実起動、3項目の確認、4項目目の拒否・採用・再起動と回収まで成功（375.270秒）。同じ試行の必須15件は全成功、公開はスキップ。試行1／2の停止と下位原因の不確定は記録として残す。
+
+### N185-L1 — Linuxの通知・保存検証が進捗設定の型を認識できない
+
+- `3adf386`、Linux・Swift 6.1.2。配布ゲートと同じPythonテスト一式のうち、実Swiftメソッドを境界のスタブと組み合わせる通知検証でコンパイルが停止した。起点日編集の型、私有スナップショットのAPI、復旧時のコールバックの型が旧スタブに不足した。既存の通知取消や半期処理の実行結果はこの試行では未確認。
+- 本体のメソッド抽出と通知の照合条件を維持し、追加の型と保存・再計算境界をスタブに反映した。起点日の保存前に対象を再確認できない場合と別の試験に変わった場合の拒否、半期削除時の公開設定の保持も照合する。
+
+### N185-CI1 — iOS 26の手動明示選択で入力後の完了ボタンを確認できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 26.5手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970143)、SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。2欄目で実消去、フォーカス、入力まで進み、2026-11-25 23:00:02 UTCに `ManualAssistanceChecks+Input.swift:126` で期限内の完了ボタンを確認できず、203.834秒で失敗。終了時のAXには背後の通常時間割のナビゲーションバーがあった。入力確定、採用、再起動は未確認。完了ボタンを確認できなかった原因は未確定。
+- `manual-edit-done|keyboard-will-hide|text-edit-ended|N191|N183-CI21` を照合した。今回は待機開始時にキーボードが閉じて `text-edit-ended` が出ており、終了時AXには復旧バーも残った。N191と似た症状だがSDKが異なり、N183-CI21では消去後に止まっており入力に未到達。直前の全体CI 45557966509では同じiOS 26.5・SDK 27.2の[元ケースが成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457641)。入力テストと復旧画面に変更はなく、キーボードが閉じた理由は未確定。全ジョブの終端後、この実行の失敗分を新しいRunnerで比較する。操作と合格条件を維持する。
+
+### N185-CI2 — iOS 27の手動明示選択で確認画面を期限内に照合できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 27.0手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970184)、SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。少なくとも科目・教員の入力と編集終了まで確認。2026-11-25 23:28:37 UTCに `ManualAssistanceChecks+Review.swift:45` で元の待機が時間切れとなり、535.490秒で失敗。原因は未確定。後続の採用と再起動は未確認。
+- `Review.swift:45|manual-coordinator-state|review=true|高信頼` を照合した。最初の科目だけの確認状態は成立。後の失敗時AXにも科目＋教員の `review=true;preview=false` が出ていたが、20秒の元の待機では照会できなかった。[前回の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457266) では同じSDK・OS、同じ復旧画面と手動テストで完走。N185-CI1とは失敗段階が異なる。全ジョブを待ち、同一ソース・同一条件で失敗分を比較する。
+
+### N185-CI3 — iOS 27の手動1項目で確認画面を期限内に照合できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 27.0手動1項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970157)、SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。2026-11-25 23:48:15 UTCに `ManualAssistanceChecks+Review.swift:45` の待機が時間切れとなり、516.582秒で失敗。採用・再起動までは未確認。
+- 同じケース内では確認画面の成立2回と背景復帰後の同一プロセス・確認状態の保持を観測。失敗直後のAXにも `review=true;preview=false` が出た。N185-CI2とは同じ待機だが、今回の停止は背景復帰後の再確認。両ケースを同一コード・同一期限で再検証する。
+
+### N185-CI4 — iOS 27通常UI Bがジョブ時間の上限に到達
+
+- `0294c79`、[全体45714093730・試行1のiOS 27.0通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970051)、SDK 27.2。2026-11-25 23:53:21 UTCにGitHub上で取消。チェック注記の理由は75分のジョブ上限。個別ログは取得時に拒否され、最後に到達したケースは未確認。手動取消は行っていない。
+
+### N187-CI1 — 失敗時画面の実機構成テストが撮影前の起動で停止
+
+- `bf7f27d`、[実シミュレーター撮影の専用検証45721609887](https://github.com/n624-dev/takupoke-ios/actions/runs/45721609887/job/139581068431)、SDK 27.2・iOS 27.0。専用ワークフローでsimctlの直接起動を行い、2026-11-25 23:54:27 UTCにbootstatusの期限到達。プロセスの回収中にOperation not permitted。画面の取得処理には未到達。
+- `bootstatus|Operation not permitted|frontend` で通常iOS27の起動失敗と前回の限定成功を比較した。前回の[限定成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45710773715/job/139544317881) は既存の起動ヘルパーを使用した。専用検証の直接起動を既存ヘルパーに揃え、実画面1枚・成功時0枚・PNGバイトの照合を維持する。全体CIの成否には合算しない。
+
+### N187-CI2 — 失敗時画面の実シミュレーター検証で画像が取得できない
+
+- `1ca28c0`、[撮影専用45726149220・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45726149220/job/139596423999)、iOS 27.0・SDK 27.2。既存のGUI起動手順は完了。2026-11-26 00:08:19 UTCに `simctl io` による取得が失敗し、PNGを検証できなかった。N187-CI1と異なり、撮影まで到達した。個別コマンドの終了値・期限を次の試行で記録する。
+
+### N187-CI3 — OCR研究ジョブが従来の製品スナップショット照合で停止
+
+- `d42fbc8`、[OCR標準45726229873](https://github.com/n624-dev/takupoke-ios/actions/runs/45726229873) と [OCR ASCII 45726250089](https://github.com/n624-dev/takupoke-ios/actions/runs/45726250089)、両OSとも固定コミットとのアプリ差分照合で終了。ランタイム起動・撮影は未実行。固定コミットの製品部分を専用検証ブランチに復元し、既存の照合を保ったまま、同じ撮影コードを検証する。PR #186・#187の製品コードと検査条件は変えない。
+
+### N187-CI4 — XCTestの失敗後に撮った画像をPNGログへ渡せない
+
+- `20cb32e`、[撮影専用45727821587](https://github.com/n624-dev/takupoke-ios/actions/runs/45727821587/job/139602033193)、iOS 27.0・SDK 27.2。架空のホーム画面と起点日前の検査を通過し、指定の意図的なXCTest失敗を2026-11-26 00:29:18 UTCに確認。撮影コマンドは正常終了したが、00:29:23に画像が形式・容量の検査に通らず、PNGを復元できなかった。元データの形式と容量を切り分け、必要時だけApple標準の画像処理で1024px以下のPNGへ変換してから従来の検査を行う。
+
+### N187-CI5 — ASCII OCRのiOS 27がiPhone 16向けの端末を作成できない
+
+- `2d77717`、[固定スナップショットのASCII OCR 45727564438](https://github.com/n624-dev/takupoke-ios/actions/runs/45727564438/job/139601152463)。iOS 27の列挙でiPhone19,4専用のランタイムが選ばれ、iPhone 16の端末作成がexit147。起動や撮影には未到達。iOS 26は成功。[標準OCRの両OS](https://github.com/n624-dev/takupoke-ios/actions/runs/45727553482)も成功。ランタイム選択が汎用iOS 27の中で行われるよう両研究ランナーに共通の判定を使う。既存のSDK、固定製品、実プロセスの照合と推論の合格条件は維持する。
+
+### N185-CI5 — iOS 26通常UI Bのメインカラーの選択肢を確認できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970148)、SDK 27.2。週送りと通常画面の区間は成功。2026-11-26 00:58:33 UTCに `testNotificationControlsAndAppearance` の `ApplicationChecks+Notifications.swift:379` でメインカラーの選択肢の実存在を確認できず失敗。通知と新しい進捗テストは通過。試行1のiOS 27では同じメインカラー操作が成功した。合格条件を保って全体試行2で照合する。
+- N185-CI4の試行ZIPを確認。iOS 27通常UI Bでは通知2件と実文字サイズの先行2ケースが成功し、3ケース目の起動中にGitHubの上限へ到達した。元のケース・端末条件を維持して再検証する。
+
+### N185-CI6 — iOS 26通常UI Bの再実行でAppleカタログ取得が失敗
+
+- `0294c79`、[全体45714093730・試行2のiOS 26通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139622073331)。2026-11-26 01:09:50 UTCにApple MobileAssetのカタログ取得がネットワークエラーで失敗し、iOS 26.5（23F77）の取得コマンドが70を返した。SDK選択まで成功、実Runtimeの準備とXCTestは未実行。
+- `MobileAssetError.Download|tryAgainLater|23F77` とN185-CI5を比較。試行1は同じRuntimeの準備と画面操作まで成立し停止箇所も異なる。試行2のほかのジョブが終了した後、同じSDKとRuntimeの要求を維持して再検証する。
+
+### N185-CI7 — iOS 26手動明示選択の再実行で3項目目の保存状態を照会できない
+
+- `0294c79`、[全体45714093730・試行2のiOS 26手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139622074047)、SDK 27.2・iOS 26.5。試行1の完了ボタン待機を通過し、2026-11-26 01:39:29 UTCに `ManualAssistanceChecks+Review.swift:148` で3件の一意な項目IDが確認できず失敗（544.086秒）。取得値は `nil, ambiguous=false`。採用と再起動まで未確認。
+- `manual-field-ids|distinct field IDs|Review.swift:148` を照合した。試行1のiOS 26は入力、試行1のiOS 27は確認画面の照合で止まっており、今回は異なる段階。前回全体の同一OS・SDKでは実操作・採用・再起動を完了している。成功したiOS 27の試行2と同じ合格条件で、残件を再検証する。
+
+### N185-CI8 — iOS 26手動明示選択の試行3でAppleカタログ取得が失敗
+
+- `0294c79`、[全体45714093730・試行3のiOS 26手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139644912562)。2026-11-26 02:56:46 UTCにApple MobileAsset `tryAgainLater`、iOS 26.5（23F77）の取得が終了70。試行2のN185-CI6と同じ準備エラー。今回、手動訂正ケースは開始していない。ほかのジョブ終端後、同一SDK・Runtimeの要求を維持して照合する。
+
+### N185-CI9 — iOS 26通常UI Bの試行3で週送りの描画が100ms空いた
+
+- `0294c79`、[全体45714093730・試行3のiOS 26通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139644913399)、SDK 27.2・iOS 26.5。2026-11-26 03:14:55 UTCに `ApplicationChecks+WeekAppearance.swift:466`、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が100.309msの描画間隔を観測し、元90ms条件で失敗。42.960秒。試行1はこのケースを通過し、試行2はRuntime取得前の失敗だった。N183-CI22の近接した描画間隔と照合し、元の合格条件を維持する。

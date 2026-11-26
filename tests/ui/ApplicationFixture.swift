@@ -572,6 +572,9 @@ struct SimulatorApplication: App {
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorCountdownEventsFixture.seedSchoolNotices(base)
         }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-progress") {
+            try SimulatorCountdownEventsFixture.seedProgress(base)
+        }
         if ProcessInfo.processInfo.arguments.contains("--countdown-delete-write-failure"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorCountdownDeletionFixture.seed(base)

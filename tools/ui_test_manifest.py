@@ -85,6 +85,7 @@ NOTIFICATION_PROBE_TESTS = (
 )
 COUNTDOWN_NOTIFICATION_TEST = "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch"
 COUNTDOWN_REMINDER_LAYOUT_TEST = "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors"
+COUNTDOWN_PROGRESS_TEST = "testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel"
 SCHOOL_COUNTDOWN_NOTIFICATION_TEST = "testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed"
 COUNTDOWN_DELETE_TEST = "testCountdownDeleteWriteFailureKeepsDetailAndCanRetry"
 NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (COUNTDOWN_NOTIFICATION_TEST, SCHOOL_COUNTDOWN_NOTIFICATION_TEST)
@@ -130,6 +131,7 @@ PROBE_GROUPS = {
     "countdown-and-yellow": (COUNTDOWN_REMINDER_LAYOUT_TEST, "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
     "countdown-notification-context": (SETTINGS_TEST, "testNotificationControlsAndAppearance", COUNTDOWN_NOTIFICATION_TEST),
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
+    "countdown-progress": (COUNTDOWN_PROGRESS_TEST,),
     "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
                   COUNTDOWN_NOTIFICATION_TEST, COUNTDOWN_REMINDER_LAYOUT_TEST),
     "week-change-details": ("testChangedRoomInHomeWeekAndList", "testHomeTimetableAndWeekCalendar", "testMergedCardsFromAllSources"),
@@ -190,6 +192,7 @@ SHARDS = {
         "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",
         "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
         COUNTDOWN_REMINDER_LAYOUT_TEST,
+        COUNTDOWN_PROGRESS_TEST,
         SYSTEM_SIZE_TEST,
         "testNotificationControlsAndAppearance",
         COUNTDOWN_NOTIFICATION_TEST,

@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`fb82081c7c57c1c89160619981d9fb6c18fba898443a37128914d310d63def05`
+`89c49ce514269f4ad14c81137d651828738477a432fb1f04034bcc2af9a62ab4`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -29,6 +29,14 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testRegistrationStoreRejectsInvalidWritesAndSurvivesSchoolDataRetention`
 - `testCountdownRecoveryPreservesCorruptBytesAndInstallsWritableLibrary`
 - `testCountdownResetRejectsTemporaryAccessFailureAndFutureFormats`
+- `testExamAnnouncementUsesClampedCalendarMonthAndFirstDay`
+- `testExamAnnouncementDistinguishesUnconfirmedYearsAndCompleteAbsence`
+- `testClassProgressSharesOnlyAnUnambiguousExamPeriod`
+- `testAutomaticProgressMigrationBindsOnlyTheSuppliedTargetAndKeepsPreferences`
+- `testCountdownClassProgressStorageCommitsAtomicallyAndExpiresWithPrivateData`
+- `testClassMigrationKeepsOldDateAndPublicEditsWhenPrivateSnapshotCannotBeWritten`
+- `testProgressLabelDistinguishesDefaultAndWhitespaceAcrossStorage`
+- `testCustomOriginFollowsExamIdentityWithoutChangingNotificationDates`
 - `testClassExamDistinguishesAbsentUnloadedAndUnconfirmedChanges`
 - `testClassExamHoldsAfterFailedFirstChangeAcquisitionAcrossReopen`
 - `testClassExamUsesAcceptedSlotsVisibilityAndAppliedChanges`
@@ -60,6 +68,7 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover`
 - `testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair`
 - `testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates`
+- `testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel`
 - `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent`
 
 ## [tests/ui/ApplicationChecks+Notifications.swift](../../tests/ui/ApplicationChecks+Notifications.swift)
