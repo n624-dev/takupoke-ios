@@ -6569,3 +6569,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `8d131dd`、[正式544・試行4のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/140009448421)、SDK 27.2。週送りの先頭検査は15:42:50 UTCに成功。15:54:17 UTCに `testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel`（73.859秒）が `ApplicationChecks+Events.swift:239` で失敗。既定値を確認し、TextFieldへの実タップと削除・英文の入力要求は送ったが、直後の実値は「設定」のままで、保存と再起動後の表示には未到達。XCTestの失敗時画像を取得した。
 - `countdown-progress-label|Fictional progress|N185-CI` で照合。過去の限定45710773715では両OS、試行1のiOS 26 Bでは進捗入力が成功し学校行事の別ケースだけが失敗した。今回とそのときの入力コードは同じ。削除と全文入力が一つの送出で部分的にしか反映されなかった理由は未確定。現行の実入力・完全一致・保存と再起動を保った新しいRunnerで、この1件を含む通常Bの全検査を比較する。iOS 27 Aは通知復旧を含め成功。事前検査は13成功・1失敗、公開はスキップ。
+
+### N544-CI17 — iOS 26通常UI Bで週送りの描画間隔が再発
+
+- `8d131dd`、[正式544・試行5のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/140041278060)、SDK 27.2。16:44:42 UTCの `ApplicationChecks+WeekAppearance.swift:466` で99.740ms、ケース37.502秒。週の到着からコールバックの復帰は約0.94ms、最初の設定開始は約32.1ms後、設定は約0.25ms。到着後に新たに構築した週、移動中の詳細測定、表示枠の欠落は0。XCTestの失敗時画像を取得した。
+- `Height adjustment must keep drawing frames|N544-CI5|N185-CI9` と比較。試行2と同じ90ms条件の超過だが、試行4では同じ週送りが成功して、後段の進捗ラベル入力で止まった。原因の内訳は未確定。試行4のUI Bの実Runnerとは別のRunnerを使い、週送りと進捗ラベルを含む通常Bの全検査を、同じコミット・全基準のまま比較する。
