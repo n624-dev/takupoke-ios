@@ -6524,3 +6524,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `8d131dd`、[正式544・試行3のiOS 27.0通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139917030722)、SDK 27.2。2026-11-26 13:06:01 UTCに `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`（78.413秒）が `ApplicationChecks+Notifications.swift:195` で失敗。「予約済みのカウントダウン通知を確認できません」が表示された。XCTest画像を取得し、前回失敗した削除確認を含む残りの同ジョブは完了した。
 - `pendingStorageRecoveryIdentifiers|getPendingNotificationRequests|通知を確認できません` でN544-CI6と#134の記録を照合。失敗時点で保留一覧の取得が成功していないことを確認した。OSが応答を返さなかった下位原因は未確定。復旧時の同じ6秒枠内で、3秒たって未応答なら読み取りを1回だけ再要求する。最初の遅延応答も期限内なら有効で、両方が失敗すれば従来どおり取消成功を表示しない。実操作・結果・取消対象の範囲は維持する。
+
+### N544-CI8 — 通知一覧の再要求を含むiOS 27限定検証も取消未確認
+
+- `b447220`、[限定45832578902・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45832578902/job/139952906928)、SDK 27.2。Appleビルドは成功。2026-11-26 13:56:43 UTC、`testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`（72.863秒）が `ApplicationChecks+Notifications.swift:195` で失敗し、同じ取消未確認の文言を表示。XCTest画像を取得した。診断時 `usernotificationsd` は稼働中で、システムログの取得のみ時間切れ。OS応答の不在理由は未確定。
+- `countdown-storage|#134|usernotificationsd` で先行の限定成功45053281398、N544-CI7、保存期間復旧のOS応答確認を照合。再要求を追加しても同じ結果になったため、テストの最初に実通知サービスへ独立した一覧要求を出し、その応答を確認してから復旧の操作を開始する。準備と取消操作の実要求を分け、読めないデータを注入せず、既存の10秒・確定・保全・再登録・再起動を維持する。準備の応答がなければ明示的に失敗を記録する。

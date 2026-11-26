@@ -315,6 +315,9 @@ struct SimulatorApplication: App {
                     if ProcessInfo.processInfo.arguments.contains("--notification-permission-probe") {
                         FixtureNotificationPermissionTouch()
                     }
+                    if ProcessInfo.processInfo.arguments.contains("--countdown-storage-corrupt") {
+                        FixtureCountdownRecoveryNotificationReadiness()
+                    }
                     if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
                         VStack {
                             Text(notificationProbe).accessibilityIdentifier("fixture-notification-result")
@@ -760,6 +763,24 @@ struct SimulatorRetentionProofView:View {
             notificationServiceReady = true
             FixtureCITrace.mark("retention-readiness-complete")
         }
+    }
+}
+
+private struct FixtureCountdownRecoveryNotificationReadiness: View {
+    @State private var ready = false
+
+    var body: some View {
+        Text(ready ? "通知一覧の応答を確認済み" : "通知一覧の応答を確認中")
+            .font(.system(size: 1))
+            .accessibilityIdentifier("fixture-countdown-recovery-notification-readiness")
+            .allowsHitTesting(false)
+            .task {
+                FixtureCITrace.mark("countdown-recovery-readiness-start")
+                _ = await UNUserNotificationCenter.current().pendingNotificationRequests()
+                guard !Task.isCancelled else { return }
+                ready = true
+                FixtureCITrace.mark("countdown-recovery-readiness-complete")
+            }
     }
 }
 

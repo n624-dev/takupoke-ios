@@ -190,6 +190,12 @@ extension ApplicationChecks {
         XCTAssertTrue(app.staticTexts[warning].exists)
         XCTAssertFalse(added.isEnabled)
 
+        // Verify that the native notification service in this simulator can
+        // answer an independent request before testing the recovery action.
+        let readiness = app.staticTexts["fixture-countdown-recovery-notification-readiness"]
+        let responded = expectation(for: NSPredicate(format: "label == %@", "通知一覧の応答を確認済み"),
+                                    evaluatedWith: readiness)
+        XCTAssertEqual(XCTWaiter.wait(for: [responded], timeout: 15), .completed, app.debugDescription)
         tap("予約済み通知を取り消す")
         tapDialog(app.buttons["通知を取り消す"])
         XCTAssertTrue(app.staticTexts["予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"]
