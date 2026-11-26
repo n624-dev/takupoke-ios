@@ -6445,3 +6445,11 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `bf7f27d`、[実シミュレーター撮影の専用検証45721609887](https://github.com/n624-dev/takupoke-ios/actions/runs/45721609887/job/139581068431)、SDK 27.2・iOS 27.0。専用ワークフローでsimctlの直接起動を行い、2026-11-25 23:54:27 UTCにbootstatusの期限到達。プロセスの回収中にOperation not permitted。画面の取得処理には未到達。
 - `bootstatus|Operation not permitted|frontend` で通常iOS27の起動失敗と前回の限定成功を比較した。前回の[限定成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45710773715/job/139544317881) は既存の起動ヘルパーを使用した。専用検証の直接起動を既存ヘルパーに揃え、実画面1枚・成功時0枚・PNGバイトの照合を維持する。全体CIの成否には合算しない。
+
+### N187-CI2 — 失敗時画面の実シミュレーター検証で画像が取得できない
+
+- `1ca28c0`、[撮影専用45726149220・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45726149220/job/139596423999)、iOS 27.0・SDK 27.2。既存のGUI起動手順は完了。2026-11-26 00:08:19 UTCに `simctl io` による取得が失敗し、PNGを検証できなかった。N187-CI1と異なり、撮影まで到達した。個別コマンドの終了値・期限を次の試行で記録する。
+
+### N187-CI3 — OCR研究ジョブが従来の製品スナップショット照合で停止
+
+- `d42fbc8`、[OCR標準45726229873](https://github.com/n624-dev/takupoke-ios/actions/runs/45726229873) と [OCR ASCII 45726250089](https://github.com/n624-dev/takupoke-ios/actions/runs/45726250089)、両OSとも固定コミットとのアプリ差分照合で終了。ランタイム起動・撮影は未実行。固定コミットの製品部分を専用検証ブランチに復元し、既存の照合を保ったまま、同じ撮影コードを検証する。PR #186・#187の製品コードと検査条件は変えない。
