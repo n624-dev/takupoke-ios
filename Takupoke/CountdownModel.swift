@@ -378,7 +378,7 @@ final class CountdownModel: ObservableObject {
             }
         }
         let currentExam = automaticCards.displayed
-        if library.version == 1 {
+        if library.canMigrateProgress(availability: currentExam?.availability) {
             if !decidedLegacyProgressTarget {
                 if let currentExam, currentExam.availability.allowsNotification {
                     legacyProgressTarget = currentExam.examProgress?.key

@@ -39,6 +39,9 @@ extension MaterialsModel {
                                                  year: Int?, control: AcquisitionControl, reason: FilePipeline.Reason = .automatic) throws {
         try SelectedFileRefresher.refresh(requested: requested, check: control.check) { kind in
             try worker.pipeline(kind, reason: reason, control: control) { worker, control in
+                if reason == .manual, worker.library?.state.record(for: kind)?.source.grant == nil {
+                    throw MaterialError.accessExpired
+                }
                 try worker.refreshIfChanged(kind, defaultYear: year, control: control)
             }
         }

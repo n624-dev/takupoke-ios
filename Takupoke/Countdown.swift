@@ -349,6 +349,10 @@ struct CountdownLibrary: Codable, Equatable {
             Set(registrations.compactMap(\.reference)).count == registrations.compactMap(\.reference).count
     }
 
+    func canMigrateProgress(availability: CountdownAvailability?) -> Bool {
+        version == 1 && availability != .loading
+    }
+
     mutating func migrateProgress(to target: CountdownExamProgressKey?) -> CountdownCustomProgress? {
         guard version == 1 else { return nil }
         version = Self.currentVersion

@@ -25,6 +25,7 @@ extension SpecialSchedulesModel {
                     failure: source.failure, attemptVersion: source.attemptParserVersion)
                 do {
                     try Self.pipeline(store, kind: kind, reason: force ? .manual : reason, control: control) { store, control in
+                    if reason == .manual, source.grant == nil { throw MaterialError.accessExpired }
                     var changed = false
                     if let grant = source.grant {
                         let staged = store.newStagingURL()

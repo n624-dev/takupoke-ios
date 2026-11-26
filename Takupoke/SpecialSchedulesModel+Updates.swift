@@ -8,7 +8,7 @@ extension SpecialSchedulesModel {
         })
         guard !requested.isEmpty else { return }
         perform(success: "選択済みファイルの更新を確認しました。") { store, control, _ in
-            try Self.refreshSelectedFiles(store, requested: requested, control: control)
+            try Self.refreshSelectedFiles(store, requested: requested, control: control, reason: .manual)
         }
     }
 

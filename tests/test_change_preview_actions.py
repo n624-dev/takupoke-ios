@@ -158,7 +158,7 @@ struct ScopedMaterialSelection { init(_ url: URL) {} }
 struct Grant { let bookmark = Data() }
 struct Source {
     let digest = "saved", originalName = "fictional.pdf"
-    let grant: Grant? = Grant()
+    let grant: Grant?
     let failure: PDFParseError? = nil
     let attemptParserVersion: Int? = SpecialScheduleAnalysis.parserVersion
 }
@@ -189,10 +189,15 @@ final class FileRefreshDiagnostics {
     func record(_ event: Event, source: Source) { events.append(event) }
 }
 final class SpecialScheduleStore {
-    let sources = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { ($0, Source()) })
+    let sources: [SpecialScheduleKind: Source]
     let records = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { ($0, Saved()) })
     var failed = [SpecialScheduleKind](), confirmed = [SpecialScheduleKind](), selected = [SpecialScheduleKind](), discarded = 0, analyses = 0
     var parseCancellations: [SpecialScheduleKind] = []
+    init(missingGrant: SpecialScheduleKind? = nil) {
+        sources = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map {
+            ($0, Source(grant: $0 == missingGrant ? nil : Grant()))
+        })
+    }
     func newStagingURL() -> URL { URL() }
     func discardStaging(_ url: URL) { discarded += 1 }
     func selectedURL(for kind: SpecialScheduleKind) -> URL? { URL() }
@@ -291,6 +296,17 @@ check(interruptedStore.parseCancellations.isEmpty && interruptedStore.failed.isE
       "cancelled candidates must not publish live parse failures, acquisition failures or analyses")
 let terminal = FileRefreshDiagnostics.shared.events.filter { $0 == .cancelled || $0 == .refreshFailed }
 check(terminal == [.cancelled], "cancelled PDF reading must use the cancellation trace")
+let legacyStore = SpecialScheduleStore(missingGrant: .exam)
+SpecialSchedulesModel.copied = []
+do {
+    try SpecialSchedulesModel.refreshSelectedFiles(legacyStore, requested: ["exam", "examReturn"],
+        control: AcquisitionControl(), reason: .manual)
+    check(false, "a manual source check without a bookmark must fail")
+} catch MaterialError.accessExpired {} catch { check(false, "expected a reselection error") }
+check(legacyStore.failed == [.exam] && legacyStore.confirmed == [.examReturn],
+      "a missing bookmark must not block another authorized file or record an unperformed check")
+check(legacyStore.selected.isEmpty && legacyStore.analyses == 0 && SpecialSchedulesModel.copied == [.examReturn],
+      "keep the cached selection and analysis for the legacy file")
 if !failures.isEmpty { print(failures.joined(separator: "\n")); exit(1) }
 '''.replace("METHOD", block(refresh, "nonisolated static func refreshSelectedFiles(")) \
    .replace("CANCELLATION", block((ROOT / "Takupoke/StatusPresentation.swift").read_text(), "enum FileOperationOutcome")) \

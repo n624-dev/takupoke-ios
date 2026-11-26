@@ -357,8 +357,12 @@ extension CountdownTests {
         legacy.automatic.preferences.notifications = true
         legacy.automatic.preferences.lookahead = .month
         let old = try JSONDecoder().decode(CountdownLibrary.self, from: JSONEncoder().encode(legacy))
+        XCTAssertFalse(old.canMigrateProgress(availability: .loading))
+        XCTAssertTrue(old.canMigrateProgress(availability: .available))
+        XCTAssertTrue(old.canMigrateProgress(availability: nil))
         var migrated = old
         XCTAssertNil(migrated.migrateProgress(to: first))
+        XCTAssertFalse(migrated.canMigrateProgress(availability: .available))
         XCTAssertEqual(migrated.automatic.customOrigins, [.init(key: first, date: date)])
         XCTAssertTrue(migrated.automatic.preferences.showsProgress)
         XCTAssertNil(migrated.automatic.preferences.progressStart)
