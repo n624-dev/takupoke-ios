@@ -6480,3 +6480,7 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N185-CI8 — iOS 26手動明示選択の試行3でAppleカタログ取得が失敗
 
 - `0294c79`、[全体45714093730・試行3のiOS 26手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139644912562)。2026-11-26 02:56:46 UTCにApple MobileAsset `tryAgainLater`、iOS 26.5（23F77）の取得が終了70。試行2のN185-CI6と同じ準備エラー。今回、手動訂正ケースは開始していない。ほかのジョブ終端後、同一SDK・Runtimeの要求を維持して照合する。
+
+### N185-CI9 — iOS 26通常UI Bの試行3で週送りの描画が100ms空いた
+
+- `0294c79`、[全体45714093730・試行3のiOS 26通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139644913399)、SDK 27.2・iOS 26.5。2026-11-26 03:14:55 UTCに `ApplicationChecks+WeekAppearance.swift:466`、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が100.309msの描画間隔を観測し、元90ms条件で失敗。42.960秒。試行1はこのケースを通過し、試行2はRuntime取得前の失敗だった。N183-CI22の近接した描画間隔と照合し、元の合格条件を維持する。
