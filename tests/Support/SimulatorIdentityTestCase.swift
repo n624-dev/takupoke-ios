@@ -55,7 +55,6 @@ class SimulatorIdentityTestCase: XCTestCase {
     private static func recordFailureScreenshot() {
         guard !attemptedFailureScreenshot else { return }
         attemptedFailureScreenshot = true
-        print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN source=xctest")
         let screenshot = XCUIScreen.main.screenshot().image
         let size = screenshot.size
         guard size.width > 0, size.height > 0 else { return }
@@ -77,6 +76,7 @@ class SimulatorIdentityTestCase: XCTestCase {
             print("TAKUPOKE_UI_IMAGE DATA \(name) \(offset / chunkSize) \(chunk)")
         }
         print("TAKUPOKE_UI_IMAGE END \(name) \((encoded.count + chunkSize - 1) / chunkSize)")
+        print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN source=xctest")
     }
     #endif
 
