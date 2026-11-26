@@ -24,6 +24,19 @@ compare, prepare = module('compare'), module('prepare')
 
 
 class IOSRuntimeParityTests(unittest.TestCase):
+    def test_runtime_selection_excludes_model_specific_and_other_os_runtimes(self):
+        def runtime(identifier, version, available=True):
+            return dict(identifier='com.apple.CoreSimulator.SimRuntime.iOS-' + identifier,
+                        version=version, isAvailable=available)
+
+        compatible = runtime('27-0', '27.0')
+        simulation = dict(runtimes=[runtime('26-5', '26.5'), compatible,
+                                    runtime('27-2-iPhone19-4', '27.2'), runtime('27-1', '27.1', False)])
+        self.assertEqual(compare.select_runtime(simulation, 27), compatible)
+        simulation['runtimes'].remove(compatible)
+        with self.assertRaisesRegex(ValueError, 'iPhone 16'):
+            compare.select_runtime(simulation, 27)
+
     def arrays(self):
         try:
             import numpy as np

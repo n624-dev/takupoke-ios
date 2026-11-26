@@ -1,7 +1,7 @@
 # ASCII OCRのiOS 2入力・2出力CPU照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`bd9a498423357176d7d854ff473421497b417f2f5560bde90f988c8ba9ec5942`
+`45c58424cf6c0ab5ebf1402a714398dea10451f459706a04543946ee5676b7b9`
 
 環境：iOS26／27 Simulatorのnative Swift前処理＋C API。iPhone SDKリンクと実機実行は別
 
@@ -34,6 +34,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 
 ## [tests/test_ocr_ios_runtime_parity.py](../../tests/test_ocr_ios_runtime_parity.py)
 
+- `test_runtime_selection_excludes_model_specific_and_other_os_runtimes`
 - `test_full_probability_drift_rejects_even_when_greedy_text_is_unchanged`
 - `test_crossing_selected_piece_floor_rejects_within_numeric_tolerance`
 - `test_identical_native_probabilities_keep_spaces_and_ctc_intervals`
