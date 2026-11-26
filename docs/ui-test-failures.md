@@ -6488,3 +6488,23 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N187-CI6 — 全体のiOS 26通常UI Aで連続週送りの4接触が揃わない
 
 - `99fa7e2`、[全体45736484307・試行1のiOS 26通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/job/139632621700)、SDK 27.2・iOS 26.5。2026-11-26 02:54:34 UTCに `ApplicationChecks+WeekAppearance.swift:274`、`testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating` が「4回のネイティブドラッグと最後の高さ調整」を確認できず28.005秒で失敗。同ジョブの残りのテストは進行し、全体では14件成功、公開はスキップ。XCTestで失敗時の画像が1枚記録され、129290バイトのPNGの出力を確認した。
+
+### N544-CI1 — iOS 27手動単項目で資料全体のプレビュー照会が時間切れ
+
+- `8d131dd`、[正式544・試行1のiOS 27.0手動単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139823717586)、SDK 27.2。2026-11-26 10:03:26 UTC、`ManualAssistanceChecks+Review.swift:131` の `testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground` がプレビューの待機20秒で時間切れ（ケース566.134秒）。その後のAXには `preview=true;review=false;running=false;draft=nil;failure=none` があった。失敗時のXCTest画像が1枚記録された。
+- `Review.swift:131|preview=true|N185-CI3|testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground` で照合。N185-CI3は背景復帰後の確認画面で止まり、今回は確認・再編集を通過して資料全体のプレビューを開いた後の照会で止まった。前回成功した [N187の同じiOS 27単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/attempts/2) から復旧画面・手動テストのコードに差分はない。プレビューが出た時点と照会遅延の下位原因は未確定。20秒、実プレビュー、採用と再起動を維持し、全ジョブ終端後に残る失敗を新しいRunnerで比較する。
+
+### N544-CI2 — iOS 26通常UI Bが画面検証のステップで終了1
+
+- `8d131dd`、[正式544・試行1のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139823717594)、SDK 27.2。Runtime準備は成功。2026-11-26 10:30:10 UTCに `Exercise app screens with synthetic data` が終了1。後処理2件は成功。ジョブログの取得ができておらず、具体的なケースと下位原因は未確定。
+
+### N544-CI3 — iOS 26通常UI Aで連続週送りの最後の終了が欠落
+
+- `8d131dd`、[正式544・試行1のiOS 26.5通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139823717619)、SDK 27.2。2026-11-26 10:18:47 UTC、`ApplicationChecks+WeekAppearance.swift:274` の `testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating` が26.982秒で失敗。4回の開始・3回の終了・3回の週到着を記録。XCTestの失敗時画像を取得した。残るケースは継続した。
+- `WeekAppearance.swift:274|Four native drags` をN187-CI6と照合。前回は同じSDK・OSで同じケースが失敗し、同一ソースの別Runnerで元の基準のまま成功した。今回も週送りの製品・テストのコードに差分はない。最後の実接触が終了まで配送されなかった理由は未確定。4回の実操作、到着・高さ調整の合格基準を維持する。
+- 全体終端後に `gh run view --log-failed` からログを取得。2026-11-26 10:08:00 UTCに `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent`（160.476秒）が `ApplicationChecks+Navigation.swift:41` で失敗した。「学校行事を更新」は存在したが、失敗時の階層では (16,827,361,52.3) と画面下端にかかり、全体表示を満たさなかった。週送りの先頭フェーズは成功。`学校行事を更新|Navigation.swift:41|N183-CI4|N183-CI8` を照合。先行の元PDF文言の差異と異なり、今回は変更後の学校行事画面と更新待ちの説明が表示済み。同じ画面とテストで前回は成功。ボタン操作と復帰後の警告判定は維持する。
+
+### N544-CI4 — iOS 27通常UI Aで行の個人修正後の解析済み照会が時間切れ
+
+- `8d131dd`、[正式544・試行1のiOS 27.0通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139823717695)、SDK 27.2。2026-11-26 10:54:26 UTC、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`（314.094秒）、`ApplicationChecks+Changes.swift:242`。反映ボタンと除外103行の表示を確認したが、直後に「解析済み」を15秒以内に照会できなかった。XCTestの失敗時画像を取得。再起動後の照合は未到達。
+- `change-analysis-status|Changes.swift:242|testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` を照合。過去のN183-CI4は画面内の対象表示、正式45154215506は二度目の再起動後の探索で停止。今回は初回保存後の別段階で、終了までの状態変化とAX待ちの下位原因は未確定。前回成功時の同じ製品の保存処理とテストに差はなく、15秒の条件、除外・解析・再起動の検査は維持する。
