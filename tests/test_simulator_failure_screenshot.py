@@ -38,6 +38,8 @@ class SimulatorFailureScreenshotTests(unittest.TestCase):
 
     def test_rejects_device_alias_command_failure_and_invalid_image(self):
         def run(args, **_):
+            if args[0] == "sips":
+                return subprocess.CompletedProcess(args, 1)
             if self.mode == "timeout":
                 raise subprocess.TimeoutExpired(args, 15)
             image = IMAGE[:-1] if self.mode == "truncated" else b"x" * (screenshot.MAX_IMAGE_BYTES + 1)
@@ -55,6 +57,27 @@ class SimulatorFailureScreenshotTests(unittest.TestCase):
                         screenshot.capture(DEVICE, scratch)
                     reason = {"timeout": "timeout", "error": "unavailable exit=1",
                               "truncated": "invalid-or-too-large", "large": "invalid-or-too-large"}[self.mode]
-                    self.assertEqual(output.getvalue().strip(), "TAKUPOKE_SIMULATOR_FAILURE_SCREEN " + reason)
+                    self.assertEqual(output.getvalue().splitlines()[-1], "TAKUPOKE_SIMULATOR_FAILURE_SCREEN " + reason)
                     self.assertNotIn("TAKUPOKE_UI_IMAGE", output.getvalue())
                     self.assertEqual(list(Path(scratch).iterdir()), [])
+
+    def test_normalizes_unusable_native_output_to_a_bounded_png(self):
+        def run(args, **kwargs):
+            if args[0] == "xcrun":
+                Path(args[-1]).write_bytes(b"foreign image format")
+            else:
+                self.assertEqual(args[:6], ["sips", "-s", "format", "png", "-Z", "1024"])
+                self.assertEqual(kwargs["timeout"], 5)
+                self.assertEqual(Path(args[6]).read_bytes(), b"foreign image format")
+                Path(args[-1]).write_bytes(IMAGE)
+            return subprocess.CompletedProcess(args, 0)
+
+        with tempfile.TemporaryDirectory() as scratch, patch.object(screenshot.subprocess, "run", side_effect=run) as command:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                screenshot.capture(DEVICE, scratch)
+            self.assertEqual(command.call_count, 2)
+            self.assertEqual(list(Path(scratch).iterdir()), [])
+        lines = output.getvalue().splitlines()
+        self.assertEqual(lines[0], "TAKUPOKE_SIMULATOR_FAILURE_SCREEN normalize reason=invalid-png")
+        self.assertEqual(base64.b64decode(lines[2].split()[-1], validate=True), IMAGE)
