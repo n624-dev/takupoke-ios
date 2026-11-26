@@ -6529,3 +6529,18 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `b447220`、[限定45832578902・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45832578902/job/139952906928)、SDK 27.2。Appleビルドは成功。2026-11-26 13:56:43 UTC、`testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`（72.863秒）が `ApplicationChecks+Notifications.swift:195` で失敗し、同じ取消未確認の文言を表示。XCTest画像を取得した。診断時 `usernotificationsd` は稼働中で、システムログの取得のみ時間切れ。OS応答の不在理由は未確定。
 - `countdown-storage|#134|usernotificationsd` で先行の限定成功45053281398、N544-CI7、保存期間復旧のOS応答確認を照合。再要求を追加しても同じ結果になったため、テストの最初に実通知サービスへ独立した一覧要求を出し、その応答を確認してから復旧の操作を開始する。準備と取消操作の実要求を分け、読めないデータを注入せず、既存の10秒・確定・保全・再登録・再起動を維持する。準備の応答がなければ明示的に失敗を記録する。
+
+### N544-CI9 — iOS 26の限定検証でXcodeの起動要求が時間切れ
+
+- `b447220`、[限定45832578902・試行1のiOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45832578902/job/139952907121)、SDK 27.2。2026-11-26 14:06:42 UTCに `ApplicationChecks.swift:138` が `Timed out while launching application via Xcode`。フレームワークとアプリのビルドは成功し、PID 25108 の `fixture-ready` も記録されたが、Xcodeの起動呼び出しが返らず `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` は316.285秒で失敗。通知取消への到達は確認できなかった。XCTest画像を取得した。
+- `Timed out while launching application via Xcode|fixture-ready` でN183-CI28と照合。前例と同じ起動呼び出しだが、今回は初回の実画面テスト前で、先行のiOS 27とは異なる。新しい限定検証で同じSDK・Runtime、同じ実起動と操作を維持する。
+
+### N544-CI10 — iOS 27の独立した通知一覧要求が無応答
+
+- `af6ad90`、[限定45835440369・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45835440369/job/139962967038)、SDK 27.2。2026-11-26 14:14:55 UTCに `countdown-recovery-readiness-start` を記録。標準 `UNUserNotificationCenter.pendingNotificationRequests` の完了は記録されず、14:15:37に待機15秒の `ApplicationChecks+Notifications.swift:198` で停止（64.135秒）。画面は「通知一覧の応答を確認中」。通知取消の製品処理に入る前の失敗で、XCTest画像を取得した。
+
+### N544-CI11 — 正式試行3のiOS 26通常UI Bを実行上限で打切り
+
+- `8d131dd`、[正式544・試行3のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139917030279)、SDK 27.2。Runtime準備成功後、14:13:35 UTCにGitHubによる取消。注記は `maximum execution time of 1h30m0s`。この試行は公開がスキップされ、12件成功・1件失敗・1件取消だった。
+- N544-CI10は、通知取消とは独立したAPI呼出しも無応答だった。`permissionAllowButton|requestAuthorization|countdown-storage` で、実予約を検査する既存ケースと、最初の通知許可を要求していない復旧fixtureとの差を照合した。限定fixtureで実際の通知許可を確定してから通知一覧の実応答を待つ。許可が必要な場合は実システムダイアログを操作する。製品の取消処理・10秒の成功条件・保存復旧の操作はそのまま続ける。
+- N544-CI11のRunnerのジョブログは試行終端後に取得して、どの操作まで到達したかを確認する。

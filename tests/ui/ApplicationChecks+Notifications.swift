@@ -181,6 +181,25 @@ extension ApplicationChecks {
             screen(management)
         }
 
+        // Establish the simulator's real permission and list response before
+        // testing cancellation against the corrupt countdown store.
+        let prepare = app.buttons["fixture-countdown-recovery-notification-prepare"]
+        XCTAssertTrue(prepare.waitForExistence(timeout: 10) && prepare.isHittable, app.debugDescription)
+        prepare.tap()
+        let readiness = app.staticTexts["fixture-countdown-recovery-notification-readiness"]
+        let allow = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@",
+                                "Allow", "許可", "許可する", "通知を許可")
+        var handledAlert = false
+        let responded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            if !handledAlert, let button = self.permissionAllowButton(allow) {
+                handledAlert = true
+                button.tap()
+                return false
+            }
+            return readiness.exists && readiness.label == "通知一覧の応答を確認済み"
+        }, object: app)
+        XCTAssertEqual(XCTWaiter.wait(for: [responded], timeout: 45), .completed, app.debugDescription)
+
         openCountdown()
         XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout:10), app.debugDescription)
         XCTAssertTrue(added.exists)
@@ -190,12 +209,6 @@ extension ApplicationChecks {
         XCTAssertTrue(app.staticTexts[warning].exists)
         XCTAssertFalse(added.isEnabled)
 
-        // Verify that the native notification service in this simulator can
-        // answer an independent request before testing the recovery action.
-        let readiness = app.staticTexts["fixture-countdown-recovery-notification-readiness"]
-        let responded = expectation(for: NSPredicate(format: "label == %@", "通知一覧の応答を確認済み"),
-                                    evaluatedWith: readiness)
-        XCTAssertEqual(XCTWaiter.wait(for: [responded], timeout: 15), .completed, app.debugDescription)
         tap("予約済み通知を取り消す")
         tapDialog(app.buttons["通知を取り消す"])
         XCTAssertTrue(app.staticTexts["予約済みのカウントダウン通知を取り消しました。元のファイルは保持しています。"]

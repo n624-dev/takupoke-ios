@@ -317,6 +317,8 @@ struct SimulatorApplication: App {
                     }
                     if ProcessInfo.processInfo.arguments.contains("--countdown-storage-corrupt") {
                         FixtureCountdownRecoveryNotificationReadiness()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                            .padding(.bottom, 110)
                     }
                     if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
                         VStack {
@@ -767,20 +769,34 @@ struct SimulatorRetentionProofView:View {
 }
 
 private struct FixtureCountdownRecoveryNotificationReadiness: View {
-    @State private var ready = false
+    @State private var status = ""
 
     var body: some View {
-        Text(ready ? "通知一覧の応答を確認済み" : "通知一覧の応答を確認中")
-            .font(.system(size: 1))
-            .accessibilityIdentifier("fixture-countdown-recovery-notification-readiness")
-            .allowsHitTesting(false)
-            .task {
-                FixtureCITrace.mark("countdown-recovery-readiness-start")
-                _ = await UNUserNotificationCenter.current().pendingNotificationRequests()
-                guard !Task.isCancelled else { return }
-                ready = true
-                FixtureCITrace.mark("countdown-recovery-readiness-complete")
+        if status.isEmpty {
+            Button("通知サービスを準備") {
+                status = "通知の許可を確認中"
+                Task {
+                    let center = UNUserNotificationCenter.current()
+                    FixtureCITrace.mark("countdown-recovery-authorization-start")
+                    guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else {
+                        status = "通知を許可できませんでした"
+                        return
+                    }
+                    status = "通知一覧の応答を確認中"
+                    FixtureCITrace.mark("countdown-recovery-readiness-start")
+                    _ = await center.pendingNotificationRequests()
+                    status = "通知一覧の応答を確認済み"
+                    FixtureCITrace.mark("countdown-recovery-readiness-complete")
+                }
             }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("fixture-countdown-recovery-notification-prepare")
+        } else {
+            Text(status)
+                .font(.system(size: 1))
+                .accessibilityIdentifier("fixture-countdown-recovery-notification-readiness")
+                .allowsHitTesting(false)
+        }
     }
 }
 
