@@ -20,14 +20,20 @@ def capture(simulator, scratch):
     try:
         with tempfile.TemporaryDirectory(prefix="failure-screen-", dir=scratch) as directory:
             path = Path(directory) / "screen.png"
-            result = subprocess.run(["xcrun", "simctl", "io", simulator, "screenshot", "--type=png", str(path)],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8)
-            if result.returncode != 0 or path.is_symlink() or not path.is_file():
-                print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable", flush=True)
+            result = subprocess.run(["xcrun", "simctl", "io", simulator, "screenshot", str(path)],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+            if result.returncode != 0:
+                print(f"TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable exit={result.returncode}", flush=True)
+                return
+            if path.is_symlink() or not path.is_file():
+                print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN missing-image", flush=True)
                 return
             with path.open("rb") as stream:
                 data = stream.read(MAX_IMAGE_BYTES + 1)
-    except (OSError, subprocess.TimeoutExpired):
+    except subprocess.TimeoutExpired:
+        print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN timeout", flush=True)
+        return
+    except OSError:
         print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable", flush=True)
         return
     if len(data) > MAX_IMAGE_BYTES or not data.startswith(PNG_START) or not data.endswith(PNG_END):
