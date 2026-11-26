@@ -6558,3 +6558,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `5f1a991`、[限定45840777446・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45840777446/job/139981549879)、SDK 27.2。14:40:47 UTCにGUIの起動、14:46:59に許可要求を確認。14:47:49に `ApplicationChecks+Notifications.swift:201` の45秒待機が時間切れ。画面は「通知の許可を確認中」、ケース83.963秒。追加した準備を越えず、GUI変更の効果は確認できなかった。
 - `U39|notification-auth-returned|countdown-notification-context` で、iOS 27の通知テストを先頭の独立実行にすると実応答がなかった既往と、別の実画面・実通知を先に操作した場合の成功を照合した。GUI比較と追加準備は採用せず、通知復旧ケースを元の操作・時間・判定のまま通知フェーズへ移す。先に実通知を配信して確認する既存ケースと同じ所有Simulatorで実行する。通常Aのテスト件数、各ケースの完了・実行先照合と公開条件を維持する。
+
+### N544-CI15 — iOS 27の通知フェーズ比較で実配信と復旧の両方が停止
+
+- `002d783`、[限定45843658895・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45843658895/job/139991601301)、SDK 27.2。設定詳細は418.049秒で成功。同じSimulatorの通知フェーズで、15:13:14 UTCに `testChangedDataProducesOneLocalNotification` の許可・有効化が成立せず失敗（98.215秒）、15:14:19に `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` の通知取消の確認も失敗（67.633秒）。通知配信を先に行う試行では、配信が完了する前に停止した。
+- 正式544の試行1では同じSDK・Runtimeで実配信が成功し、通常Aの唯一の失敗は個人修正後の照会だった。試行2・3の通知復旧の停止と比較すると、通知サービスの応答可否と、後の個人修正検証の到達が異なる。限定の順序変更は正式版に取り込まず、iOS 26の週送りも含めて元の正式実行を別Runnerで比較する。既存の全15必須条件を維持する。
