@@ -6508,3 +6508,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `8d131dd`、[正式544・試行1のiOS 27.0通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139823717695)、SDK 27.2。2026-11-26 10:54:26 UTC、`testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch`（314.094秒）、`ApplicationChecks+Changes.swift:242`。反映ボタンと除外103行の表示を確認したが、直後に「解析済み」を15秒以内に照会できなかった。XCTestの失敗時画像を取得。再起動後の照合は未到達。
 - `change-analysis-status|Changes.swift:242|testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch` を照合。過去のN183-CI4は画面内の対象表示、正式45154215506は二度目の再起動後の探索で停止。今回は初回保存後の別段階で、終了までの状態変化とAX待ちの下位原因は未確定。前回成功時の同じ製品の保存処理とテストに差はなく、15秒の条件、除外・解析・再起動の検査は維持する。
+
+### N544-CI5 — iOS 26通常UI Bの再実行で週送りの描画が90msを超過
+
+- `8d131dd`、[正式544・試行2のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139878036816)、SDK 27.2。2026-11-26 11:46:02 UTC、`ApplicationChecks+WeekAppearance.swift:466` の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable`（59.051秒）。高さ調整中の描画間隔は99.513msで、90msの既存条件を超過した。XCTestの失敗時画像を取得。後段の通常Bは未到達。
+- `Height adjustment must keep drawing frames|0.09|N185-CI9|N183-CI22` を照合した。試行1はこの先頭ケースに成功し、後段の学校行事のスクロールで停止した。今回は先頭の別段階で、実際の週送りコードはN185-CI9の99.513msに近い100.309msを観測したときと同じ。同じ製品・同じ90ms条件で成功した先行の結果もあり、負荷の内訳は未確定。残るジョブを待ち、同じ基準で後段まで比較する。
