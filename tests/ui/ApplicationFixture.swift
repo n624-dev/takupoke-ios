@@ -48,6 +48,23 @@ final class FixtureNetwork: URLProtocol {
     override func startLoading() {
         // Synthetic revision responses exercise saved/empty/update UI states.
         // Every other request is rejected; nothing reaches a production service.
+        if let url = request.url, url.host == "fixture.example.test", url.path == "/service-status", request.httpMethod == "GET" {
+            let tag = "\"fictional-service-status\""
+            let unchanged = request.value(forHTTPHeaderField: "If-None-Match") == tag
+            let bytes = Data("""
+            {"data":{"id":"267223","type":"status_page","attributes":{"aggregate_state":"downtime"},"relationships":{"resources":{"data":[{"id":"9028864","type":"status_page_resource"},{"id":"9028865","type":"status_page_resource"}]}}},"included":[
+              {"id":"9028864","type":"status_page_resource","attributes":{"resource_type":"Monitor","public_name":"架空API","status":"operational","availability":0.999,"status_history":[{"day":"2032-04-01","status":"not_monitored"},{"day":"2032-04-02","status":"operational","downtime_duration":0}]}},
+              {"id":"9028865","type":"status_page_resource","attributes":{"resource_type":"Monitor","public_name":"架空認証","status":"operational","availability":0.998,"status_history":[]}},
+              {"id":"unrelated","type":"status_page_resource","attributes":{"resource_type":"Monitor","status":"downtime"}}
+            ]}
+            """.utf8)
+            let response = HTTPURLResponse(url: url, statusCode: unchanged ? 304 : 200, httpVersion: "HTTP/1.1",
+                headerFields: ["ETag": tag, "Content-Type": "application/json", "Content-Length": String(unchanged ? 0 : bytes.count)])!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            if !unchanged { client?.urlProtocol(self, didLoad: bytes) }
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
         if SimulatorCountdownEventsFixture.reply(to: self) { return }
         if ProcessInfo.processInfo.arguments.contains("--events-cache-corrupt") ||
             ProcessInfo.processInfo.arguments.contains("--events-cache-probe"),
@@ -554,6 +571,9 @@ struct SimulatorApplication: App {
         if ProcessInfo.processInfo.arguments.contains("--countdown-school-notices"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SimulatorCountdownEventsFixture.seedSchoolNotices(base)
+        }
+        if ProcessInfo.processInfo.arguments.contains("--countdown-progress") {
+            try SimulatorCountdownEventsFixture.seedProgress(base)
         }
         if ProcessInfo.processInfo.arguments.contains("--countdown-delete-write-failure"),
            ProcessInfo.processInfo.arguments.contains("--reset-fixture") {

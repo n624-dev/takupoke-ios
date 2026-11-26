@@ -62,6 +62,7 @@ collect_host_failure() {
 cleanup() {
     local task_exit_status=$?
     stage cleanup-enter
+    capture_failed_simulator_screen "$task_exit_status" "$simulator_id" "$scratch_dir"
     stop_hang_watch
     if [[ -n "$simulator_id" ]]; then
         if [[ "$task_exit_status" != "0" ]]; then
@@ -213,6 +214,7 @@ PY_BADGES
         fi
         local phase_status=0
         python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
+        capture_failed_simulator_screen "$phase_status" "$simulator_id" "$scratch_dir" "$log_path"
         stop_hang_watch
         if [[ "${TKPK_UI_PROBE_CASE:-}" == "week-appearance" || "${TKPK_UI_PROBE_CASE:-}" == "week-motion" ||
               "${TKPK_UI_PROBE_CASE:-}" == "week-navigation-and-yellow" ]] &&

@@ -190,6 +190,29 @@ enum SimulatorCountdownEventsFixture {
         (offset: 14, id: "fictional-later-exam", title: "架空の試験期間C"),
     ]
 
+    static func seedProgress(_ base: URL) throws {
+        let arguments = ProcessInfo.processInfo.arguments
+        let today = SchoolDate.today()
+        let announcement = today.addingDays(arguments.contains("--countdown-progress-announced") ? 0 : 2)!
+        let exam = today.addingDays(7)!
+        let store = try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI"))
+        let entries = [(announcement, "fictional-progress-announcement", "試験発表", "行事メモ"),
+                       (exam, "fictional-progress-exam", "架空の進捗試験", "テスト")]
+        for (year, events) in Dictionary(grouping: entries, by: { $0.0.schoolYear }) {
+            try store.save(SchoolEventsPayload(schoolYear: year, sourcePdfSha256: String(repeating: "a", count: 64),
+                sourcePdfETag: nil, identifiedEvents: events.map { date, id, title, tag in
+                    .init(eventId: id, title: title, tag: tag,
+                          ranges: [.init(startDate: date.iso8601, endDate: date.iso8601)])
+                }))
+        }
+        if arguments.contains("--reset-fixture") {
+            var automatic = CountdownAutomatic(enabled: true)
+            automatic.preferences.progressEnabled = true
+            automatic.preferences.lookahead = .month
+            try CountdownStore(root: base).save(CountdownLibrary(automatic: automatic))
+        }
+    }
+
     static func seedSchoolNotices(_ base: URL) throws {
         let store = try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI"))
         let observed = Date().addingTimeInterval(-5)

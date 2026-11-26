@@ -1,7 +1,20 @@
 import Foundation
 
 extension MaterialsModel {
+    func checkForUpdates(_ kind: MaterialKind? = nil) {
+        guard ready, !busy else { return }
+        let requested = Set((kind.map { [$0] } ?? [.timetable, .changes]).compactMap {
+            state.record(for: $0) == nil ? nil : $0.rawValue
+        })
+        guard !requested.isEmpty else { return }
+        let year = automaticChangeSchoolYear
+        perform(success: "選択済みファイルの更新を確認しました。", preserveChangePreview: true) { worker, control in
+            try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control, reason: .manual)
+        }
+    }
+
     func setFileMonitoring(_ foreground: Bool) {
+        observePipeline(foreground)
         fileRefreshQueue.setForeground(foreground)
         fileMonitor.setForeground(foreground)
     }
@@ -14,7 +27,7 @@ extension MaterialsModel {
     }
 
     func runPendingFileRefresh() {
-        let requested = fileRefreshQueue.take(ready: ready, busy: busy)
+        let requested = fileRefreshQueue.take(ready: ready, busy: busy, blocked: Set(FilePipeline.shared.activeSources.map(\.rawValue)))
         guard !requested.isEmpty else { return }
         let year = automaticChangeSchoolYear
         perform(success: "保存済みファイルの変更を確認しました。", preserveChangePreview: true) { worker, control in
@@ -23,9 +36,11 @@ extension MaterialsModel {
     }
 
     nonisolated static func refreshSelectedFiles(_ worker: MaterialWorker, requested: Set<String>,
-                                                 year: Int?, control: AcquisitionControl) throws {
+                                                 year: Int?, control: AcquisitionControl, reason: FilePipeline.Reason = .automatic) throws {
         try SelectedFileRefresher.refresh(requested: requested, check: control.check) { kind in
-            try worker.refreshIfChanged(kind, defaultYear: year, control: control)
+            try worker.pipeline(kind, reason: reason, control: control) { worker, control in
+                try worker.refreshIfChanged(kind, defaultYear: year, control: control)
+            }
         }
     }
 }

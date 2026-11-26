@@ -1,7 +1,7 @@
 # ASCII OCRのiOS 2入力・2出力CPU照合（研究）
 
 対応関係・宣言名・実行方法のSHA-256：
-`3cdbfc84ea37369629fc292e39e5a17b899dde3b403c036f51a57e7cb5a036ba`
+`45c58424cf6c0ab5ebf1402a714398dea10451f459706a04543946ee5676b7b9`
 
 環境：iOS26／27 Simulatorのnative Swift前処理＋C API。iPhone SDKリンクと実機実行は別
 
@@ -34,6 +34,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 
 ## [tests/test_ocr_ios_runtime_parity.py](../../tests/test_ocr_ios_runtime_parity.py)
 
+- `test_runtime_selection_excludes_model_specific_and_other_os_runtimes`
 - `test_full_probability_drift_rejects_even_when_greedy_text_is_unchanged`
 - `test_crossing_selected_piece_floor_rejects_within_numeric_tolerance`
 - `test_identical_native_probabilities_keep_spaces_and_ctc_intervals`
@@ -57,5 +58,6 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_new_nested_code_starts_development_catalog_checks`
 - `test_original_code_recognition_tracks_its_shared_implementations`
 - `test_v6_parity_tracks_shared_input_preparation_and_numerical_runtime`
+- `test_both_ocr_simulator_workflows_track_the_shared_failure_screenshot`
 - `test_ocr_checks_can_run_without_a_permanent_research_branch`
 - `test_ordered_row_proof_is_manual_and_requires_generated_pdf_fixtures`

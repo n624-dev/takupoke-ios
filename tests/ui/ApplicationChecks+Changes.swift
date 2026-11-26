@@ -16,7 +16,7 @@ extension ApplicationChecks {
             screen(detail)
         }
         func refresh() {
-            let button = visible(app.buttons["同じファイルを再取得"], navigation: detail, searchEarlierRows: true)
+            let button = visible(app.buttons["同じファイルを再取得"], navigation: detail)
             XCTAssertTrue(button.isEnabled && button.isHittable)
             button.tap()
             let ready = expectation(for: NSPredicate { _, _ in button.exists && button.isEnabled }, evaluatedWith: button)
@@ -152,8 +152,10 @@ extension ApplicationChecks {
             screen("時間割変更")
         }
         let review = "内容を確認・修正"
-        func openReview() {
-            visible(app.buttons[review], navigation: "時間割変更", searchEarlierRows: true).tap()
+        func openReview(searchEarlierRows: Bool = false) {
+            let action = visible(app.buttons[review], navigation: "時間割変更", searchEarlierRows: searchEarlierRows)
+            XCTAssertTrue(action.isEnabled && action.isHittable, app.debugDescription)
+            action.tap()
             screen(review)
             XCTAssertFalse(app.alerts["曜日を確認できないファイルです"].exists)
         }
@@ -255,12 +257,13 @@ extension ApplicationChecks {
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
         assertRetainedChangeRows(stage: "after-relaunch")
 
-        func openEditedRows() {
-            openReview()
+        func openEditedRows(searchEarlierRows: Bool = false) {
+            openReview(searchEarlierRows: searchEarlierRows)
             visible(app.buttons["change-edited-rows"], navigation: review).tap()
             screen("修正済み")
         }
-        openEditedRows()
+        // The retention checks have scrolled past the actions into the saved rows.
+        openEditedRows(searchEarlierRows: true)
         visible(app.buttons["change-saved-excluded"], navigation: "修正済み").tap()
         screen("除外した行")
         visible(app.buttons["change-editor-row-3"], navigation: "除外した行").tap()

@@ -12,6 +12,7 @@ parity_python="$parity_dir/python/bin/python"
 "$parity_python" -B -m unittest discover -s tests -p test_ocr_research_receipt.py -v
 "$parity_python" -B -m unittest discover -s tests -p 'test_ocr_ios*runtime_parity.py' -v
 "$parity_python" -B -m unittest discover -s tests -p test_ocr_simulator_cancellation.py -v
+"$parity_python" -B -m unittest discover -s tests -p test_simulator_failure_screenshot.py -v
 "$parity_python" -B tools/ocr-ios-ascii-runtime-parity/prepare.py "$parity_dir/assets"
 "$parity_python" -B tools/ocr-windows-transfer/prepare.py --output "$parity_dir/inputs"
 CLANG_MODULE_CACHE_PATH="$parity_dir/modules" swiftc -parse-as-library \

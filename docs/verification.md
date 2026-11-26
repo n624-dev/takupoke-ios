@@ -1,3 +1,94 @@
+## 2026-11-24 設定・ステータス画面のiOS先行実装（#183）
+
+基点 `9bffdbff66c7617c2c86f0f7b2618ef0e10acebe`、作業ブランチ `codex/ios-settings-status-ui`。
+利用者が承認した画面を先行実装する。未確定だった操作は確認し、自動チェック停止は次の起動・前景復帰まで、公開監視結果は画面表示中に3分ごと、とした。
+6区分の設定、4区分のステータス、4行のファイル一覧と詳細操作を実装。既存の原本表示・訂正・除外・復旧とAI許可のsetterは維持する。
+起動時の解析停止の根本解消、学校行事の内容検証、API・認証・Windowsの実装は今回の完了範囲に含めない。
+
+### 変更前のテスト・失敗索引との照合
+
+`test_catalog.py search` で設定UI／原本取得／File Refresh／SchoolEventsSourceStatusを照合した。新規状態判定・公開JSON読取りには独立した架空入力のSwiftテストを追加し、生成器と実UIの操作・登録も更新した。
+索引検索語は `SettingsView|MaterialsView|設定|ステータス|ファイル|Navigation|iOS 27`、`SettingsGroupsAndCompact|testEmptyDataCanBeConfigured|testSetupCanBeSkipped|SettingsDetail|詳細.*操作`。U73（Setupの実要素照会）、U23（有限な表示枠）、U10（passive textのactivation point）、U74（AI許可の実Switch／再起動）、N143（生成後のMainActor型境界）を詳細まで読んだ。
+今回は標準Listの行・見出し配置を変える。ピッカー・復旧sheet・詳細navigationTitleの生成器目印は維持し、既存の実入力・有効・表示領域・保存・再起動の条件を緩めない。ファイル情報→操作→解析結果の実配置に合わせて検査順を更新し、スクロール前後の異なるviewportの座標を比較しない。
+
+### ローカル検証
+
+- Linux x86_64／Swift 6.1.2。初回のSQLiteヘッダー欠落をN244へ記録し、公式Debianの同じ版のheaderと共有libraryを専用prefixへ展開した。
+- `bash tools/test-parsing.sh`: 715件・失敗0、実行91.083秒、依存取得・ビルド込み271.0秒。新規JSONのID／関連付け、無関係な障害、未知・未監視・重複日付、解決済みかつends_atなし、更新順序、キャッシュの失敗・期限・時計逆行・304、取消と正常結果保持を含む。
+- 背景へ移るだけで自動停止が解除されていた経路を確認し、実際の前景復帰まで保持するよう接続した。関連Python検査8件は実Swiftの背景入口・performを実行し、停止中のdispatchなし、再開後のdispatch、4種類の取消でcompletion=false／failed=false／前回結果とプレビュー保持を確認（11.247秒）。
+- Python全体の初回351件はN245の抽出ハーネスの宣言不足1件でERROR、予定skip2。既存のプレビュー保持・成功時だけの閉鎖を残してハーネスを同期し、関連検査は上記のとおり成功。ハーネス同期後の全体352件は266.187秒・失敗0・予定skip2で完了した。
+- 1回目のレビュー修正後のSwift関連38件は0.336秒・失敗0（ビルド込み175.7秒）、Python関連93件は66.121秒・失敗0。2回目の修正後は、実処理を抽出する8件が12.162秒・失敗0。既存の取消／通常変更なしの拒否を維持し、同じbytesの試験・返却でも明示的な強制取得では原本取得・解析・保存まで進むことを追加確認した。
+- 最終の状態判定・監視キャッシュ・File Refresh・行事判定39件は0.402秒・失敗0（ビルド込み178.5秒）。欠落／重複したサービスの前回履歴保持と、304でも欠落側の日時が進まないことを含む。
+- 変更Swiftと生成器によるendpoint／Settings加工後の構文解析、Xcodeの新規6ファイルの一意な参照・Sources登録を確認。SwiftUI／Combine／UIKitのApple型検査や実画面成功の代用にはしない。
+- `test_catalog.py write` と `check --base 9bffdbff66c7617c2c86f0f7b2618ef0e10acebe` は481登録ファイルで成功。公開学校URLへのテスト通信はなく、全要求を捕捉するFixtureNetworkと架空のstatus応答を使う。
+
+### 独立したコード差分レビュー
+
+初回は新規GPT-6.2 Sol／Highへコード差分のみ（SHA-256 `7e8906f65048b99f4b44ee585439b9d1e411f423aa8e28dd91612e2b7384bc0a`）を渡した。指摘を主担当で確認し、以下を修正した。
+
+- 準備未完了・認証処理中に画面を開いた場合も、準備完了後に配信確認が始まるよう、SwiftUI taskのキーを実行可能条件と共有する。既存3メソッドの戻り値がasync Voidであることも確認した。
+- 学校行事の保存済み元PDF一致が、取得失敗や確認中を隠さないよう実状態を先に判定する。同じ本番判定をSwiftで検査する。
+- neutralだけから保存データの存在を主張しない。取得済みだけでは更新確認成功を推測せず、総合表示にも未確認を反映する。現段階で証拠が足りない項目を緑へ変えて正常分岐を成立させない。
+- 公開用の操作は「更新確認の記録をコピー」とし、従来の汎用診断コピー・全文出力を禁止するIPA検査を維持する。固定記録マーカーとの併存でも禁止が解除されない回帰を追加した。
+- 詳細画面は状態→ファイル情報に加え、実Listのファイル情報→操作の順を検査する。異なるスクロール位置の座標は比較しない。
+
+2回目のコード差分（SHA-256 `2805f516ccadbc24bcb9368b597fab003e7a19a362e57c13cdf44f880e1be69f`）も別の新規GPT-6.2 Sol／Highで確認した。時間割変更の選び直しへ追加されていた年度制限を取り除き、未選択資料にも保存された取得失敗理由を表示する。行除外数の補足がその理由を上書きしないよう併記する。公開リソース欠落・曖昧応答は、現在の未確認と前回履歴を分けて保持し、304で欠落側の日時を進めない。初回取得失敗に前回情報があると表示する文言も修正した。
+
+ファイル一覧上部には共通判定と、選択済み資料のうち最後の成功確認日時を表示する。全資料が同時に確認済みという意味にしない。既存の固定診断Snapshotがenum・数値のみで最大512件であることをコードで再確認し、単調時計の利用理由35F9.1をPrivacyInfoへ追記した。
+
+修正後の差分（SHA-256 `7598c53d1ec9fd62b093ecf8a4c131806b5e19c9efed3de4308d258c274e20fa`）を3人目の新規レビュアーへ渡した。指摘された一時停止／中止の分離はIssue #183の承認済み仕様どおりで、進行中の処理は専用「処理を中止」で止める。片方の保存先だけが読めない場合も、利用できる側の一括確認を実行可能に修正した。両モデルの実入口が `guard ready, !busy` を持つことを主担当で確認した。変更した小差分（SHA-256 `3c2d5c8fc1635448ea96dece2dc23d9ab4e180570755e6e790237196c3683f53`）は4人目の新規レビュアーでblocking指摘なし。構文と条件を再確認した。
+
+強制再取得の保存保全は、変更していない `SpecialScheduleStore.saveSelection` が新しい原本と保存済みの正常解析を別テーブルで保持し、元の正常原本を参照中は削除しないことを読んだ。全体715件で `testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis`（0.110秒）と `testCancellingSpecialReanalysisKeepsOnlyTheSameOriginalRecoveryJob`（0.007秒）が成功済み。同じdigestもsaveSelection内に別の削除分岐はなく、強制取得の本番分岐は抽出ハーネスで確認した。この組合せを実機File Providerから失敗までの一貫検証とは扱わない。
+
+レビューはAppleでの実型検査・UI操作を代替しない。
+
+### Apple側で確認する範囲
+
+限定 `status-settings` は設定6区分・停止／再開、ステータスのデータ／サービス詳細、未選択資料の設定、既存のAI許可と4資料詳細、Setupを対象にする。新しいケースは通常Aにも登録し、正式検査から除外しない。現行のSDK・Runtimeで生成アプリの型検査と実操作を確認する。制限時間・正式ゲート・実操作の期待を変更しない。
+Actions開始前に毎回新規GPT-6.2 Sol／Highへ実行対象のコード差分だけを渡し、指摘があれば修正・再確認してから開始する。実行結果、ソース、SDK、runを下へ追記する。
+引き渡しZIPの作成時点ではLinux環境にApple SDKとGitHub CLI認証がなく、pushとApple側の確認はできなかった。受け取り側のCLIから、同梱コミット `668628e` を `codex/ios-settings-status-ui` へpushした。
+物理端末のOneDrive／File Provider、AltStore導入・配布も未確認。親Issue #183は完了扱いにしない。
+
+### 受け取り後のレビューと限定CIの条件
+
+`9bffdbf` から `668628e` までの実行対象コード差分を新規GPT-6.2 Sol／Highでレビューし、指摘のあった実装を照合した。時間割変更の編集画面の中止を処理だけに適用し、確認再開まで自動確認を止める操作と分離した。更新記録には中止を失敗として記録せず、再解析の有無と実際のハッシュ比較を区別した。選択済みのファイル行でVoiceOverが名称と状態の補足も読めるようにし、回帰検査を既存ケースに追加した。修正後の製品差分を再確認した。
+
+失敗索引を `status-settings|testSettingsGroupsAndCompactDataOverviews|testSettingsAccountDataAndFileDetails|testSetupCanBeSkippedAndOffersAllFiles|file-details` と編集画面の中止で検索し、U10／U23／U73の初期設定表示枠、U74のAI許可、N143のビルド段階を確認した。直近の同SDKの限定 [45243562141](https://github.com/n624-dev/takupoke-ios/actions/runs/45243562141) では設定詳細が467.530秒で成功した。今回の5ケースには、既存の実操作に加えて新しい設定・ステータスとファイル名のアクセシビリティ値を含める。
+
+修正コミット `002aae045d44c7f636e65053c6e3a62d9e45d335` を `case=status-settings`、`ios=both`、`sdk26=27.2`、`sdk27=27.2` で実行する。生成アプリのビルドと各ケース完了を、iOS 26.5（GUI）と27.0（headless）で照合する。
+
+Linux x86_64・Swift 6.1.3で `FileRefreshTests`、`ServiceStatusTests`、`StatusPresentationTests` の計27件、`test_change_preview_actions.py` の8件、`test_ui_test_manifest.py` の44件、ワークフローのソース経路5件が失敗・skipともに0。変更Swiftの構文、登録481ファイル、限定セレクター5件も確認した。
+
+[最初の限定45374452872・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872)は、両OSでApple SDKのビルドと先行3ケースが成功した後、初期設定中に1440秒の期限で終了した。残るステータス画面のケースには未到達。N246に各OSの到達点を記録した。次の実行に向け、同じ `status-settings` を各OSで設定詳細1件と残り4件に分けた。設定詳細の605.354秒と407.742秒を他ケースと別の実行枠に割り当て、5ケース、個別操作条件、両方の実行期限を維持する。独立した新規GPT-6.2 Sol／Highでこの実行構成と照合条件をレビューし、修正を要する指摘はなかった。
+
+実行構成を変更したソースは `6f2770bb7a4c190b455ccc43b1e7e11b10a27be6`。製品コードと実UIケースは `002aae0` と同一。LinuxでUIマニフェスト44件、UIランナー18件、登録481ファイルの確認が成功し、`actionlint` で既存のカスタムラベル `xcode-27` の指摘だけを除外してワークフロー構文を確認した。
+
+[分割実行45379230056・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056)のiOS 27設定詳細では、初回のAI・OCR操作でUIと保存値が0のまま失敗した。N247に実スイッチへ届いた約3.66msの開始から解放を記録した。設定詳細ケースの先頭3回に80ms指定の実タップを使う候補を用意した。実スイッチの枠と状態、UIと保存値、45秒、再起動後のドラッグと再起動後の保持確認を維持する。コード差分を新規GPT-6.2 Sol／Highでレビューし、構文、UIマニフェスト44件（失敗・skip 0）、登録481ファイルを確認した。変更箇所を通る `testSettingsAccountDataAndFileDetails` をSDK 27.2で両OSに再実行する。
+
+同じ分割実行の設定一覧側でiOS 27は4ケースを完了したが回収中に期限となった。iOS 26は3ケースを完了し、ステータス詳細の最後の検査前に期限となった（N248）。全5ケースを維持してステータス詳細を独立実行に変更した。新規GPT-6.2 Sol／Highで差分をレビューし、指摘はなかった。`status-settings-screen` をSDK 27.2で両OSに実行し、iOS 26.5の最後の操作と、iOS 27.0の回収を含むジョブ完了を確認する。
+
+[ステータス単独実行45384183180・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180)はsource `a87d58f560b285d18ddd06aafa964c550c9fa84c`、SDK 27.2。iOS 26.5は142.175秒、iOS 27.0は93.750秒で成功。両OSで1ケースの実行identity、完了件数、回収と外側の照合を確認した。配信リンク、両サービスの正常状態、APIの監視結果・稼働率・履歴、端末欄、固定記録のコピーボタン、設定への復帰を架空応答で検証した。
+
+[時刻付き静止タップのiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45382618904/job/138405259984)は、UIKitに届いた静止接触が約8.51msで値が変わらなかった（N249）。初回3回だけ既存の0.33秒の実つまみ移動を使い、元の再起動後操作と結果検査を維持する。静止タップの候補経路を除去。新規GPT-6.2 Sol／Highの差分レビュー、変更Swiftの構文、操作の契約検査、登録481ファイルが成功した。SDK 27.2で設定詳細を両OSに実行する。
+
+[実つまみ移動の設定詳細45386853188・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188)はsource `b5377c08c6ad28b046674bd5d281f11a37f7c574`、SDK 27.2。[iOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901566)ではAI・OCRの表示と保存値が `0→1→0→1`、再起動後の解除で `1→0`。元の再起動後の保持と資料詳細を含む1ケース617.959秒が成功した。実行identity、完了件数、回収、外側の照合を確認した。
+
+[同試行のiOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901052)も4操作の表示と保存値は同じ順に変化した。その後、学校行事から設定へ戻る途中で1440秒の制限に達し、回収後に終了124となった（N250）。このOSの設定詳細ケース全体は、同じ製品コードの初回限定45374452872で407.742秒で成功した。
+
+### 両OSで実際に完了したUIケース
+
+製品コードとXcodeプロジェクトは `002aae0` 以降同一。下表は各ケースの成功を確認した結果で、実行全体の合格を示すものではない。期限で終了した実行とスイッチ操作の比較はN246〜N250に記録した。
+
+| ケース | iOS 26.5 | iOS 27.0 |
+| --- | --- | --- |
+| 空の状態から設定 | [69.080秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594171) | [158.937秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594453) |
+| 設定構成・ファイル一覧・一時停止と再開 | [164.084秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594171) | [337.909秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594453) |
+| 初期設定 | [128.453秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594171) | [118.526秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45379230056/job/138393594453) |
+| ステータスの配信・サービス・端末欄 | [142.175秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180/job/138410697080) | [93.750秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45384183180/job/138410696622) |
+| 設定詳細・AI許可・4資料詳細 | [407.742秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45374452872/job/138376809363) | [617.959秒](https://github.com/n624-dev/takupoke-ios/actions/runs/45386853188/job/138419901566) |
+
+実機OneDrive／File Provider、AltStore、正式配布の全必須チェックは未確認。
+
 ## 2026-10-20 留学生向け変更の空欄修正を419.1へ公開
 
 source `1e3fe81ecad3890ba9086b88c0b0afb373ea5688`、[run39397264222・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/39397264222)の全15必須チェックが成功、全job終端・保存Actions artifact0。公開後に通常Release／Latestと固定AltStore Sourceを照合した。
@@ -9470,3 +9561,76 @@ GitHubの公開ReleaseからIPA・Source・アイコン・配布情報の4添付
 Linuxで6架空PDFの生成とSHA-256、12ワークフローのYAML、既存OCRジョブの処理とパス条件、正式ジョブの本体・依存関係、テスト登録473件を照合した。手動起動前の新規GPT-6.2 Sol／Highには変更のコード・テスト差分26,116バイト（SHA-256 `41caec2edc19b1d490954b521d03fd2011c349764ff1e8f9485668b41392d37e`）を渡し、変更範囲と検査条件を確認した。
 
 LinuxのPython全349件は既定skip2、失敗0。[mainからの手動実行45336506043](https://github.com/n624-dev/takupoke-ios/actions/runs/45336506043/attempts/1)、source `f384fa3da882a10f97d24d5808061da89f705599` で、Xcode26.6のNative 818件・失敗0、独立PDFは正例2件の正式変換と負例4件の拒否を確認した。Xcode27.2のiOS Simulator向けビルドも成功。従来の研究ブランチ2本の復元用バンドルを空リポジトリで検証し、先端SHAを照合した。正式最新版は `0.1.533`。
+
+### 2026-11-24 #183 共通読み取り境界の初期改修
+
+先行UIブランチ `codex/ios-settings-status-ui` の `4fdaaa5` を基に `codex/issue-183-pipeline` を作成。main `9bffdbf` は先行ブランチの祖先であり、既存UIを含む状態から進めた。確定仕様は既存Issue #183の「利用者確認済みの追補方針」に記録。応答30秒／無進捗60秒／解析120秒／全体240秒、旧I/O終了まで同じファイルを待機、3秒後に最大2回再試行が利用者確認済み。
+
+`MaterialFileReader` に通常／変更／試験／返却のバイト取得・SHA-256・形式／容量検証を集約。読み取りの前後、書き込み前、同期の前後で中止を確認する。読み取り・書き込み・同期が中止後にエラーを返す場合も中止を優先し、実際のI/O障害は保持する。DB・原本のコミット境界は変更しない。`FileRefreshDiagnostics` の単調時計を同期可能な `@Sendable` クロージャへ差し替え可能にした。診断の公開スキーマ・512件上限は維持。
+
+新規ケースは分割ヘッダー／SHA-256／容量上限／空・不正形式、実ファイルのコピーと元ファイル保持、読み取り中止後のbytes／空／EOF、同期中止、遅延I/Oエラー、semaphoreで停止させた読み取りの遅延復帰、注入時計。停止テストは共通reader単体であり、NSFileCoordinator・security scope・モデル／SQLiteの所有権や期限切れの終結を検証するものではない。旧処理が無応答のままならreaderは戻らず、独立した監視と取得／保存の隔離が引き続き必要。今回だけで起動停止を修正したとは扱わない。
+
+事前検索: `tools/test_catalog.py search FileRefresh`／`search Provider` によりmaterial、special、既存Python実行ハーネスを確認。初期差分のLinux Swift限定検査は19件成功（新設境界6件を含む）。レビュー後の最終差分にはさらに遅延I/Oエラーのケースを追加し、全ホスト検査で検証する。既存Python `test_change_preview_actions.py` は8件成功。文書記載のローカルtoolchainは新規環境に存在しなかったため、公式 `swift:6.1.2` コンテナにPython3・SQLite／zlibヘッダー・ホストの信頼済みCAを追加。準備時の未到達はN183-L1に記録し、TLS検証は維持。
+
+Actions開始前に、新規GPT-6.2 Sol／Highでコード差分をレビュー。修正後のコード・テスト・登録差分SHA-256は `2a6815a739ed539b37521a043f80b08710243e2286312c959939d9657a52fbdf`。遅延エラー時の中止優先と注入時計の同期を補強して再レビューし、blocking指摘なし。実行対象は既存test-toolsのportable全体とApple Native host検査（Xcode26.6／27.2（SDK26.5／27.2））。SwiftUI／実Provider経路の統合、iOS26／27操作、全体配布CI、本番監視は今回のホスト検査と区別し、未実施のまま保持する。
+
+最終コード `f0a13c4` のローカル検証: LinuxコンテナSwift6.1.2で全724件・失敗0（FileRefreshTests20件を含む）、ビルド＋実行276.4秒。Python3.12.3の全352件は失敗0・環境条件skip22、273.953秒。テスト一覧482登録、`check --base 4fdaaa5` 成功。SQLite3.45.1／zlib1.3はコンテナのheaderとlibraryを揃えて使用。Draft PR [#184](https://github.com/n624-dev/takupoke-ios/pull/184) は先行UIブランチをbaseにした共通readerの差分で、Issueを閉じない。
+
+追加の利用者確認: 解析120秒・全体240秒は通常の自動確認／更新確認／再取得へ適用し、明示的なAI・OCR復旧は既存の専用上限を維持する。Issue本文にも追記済み。
+
+[開発ホストCI 45394935097・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45394935097) はcode `f0a13c47108a408040e7a9044fc8e489cb146a8a` で全終端・成功。portable SwiftとCatalogue／runner契約が成功し、Apple NativeはXcode26.6／SDK26.5およびXcode27.2／SDK27.2の双方で841件・失敗0・skip1。skipは独立temporary PDF cohortを別のnative source workflowで実行する既存ケースで、今回の成功に代用しない。固定239.1のStrict互換baselineも両方で成功。最終コードのビルド＋検査はそれぞれ379.0秒／271.8秒。未選択のApple inventory／Pickerはworkflow上skipで、成功検査には含めない。iOS Simulator操作・実機Provider・全体配布CIは未実施。根本停止の解消／Issue全体の完了／正式配布を意味しない。
+
+### 2026-11-25 #183 共通パイプラインと非配布の統合検証
+
+- 前段の共通読み取りに、4種類のProvider取得・解析・保存の共通処理を接続。差し替え可能なProviderと単調時計、実行IDとファイルごとの段階により、無応答、無進捗、中止後の遅延、重複通知・再試行を再現。期限内の保存開始、開始後の完了またはロールバック、資料と期間の一致を検査する。旧I/Oは同じファイルの取得を待たせ、他ファイルの進行を保持する。
+- 設定・ステータスから段階と確認・取得・解析の成功時刻を参照する。行事は元PDF、配信内容レビュー、端末保存版をそれぞれ確認し、元PDF差異は「更新待ち」。/statusの機能情報、公開監視の履歴も独立して取得する。API・たくにん・Windowsの状況は関連Issueに記録した。
+- Linux Swift 6.1.2でアプリ本体 `033c479` の738件が成功。Pickerの依存分離後のPython全354件は失敗0、環境条件によるskip22。Picker単独型検査の新ケースは修正前の依存不足を再現し、修正後に成功した。取得制御の実コードを抽出する9件も成功。カタログ489ファイルはコミット済み入力で再照合した。
+- [先行する限定UI 45429156784](https://github.com/n624-dev/takupoke-ios/actions/runs/45429156784) はiOS 27の3ジョブとiOS 26の2ジョブが成功。26の資料詳細は外側の期限に達し未完了。[全体CI 45433219714](https://github.com/n624-dev/takupoke-ios/actions/runs/45433219714) のApple Nativeは858件、失敗0、skip1。UI・Pickerの失敗と後続の対応は [失敗索引](ui-test-failures.md) のN183-CI1〜7に記録した。
+- [資料と学校行事の限定再検証](https://github.com/n624-dev/takupoke-ios/actions/runs/45446409831)、[配色の限定再検証](https://github.com/n624-dev/takupoke-ios/actions/runs/45447828888)、[Picker依存修正後の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241) を作業ブランチで実行。物理端末でのOneDriveの停止原因と解消は継続確認事項。アプリ公開・サービスの本番反映・Better Stack設定変更を含めない。
+- Picker修正版 `cd7bb15` は[ネイティブ858件](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805053) が失敗0・skip1、[非配布ビルド](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241/job/138643805162) はiOS 27.0／SDK 27.2の実Picker3件、ホスト858件（失敗0・skip1）、未署名iPhone Releaseビルドに成功。生成物削除を含むジョブ全体が成功。iOS 27の試験資料詳細と学校行事は限定で成功した。変更行の後続操作と配色は失敗索引のN183-CI10・CI11から追跡する。
+- [再実行した全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45448844241) は11月25日04:24 JSTに終了。検証15ジョブは9成功、5失敗、1取消、公開はスキップ。通常UI AはiOS 26で24件中23件、iOS 27で24件中22件が成功。試験資料詳細は両OSで成功。26では通知取消も成功、27では未応答時の表示に到達した。両OSの変更行は操作を修正する前のテストで失敗し、両OSの通常UI Bは週移動の90ms検査で停止した。手動訂正の一部も失敗または取消。先行回で未完了だったiOS 26の選択訂正は今回成功し、元ファイル変更時の上書き拒否は両OSで成功した。
+- [現行の変更行テスト](https://github.com/n624-dev/takupoke-ios/actions/runs/45456001287/job/138665483283) はiOS 27の実操作が415.945秒で完了。再起動後も保持した行を確認し、再編集・再保存と次の起動での保持を確認した。[配色の新しい候補](https://github.com/n624-dev/takupoke-ios/actions/runs/45469907539) とiOS 26の変更行は別途検証する。
+- [変更行のiOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45456001287/job/138665483854) も629.006秒で同じ一連の操作・保存・再起動に成功。[配色のiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45469907539/job/138714747891) は225.092秒、[配色のiOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45475599466/job/138734890050) は既存の長い外側の枠で249.179秒、それぞれ合格。iOS 26の文字コントラストは設定／時間割で標準9.04／9.04、高コントラスト14.10／14.23。いずれも同じUIKit配色修正、SDK27.2と実Runtime。公開を含まない[統合版の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382) を `369c6c8` で実行した。
+- [統合版の全体CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45475328382) は11月25日07:01 JSTに全終端。検証15ジョブのうち9成功・6失敗。Apple Native 858件（失敗0・skip1）、iPhoneの非配布ビルドとPicker 3件、元ファイルが変わった場合の上書き拒否と手動訂正3項目の制限は両OSで成功。iOS 26の通常24件が成功し、iOS 27は通常UI Bで学校行事、配色、4資料詳細、Dynamic Typeが通過した。残るジョブの失敗は、26の週移動の描画基準と通知行の照会、26の訂正2件のRunner停止・期限、27のRunner通信断と再取得行の照会。公開はスキップされた。
+- 通知行を先に表示するテスト修正後、[iOS 26](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692431) は実許可と通知1件を確認。[iOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/45491201397/job/138789692815) は画面操作と要求まで成立後、OS許可の完了を確認できなかった。再取得行を開くテスト修正は [曜日除外の限定CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45498448728) に接続。統合CI以降の差分はテスト・検証記録。物理iPhoneのOneDriveは未確認。
+- [曜日除外の限定CI](https://github.com/n624-dev/takupoke-ios/actions/runs/45498448728) は `58a8223`、SDK27.2、iOS 26.5で266.847秒、iOS 27.0で238.142秒。両OSで同一ファイル再取得、変更後に必要な行の確認、既存除外の引き継ぎ、取消と確定、再起動後の保持が成功。限定の成功とは別に、統合版の全体CIには上記失敗6件を記録する。GitHub上で当作業のアプリ公開・配布への反映なし。
+- [全体CI 45503335049 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45503335049/attempts/1) は `40a4c5a`、SDK27.2、2026-11-25 10:04 JSTに終端。前回の6件のうち、両OSの週移動、曜日除外の引き継ぎ、ファイル更新通知、通常UI A、手動訂正全8件を通過。Apple Native 858件（既定skip1）とiPhoneの非配布ビルドも成功。全15件中13成功・2失敗、公開はスキップ。2件は同一の再起動後の配色行照会（N183-CI19）。次の両OS限定では `testNotificationControlsAndAppearance` だけを同じOS・SDKで一回ずつ実行し、実許可、緑・外部ブラウザ、既定と青の再起動後の実表示と保存に到達するか確認する。
+- 両OS限定の事前レビューは新規GPT-6.2 Sol／Highで実施。テストに限定した差分SHA-256 `53ab4c8572f75b5ed47825cf54e0ebcc9157682f8f4bb7ce3a64c142d8ea1a4f` を照合し、実ボタンの表示値・UserDefaults観測・再起動と許可の条件を維持していることを確認した。登録489件の対象検査と空白チェックが成功。
+- [修正の限定CI 45523762015](https://github.com/n624-dev/takupoke-ios/actions/runs/45523762015) は `697777a`、SDK27.2。iOS 26.5は許可と配色・リンクの保存および再起動後の実表示が成功。iOS 27.0はOSの許可応答を観測できず、修正経路は未到達（N183-CI20）。LinuxのSwift構文検査、UI manifest 44件、通知関連12件、UIランナー18件が成功。次の全体CIは同じ製品と検証のまま、成功実績のある通常UIの先行経路を含め、資料パイプラインと残る設定回帰を同じ実行で確認する。
+- [全体45527221520 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/attempts/1) は `71ec2dd`、11月25日12:21 JSTに終端。検証15件中13成功・2失敗、公開はスキップ。iOS 27 UI Bで実通知許可と再起動後の設定項目確認が成功。両OS UI A、Apple Native 858件（既定skip1）、非配布のiPhoneビルド・Picker、iOS 27手動4件とiOS 26手動3件も成功。iOS 26の週移動が116.517msで後段未到達、iOS 26の手動明示選択で2欄目の実消去後にAX照会が期限終了（N183-CI21／22）。ソース・合格条件を保持し、この同一実行・コミットの失敗ジョブを新しいRunnerで一度確認する。実行前の新規GPT-6.2 Sol／Highは変更を再照合し、差分ハッシュ `53ab4c8572f75b5ed47825cf54e0ebcc9157682f8f4bb7ce3a64c142d8ea1a4f` についてテストの弱体化なしと確認した。
+- [45527221520 試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/attempts/2)、同一 `71ec2dd`。iOS 26の明示選択訂正が実入力、採用・再起動後まで成功し、手動訂正8件すべて成功。残るiOS 26 UI BはXcodeが起動済みの対象端末を列挙できず、XCTest開始前に停止（N183-CI23）。13:57 JSTに終端、14成功・1失敗・公開スキップ。同一ソースで端末の実ID指定を保ち、残る1ジョブだけを再実行。開始前の新規GPT-6.2 Sol／Highで実行ソースからのコード差分0バイト（SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`）を照合。
+- [45527221520 試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/45527221520/attempts/3) は `71ec2dd`。iOS 26 BでXcodeが対象端末を認識し、週送り、資料詳細、曜日除外が全て成功。通知設定では最初のSwitchに静止接触が配送されたが切り替わらず、許可要求と再起動後の確認に未到達。個人通知ケースの実許可と予約は成功。検証14成功・1失敗、公開はスキップ。iOS 26の当該Bケース限定で既存の実つまみ操作を使い、接触から許可・保存と再起動までを元の判定で確認する（N183-CI24）。
+- iOS 26の通知操作候補はSwift構文・UI manifest 44件・UIランナー18件・カタログ489件を確認。新規GPT-6.2 Sol／Highの指摘を受け、静止と移動の両呼び方を合計して一度だけという静的検査を維持した。最終コード・テスト差分SHA-256 `7273dc2fce9a0e5c01c1ad6f83309ef74a448574ed407f5d3868e76e220ff2eb` を再照合した。iOS 27とUI Aは従来の接触経路を使用する。
+- [iOS 26限定45553651442 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45553651442/attempts/1) は `ea7531c`、SDK27.2。対象コードを含む生成アプリのAppleビルドを完了。所有端末の準備直後にGitHub上で取消となり、変更した操作の到達は未確認（N183-CI25）。同じコミットで限定の1件を再実行する。
+- [同じiOS 26限定の試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45553651442/attempts/2) は `ea7531c`、SDK27.2、ケース253.842秒で成功。2つの一意な実Switchで各一回の時刻付きつまみ移動、OS許可2件、配色・ブラウザの実設定、再起動3回後の表示・保存、同じ所有Simulatorでの完了照合と清掃を確認した。先の取消理由は未確定で、開始前の比較は新規GPT-6.2 Sol／Highのコード差分0バイト照合後に実行した。この変更を含む同じ製品・検査条件で、作業ブランチの全体15件を再検証する。
+- [全体45557966509 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/attempts/1) は `4a08a7a`、11月25日16:56 JSTに終端。検証15件中13成功・1失敗・1取消。iOS 26の週送り、曜日除外、修正した通知・外観（199.749秒）、追加の実OS文字サイズ3件を全体で確認。iOS 27 B、iOS 26 A、手動7件、非配布のiPhoneビルドとApple Native 858件（既定skip1）も成功。iOS 27 Aは表示された初期化ダイアログの操作可判定で停止（N183-CI26）、iOS 26手動3項目はジョブの上限で取消（N183-CI27）。当該ソースの失敗・取消だけを新しいRunnerで再検証する。新規GPT-6.2 Sol／Highは実行ソースとのコード差分0バイト（SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`）を確認した。
+- [45557966509 試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/attempts/2) は同一 `4a08a7a`、11月25日17:56 JSTに全終端。iOS 27 Aは初期化の確定と新規登録を含む元ケース・全ジョブが成功し、通常UIは両OSのA/B全4件成功。iOS 26手動3項目は準備済みの実アプリからXcodeの最初の起動呼出しが正常復帰せず、訂正操作の前で停止（N183-CI28）。14成功・1失敗・公開スキップ。先の上限停止と段階が異なり、残る1ジョブを同じソース・条件の新しいRunnerで確認する。直前の新規GPT-6.2 Sol／Highはコード差分0バイト（SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`）を確認した。
+- [45557966509 試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/attempts/3) は11月25日18:29 JSTに終端し、同一ソース `4a08a7ad743018bd264a3c46f451f144bbd7f1e8` の検証15ジョブがすべて成功。GitHubの試行別APIで全16ジョブの同一SHA・試行番号3・検証15成功・公開1スキップを照合した。[最後のiOS 26手動3項目](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139093060268) は375.270秒で、各項目の確認、4項目目の拒否、採用と再起動後、回収まで成功。通常UIは両OSのA/B全4件、手動訂正8件、Native・非配布のiPhoneビルドも成功。試行1／2のXcode・画面照会・時間上限の停止履歴は失敗索引に保存。iPhone実機のOneDrive Providerでの再現は未確認。アプリ公開・サービス本番反映・監視設定の変更は実施していない。
+
+## 2026年11月26日：Issue #185 試験カウントダウンの進捗
+
+- #183の先行実装（PR #184、`8b32576`）から分岐した。テスト一覧のカウントダウン、日付、学校行事、半期削除を照合し、起点の日付境界、年度キャッシュの不足、試験の識別、旧形式、保存失敗、半期削除を架空データで追加した。
+- 失敗索引を `CountdownRegistersFollowsCalendar`、`countdown-progress`、`ProgressView`、`N183-CI4`、`N183-CI8` で照合した。既存ケースでは学校行事の初回取得、AXによる操作判定、Xcodeの起動返却に失敗した履歴がある。新ケースは架空の保存済みv2本文を使い、実際のホームと設定を開いて、起点日前の非表示と表示名変更後の再起動を確認する。画面到達と対象要素は実AXで確認し、学校の本番APIへ接続しない。
+- LinuxでSwift構文検査とテストカタログ489ファイルを確認した。PythonのUI manifest 44件（既定skip8）、UIランナー18件、テストカタログ14件、ワークフローの差分判定5件が成功した。
+- Linux（Swift 6.1.2）でSwiftパッケージ747件、うちカウントダウン21件が成功した。SwiftPMはこの環境に保存されている固定コミットの依存とGRDBのサブモジュールを使用した。iOS専用のSwiftUIコードはLinuxで構文を確認した。
+- Linuxで配布ゲートのPython一式354件を実行し、332件成功・環境によるskip22件だった。通知・保存の検証用スタブ不足による初回のエラー4件を修正した（N185-L1）。保存直前の再確認中に試験が切り替わるようにした追加検証も、`2fe1082` のケース単独で成功した。
+- [Draft PR #186](https://github.com/n624-dev/takupoke-ios/pull/186) のベースはPR #184の作業ブランチ。iOS 26.5・27.0、SDK 27.2の限定検証を `3adf386` と `2fe1082` で要求した。GitHub CLIとREST APIはHTTP 500を返し、どちらのコミットにも実行は作成されなかった。実機・シミュレーターでの画面操作と全体CIは未確認。アプリ公開、本番反映、監視設定更新は未実施。
+- 旧クラス別起点を専用領域に保存できない場合に、未紐付けで旧日付と既存設定を保持する修正を `0294c79` に追加。LinuxのSwift 748件と、保存前の対象照合・入力ライフサイクルの限定検査が成功した。
+- 同じ `0294c79` の[限定CI 45710773715](https://github.com/n624-dev/takupoke-ios/actions/runs/45710773715) は SDK 27.2、iOS 26.5で221.670秒、iOS 27.0で137.875秒の実操作を完了し両OS成功。起点日前の非表示、自動起点の表示、ラベル変更と再起動の反映を確認した。
+- [全体CI 45714093730・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/1) は `0294c79` で15検証ジョブ中10成功、4失敗、1取消。公開はスキップ。限定の新機能ケースは全体の通常UI Bでも両OS成功。失敗は手動訂正3件、iOS 26の配色メニュー、iOS 27 UI Bのジョブ上限（N185-CI1〜5）。残件を同じコミット・合格条件で再検証した。
+- [全体CI・試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/2) は同じ `0294c79` で13件成功・2件失敗、公開はスキップ。iOS 27の通常UI Bと残っていた手動訂正2件が成功。iOS 26の通常UI BはAppleのランタイム取得、手動明示選択は前回より後の3件の状態照合で止まった（N185-CI6・7）。この2件を同じコミットで再検証する。
+- [全体CI・試行3](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/3) は13件成功。iOS 26手動明示選択はAppleカタログのネットワークエラー、iOS 26通常UI Bは週送りの描画間隔100.309msが既存90msの条件を超えた（N185-CI8・9）。
+- [全体CI・試行4](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/attempts/4) で同一ソース `0294c79d6e928c660f571c9ce523318e04df7f6d`・試行4の検証15件がすべて成功し、公開1件はスキップされた。最後のiOS 26通常UI Bと手動明示選択も元の条件で完了。結果は試行別の全16ジョブのSHA・試行番号・結論を照合した。
+
+### 全シミュレーターCIの失敗時スクリーンショット
+
+- [Draft PR #187](https://github.com/n624-dev/takupoke-ios/pull/187) で通常UI、手動訂正、ファイル選択、標準OCR、ASCII OCRへ共通の出力形式を接続。Linuxで通常UI18件、手動ランナー7件、ファイル選択ランナー、OCRランタイム22件、OCRの取消、撮影処理5件を確認した。
+- [iOS 27の専用検証45731870539](https://github.com/n624-dev/takupoke-ios/actions/runs/45731870539/job/139615598664) は、元の画面テストのランナーが失敗を返すことと、XCTestから画像が一つだけ出力されることを検証した。ログから復元したPNGは472×1024、129448バイトで、SHA-256の一致と画像のデコード、架空のカウントダウンカードが実際に写ったことを確認した。専用の意図的な失敗を全体CIの合格に合算していない。
+- [標準OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45730020333) と [ASCII OCR](https://github.com/n624-dev/takupoke-ios/actions/runs/45729990968) は、既存の固定製品スナップショットとの一致を維持した専用ブランチで、両OSとも成功した。SDKと推論の比較条件を維持した。
+- [撮影変更を含む最初の全体CI 45734255299](https://github.com/n624-dev/takupoke-ios/actions/runs/45734255299/job/139623539027) は `b0dcdf5` でLinuxの配布検査に失敗した。手動UIの後処理を抽出する既存テストのコマンド代役が、追加の撮影呼び出しを未登録として終了コード99で止めた。元の終了コードと後処理の順序を検査し続け、撮影の失敗と取消時の挙動も代役に反映する。iOSのジョブは未実行。
+- [撮影対応を含む全体CI 45736484307・試行2](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/attempts/2) は `99fa7e2d8d8f28f826c726bd08bfe18a132aae07`。GitHubの試行別APIで同じソース・試行2の検証15件すべて成功と、公開1件のスキップを確認した。試行1のiOS 26通常UI Aの週送りは元の合格条件のまま、試行2の新しいRunnerで完了した。試行1では同じケースの実際の失敗時にXCTestのPNG出力も確認した（N187-CI6）。製品コードはPR #186の `0294c79` と同じ。
+
+## 2026年11月26日：iOS統合版の配布検証
+
+- READMEの文言修正を含む `main` に、設定・ステータス、ファイル取得、試験カウントダウン、全シミュレーターCIの失敗時撮影を統合した。通常配布ワークフローで、同じソースの配布検査・Native・両OSの通常UIと手動訂正・iPhoneのビルドを検証する。
+- `N187-CI6|N185-CI9|N183-CI23|N183-CI27` で失敗索引を照合した。週送りの接触・描画間隔、ランタイムの列挙、手動訂正のジョブ期限の履歴を確認した。統合元の前回全体CIから、アプリ・テスト・ワークフローの内容は同一で、公開は通常の `main` 経路を使用する。

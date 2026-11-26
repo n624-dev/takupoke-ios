@@ -20,7 +20,7 @@ struct FileRefreshQueue {
     private(set) var suspended = false
 
     mutating func setForeground(_ value: Bool) {
-        if !value || !foreground { suspended = false }
+        if value && !foreground { suspended = false }
         foreground = value
         if !value { pending.removeAll() }
     }
@@ -30,14 +30,17 @@ struct FileRefreshQueue {
         pending.removeAll()
     }
 
+    mutating func resume() { suspended = false }
+    mutating func discardPending() { pending.removeAll() }
+
     mutating func request(_ id: String) {
         if foreground && !suspended { pending.insert(id) }
     }
 
-    mutating func take(ready: Bool, busy: Bool) -> Set<String> {
+    mutating func take(ready: Bool, busy: Bool, blocked: Set<String> = []) -> Set<String> {
         guard foreground, !suspended, ready, !busy else { return [] }
-        let result = pending
-        pending.removeAll()
+        let result = pending.subtracting(blocked)
+        pending.subtract(result)
         return result
     }
 }
@@ -93,9 +96,9 @@ struct PendingFileSelections<Kind, Selection> {
         items.append((kind, selection))
     }
 
-    mutating func take(busy: Bool) -> (kind: Kind, selection: Selection)? {
-        guard !busy, !items.isEmpty else { return nil }
-        return items.removeFirst()
+    mutating func take(busy: Bool, blocked: (Kind) -> Bool = { _ in false }) -> (kind: Kind, selection: Selection)? {
+        guard !busy, let index = items.firstIndex(where: { !blocked($0.kind) }) else { return nil }
+        return items.remove(at: index)
     }
 
     mutating func clear() { items.removeAll() }
@@ -105,21 +108,27 @@ struct PendingFileSelections<Kind, Selection> {
 /// source and reports its existing error without changing the accepted data.
 enum SelectedFileRefresher {
     static func refresh(requested: Set<String>, check: () throws -> Void,
-                        refresh: (MaterialKind) throws -> Bool) throws {
+                        refresh: (MaterialKind) throws -> Void) throws {
         var firstFailure: Error?
         for kind in [MaterialKind.timetable, .changes] where requested.contains(kind.rawValue) {
             try check()
             let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue)
             FileRefreshDiagnostics.shared.record(.refreshStarted, source: source)
             do {
-                let changed = try refresh(kind)
+                try refresh(kind)
                 try check()
-                FileRefreshDiagnostics.shared.record(changed ? .hashChanged : .hashSame, source: source)
             } catch {
+                if (error as? FilePipeline.Failure) == .cancelled || (error as? FilePipeline.Failure) == .stale {
+                    try check() // Only explicit batch cancellation stops the remaining files.
+                    FileRefreshDiagnostics.shared.record(.cancelled, source: source)
+                    if firstFailure == nil { firstFailure = error }
+                    continue
+                }
+                if (error as? FilePipeline.Failure) != .timedOut && FileOperationOutcome.isCancellation(error) {
+                    FileRefreshDiagnostics.shared.record(.cancelled, source: source)
+                    throw error
+                }
                 FileRefreshDiagnostics.shared.record(.refreshFailed, source: source)
-                if case MaterialError.cancelled = error { throw error }
-                if error is CancellationError || (error as? PDFParseError)?.code == .cancelled ||
-                    (error as? ChangeParseError)?.code == .cancelled { throw error }
                 try check()
                 if firstFailure == nil { firstFailure = error }
             }

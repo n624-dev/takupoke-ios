@@ -58,6 +58,14 @@
         "Takupoke/MaterialModels.swift",
         "Takupoke/MaterialWorker+Analysis.swift",
         "Takupoke/MaterialWorker+Provider.swift",
+        "Takupoke/MaterialFileReader.swift",
+        "Takupoke/SelectedFileProvider.swift",
+        "Takupoke/FilePipeline.swift",
+        "Takupoke/PipelineWorkspace.swift",
+        "Takupoke/MaterialLibrary+Pipeline.swift",
+        "Takupoke/SpecialScheduleStore+Pipeline.swift",
+        "Takupoke/MaterialWorker+Pipeline.swift",
+        "Takupoke/SpecialSchedulesModel+Pipeline.swift",
         "Takupoke/MaterialsModel+Updates.swift",
         "Takupoke/MaterialsModel.swift",
         "Takupoke/MaterialsView+FileSummary.swift",
@@ -590,6 +598,24 @@
       ]
     },
     {
+      "id": "simulator-failure-screenshot",
+      "title": "シミュレーター失敗時の画面記録",
+      "environment": "macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査",
+      "commands": [
+        "python3 -B -m unittest discover -s tests -p test_simulator_failure_screenshot.py"
+      ],
+      "sources": [
+        "tools/simulator_failure_screenshot.py"
+      ],
+      "checks": [
+        "tests/test_simulator_failure_screenshot.py",
+        "tests/test_application_ui_runner.py",
+        "tests/test_manual_ui_runner.py",
+        "tests/test_picker_ui_runner.py",
+        "tests/test_ocr_simulator_cancellation.py"
+      ]
+    },
+    {
       "id": "release",
       "title": "IPA・AltStore・公開ゲート・ビルド・一時領域",
       "environment": "Linux Python／Apple iPhone SDK。AltStore導入は実機限定",
@@ -877,6 +903,29 @@
       "checks": [
         "tests/test_ocr_code_english_screen.py",
         "tests/test_workflow_source_paths.py"
+      ]
+    },
+    {
+      "id": "status",
+      "title": "ステータス・公開監視情報・取消表示",
+      "environment": "Linux Swift（状態判定）／Apple iOS26/27（画面・通信）",
+      "commands": [
+        "bash tools/test-parsing.sh",
+        "bash tools/test-app-ui.sh"
+      ],
+      "sources": [
+        "Takupoke/AppStatusView.swift",
+        "Takupoke/ServiceStatus.swift",
+        "Takupoke/ServiceStatusModel.swift",
+        "Takupoke/ServiceStatusView.swift",
+        "Takupoke/StatusPresentation.swift",
+        "Takupoke/StatusRow.swift"
+      ],
+      "checks": [
+        "tests/ServiceStatusTests.swift",
+        "tests/StatusPresentationTests.swift",
+        "tests/ui/ApplicationChecks+Settings.swift",
+        "tests/test_application_ui_runner.py"
       ]
     }
   ]

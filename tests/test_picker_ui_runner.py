@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(os.name == "posix", "Bash runner")
 class PickerRunnerTests(unittest.TestCase):
+    def test_picker_lease_typechecks_with_only_picker_dependencies(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to type-check the production picker lease")
+        with tempfile.TemporaryDirectory(prefix="takupoke-picker-lease-") as directory:
+            stubs = Path(directory) / "PickerDependencies.swift"
+            stubs.write_text("""import Foundation
+enum MaterialError: Error { case accessExpired }
+#if !canImport(Darwin)
+extension URL {
+    func startAccessingSecurityScopedResource() -> Bool { true }
+    func stopAccessingSecurityScopedResource() {}
+}
+#endif
+""")
+            subprocess.run(
+                [compiler, "-typecheck", str(stubs), str(ROOT / "Takupoke/ScopedMaterialSelection.swift")],
+                check=True, timeout=30)
+
     def test_preparation_order_exact_completions_failures_and_owned_cleanup(self):
         fake = "#!" + sys.executable + "\n" + r'''
 import json, os, sys
@@ -93,6 +113,11 @@ elif args[:2] == ['simctl', 'launch']:
                     self.assertIn("never", builds[1])
                 launches = [row for row in commands if row[:3] == ["xcrun", "simctl", "launch"]]
                 self.assertEqual(len(launches), int(mode in ("success", "transition-fails")))
+                screenshots = [row for row in commands if row[:3] == ["xcrun", "simctl", "io"] and row[4] == "screenshot"]
+                self.assertEqual(len(screenshots), int(mode != "success"), result.stdout + result.stderr)
+                if screenshots:
+                    deletion = ["xcrun", "simctl", "delete", screenshots[0][3]]
+                    self.assertLess(commands.index(screenshots[0]), commands.index(deletion))
                 self.assertIn(["xcrun", "simctl", "delete", "00000000-0000-0000-0000-000000000001"], commands)
                 self.assertEqual(list(scratch.iterdir()), [])
 

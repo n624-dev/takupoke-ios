@@ -22,6 +22,8 @@ verify_native_identity = shared.verify_native_identity
 command = shared.command
 boot_owned_simulator = shared.boot_owned_simulator
 remove_owned_simulator = shared.remove_owned_simulator
+capture_failed_simulator_screen = shared.capture_failed_simulator_screen
+select_runtime = shared.select_runtime
 
 
 def compare_reject(expected, actual, tolerance):
@@ -117,11 +119,7 @@ def main():
             {v.name for v in session.get_outputs()} != {'probabilities', 'reject_probability'}):
         raise ValueError('ASCII I/O names changed')
     simulation = json.loads(command('xcrun', 'simctl', 'list', '-j'))
-    available = [r for r in simulation['runtimes'] if r.get('isAvailable') and
-                 r['identifier'].startswith('com.apple.CoreSimulator.SimRuntime.iOS-') and int(r['version'].split('.')[0]) == args.ios]
-    if not available:
-        raise ValueError('Required iOS Runtime is unavailable; never substitute another OS')
-    runtime = max(available, key=lambda r: tuple(map(int, r['version'].split('.'))))
+    runtime = select_runtime(simulation, args.ios)
     device = next(d for d in simulation['devicetypes'] if d['name'] == 'iPhone 16')
     cancel_scope = OwnedSimulatorCancellation()
     owned = None; process = None
@@ -232,6 +230,7 @@ def main():
     finally:
         cancel_scope.begin_cleanup()
         try:
+            capture_failed_simulator_screen(owned, args.study)
             if process and process.poll() is None:
                 process.terminate()
                 try:

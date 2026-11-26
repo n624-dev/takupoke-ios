@@ -85,6 +85,7 @@ NOTIFICATION_PROBE_TESTS = (
 )
 COUNTDOWN_NOTIFICATION_TEST = "testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch"
 COUNTDOWN_REMINDER_LAYOUT_TEST = "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors"
+COUNTDOWN_PROGRESS_TEST = "testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel"
 SCHOOL_COUNTDOWN_NOTIFICATION_TEST = "testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed"
 COUNTDOWN_DELETE_TEST = "testCountdownDeleteWriteFailureKeepsDetailAndCanRetry"
 NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (COUNTDOWN_NOTIFICATION_TEST, SCHOOL_COUNTDOWN_NOTIFICATION_TEST)
@@ -93,7 +94,18 @@ CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testSettingsAccountDataAndFileDetails",
     "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",
 )
+STATUS_SETTINGS_SCREEN_TEST = "testStatusScreenUsesPublicResourcesAndDataRoutes"
+STATUS_SETTINGS_TESTS = (
+    "testSettingsGroupsAndCompactDataOverviews",
+    STATUS_SETTINGS_SCREEN_TEST,
+    "testEmptyDataCanBeConfigured",
+    SETTINGS_TEST,
+    "testSetupCanBeSkippedAndOffersAllFiles",
+)
 PROBE_GROUPS = {
+    "status-settings": STATUS_SETTINGS_TESTS,
+    "status-settings-overviews": tuple(test for test in STATUS_SETTINGS_TESTS if test not in (SETTINGS_TEST, STATUS_SETTINGS_SCREEN_TEST)),
+    "status-settings-screen": (STATUS_SETTINGS_SCREEN_TEST,),
     "system-text-size": (SYSTEM_SIZE_TEST,),
     "yellow-contrast": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",),
     "week-appearance": ("testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch",
@@ -109,6 +121,7 @@ PROBE_GROUPS = {
     "notifications": NOTIFICATION_PROBE_TESTS,
     "controls": CONTROL_PROBE_TESTS,
     "rows": ("testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",),
+    "failed-special-details": ("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails",),
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-school-notices": (SCHOOL_COUNTDOWN_NOTIFICATION_TEST,),
@@ -118,6 +131,7 @@ PROBE_GROUPS = {
     "countdown-and-yellow": (COUNTDOWN_REMINDER_LAYOUT_TEST, "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
     "countdown-notification-context": (SETTINGS_TEST, "testNotificationControlsAndAppearance", COUNTDOWN_NOTIFICATION_TEST),
     "countdown-calendar": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",),
+    "countdown-progress": (COUNTDOWN_PROGRESS_TEST,),
     "countdown": ("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
                   COUNTDOWN_NOTIFICATION_TEST, COUNTDOWN_REMINDER_LAYOUT_TEST),
     "week-change-details": ("testChangedRoomInHomeWeekAndList", "testHomeTimetableAndWeekCalendar", "testMergedCardsFromAllSources"),
@@ -158,6 +172,7 @@ SHARDS = {
         "testChangedDataProducesOneLocalNotification",
         SCHOOL_COUNTDOWN_NOTIFICATION_TEST,
         "testSettingsGroupsAndCompactDataOverviews",
+        "testStatusScreenUsesPublicResourcesAndDataRoutes",
         "testRecoveryClosingKeepsFormalAndModelManagementIsAccessible",
         "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork",
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
@@ -177,6 +192,7 @@ SHARDS = {
         "testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",
         "testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent",
         COUNTDOWN_REMINDER_LAYOUT_TEST,
+        COUNTDOWN_PROGRESS_TEST,
         SYSTEM_SIZE_TEST,
         "testNotificationControlsAndAppearance",
         COUNTDOWN_NOTIFICATION_TEST,

@@ -223,7 +223,8 @@ else: print('Synthetic Xcode version')
             (repo / "scratch").mkdir()
             for name in ("test-app-ui.sh", "resolve-xcode-packages.sh", "ui_test_manifest.py", "timed_command.py",
                          "notification_service_trace.py", "manual_ui_diagnostics.py", "watch_app_hang.py",
-                         "boot-simulator-ui.sh", "simulator-ci-trace.sh", "simulator_ci_trace.py"):
+                         "boot-simulator-ui.sh", "simulator-ci-trace.sh", "simulator_ci_trace.py",
+                         "simulator_failure_screenshot.py"):
                 shutil.copyfile(ROOT / "tools" / name, repo / "tools" / name)
             for name in manifest.CHECK_SOURCES:
                 shutil.copyfile(ROOT / "tests/ui" / name, repo / "tests/ui" / name)
@@ -319,6 +320,11 @@ elif args[:2] == ['simctl', 'get_app_container']: print(os.environ['APP_CONTAINE
             result = subprocess.run(["bash", "tools/test-app-ui.sh"], cwd=repo, env=environment,
                                     capture_output=True, text=True, timeout=15)
             calls = [json.loads(line) for line in calls_file.read_text().splitlines()]
+            screenshots = [call for call in calls if call[:3] == ["xcrun", "simctl", "io"] and call[4] == "screenshot"]
+            self.assertEqual(len(screenshots), int(result.returncode != 0), result.stdout + result.stderr)
+            if screenshots:
+                deletion = ["xcrun", "simctl", "delete", screenshots[0][3]]
+                self.assertLess(calls.index(screenshots[0]), calls.index(deletion))
             self.assertEqual(list((repo / "scratch").iterdir()), [], "Owned scratch data must be removed")
             self.assertIn(["xcrun", "simctl", "shutdown", "00000000-0000-0000-0000-000000000001"], calls)
             self.assertIn(["xcrun", "simctl", "delete", "00000000-0000-0000-0000-000000000001"], calls)

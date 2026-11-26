@@ -47,9 +47,11 @@ struct CountdownDates: Codable, Equatable {
 
     func progress(from origin: SchoolDate?, on day: SchoolDate) -> CountdownProgress {
         guard let origin else { return .hidden }
+        guard origin.isValidCalendarDay else { return .invalid }
         let total = origin.days(until: start)
         guard total > 0 else { return .invalid }
-        return .value(min(1, max(0, Double(origin.days(until: day)) / Double(total))))
+        guard day >= origin else { return .hidden }
+        return .value(min(1, Double(origin.days(until: day)) / Double(total)))
     }
 }
 
@@ -150,16 +152,131 @@ struct CountdownReminderDayEdits {
 }
 
 struct CountdownPreferences: Codable, Equatable {
+    static let defaultProgressLabel = "設定期間の経過率"
+
     var showsOnHome = true
     var lookahead: CountdownLookahead = .always
     var progressStart: SchoolDate?
     var notifications = false
     var reminders = CountdownReminder.defaults
+    var progressEnabled: Bool?
+    var progressLabel: String?
+
+    var showsProgress: Bool { progressEnabled ?? (progressStart != nil) }
+    var displayedProgressLabel: String {
+        (progressLabel ?? Self.defaultProgressLabel).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     var valid: Bool {
         progressStart?.isValidCalendarDay != false && !reminders.isEmpty &&
             Set(reminders).count == reminders.count && reminders.allSatisfy(\.valid)
     }
+}
+
+struct CountdownPublicEvent: Identifiable, Equatable {
+    let reference: CountdownEventReference
+    let dates: CountdownDates
+    let tag: String
+    var id: String { reference.key }
+}
+
+enum CountdownAnnouncementCoverage: Equatable { case missing, checking, unavailable }
+
+enum CountdownProgressOrigin: Equatable {
+    case pending, checking, unavailable, unset
+    case announcement(SchoolDate, CountdownEventReference)
+    case custom(SchoolDate)
+
+    var date: SchoolDate? {
+        switch self {
+        case .announcement(let date, _), .custom(let date): return date
+        case .pending, .checking, .unavailable, .unset: return nil
+        }
+    }
+
+    static func announcement(before exam: SchoolDate, events: [CountdownPublicEvent],
+                             completeYears: Set<Int>,
+                             unconfirmedYear: (Int) -> CountdownAnnouncementCoverage = { _ in .missing }) -> Self {
+        guard let lower = exam.previousMonth(), let last = exam.addingDays(-1) else { return .pending }
+        let nearest = events.filter {
+            $0.dates.title.trimmingCharacters(in: .whitespacesAndNewlines) == "試験発表" &&
+                lower <= $0.dates.start && $0.dates.start < exam
+        }.min {
+            if $0.dates.start != $1.dates.start { return $0.dates.start > $1.dates.start }
+            return ($0.reference.year, $0.reference.eventID) < ($1.reference.year, $1.reference.eventID)
+        }
+        let firstRelevantYear = nearest?.dates.start.schoolYear ?? lower.schoolYear
+        let unresolved = (firstRelevantYear...last.schoolYear).filter { !completeYears.contains($0) }.map(unconfirmedYear)
+        if unresolved.contains(.checking) { return .checking }
+        if unresolved.contains(.unavailable) { return .unavailable }
+        if !unresolved.isEmpty { return .pending }
+        return nearest.map { .announcement($0.dates.start, $0.reference) } ?? .unset
+    }
+}
+
+enum CountdownExamProgressKey: Codable, Hashable {
+    case school(CountdownEventReference)
+    case classPeriod(scope: String, exam: CountdownEventReference)
+    case classDay(scope: String, day: SchoolDate)
+
+    var isPrivate: Bool {
+        if case .school = self { return false }
+        return true
+    }
+
+    var valid: Bool {
+        switch self {
+        case .school(let exam): return exam.valid
+        case .classPeriod(let scope, let exam): return Self.validScope(scope) && exam.valid
+        case .classDay(let scope, let day): return Self.validScope(scope) && day.isValidCalendarDay
+        }
+    }
+
+    private static func validScope(_ scope: String) -> Bool {
+        scope.utf8.count == 64 && scope.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+    }
+
+    static func forClass(scope: String, day: SchoolDate, events: [CountdownPublicEvent]) -> (Self, SchoolDate) {
+        let matches = events.filter { event in
+            event.tag == "テスト" && event.dates.ranges.contains { $0.start <= day && day <= $0.end }
+        }
+        guard matches.count == 1, let match = matches.first else {
+            return (.classDay(scope: scope, day: day), day)
+        }
+        return (.classPeriod(scope: scope, exam: match.reference), match.dates.start)
+    }
+}
+
+struct CountdownCustomProgress: Codable, Equatable {
+    let key: CountdownExamProgressKey
+    let date: SchoolDate
+
+    static func valid(_ entries: [Self], isPrivate: Bool) -> Bool {
+        entries.allSatisfy { $0.key.valid && $0.key.isPrivate == isPrivate && $0.date.isValidCalendarDay } &&
+            Set(entries.map(\.key)).count == entries.count
+    }
+
+    static func replacing(_ key: CountdownExamProgressKey, with date: SchoolDate?, in entries: [Self]) -> [Self] {
+        var updated = entries.filter { $0.key != key }
+        if let date { updated.append(.init(key: key, date: date)) }
+        return updated
+    }
+}
+
+struct CountdownClassProgress: Codable, Equatable {
+    let period: SchoolDataPeriod
+    var entries: [CountdownCustomProgress] = []
+}
+
+struct CountdownExamProgress: Equatable {
+    let key: CountdownExamProgressKey
+    let goal: SchoolDate
+    let origin: CountdownProgressOrigin
+}
+
+enum CountdownOriginEdit: Equatable {
+    case change(CountdownExamProgressKey, date: SchoolDate?, useUnlinked: Bool)
+    case discardUnlinked
 }
 
 struct CountdownEventReference: Codable, Hashable {
@@ -209,18 +326,43 @@ struct CountdownAutomatic: Codable, Equatable, Identifiable {
     var enabled = false
     var mode: CountdownExamMode = .school
     var preferences = CountdownPreferences(lookahead: .week)
+    var customOrigins: [CountdownCustomProgress]?
+    var unlinkedProgressStart: SchoolDate?
+
+    var valid: Bool {
+        preferences.valid && unlinkedProgressStart?.isValidCalendarDay != false &&
+            CountdownCustomProgress.valid(customOrigins ?? [], isPrivate: false)
+    }
 }
 
 struct CountdownLibrary: Codable, Equatable {
-    var version = 1
+    static let currentVersion = 2
+    var version = Self.currentVersion
     var registrations: [CountdownRegistration] = []
     var automatic = CountdownAutomatic()
+    var classProgressFile: UUID?
 
     var valid: Bool {
-        version == 1 && automatic.preferences.valid && registrations.allSatisfy(\.valid) &&
+        (version == 1 || version == Self.currentVersion) && automatic.valid && registrations.allSatisfy(\.valid) &&
             registrations.allSatisfy { $0.id != automatic.id } &&
             Set(registrations.map(\.id)).count == registrations.count &&
             Set(registrations.compactMap(\.reference)).count == registrations.compactMap(\.reference).count
+    }
+
+    mutating func migrateProgress(to target: CountdownExamProgressKey?) -> CountdownCustomProgress? {
+        guard version == 1 else { return nil }
+        version = Self.currentVersion
+        let previous = automatic.preferences.progressStart
+        automatic.preferences.progressEnabled = previous != nil
+        automatic.preferences.progressStart = nil
+        guard let previous, let target else {
+            automatic.unlinkedProgressStart = previous
+            return nil
+        }
+        let item = CountdownCustomProgress(key: target, date: previous)
+        if target.isPrivate { return item }
+        automatic.customOrigins = [item]
+        return nil
     }
 }
 
@@ -277,10 +419,17 @@ struct CountdownCard: Identifiable, Equatable {
     var classSubjects: [String] = []
     var evidence: String = ""
     var classScope: String?
+    var examProgress: CountdownExamProgress?
 
     var targetKey: String { reference?.key ?? (expiry == nil ? id.uuidString : evidence) }
     var noticeTarget: CountdownNoticeTarget { .init(id: id, key: targetKey) }
     var isPrivate: Bool { expiry != nil }
+
+    func progress(on day: SchoolDate) -> CountdownProgress {
+        guard preferences.showsProgress, let dates else { return .hidden }
+        let origin = id == CountdownAutomatic.identity ? examProgress?.origin.date : preferences.progressStart
+        return dates.progress(from: origin, on: day)
+    }
 
     func isFinished(on today: SchoolDate) -> Bool {
         availability.presentsDatesOnHome && dates?.phase(on: today) == .finished
@@ -374,17 +523,21 @@ struct CountdownStore {
     private struct LibraryVersion: Decodable { let version: Int }
 
     private let path: URL
+    private let privateDirectory: URL
     private static let maximumBytes = 2_000_000
-    init(root: URL) { path = root.appendingPathComponent("Countdown.json") }
+    init(root: URL) {
+        path = root.appendingPathComponent("Countdown.json")
+        privateDirectory = root.appendingPathComponent(SchoolDataRetention.countdownProgressDirectory, isDirectory: true)
+    }
 
     func load() throws -> CountdownLibrary {
-        guard let bytes = try storedBytes() else { return .init() }
+        guard let bytes = try storedBytes(at: path) else { return .init() }
         return try decode(bytes)
     }
 
     /// Preserve the unreadable original before installing an empty library.
     func preserveCorruptFileAndReset() throws {
-        guard let bytes = try storedBytes() else { throw ReadError.noLongerCorrupt }
+        guard let bytes = try storedBytes(at: path) else { throw ReadError.noLongerCorrupt }
         do {
             _ = try decode(bytes)
             throw ReadError.noLongerCorrupt
@@ -392,7 +545,7 @@ struct CountdownStore {
         let backup = path.deletingLastPathComponent().appendingPathComponent("Countdown-Recovery-\(UUID().uuidString).json")
         try Self.write(bytes, to:backup)
         do {
-            guard try storedBytes() == bytes else { throw ReadError.noLongerCorrupt }
+            guard try storedBytes(at: path) == bytes else { throw ReadError.noLongerCorrupt }
             try save(.init())
         } catch {
             try? FileManager.default.removeItem(at:backup)
@@ -400,8 +553,8 @@ struct CountdownStore {
         }
     }
 
-    private func storedBytes() throws -> Data? {
-        let path = URL(fileURLWithPath:self.path.path)
+    private func storedBytes(at destination: URL) throws -> Data? {
+        let path = URL(fileURLWithPath: destination.path)
         let info: URLResourceValues
         do { info = try path.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey,.fileSizeKey]) }
         catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return nil }
@@ -429,16 +582,93 @@ struct CountdownStore {
             throw ReadError.corrupt
         }
         // An installation running an older app must preserve future settings.
-        guard value.version == supportedVersion else { throw ReadError.unsafeFile }
+        guard value.version == 1 || value.version == supportedVersion else { throw ReadError.unsafeFile }
         guard value.valid else { throw ReadError.corrupt }
         return value
     }
 
     func save(_ library: CountdownLibrary) throws {
-        guard library.valid else { throw CocoaError(.fileWriteInapplicableStringEncoding) }
+        guard library.version == CountdownLibrary.currentVersion, library.valid else {
+            throw CocoaError(.fileWriteInapplicableStringEncoding)
+        }
         let bytes = try JSONEncoder().encode(library)
         guard bytes.count <= Self.maximumBytes else { throw CocoaError(.fileWriteOutOfSpace) }
         try Self.write(bytes, to:path)
+    }
+
+    func loadClassProgress(file: UUID?, period: SchoolDataPeriod) throws -> CountdownClassProgress {
+        guard let file, let bytes = try storedBytes(at: privateURL(file)) else { return .init(period: period) }
+        let stored = try JSONDecoder().decode(CountdownClassProgress.self, from: bytes)
+        guard CountdownCustomProgress.valid(stored.entries, isPrivate: true) else { throw ReadError.unsafeFile }
+        return stored.period == period ? stored : .init(period: period)
+    }
+
+    func saveMigratingProgress(_ library: CountdownLibrary, to target: CountdownExamProgressKey?,
+                               classProgress: CountdownClassProgress?) throws -> CountdownLibrary {
+        var migrated = library
+        let availableTarget = target?.isPrivate == true && classProgress == nil ? nil : target
+        if let entry = migrated.migrateProgress(to: availableTarget), var classProgress {
+            classProgress.entries.append(entry)
+            do {
+                return try save(migrated, with: classProgress)
+            } catch {
+                // Keep the old personal date available for explicit application
+                // when the target's private snapshot cannot be committed.
+                migrated = library
+                _ = migrated.migrateProgress(to: nil)
+            }
+        }
+        try save(migrated)
+        return migrated
+    }
+
+    // Publish a new private snapshot by atomically replacing its public pointer.
+    // An unsuccessful write leaves the previous pointer and snapshot readable.
+    func save(_ library: CountdownLibrary, with progress: CountdownClassProgress) throws -> CountdownLibrary {
+        guard CountdownCustomProgress.valid(progress.entries, isPrivate: true) else {
+            throw CocoaError(.fileWriteInapplicableStringEncoding)
+        }
+        var next = library
+        next.classProgressFile = progress.entries.isEmpty ? nil : UUID()
+        let staged = next.classProgressFile.map(privateURL)
+        do {
+            if let staged {
+                let bytes = try JSONEncoder().encode(progress)
+                guard bytes.count <= Self.maximumBytes else { throw CocoaError(.fileWriteOutOfSpace) }
+                try FileManager.default.createDirectory(at: privateDirectory, withIntermediateDirectories: true)
+                #if os(iOS)
+                var directory = privateDirectory
+                var values = URLResourceValues()
+                values.isExcludedFromBackup = true
+                try directory.setResourceValues(values)
+                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete],
+                                                      ofItemAtPath: directory.path)
+                #endif
+                try Self.write(bytes, to: staged)
+            }
+            try save(next)
+        } catch {
+            if let staged { try? FileManager.default.removeItem(at: staged) }
+            throw error
+        }
+        if let previous = library.classProgressFile { try? FileManager.default.removeItem(at: privateURL(previous)) }
+        return next
+    }
+
+    private func privateURL(_ file: UUID) -> URL {
+        privateDirectory.appendingPathComponent(file.uuidString + ".json")
+    }
+
+    func discardUnusedClassProgress(keeping file: UUID?) {
+        // Only this store writes UUID-named snapshots in its private directory.
+        guard let files = try? FileManager.default.contentsOfDirectory(at: privateDirectory,
+            includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey]) else { return }
+        for candidate in files where candidate.pathExtension == "json" {
+            guard let id = UUID(uuidString: candidate.deletingPathExtension().lastPathComponent), id != file,
+                  let info = try? candidate.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
+                  info.isRegularFile == true, info.isSymbolicLink != true else { continue }
+            try? FileManager.default.removeItem(at: candidate)
+        }
     }
 
     private static func write(_ bytes: Data, to destination: URL) throws {

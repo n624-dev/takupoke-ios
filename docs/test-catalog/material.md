@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`71ee563b13929020de74c63c1507e3f85ada1c8c0925280a09a15ffea592e0c0`
+`772d7b1a87c1200cf2e9e5c5a30d4f8d20a588380d27f022085c1f944af7ca49`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -20,6 +20,14 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 - [Takupoke/MaterialModels.swift](../../Takupoke/MaterialModels.swift)
 - [Takupoke/MaterialWorker+Analysis.swift](../../Takupoke/MaterialWorker+Analysis.swift)
 - [Takupoke/MaterialWorker+Provider.swift](../../Takupoke/MaterialWorker+Provider.swift)
+- [Takupoke/MaterialFileReader.swift](../../Takupoke/MaterialFileReader.swift)
+- [Takupoke/SelectedFileProvider.swift](../../Takupoke/SelectedFileProvider.swift)
+- [Takupoke/FilePipeline.swift](../../Takupoke/FilePipeline.swift)
+- [Takupoke/PipelineWorkspace.swift](../../Takupoke/PipelineWorkspace.swift)
+- [Takupoke/MaterialLibrary+Pipeline.swift](../../Takupoke/MaterialLibrary+Pipeline.swift)
+- [Takupoke/SpecialScheduleStore+Pipeline.swift](../../Takupoke/SpecialScheduleStore+Pipeline.swift)
+- [Takupoke/MaterialWorker+Pipeline.swift](../../Takupoke/MaterialWorker+Pipeline.swift)
+- [Takupoke/SpecialSchedulesModel+Pipeline.swift](../../Takupoke/SpecialSchedulesModel+Pipeline.swift)
 - [Takupoke/MaterialsModel+Updates.swift](../../Takupoke/MaterialsModel+Updates.swift)
 - [Takupoke/MaterialsModel.swift](../../Takupoke/MaterialsModel.swift)
 - [Takupoke/MaterialsView+FileSummary.swift](../../Takupoke/MaterialsView+FileSummary.swift)
@@ -35,6 +43,28 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/FileRefreshTests.swift](../../tests/FileRefreshTests.swift)
 
+- `testPipelineStageDeadlinesProgressOverallAndCommitFence`
+- `testUnresponsivePipelineExpiresWithoutPublishingAndOtherFilesContinue`
+- `testTransientRetriesStopAtTwoAndKeepOneCommitAndCleanup`
+- `testIsolatedLibraryRejectsChangedSourceAndKeepsOtherFiles`
+- `testSpecialSnapshotPreservesOtherSourceAndRejectsStaleCommit`
+- `testLateStageAndProgressCannotEraseExpiredDeadline`
+- `testClearPresentationDuringCommitCannotStrandLane`
+- `testSavingCanFinishAfterDeadlineWithoutPermittingAnotherAttempt`
+- `testPipelineCanRepairMissingMaterialCopyEvenWhenOriginalBytesMatch`
+- `testCancelledAdmissionNeverLaunchesProvider`
+- `testCancellationAtRetryReplacementStopsNewProvider`
+- `testSelectionIntentRejectsAnOlderNotYetStartedRequest`
+- `testSourceCancellationDoesNotDropAnotherDrainedBatchRequest`
+- `testRetryBudgetExpiresEvenWhenOwnerQueueCannotRun`
+- `testInjectedProviderCannotPublishDelayedCompletionForAnySelectedKind`
+- `testDiagnosticElapsedTimeUsesInjectedMonotonicClock`
+- `testBlockedReaderRejectsLateBytesAfterCancellation`
+- `testSharedReaderChecksCancellationBeforeReadAndAfterLateBytesOrEOF`
+- `testSharedReaderPrefersCancellationOverLateIOErrors`
+- `testSharedReaderRejectsCancellationDuringSynchronize`
+- `testSharedReaderValidatesSplitHeadersSizeAndDigest`
+- `testSharedReaderCopiesRealFileIntoStagingWithoutChangingSource`
 - `testRefreshPreservesTheFirstFailureAndStillChecksOtherSources`
 - `testRefreshPreservesChangeAndAcquisitionFailureKinds`
 - `testRefreshCancellationStopsBeforeTheNextSourceAndAfterTheLastRead`
@@ -87,6 +117,8 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/test_change_preview_actions.py](../../tests/test_change_preview_actions.py)
 
+- `test_batch_cancellation_is_separate_from_child_deadline`
+- `test_paused_files_do_not_start_background_work_before_foreground_return`
 - `test_special_provider_refresh_keeps_cancellation_separate_from_failure`
 - `test_recovered_timetable_clears_previous_error_only_after_commit`
 - `test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`

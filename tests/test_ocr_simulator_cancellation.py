@@ -45,7 +45,10 @@ def boot(identity, developer):
     assert identity == "owned-fictional-id"
     (root / "ready").touch()
     time.sleep(30)
+def screenshot_command(*args, **kwargs):
+    raise AssertionError("Cancellation must leave time for owned simulator cleanup")
 module.command = command; module.boot_owned_simulator = boot
+module.subprocess.run = screenshot_command
 if hasattr(module, "shared"): module.shared.command = command
 module.args = SimpleNamespace(study=root)
 module.runtime = {"identifier": "fictional-runtime", "version": "26.5"}

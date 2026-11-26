@@ -193,6 +193,17 @@ class DistributionTests(IPAFixture):
         with self.assertRaisesRegex(ValueError, "Internal diagnostics"):
             release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
 
+    def test_fixed_refresh_trace_does_not_enable_full_text_exports(self):
+        allowed = b"TAKUPOKE-REFRESH-TRACE-1 " + "更新確認の記録をコピー".encode()
+        self.write_ipa(executable=allowed)
+        release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
+        for marker in (b"TAKUPOKE-PDF-FULL-ZIP-1", b"TAKUPOKE-PDF-FULL-JSON-1",
+                       "読み取り結果をすべてコピー".encode(), "全文診断をコピー".encode(),
+                       "診断情報をコピー".encode(), "更新確認の診断をコピー".encode()):
+            self.write_ipa(executable=allowed + marker)
+            with self.assertRaisesRegex(ValueError, "Internal diagnostics"):
+                release.inspect_ipa(self.output / "takupoke.ipa", self.config, "0.1.12", "12.1", COMMIT)
+
     def test_modified_ipa_and_source_fail_validation(self):
         self.generate()
         with (self.output / "takupoke.ipa").open("ab") as stream:

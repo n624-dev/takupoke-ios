@@ -2,7 +2,7 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
+let mappingSources = ["ScopedMaterialSelection.swift", "SelectedFileProvider.swift", "TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
 let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
@@ -10,7 +10,7 @@ let mappingTestExcludes: [String] = []
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
+let mappingExcludes = ["ScopedMaterialSelection.swift", "SelectedFileProvider.swift", "TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
 let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
 #endif
 
@@ -36,7 +36,7 @@ let package = Package(
                     "ContentView.swift",
                     "ApplicationData.swift", "BackgroundRefresh.swift",
                     "ScheduleNotifications.swift", "NotificationSettingsView.swift",
-                    "SettingsView.swift",
+                    "SettingsView.swift", "AppStatusView.swift", "ServiceStatusView.swift", "StatusRow.swift", "ServiceStatusModel.swift",
                     "HomeView.swift",
                     "HomeTodayView.swift", "HomeLessonRow.swift",
                     "TimetablePresentation+Details.swift",
@@ -49,9 +49,8 @@ let package = Package(
                     "LegalDocumentView.swift",
                     "LegalDocuments",
                     "MaterialAccess.swift",
-                    "ScopedMaterialSelection.swift",
-                    "MaterialWorker+Analysis.swift",
-                    "MaterialWorker+Provider.swift",
+                                        "MaterialWorker+Analysis.swift",
+                    "MaterialWorker+Provider.swift", "MaterialWorker+Pipeline.swift", "SpecialSchedulesModel+Pipeline.swift",
                     "MaterialsModel.swift",
                     "MaterialsModel+Updates.swift",
                     "SpecialSchedulesModel+Updates.swift",
@@ -86,7 +85,7 @@ let package = Package(
                     "LinkRow.swift",
                 ] + mappingExcludes,
                 sources: [
-                    "MainColor.swift", "CancellationLinkedTask.swift",
+                    "MainColor.swift", "CancellationLinkedTask.swift", "StatusPresentation.swift", "ServiceStatus.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
                     "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryPromptCatalog.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryStructure.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift", "RecoveryOCRAcquisition.swift", "RecoveryOCRStructure.swift", "RecoveryVisionCapture.swift", "RecoveryManualAssistance.swift", "RecoveryManualReview.swift",
@@ -105,7 +104,7 @@ let package = Package(
                     "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift",
                     "MaterialModels.swift", "WebPDFDownloader.swift",
                     "SelectedFileSource.swift",
-                    "FileRefreshDiagnostics.swift",
+                    "FileRefreshDiagnostics.swift", "MaterialFileReader.swift", "FilePipeline.swift", "PipelineWorkspace.swift", "MaterialLibrary+Pipeline.swift", "SpecialScheduleStore+Pipeline.swift",
                     "SelectedFilePresenter.swift",
                     "SelectedFileObservation.swift",
                     "SelectedFileMonitor.swift",
@@ -171,7 +170,7 @@ let package = Package(
                     "test-catalog.json",
                 ] + mappingTestExcludes,
                     sources: [
-                    "MainColorTests.swift", "CancellationLinkedTaskTests.swift",
+                    "MainColorTests.swift", "CancellationLinkedTaskTests.swift", "StatusPresentationTests.swift", "ServiceStatusTests.swift",
                     "FileRefreshTests.swift",
                     "ParsingTests.swift",
                     "ParsingTests+Normalization.swift",

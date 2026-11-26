@@ -472,8 +472,9 @@ enum SimulatorEventsYearFixture {
         self.assertIn('assertRetainedChangeRows(stage: "after-apply")', before)
         self.assertIn('assertRetainedChangeRows(stage: "after-relaunch")', after)
         workflow = (ROOT / ".github/workflows/application-relaunch-native-probe.yml").read_text()
-        self.assertIn("timeout-minutes: ${{ inputs.case == 'rows' && 45 || 30 }}", workflow)
-        self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ inputs.case == 'rows' && 2400 || 1440 }}", workflow)
+        long_runner = "(matrix.probe_case == 'rows' || (matrix.ios == 26 && matrix.probe_case == 'yellow-contrast'))"
+        self.assertIn("timeout-minutes: ${{ " + long_runner + " && 45 || 30 }}", workflow)
+        self.assertIn("TKPK_RELAUNCH_RUNNER_SECONDS: ${{ " + long_runner + " && 2400 || 1440 }}", workflow)
         self.assertIn('--timeout "$TKPK_RELAUNCH_RUNNER_SECONDS" --cleanup-grace 120', workflow)
 
     def test_row_apply_uses_the_current_toolbar_and_still_requires_the_real_confirmation(self):
@@ -569,6 +570,20 @@ enum SimulatorEventsYearFixture {
         self.assertNotIn("files.example.invalid", changed)
         self.assertNotIn("fetch=1", changed)
 
+    def test_service_status_fixture_changes_only_the_network_endpoint(self):
+        original = (ROOT / "Takupoke/ServiceStatusModel.swift").read_text()
+        rewritten = app_test_project.rewrite_network_urls(original)
+        generated = app_test_project.instrument_service_status_endpoint(rewritten)
+        self.assertNotIn("status.n624.jp", generated)
+        self.assertEqual(generated.count('.appendingPathComponent("service-status")'), 1)
+        self.assertIn('static let pageURL = URL(string: "https://fixture.example.test")!', generated)
+        self.assertEqual(generated.replace('.appendingPathComponent("service-status")', ''), rewritten)
+        marker = 'nonisolated static let endpoint = URL(string: "https://fixture.example.test")!'
+        for invalid in (rewritten.replace(marker, ''), rewritten + marker):
+            with self.assertRaises(AssertionError):
+                app_test_project.instrument_service_status_endpoint(invalid)
+        self.assertEqual(len(re.findall(r'\b(?:let|var) \w+ = URLSessionConfiguration\.(?:ephemeral|default)', generated)), 1)
+
     def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
         launch = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
         self.assertIn('"testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"]', launch)
@@ -645,13 +660,15 @@ enum SimulatorEventsYearFixture {
         checks = (ROOT / "tests/ui/ApplicationChecks+Notifications.swift").read_text(encoding="utf-8")
         self.assertIn('"notRequested"', checks)
         self.assertIn('changes=false;saved=false;specials=false;savedSpecials=false;', checks)
-        self.assertEqual(checks.count('tapNativeSwitch(toggle)'), 1)
+        activate_switch = 'tapNativeSwitch(toggle, thumbDragDuration: thumbDragDuration)'
+        self.assertEqual(len(re.findall(r"\btapNativeSwitch\s*\(\s*toggle\b", checks)), 1)
+        self.assertEqual(checks.count(activate_switch), 1)
         before = checks.index('"NOTIFICATION_SWITCH before row=')
-        single_tap = checks.index('tapNativeSwitch(toggle)', before)
-        self.assertNotIn('recoveryScreenshot(', checks[before:single_tap])
+        single_contact = checks.index(activate_switch, before)
+        self.assertNotIn('recoveryScreenshot(', checks[before:single_contact])
         self.assertIn('recoveryScreenshot("notification-switch-unresolved")', checks)
         self.assertIn('recoveryScreenshot("notification-system-unresolved", systemScreen: true)', checks)
-        activation = checks.split('tapNativeSwitch(toggle)', 1)[1]
+        activation = checks.split(activate_switch, 1)[1]
         pending = activation.split('guard didEnable else {', 1)[0]
         self.assertNotIn("touch.tap()", pending)
         self.assertEqual(pending.count("allow.tap()"), 1)
@@ -725,7 +742,7 @@ enum SimulatorEventsYearFixture {
         settings = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
         self.assertIn("func changeAI(to value: String, dragThumb: Bool = false)", settings)
         self.assertIn('for value in ["1", "0", "1"] { changeAI(to: value) }', settings)
-        self.assertEqual(settings.count("tapNativeSwitch(ai, dragThumb: dragThumb)"), 1)
+        self.assertEqual(settings.count("tapNativeSwitch(ai, dragThumb: dragThumb, thumbDragDuration: dragThumb ? nil : 0.33)"), 1)
         self.assertEqual(settings.count('changeAI(to: "0", dragThumb: true)'), 1)
         context = settings.split("private func linkContextAction(", 1)[1].split(
             "func testLegalDocumentsAndIndividualLicenses", 1)[0]
@@ -1265,7 +1282,8 @@ METHOD
 
     def test_all_source_tests_are_assigned_once_and_both_os_checks_are_required(self):
         manifest.validate_source(manifest.check_source())
-        self.assertEqual(len(manifest.selected_tests("all")), 43)
+        self.assertEqual(len(manifest.selected_tests("all")), 45)
+        self.assertIn("testStatusScreenUsesPublicResourcesAndDataRoutes", manifest.SHARDS["A"])
         self.assertIn(manifest.SCHOOL_COUNTDOWN_NOTIFICATION_TEST, manifest.SHARDS["A"])
         self.assertIn(manifest.COUNTDOWN_DELETE_TEST, manifest.SHARDS["A"])
         self.assertIn("testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent", manifest.SHARDS["B"])
@@ -1603,6 +1621,14 @@ METHOD
             ("input-delivery", ("testSettingsAccountDataAndFileDetails", manifest.VOICEOVER_TEST)),
             ("file-details", ("testFileFailuresKeepResultsAndStayInTheirOwnDetails",
                               "testSetupCanBeSkippedAndOffersAllFiles")),
+            ("status-settings", ("testSettingsGroupsAndCompactDataOverviews",
+                                 "testStatusScreenUsesPublicResourcesAndDataRoutes",
+                                 "testEmptyDataCanBeConfigured", manifest.SETTINGS_TEST,
+                                 "testSetupCanBeSkippedAndOffersAllFiles")),
+            ("status-settings-overviews", ("testSettingsGroupsAndCompactDataOverviews",
+                                           "testEmptyDataCanBeConfigured",
+                                           "testSetupCanBeSkippedAndOffersAllFiles")),
+            ("status-settings-screen", ("testStatusScreenUsesPublicResourcesAndDataRoutes",)),
             ("updates", ("testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
                          "testHomeAndTimetableDetailsCloseForSavedUpdatesButRemainDuringBusyWork")),
             ("auxiliary-store", ("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",)),

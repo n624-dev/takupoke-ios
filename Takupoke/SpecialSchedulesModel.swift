@@ -8,6 +8,8 @@ final class SpecialDiagnosticCapture {
     var failure: PDFParseError?
     var store: SpecialScheduleStore?
     var recoveryPages: [RecoveryReadPage]?
+    var evidenceStoredName: String?
+    var evidenceDigest: String?
 }
 
 @MainActor
@@ -26,6 +28,10 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    @Published private(set) var lastOperationUsedPipeline = false
+    private var messageOperationID: UUID?
+    @Published private(set) var cancellationRequested = false
+    @Published private(set) var lastOperationWasCancelled = false
     private(set) var rejectedRecoveryKinds = Set<SpecialScheduleKind>()
     @Published private(set) var returnPositionsReport: String?
     @Published var fullReadReports: [SpecialScheduleKind: String] = [:]
@@ -37,11 +43,74 @@ final class SpecialSchedulesModel: ObservableObject {
     private var generation = UUID()
     private var control: AcquisitionControl?
     private var backgroundRefreshID: UUID?
+    var pendingManualRefresh = Set<SpecialScheduleKind>()
     private var pendingSelections = PendingFileSelections<SpecialScheduleKind, ScopedMaterialSelection>()
-    var fileRefreshQueue = FileRefreshQueue()
+    @Published var fileRefreshQueue = FileRefreshQueue()
+    var pipelineTimer: Timer?
+    var pipelineMonitorIDs: [FileRefreshDiagnostics.Source: UUID] = [:]
+    var pipelineActive = Set<FileRefreshDiagnostics.Source>()
+    var pipelineSnapshot: [FileRefreshDiagnostics.Source: FilePipeline.Status] = [:]
+    func observePipeline(_ foreground: Bool) {
+        pipelineTimer?.invalidate(); pipelineTimer = nil
+        guard foreground else { return }
+        pipelineTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                let snapshot = FilePipeline.shared.snapshot
+                let active = FilePipeline.shared.activeSources
+                if snapshot != self.pipelineSnapshot || active != self.pipelineActive {
+                    self.pipelineSnapshot = snapshot; self.pipelineActive = active; self.objectWillChange.send()
+                    self.reloadPipelineProjection()
+                    self.runPendingSelection(); self.runPendingFileRefresh()
+                }
+            }
+        }
+    }
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+        guard self?.cancellationRequested == false else { return }
         self?.fileRefreshQueue.request(id)
         self?.runPendingFileRefresh()
+    }
+
+    func reloadPipelineProjection() {
+        guard ready, !retired, let store else { return }
+        let capturedGeneration = generation
+        queue.async {
+            let outcomes = FilePipeline.shared.snapshot.filter { ["exam", "examReturn"].contains($0.key.rawValue) }
+            let projection = store.displayableRecords(), sources = store.sources
+            let evidence = store.pipelineEvidence
+            let urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
+                store.selectedURL(for: kind).map { (kind, $0) }
+            })
+            DispatchQueue.main.async {
+                guard !self.retired, self.generation == capturedGeneration else { return }
+                self.records = projection.records; self.rejectedRecoveryKinds = projection.rejected
+                self.sources = sources; self.urls = urls
+
+                let acquired = Set<String>(outcomes.compactMap { key, value -> String? in
+                    guard value.acquiredThisAttempt, value.stage == .succeeded || value.stage == .unchanged,
+                          self.pipelineMonitorIDs[key] != value.id else { return nil }
+                    self.pipelineMonitorIDs[key] = value.id
+                    return key.rawValue
+                })
+                self.updateFileMonitoring(retryFailedFor: acquired)
+                if !self.busy, let request = self.messageOperationID {
+                    let current = outcomes.values.filter { $0.requestID == request }
+                    if current.contains(where: { $0.attempt > 0 }), current.allSatisfy({ $0.stage == .succeeded || $0.stage == .unchanged }) {
+                        self.failed = false; self.message = nil; self.lastOperationWasCancelled = false; self.messageOperationID = nil
+                    }
+                }
+                for kind in SpecialScheduleKind.allCases {
+                    if let value = evidence[kind], value.storedName == sources[kind]?.storedName, value.digest == sources[kind]?.digest {
+                        self.fullReadReports[kind] = value.report
+                        if let pages = value.pages, let storedName = value.storedName { self.recoveryCaptures[kind] = (storedName, pages) }
+                        else { self.recoveryCaptures.removeValue(forKey: kind) }
+                    } else if self.recoveryCaptures[kind]?.0 != sources[kind]?.storedName {
+                        self.recoveryCaptures.removeValue(forKey: kind); self.fullReadReports[kind] = nil
+                    }
+                }
+            }
+        }
     }
 
     var availability: SpecialScheduleAvailability {
@@ -55,12 +124,20 @@ final class SpecialSchedulesModel: ObservableObject {
 
     func importPDF(_ selection: ScopedMaterialSelection, kind: SpecialScheduleKind) {
         guard !retired else { return }
+        FilePipeline.shared.cancel(kind.rawValue)
         pendingSelections.append(selection, kind: kind)
         runPendingSelection()
     }
 
     private func runPendingSelection() {
-        guard !retired, let selected = pendingSelections.take(busy: busy) else { return }
+        guard !retired, let selected = pendingSelections.take(busy: busy, blocked: { kind in
+            FilePipeline.shared.isRecovering(kind.rawValue)
+        }) else {
+            if !retired, !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) }) {
+                pendingManualRefresh.remove(kind); refresh(kind)
+            }
+            return
+        }
         analyze(kind: selected.kind, selection: selected.selection)
     }
 
@@ -70,32 +147,58 @@ final class SpecialSchedulesModel: ObservableObject {
 
     func closeForRetention() async {
         retired = true
+        FilePipeline.shared.cancel([FileRefreshDiagnostics.Source.exam, .examReturn])
+        FilePipeline.shared.clearStatuses([FileRefreshDiagnostics.Source.exam, .examReturn])
         generation = UUID()
         setFileMonitoring(false)
-        cancel()
+        pauseAutomaticChecks()
+        cancelCurrentOperation()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             queue.async {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
         store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]; returnPositionsReport = nil
-        ready = false; busy = false; control = nil; message = nil; failed = false
+        ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
 
     func resumeAfterRetention() { retired = false }
 
-    func cancel() {
-        FileRefreshDiagnostics.shared.record(.cancelled)
+    func pauseAutomaticChecks() {
         fileRefreshQueue.suspend()
         fileMonitor.suspend()
+    }
+
+    func resumeAutomaticChecks() {
+        guard !retired else { return }
+        fileRefreshQueue.resume()
+        fileMonitor.resume()
+    }
+
+    func cancelCurrentOperation() {
+        guard busy || ["exam", "examReturn"].contains(where: { FilePipeline.shared.isRecovering($0) }) else { return }
+        FileRefreshDiagnostics.shared.record(.cancelled)
+        // A delayed retry has no model operation completion to clear this flag.
+        cancellationRequested = busy
+        fileRefreshQueue.discardPending()
+        fileMonitor.discardPendingRefreshes()
         pendingSelections.clear()
+        pendingManualRefresh.removeAll()
+        FilePipeline.shared.cancel([.exam, .examReturn])
         control?.cancel()
-        message = busy ? "中止を要求しました。処理の終了を待っています。" : "自動確認を中止しました。"
+        if busy {
+            message = "中止を要求しました。処理の終了を待っています。"
+        } else {
+            lastOperationWasCancelled = true
+            failed = false
+            message = MaterialError.cancelled.localizedDescription
+            messageOperationID = nil
+        }
     }
 
     func refreshInBackground() async -> Bool {
-        guard !busy, !retired, !Task.isCancelled else { return false }
+        guard !fileRefreshQueue.suspended, !busy, !retired, !Task.isCancelled else { return false }
         let id = UUID()
         backgroundRefreshID = id
         let result = await withTaskCancellationHandler {
@@ -108,7 +211,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     let requested = Set(SpecialScheduleKind.allCases.compactMap { kind in
                         store.sources[kind]?.grant == nil ? nil : kind.rawValue
                     })
-                    try Self.refreshSelectedFiles(store, requested: requested, control: control)
+                    try Self.refreshSelectedFiles(store, requested: requested, control: control, reason: .background)
                 }
             }
         } onCancel: {
@@ -126,13 +229,18 @@ final class SpecialSchedulesModel: ObservableObject {
                                                SpecialDiagnosticCapture) throws -> Void) {
         guard !busy, !retired else { completion?(false); return }
         busy = true
+        cancellationRequested = false
+        lastOperationWasCancelled = false
         returnPositionsReport = nil
         failed = false
         message = nil
         let operationGeneration = generation
-        let control = AcquisitionControl()
+        let control = AcquisitionControl(intents: FilePipeline.shared.intentSnapshot)
         self.control = control
+        messageOperationID = control.operationID
+        lastOperationUsedPipeline = false
         let existingStore = store
+        let ownerQueue = queue
         queue.async {
             let capture = SpecialDiagnosticCapture()
             let result = Result { () throws -> Void in
@@ -142,28 +250,40 @@ final class SpecialSchedulesModel: ObservableObject {
                 else {
                     let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                            appropriateFor: nil, create: true)
-                    store = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite", isDirectory: true))
+                    store = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite", isDirectory: true), ownerQueue: ownerQueue)
                 }
                 capture.store = store
                 try operation(store, control, capture)
             }
             let projection = capture.store?.displayableRecords()
+            let frozenSources = capture.store?.sources ?? [:]
+            let frozenURLs = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
+                capture.store?.selectedURL(for: kind).map { (kind, $0) }
+            })
+            let usedPipeline = control.usedPipeline
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
+                self.lastOperationUsedPipeline = usedPipeline
                 self.control = nil
+                if self.cancellationRequested {
+                    self.fileRefreshQueue.discardPending()
+                    self.fileMonitor.discardPendingRefreshes()
+                }
+                self.cancellationRequested = false
                 self.returnPositionsReport = capture.positionsReport
                 if let kind { self.fullReadReports[kind] = capture.report }
                 if let store = capture.store {
                     self.store = store
                     self.records = projection?.records ?? [:]
                     self.rejectedRecoveryKinds = projection?.rejected ?? []
-                    self.sources = store.sources
-                    self.urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
-                        store.selectedURL(for: kind).map { (kind, $0) }
-                    })
+                    self.sources = frozenSources
+                    self.urls = frozenURLs
                     self.ready = true
-                    if let kind, let pages = capture.recoveryPages, let source = store.sources[kind] { self.recoveryCaptures[kind] = (source.storedName,pages) }
+                    if let kind, let pages = capture.recoveryPages, let source = frozenSources[kind],
+                       capture.evidenceStoredName == source.storedName, capture.evidenceDigest == source.digest {
+                        self.recoveryCaptures[kind] = (source.storedName, pages)
+                    }
                 }
                 self.updateFileMonitoring(retryFailedFor: control.acquiredProviderSources)
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
@@ -171,12 +291,15 @@ final class SpecialSchedulesModel: ObservableObject {
                 case .success:
                     self.message = success
                 case .failure(let error):
-                    self.failed = true
-                    self.message = (error as? PDFParseError)?.localizedDescription
+                    self.lastOperationWasCancelled = FileOperationOutcome.isCancellation(error)
+                    self.failed = !self.lastOperationWasCancelled
+                    self.message = self.lastOperationWasCancelled ? MaterialError.cancelled.localizedDescription :
+                        (error as? PDFParseError)?.localizedDescription
+                        ?? (error as? FilePipeline.Failure)?.localizedDescription
                         ?? (error as? MaterialError)?.localizedDescription
                         ?? "\(kind?.title ?? "試験時間割・試験返却時間割")を保存できませんでした。前回の解析結果は保持しています。"
                 }
-                completion?(!self.failed)
+                if case .success = result { completion?(true) } else { completion?(false) }
             }
         }
     }
@@ -216,7 +339,10 @@ extension SpecialSchedulesModel {
                 try RecoveryConversion.verifyFile(preview.source,check:{ try cancelled.check(); try control.check() })
                 guard preview.source.period == SchoolDataPeriod.current() else { throw PDFParseError(code:.cancelled) }
                 try cancelled.check(); try control.check(); try LocalAIFeaturePolicy.check(ticket)
-                try save.persist { try store.saveAnalysis(analysis) }
+                try save.persist {
+                    try store.saveAnalysis(analysis)
+                    if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue) { FilePipeline.shared.clearTerminalStatus(source) }
+                }
             }
         }
         } onCancel: { cancelled.cancel() }

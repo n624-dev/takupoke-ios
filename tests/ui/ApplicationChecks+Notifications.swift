@@ -245,9 +245,8 @@ extension ApplicationChecks {
         return button
     }
     private func openNotificationSettings() {
-        let row = app.buttons["通知"].firstMatch
+        let row = visible(app.buttons["通知"].firstMatch, navigation: "設定")
         XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
-        _ = visible(row)
         XCTAssertTrue(row.isEnabled, app.debugDescription)
         let bounds = row.frame
         XCTAssertTrue(
@@ -266,7 +265,7 @@ extension ApplicationChecks {
         label.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.1)
         screen("通知")
     }
-    private func enableChangeNotifications() {
+    private func enableChangeNotifications(thumbDragDuration: TimeInterval? = nil) {
         screen("通知")
         let toggle = app.switches["時間割変更"]
         _ = visible(toggle)
@@ -295,7 +294,7 @@ extension ApplicationChecks {
         print(
             "NOTIFICATION_SWITCH before row=\(toggle.frame) value=\(String(describing: toggle.value)) state=\(probe.label)"
         )
-        // Native geometry and the observed 0/1 state determine the single tap.
+        // Native geometry and the observed 0/1 state determine the single contact.
         // Keep diagnostic image requests on failure paths, away from activation.
         let authorization = probe.label.components(separatedBy: ";authorization=").last?
             .components(separatedBy: ";").first
@@ -307,7 +306,7 @@ extension ApplicationChecks {
             XCTFail("Require an actual OS status or the observed disabled branch without an OS read")
             return
         }
-        tapNativeSwitch(toggle)
+        tapNativeSwitch(toggle, thumbDragDuration: thumbDragDuration)
         print("NOTIFICATION_SWITCH activated state=\(probe.label)")
         let deadline = Date().addingTimeInterval(45)
         var permissionHandled = false
@@ -343,13 +342,21 @@ extension ApplicationChecks {
         XCTAssertTrue(touch.waitForNonExistence(timeout: 10), app.debugDescription)
     }
     func testNotificationControlsAndAppearance() {
+        func checkAppearanceSetting(_ title: String, displays value: String) {
+            let buttons = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
+            let row = visible(buttons.firstMatch, navigation: "設定")
+            XCTAssertTrue(row.exists && row.label.contains(value), app.debugDescription)
+        }
+
         tab("設定")
         openNotificationSettings()
         XCTAssertTrue(app.switches["時間割変更"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.switches["試験・返却"].exists)
-        enableChangeNotifications()
+        // N183-CI24: a static contact reached iOS 26 without changing the switch.
+        let thumbDragDuration: TimeInterval? = if #available(iOS 27, *) { nil } else { 0.33 }
+        enableChangeNotifications(thumbDragDuration: thumbDragDuration)
         let specialToggle = app.switches["試験・返却"]
-        tapNativeSwitch(specialToggle)
+        tapNativeSwitch(specialToggle, thumbDragDuration: thumbDragDuration)
         let enabled = expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: specialToggle)
         guard XCTWaiter.wait(for: [enabled], timeout: 10) == .completed else {
             let probe = app.staticTexts["fixture-notification-permission-state"]
@@ -383,16 +390,10 @@ extension ApplicationChecks {
         launchReady()
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
         tab("設定")
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "緑")
-            ).firstMatch.exists)
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "リンクの開き方", "デフォルトのブラウザ")
-            ).firstMatch.exists)
+        checkAppearanceSetting("メインカラー", displays: "緑")
+        checkAppearanceSetting("リンクの開き方", displays: "デフォルトのブラウザ")
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "green")
-        tap("メインカラー")
+        tap("メインカラー", searchEarlierRows: true)
         app.buttons["デフォルト"].tap()
         let cleared = expectation(
             for: NSPredicate(format: "label == %@", "未設定"),
@@ -401,10 +402,7 @@ extension ApplicationChecks {
         app.terminate()
         launchReady()
         tab("設定")
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "デフォルト")
-            ).firstMatch.exists)
+        checkAppearanceSetting("メインカラー", displays: "デフォルト")
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "未設定")
         tap("メインカラー")
         tap("青")
@@ -420,10 +418,7 @@ extension ApplicationChecks {
         app.terminate()
         launchReady()
         tab("設定")
-        XCTAssertTrue(
-            app.buttons.matching(
-                NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "メインカラー", "青")
-            ).firstMatch.exists)
+        checkAppearanceSetting("メインカラー", displays: "青")
         XCTAssertEqual(app.staticTexts["fixture-stored-color"].label, "blue")
     }
     func testChangedDataProducesOneLocalNotification() {

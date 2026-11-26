@@ -191,6 +191,11 @@ simulator_id=owned-simulator
 diagnostic_started=0
 TKPK_MANUAL_DIAGNOSTICS=1
 python3() {
+    if [[ "$2" == tools/simulator_failure_screenshot.py ]]; then
+        [[ "$3 $4" == 'owned-simulator owned-scratch' ]] || exit 98
+        echo screenshot-before-delete >> "$CALLS"
+        return 8
+    fi
     if [[ "$2" == tools/manual_ui_diagnostics.py ]]; then
         echo diagnostic-before-delete >> "$CALLS"
         return 6
@@ -210,7 +215,8 @@ rm() { echo "delete-$*" >> "$CALLS"; }
                     run = subprocess.run(['bash', '-c', shell], cwd=ROOT, text=True, capture_output=True,
                                          env=os.environ | {'CALLS': str(calls), 'ORIGINAL_EXIT': str(original_exit)})
                     self.assertEqual(run.returncode, original_exit, run.stderr)
-                    self.assertEqual(calls.read_text().splitlines(), [
+                    captures = ['screenshot-before-delete'] if original_exit == 7 else []
+                    self.assertEqual(calls.read_text().splitlines(), captures + [
                         'diagnostic-before-delete', 'simctl shutdown owned-simulator',
                         'simctl delete owned-simulator', 'delete--rf owned-scratch'])
                     self.assertEqual(run.stdout.splitlines(), [

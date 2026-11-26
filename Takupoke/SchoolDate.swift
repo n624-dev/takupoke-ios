@@ -9,12 +9,23 @@ struct SchoolDate: Codable, Hashable, Comparable {
 
     init?(year: Int, month: Int, day: Int) {
         guard (1...9999).contains(year), (1...12).contains(month) else { return nil }
-        let leap = year.isMultiple(of: 4) && (!year.isMultiple(of: 100) || year.isMultiple(of: 400))
-        let days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        guard (1...days[month - 1]).contains(day) else { return nil }
+        guard (1...Self.daysInMonth(year: year, month: month)).contains(day) else { return nil }
         self.year = year
         self.month = month
         self.day = day
+    }
+
+    private static func daysInMonth(year: Int, month: Int) -> Int {
+        let leap = year.isMultiple(of: 4) && (!year.isMultiple(of: 100) || year.isMultiple(of: 400))
+        return [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
+    }
+
+    func previousMonth() -> Self? {
+        guard isValidCalendarDay, year > 1 || month > 1 else { return nil }
+        let priorYear = month == 1 ? year - 1 : year
+        let priorMonth = month == 1 ? 12 : month - 1
+        return Self(year: priorYear, month: priorMonth,
+                    day: min(day, Self.daysInMonth(year: priorYear, month: priorMonth)))
     }
 
     init?(iso8601: String) {

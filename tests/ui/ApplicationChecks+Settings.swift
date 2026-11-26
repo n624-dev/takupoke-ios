@@ -257,7 +257,7 @@ extension ApplicationChecks {
             recoveryScreenshot("ai-switch-before-\(changeOrdinal)")
             // The labelled row and the inner native switch have different
             // accessibility bounds. Activate the unique real control directly.
-            tapNativeSwitch(ai, dragThumb: dragThumb)
+            tapNativeSwitch(ai, dragThumb: dragThumb, thumbDragDuration: dragThumb ? nil : 0.33)
             let reflected = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: ai)
             let saved = expectation(for: NSPredicate(format: "label == %@", value), evaluatedWith: stored)
             let completion = XCTWaiter.wait(for: [reflected, saved], timeout: 45)
@@ -322,10 +322,23 @@ extension ApplicationChecks {
         for title in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
             tap("\(title)の詳細を見る")
             screen(title)
-            let stateY = materialSection("状態", on: title).frame.minY
-            let operationY = materialSection("操作", on: title).frame.minY
-            XCTAssertLessThan(stateY, operationY)
-            _ = materialSection("ファイル情報", on: title)
+            let state = materialSection("状態", on: title)
+            let file = materialSection("ファイル情報", on: title)
+            // Compare frames from the same current viewport, before scrolling
+            // to later actions and analysis results.
+            XCTAssertTrue(contained(state, in: bodyViewport()))
+            XCTAssertLessThan(state.frame.minY, file.frame.minY)
+            let actions = materialSection("操作", on: title)
+            // Compare the current List's actual accessibility order, not
+            // screen coordinates collected before and after scrolling.
+            let sectionIDs = app.staticTexts.matching(NSPredicate(format:
+                "identifier == %@ OR identifier == %@", "material-file-section", "material-actions-section"))
+                .allElementsBoundByAccessibilityElement.map(\.identifier)
+            XCTAssertEqual(sectionIDs, ["material-file-section", "material-actions-section"])
+            XCTAssertTrue(contained(actions, in: bodyViewport()))
+            for action in ["更新を確認", "同じファイルを再取得", "\(title)のファイルを選び直す"] {
+                _ = visible(app.buttons[action], navigation: title)
+            }
             _ = materialSection("解析結果", on: title)
             _ = heading("件数")
             XCTAssertFalse(app.staticTexts["解析件数"].exists)
@@ -368,12 +381,11 @@ extension ApplicationChecks {
     }
     func testSettingsGroupsAndCompactDataOverviews() {
         tab("設定")
-        _ = heading("データ")
-        _ = heading("アプリ設定")
-        _ = heading("サポート")
+        for section in ["ステータス", "データ", "時間割・学習", "AI・OCR", "アプリ設定", "サポート"] {
+            _ = heading(section)
+        }
         XCTAssertTrue(app.buttons["初期設定"].exists)
-        app.swipeDown()
-        tap("リンク・名称・授業時刻")
+        tap("リンク・名称・授業時刻", searchEarlierRows: true)
         screen("リンク・名称・授業時刻")
         for title in ["リンク一覧", "名称データ", "授業時刻"] {
             XCTAssertTrue(
@@ -389,8 +401,63 @@ extension ApplicationChecks {
         XCTAssertFalse(app.staticTexts["学校行事"].exists)
         XCTAssertFalse(app.staticTexts["最終取得"].exists)
         XCTAssertFalse(app.staticTexts["件数"].exists)
-        XCTAssertTrue(app.buttons["自動確認を中止"].exists)
+        for (title, filename) in [("通常時間割", "fictional.pdf"), ("時間割変更", "fictional.xlsx"),
+                                  ("試験時間割", "fictional-exam.pdf"), ("試験返却時間割", "fictional-examReturn.pdf")] {
+            let rows = app.buttons.matching(NSPredicate(format: "label == %@", "\(title)の詳細を見る"))
+            let row = visible(rows.element(boundBy: 0), navigation: "時間割ファイル")
+            XCTAssertEqual(rows.count, 1)
+            XCTAssertTrue((row.value as? String)?.contains(filename) == true)
+            XCTAssertFalse(app.buttons["\(title)のファイルを選び直す"].exists)
+        }
+        _ = visible(app.buttons["すべての更新を確認"], navigation: "時間割ファイル")
+        tapToolbar("file-refresh-menu", bar: "時間割ファイル")
+        let pause = app.buttons["自動確認を一時停止"]
+        XCTAssertTrue(pause.waitForExistence(timeout: 5)); XCTAssertTrue(pause.isHittable)
+        pause.tap()
+        let resume = app.buttons["自動確認を再開"]
+        _ = visible(resume, navigation: "時間割ファイル")
+        XCTAssertTrue(app.staticTexts["自動確認を一時停止しています。次にアプリを開き直すと再開します。"].exists)
+        resume.tap()
+        XCTAssertTrue(resume.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["自動確認を一時停止しています。次にアプリを開き直すと再開します。"].exists)
     }
+    func testStatusScreenUsesPublicResourcesAndDataRoutes() {
+        tab("設定")
+        let entry = app.buttons["settings-status"]
+        _ = visible(entry, navigation: "設定")
+        entry.tap()
+        screen("ステータス")
+        _ = heading("配信データ")
+        let links = app.buttons["status-links"]
+        _ = visible(links, navigation: "ステータス")
+        links.tap()
+        screen("リンク一覧")
+        XCTAssertTrue(app.staticTexts["最終取得"].exists)
+        XCTAssertTrue(app.staticTexts["件数"].exists)
+        back(to: "ステータス")
+        _ = heading("時間割ファイル")
+        _ = heading("サービス稼働状況")
+        for id in ["9028864", "9028865"] {
+            let row = app.buttons["status-service-\(id)"]
+            _ = visible(row, navigation: "ステータス")
+            let healthy = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", "正常稼働"), object: row)
+            XCTAssertEqual(XCTWaiter.wait(for: [healthy], timeout: 10), .completed)
+        }
+        let api = app.buttons["status-service-9028864"]
+        _ = visible(api, navigation: "ステータス", searchEarlierRows: true)
+        api.tap()
+        screen("たくポケAPI")
+        _ = heading("取得した監視結果")
+        _ = heading("公開ページの稼働率")
+        _ = heading("日別の稼働履歴")
+        XCTAssertFalse(app.staticTexts["停止中"].exists)
+        back(to: "ステータス")
+        _ = heading("この端末")
+        _ = visible(app.buttons["更新確認の記録をコピー"], navigation: "ステータス")
+        back(to: "設定")
+        XCTAssertTrue(app.buttons["settings-status"].exists)
+    }
+
     func testEmptyDataCanBeConfigured() {
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 30))
         tab("設定")
@@ -407,8 +474,9 @@ extension ApplicationChecks {
         tap("時間割ファイル")
         screen("時間割ファイル")
         for title in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
-            _ = heading(title)
-            XCTAssertTrue(app.buttons["\(title)のファイルを選ぶ"].exists, app.debugDescription)
+            let row = app.buttons["\(title)のファイルを選ぶ"]
+            _ = visible(row, navigation: "時間割ファイル")
+            XCTAssertTrue(row.isEnabled, app.debugDescription)
             XCTAssertFalse(app.buttons["\(title)の詳細を見る"].exists)
         }
     }
@@ -648,7 +716,7 @@ extension ApplicationChecks {
         tapSetupNext(from: "データを取得")
         screen("時間割ファイル")
         for name in ["通常時間割", "時間割変更", "試験時間割", "試験返却時間割"] {
-            _ = heading(name)
+            _ = visible(app.buttons["\(name)の詳細を見る"], navigation: "時間割ファイル")
         }
         tap("学校行事を取得")
         screen("学校行事")

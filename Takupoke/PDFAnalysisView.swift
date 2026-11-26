@@ -10,8 +10,13 @@ struct PDFAnalysisFailureRows: View {
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: 6) {
-                InlineWarning(failure.userMessage)
-                    .accessibilityIdentifier("pdf-failure-message")
+                if failure.code == .cancelled {
+                    Text(failure.userMessage).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("pdf-failure-message")
+                } else {
+                    InlineWarning(failure.userMessage)
+                        .accessibilityIdentifier("pdf-failure-message")
+                }
                 if hasPreviousAnalysis {
                     Text(failure.retentionMessage).font(.callout).foregroundStyle(.secondary)
                 }
@@ -36,6 +41,7 @@ struct PDFAnalysisView: View {
     @State private var showingSource = false
     @State private var showingRecovery = false
     @State private var copiedDiagnostic: String?
+    @State private var fileRequest: FileSelectionRequest?
     private var analysis: PDFAnalysis? { model.state.pdfAnalyses?[kind.rawValue] }
     private var failure: PDFParseError? {
         (kind == .timetable ? model.timetableFailure : nil) ?? model.state.pdfParseAttempts?[kind.rawValue]?.failure
@@ -51,11 +57,13 @@ struct PDFAnalysisView: View {
         List {
             Section {
                 if let source = model.state.record(for: kind) {
-                    LabeledContent("状態", value: model.analysisStatus(kind, record: source))
+                    StatusRow(title: source.originalName, status: model.fileStatus(kind))
                 }
-                if model.busy { LoadingRow(title: "処理中⋯") }
-                if let failure = model.state.attempts[kind.rawValue]?.failure {
-                    InlineWarning(failure)
+                if model.busy { LoadingRow(title: model.cancellationRequested ? "中止して処理の終了を待っています⋯" : "ファイルを処理中⋯") }
+                if model.lastOperationWasCancelled { Text("前回の処理を中止しました。").foregroundStyle(.secondary) }
+                if let attempt = model.state.attempts[kind.rawValue], let failure = attempt.failure {
+                    if attempt.wasCancelled { Text(failure).foregroundStyle(.secondary) }
+                    else { InlineWarning(failure) }
                 }
                 if let failure = failure {
                     PDFAnalysisFailureRows(failure: failure, hasPreviousAnalysis: analysis != nil)
@@ -79,19 +87,12 @@ struct PDFAnalysisView: View {
                     Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
                 }
             }
-            Section {
-                Button("同じファイルを再取得") { model.refresh(kind) }
-                    .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
-                Button("保存済みのPDFを見る") { showingSource = true }
-                    .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
-            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: kind) {
                 Section {
-                    Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
+                        Text(source.lastAcquiredAt ?? source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {
@@ -105,6 +106,17 @@ struct PDFAnalysisView: View {
                     }
                 } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
+            Section {
+                Button("更新を確認") { model.checkForUpdates(kind) }
+                    .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
+                Button("同じファイルを再取得") { model.refresh(kind) }
+                    .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
+                Button("保存済みのPDFを見る") { showingSource = true }
+                    .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
+                Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .material(kind)) }
+                    .disabled(model.busy || !model.ready)
+                    .accessibilityLabel("\(kind.title)のファイルを選び直す")
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let analysis = analysis {
                 Section {
                     Text(analysis.sourceName)
@@ -184,13 +196,21 @@ struct PDFAnalysisView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) { parseButton }
-            if model.busy { ToolbarItem(placement: .cancellationAction) { Button("中止") { model.cancel() } } }
+            if model.busy { ToolbarItem(placement: .cancellationAction) {
+                Button("中止") { model.cancelCurrentOperation() }.disabled(model.cancellationRequested)
+            } }
         }
         .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
         .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:.timetable) }
         .sheet(isPresented: $showingSource) {
             if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }
         }
+        .background(
+            MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
+                type: { $0.type }, instruction: { $0.instruction },
+                selected: { _, selection in model.selectFile(selection, kind: kind) })
+                .allowsHitTesting(false)
+        )
     }
 
     @ViewBuilder private var parseButton: some View {

@@ -2,6 +2,11 @@ import Foundation
 
 extension MaterialWorker {
     func analyzeChanges(defaultYear: Int?, control: AcquisitionControl, authorizeWeekdayCorrection: Bool = false) throws {
+        if control.pipelineTicket == nil {
+            try pipeline(.changes, reason: .manual, control: control) { worker, inner in try worker.analyzeChanges(defaultYear: defaultYear, control: inner, authorizeWeekdayCorrection: authorizeWeekdayCorrection) }
+            return
+        }
+        control.pipelineTicket?.enter(.parsing)
         guard let library = library, let record = library.state.record(for: .changes) else {
             throw ChangeParseError(code: .invalidArchive)
         }
@@ -20,6 +25,7 @@ extension MaterialWorker {
                 guard !view.requiresLayoutConfirmation, view.conflicts.isEmpty else { throw ChangeParseError(code: .staleConfirmation) }
                 try library.saveChangeEditor(view, year: year, expectedIdentity: record.source.selectionID ?? record.storedName,
                     expectedDigest: record.digest, edits: view.edits, manual: false, check: check)
+                control.pipelineTicket?.parsed()
                 return
             }
             if let saved = record.source.weekdayConsent, !saved.matches(digest: record.digest, defaultYear: defaultYear) {
@@ -28,6 +34,7 @@ extension MaterialWorker {
             let useDate = authorizeWeekdayCorrection || library.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
             try library.reanalyzeChanges(defaultYear: defaultYear, dateDerivedWeekdays: useDate,
                 authorizeWeekdayCorrection: authorizeWeekdayCorrection, check: check)
+            control.pipelineTicket?.parsed()
         } catch {
             let failure = (error as? ChangeParseError) ?? ChangeParseError(code: .storage)
             do { try library.recordParseFailure(failure, defaultYear: defaultYear) }
@@ -37,11 +44,16 @@ extension MaterialWorker {
     }
 
     func skipChangeRows(_ preview: ChangePreview, rows: Set<Int>, defaultYear: Int, control: AcquisitionControl, correctWeekdays: Bool = false) throws {
+        if control.pipelineTicket == nil {
+            try pipeline(.changes, reason: .review, control: control) { worker, inner in try worker.skipChangeRows(preview, rows: rows, defaultYear: defaultYear, control: inner, correctWeekdays: correctWeekdays) }
+            return
+        }
         guard preview.canSkipRows, preview.defaultYear == defaultYear else { throw ChangeParseError(code: .unsupported) }
         try library?.stabilizeLegacyChangeSelection()
         try refresh(.changes, control: control)
         guard let library = library else { throw ChangeParseError(code: .storage) }
         do {
+            control.pipelineTicket?.enter(.parsing)
             try library.applyRowSkips(preview, rows: rows, defaultYear: defaultYear, correctWeekdays: correctWeekdays, check: {
                 do { try control.check() } catch { throw ChangeParseError(code: .cancelled) }
             })
@@ -59,6 +71,10 @@ extension MaterialWorker {
     }
 
     func correctWeekdays(_ preview: ChangePreview, defaultYear: Int, control: AcquisitionControl) throws {
+        if control.pipelineTicket == nil {
+            try pipeline(.changes, reason: .review, control: control) { worker, inner in try worker.correctWeekdays(preview, defaultYear: defaultYear, control: inner) }
+            return
+        }
         guard preview.canCorrectWeekdays, preview.defaultYear == defaultYear else { throw ChangeParseError(code: .unsupported) }
         try library?.stabilizeLegacyChangeSelection()
         try refresh(.changes, control: control)
@@ -69,6 +85,11 @@ extension MaterialWorker {
     }
 
     func analyzePDF(kind: MaterialKind, control: AcquisitionControl) throws {
+        if control.pipelineTicket == nil && kind != .events {
+            try pipeline(kind, reason: .manual, control: control) { worker, inner in try worker.analyzePDF(kind: kind, control: inner) }
+            return
+        }
+        control.pipelineTicket?.enter(.parsing)
         let diagnostics = kind == .timetable ? PDFDiagnosticRecorder() : nil
         diagnostics?.record(.start)
         if kind == .timetable { timetableReadReport = nil; timetableFailure = nil }
@@ -105,9 +126,11 @@ extension MaterialWorker {
             diagnostics?.record(.parse, values: [Double(pages.count)])
             let analysis = try PDFSchoolParser.parse(pages, kind: kind, digest: record.digest, name: record.originalName, check: check)
             diagnostics?.record(.parseComplete, values: [Double(analysis.lessons.count), Double(analysis.events.count)])
+            control.pipelineTicket?.enter(.validating)
             try check()
             diagnostics?.record(.save)
             do { try library.savePDFAnalysis(analysis) } catch { throw PDFParseError(code: .storage) }
+            control.pipelineTicket?.parsed()
             diagnostics?.record(.saveComplete)
             succeeded = true
         } catch {
@@ -139,6 +162,11 @@ extension MaterialWorker {
     }
 
     func previewChanges(defaultYear: Int? = nil, control: AcquisitionControl) throws {
+        if control.pipelineTicket == nil {
+            try pipeline(.changes, reason: .review, control: control) { worker, inner in try worker.previewChanges(defaultYear: defaultYear, control: inner) }
+            return
+        }
+        control.pipelineTicket?.enter(.parsing)
         guard let library = library else { throw ChangeParseError(code: .storage) }
         try library.stabilizeLegacyChangeSelection()
         let check = {

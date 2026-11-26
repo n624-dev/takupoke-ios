@@ -3,13 +3,505 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    private final class PipelineClock: @unchecked Sendable {
+        let lock = NSLock()
+        private var tick: TimeInterval = 0
+        func now() -> TimeInterval { lock.lock(); defer { lock.unlock() }; return tick }
+        func advance(_ seconds: TimeInterval) { lock.lock(); tick += seconds; lock.unlock() }
+    }
+
+    func testPipelineStageDeadlinesProgressOverallAndCommitFence() throws {
+        let clock = PipelineClock()
+        let period = SchoolDataPeriod.current()
+        let ticket = FilePipeline.Ticket(source: .changes, reason: .automatic, period: period, limits: .init(), now: { clock.now() })
+        clock.advance(29); try ticket.check()
+        ticket.enter(.acquiring)
+        clock.advance(59); try ticket.check(); ticket.progress()
+        clock.advance(59); try ticket.check()
+        ticket.enter(.parsing)
+        clock.advance(93); XCTAssertThrowsError(try ticket.check()) // 240 overall, despite stage progress.
+        XCTAssertThrowsError(try ticket.beginCommit(period: period))
+        let parseClock = PipelineClock()
+        let parse = FilePipeline.Ticket(source: .exam, reason: .manual, period: period, limits: .init(), now: { parseClock.now() })
+        parse.enter(.parsing); parseClock.advance(120)
+        XCTAssertThrowsError(try parse.check())
+        let idleClock = PipelineClock()
+        let idle = FilePipeline.Ticket(source: .examReturn, reason: .automatic, period: period, limits: .init(), now: { idleClock.now() })
+        idle.enter(.acquiring); idleClock.advance(60); XCTAssertThrowsError(try idle.check())
+        let cancelled = FilePipeline.Ticket(source: .timetable, reason: .manual, period: period, limits: .init(), now: { 0 })
+        cancelled.cancel(); XCTAssertThrowsError(try cancelled.beginCommit(period: period))
+        let stale = FilePipeline.Ticket(source: .timetable, reason: .manual, period: period, limits: .init(), now: { 0 })
+        let other = SchoolDataPeriod(day: SchoolDate(year: period.schoolYear - 1, month: 4, day: 1)!)
+        XCTAssertThrowsError(try stale.beginCommit(period: other))
+    }
+
+    func testUnresponsivePipelineExpiresWithoutPublishingAndOtherFilesContinue() throws {
+        final class Probe: @unchecked Sendable {
+            let entered = DispatchSemaphore(value: 0), release = DispatchSemaphore(value: 0)
+            let returned = DispatchSemaphore(value: 0), cleaned = DispatchSemaphore(value: 0)
+            let lock = NSLock()
+            var expired = false, commits = 0
+        }
+        let probe = Probe(), clock = PipelineClock()
+        let pipeline = FilePipeline(now: { clock.now() })
+        DispatchQueue.global().async {
+            defer { probe.returned.signal() }
+            do {
+                try pipeline.run(source: .changes, reason: .automatic, period: .current(), cancelled: {}, work: { _ in
+                    probe.entered.signal(); probe.release.wait(); return 42
+                }, cleanup: { probe.cleaned.signal() }, commit: { _, _ in
+                    probe.lock.lock(); probe.commits += 1; probe.lock.unlock()
+                })
+            } catch FilePipeline.Failure.timedOut {
+                probe.lock.lock(); probe.expired = true; probe.lock.unlock()
+            } catch { XCTFail("Unexpected timeout outcome") }
+        }
+        defer { probe.release.signal() }
+        XCTAssertEqual(probe.entered.wait(timeout: .now() + 5), .success)
+        clock.advance(30)
+        XCTAssertEqual(probe.returned.wait(timeout: .now() + 5), .success)
+        XCTAssertTrue(pipeline.isRecovering(.changes))
+        XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .timedOut)
+        XCTAssertTrue(pipeline.snapshot[.changes]?.waitingForWorker == true)
+        XCTAssertThrowsError(try pipeline.run(source: .changes, reason: .manual, period: .current(), cancelled: {},
+            work: { _ in XCTFail("Duplicate read"); return 0 }, cleanup: {}, commit: { _, _ in XCTFail("Duplicate commit") }))
+        var otherCommitted = false
+        try pipeline.run(source: .exam, reason: .manual, period: .current(), cancelled: {}, work: { _ in 7 }, cleanup: {},
+            commit: { value, ticket in try ticket.beginCommit(period: .current()); XCTAssertEqual(value, 7); otherCommitted = true })
+        XCTAssertTrue(otherCommitted)
+        probe.release.signal()
+        XCTAssertEqual(probe.cleaned.wait(timeout: .now() + 5), .success)
+        probe.lock.lock(); defer { probe.lock.unlock() }
+        XCTAssertTrue(probe.expired); XCTAssertEqual(probe.commits, 0)
+    }
+
+    func testTransientRetriesStopAtTwoAndKeepOneCommitAndCleanup() throws {
+        final class Probe: @unchecked Sendable {
+            let lock = NSLock()
+            var calls = 0, commits = 0, cleanups = 0
+            let finished = DispatchSemaphore(value: 0)
+        }
+        let probe = Probe()
+        var limits = FilePipeline.Limits(); limits.retryDelay = 0
+        let pipeline = FilePipeline(limits: limits)
+        let owner = DispatchQueue(label: "fictional-owner")
+        XCTAssertThrowsError(try pipeline.run(source: .changes, reason: .manual, period: .current(), cancelled: {}, work: { _ in
+            probe.lock.lock(); probe.calls += 1; let calls = probe.calls; probe.lock.unlock()
+            if calls < 3 { throw URLError(.networkConnectionLost) }
+            return 42
+        }, cleanup: {
+            probe.lock.lock(); probe.cleanups += 1; probe.lock.unlock(); probe.finished.signal()
+        }, retryQueue: owner, commit: { value, ticket in
+            try ticket.beginCommit(period: .current()); XCTAssertEqual(value, 42)
+            ticket.didCommit()
+            probe.lock.lock(); probe.commits += 1; probe.lock.unlock()
+        }))
+        XCTAssertEqual(probe.finished.wait(timeout: .now() + 5), .success)
+        probe.lock.lock(); defer { probe.lock.unlock() }
+        XCTAssertEqual(probe.calls, 3); XCTAssertEqual(probe.commits, 1); XCTAssertEqual(probe.cleanups, 1)
+        XCTAssertEqual(pipeline.snapshot[.changes]?.attempt, 2)
+        XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .succeeded)
+    }
+
+    func testIsolatedLibraryRejectsChangedSourceAndKeepsOtherFiles() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try MaterialLibrary(root: root.appendingPathComponent("live"))
+        func seed(_ target: MaterialLibrary, _ kind: MaterialKind, _ digest: String) throws {
+            let staged = target.newStagingURL()
+            try Data("%PDF-fictional".utf8).write(to: staged)
+            try target.commit(staged: staged, kind: kind, source: MaterialSource(grant: nil, childName: nil),
+                originalName: "fictional.pdf", byteCount: 14, digest: digest, modifiedAt: nil)
+        }
+        try seed(library, .timetable, "v1")
+        let expected = try library.pipelineIdentity(.timetable)
+        let isolated = try library.isolatedCopy(at: root.appendingPathComponent("job"))
+        try seed(isolated, .timetable, "v2")
+        try seed(library, .events, "event")
+        let ticket = FilePipeline.Ticket(source: .timetable, reason: .manual, period: .current(), limits: .init(), now: { 0 })
+        try library.acceptPipeline(isolated, kind: .timetable, expected: expected, ticket: ticket)
+        XCTAssertEqual(library.state.record(for: .timetable)?.digest, "v2")
+        XCTAssertEqual(library.state.record(for: .events)?.digest, "event")
+        let staleTicket = FilePipeline.Ticket(source: .timetable, reason: .manual, period: .current(), limits: .init(), now: { 0 })
+        XCTAssertThrowsError(try library.acceptPipeline(isolated, kind: .timetable, expected: expected, ticket: staleTicket))
+        XCTAssertEqual(library.state.record(for: .timetable)?.digest, "v2")
+    }
+
+    func testSpecialSnapshotPreservesOtherSourceAndRejectsStaleCommit() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root.appendingPathComponent("live"))
+        func seed(_ store: SpecialScheduleStore, _ kind: SpecialScheduleKind, _ digest: String) throws {
+            let staged = store.newStagingURL(); let bytes = Data("%PDF-fictional".utf8)
+            try bytes.write(to: staged)
+            try store.saveSelection(staged: staged, kind: kind, originalName: "fictional.pdf", byteCount: bytes.count, digest: digest)
+        }
+        try seed(store, .exam, "before")
+        let expected = try store.pipelineIdentity(.exam)
+        let copy = try store.isolatedCopy(at: root.appendingPathComponent("job"))
+        try seed(copy, .exam, "after")
+        try seed(store, .examReturn, "other")
+        let ticket = FilePipeline.Ticket(source: .exam, reason: .manual, period: .current(), limits: .init(), now: { 0 })
+        try store.acceptPipeline(copy, kind: .exam, expected: expected, ticket: ticket)
+        XCTAssertEqual(store.sources[.exam]?.digest, "after")
+        XCTAssertEqual(store.sources[.examReturn]?.digest, "other")
+        let stale = FilePipeline.Ticket(source: .exam, reason: .manual, period: .current(), limits: .init(), now: { 0 })
+        XCTAssertThrowsError(try store.acceptPipeline(copy, kind: .exam, expected: expected, ticket: stale))
+        let reopened = try SpecialScheduleStore(root: root.appendingPathComponent("live"))
+        XCTAssertEqual(reopened.sources[.exam]?.digest, "after")
+        XCTAssertEqual(reopened.sources[.examReturn]?.digest, "other")
+    }
+
+    func testLateStageAndProgressCannotEraseExpiredDeadline() throws {
+        let clock = PipelineClock()
+        let ticket = FilePipeline.Ticket(source: .changes, reason: .manual, period: .current(), limits: .init(), now: { clock.now() })
+        clock.advance(30)
+        ticket.enter(.parsing)
+        XCTAssertEqual(ticket.stage, .access)
+        XCTAssertThrowsError(try ticket.check())
+        let secondClock = PipelineClock()
+        let second = FilePipeline.Ticket(source: .exam, reason: .manual, period: .current(), limits: .init(), now: { secondClock.now() })
+        second.enter(.acquiring); secondClock.advance(60); second.progress()
+        XCTAssertThrowsError(try second.check())
+        XCTAssertThrowsError(try second.beginCommit(period: .current()))
+    }
+
+    func testClearPresentationDuringCommitCannotStrandLane() throws {
+        let pipeline = FilePipeline()
+        try pipeline.run(source: .changes, reason: .manual, period: .current(), cancelled: {}, work: { _ in 1 }, cleanup: {},
+            commit: { _, ticket in
+                try ticket.beginCommit(period: .current())
+                pipeline.clearStatuses([.changes])
+                ticket.didCommit()
+            })
+        XCTAssertFalse(pipeline.isRecovering(.changes))
+        XCTAssertNil(pipeline.snapshot[.changes])
+    }
+
+    func testSavingCanFinishAfterDeadlineWithoutPermittingAnotherAttempt() throws {
+        let clock = PipelineClock()
+        let pipeline = FilePipeline(now: { clock.now() })
+        try pipeline.run(source: .changes, reason: .manual, period: .current(), cancelled: {}, work: { ticket in
+            ticket.enter(.checkingDigest)
+            clock.advance(239)
+            return 1
+        }, cleanup: {}, commit: { _, ticket in
+            try ticket.beginCommit(period: .current())
+            clock.advance(1)
+            pipeline.cancel([.changes])
+            XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .saving)
+            XCTAssertTrue(pipeline.isRecovering(.changes))
+            XCTAssertThrowsError(try pipeline.run(source: .changes, reason: .manual, period: .current(),
+                cancelled: {}, work: { _ in XCTFail("Provider must wait for save"); return 2 },
+                cleanup: {}, commit: { _, _ in XCTFail("Must not save concurrently") })) {
+                XCTAssertEqual($0 as? FilePipeline.Failure, .recovering)
+            }
+            try ticket.check()
+            ticket.didCommit()
+        })
+        XCTAssertFalse(pipeline.isRecovering(.changes))
+        XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .succeeded)
+    }
+
+    func testPipelineCanRepairMissingMaterialCopyEvenWhenOriginalBytesMatch() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = try MaterialLibrary(root: root.appendingPathComponent("live"))
+        let source = MaterialSource()
+        func save(_ library: MaterialLibrary) throws {
+            let file = library.newStagingURL()
+            try Data([42]).write(to: file)
+            defer { library.discardStaging(file) }
+            try library.commit(staged: file, kind: .changes, source: source, originalName: "fictional.xlsx",
+                byteCount: 1, digest: "same", modifiedAt: nil, reuseUnchanged: true)
+        }
+        try save(library)
+        let old = try XCTUnwrap(library.localURL(for: .changes))
+        try FileManager.default.removeItem(at: old)
+        let identity = try library.pipelineIdentity(.changes)
+        let copy = try library.pipelineSnapshot(.changes).open(at: root.appendingPathComponent("work"))
+        try save(copy)
+        let ticket = FilePipeline.Ticket(source: .changes, reason: .manual, period: .current(), limits: .init(), now: { 0 })
+        try library.acceptPipeline(copy, kind: .changes, expected: identity, ticket: ticket)
+        let repaired = try XCTUnwrap(library.localURL(for: .changes))
+        XCTAssertNotEqual(repaired, old)
+        XCTAssertEqual(try Data(contentsOf: repaired), Data([42]))
+    }
+
+    func testCancelledAdmissionNeverLaunchesProvider() {
+        let pipeline = FilePipeline()
+        XCTAssertThrowsError(try pipeline.run(source: .changes, reason: .manual, period: .current(),
+            cancelled: { throw FilePipeline.Failure.cancelled }, work: { _ in XCTFail("Provider must not start"); return 1 },
+            cleanup: {}, commit: { _, _ in XCTFail("No commit") }))
+        XCTAssertFalse(pipeline.isRecovering(.changes))
+    }
+
+    func testCancellationAtRetryReplacementStopsNewProvider() throws {
+        final class Probe: @unchecked Sendable {
+            let lock = NSLock(), done = DispatchSemaphore(value: 0)
+            var calls = 0
+        }
+        let probe = Probe()
+        var limits = FilePipeline.Limits(); limits.retryDelay = 0
+        let pipeline = FilePipeline(limits: limits)
+        let owner = DispatchQueue(label: "fictional-retry-owner")
+        XCTAssertThrowsError(try pipeline.run(source: .exam, reason: .manual, period: .current(), cancelled: {},
+            registerCancellation: { _ in
+                if pipeline.snapshot[.exam]?.attempt == 1 { pipeline.cancel([.exam]) }
+            }, work: { _ in
+                probe.lock.lock(); probe.calls += 1; probe.lock.unlock()
+                throw URLError(.networkConnectionLost)
+            }, cleanup: { probe.done.signal() }, retryQueue: owner, commit: { (_: Int, _) in XCTFail("No commit") }))
+        XCTAssertEqual(probe.done.wait(timeout: .now() + 5), .success)
+        probe.lock.lock(); defer { probe.lock.unlock() }
+        XCTAssertEqual(probe.calls, 1)
+        XCTAssertFalse(pipeline.isRecovering(.exam))
+        XCTAssertEqual(pipeline.snapshot[.exam]?.stage, .cancelled)
+    }
+
+    func testSelectionIntentRejectsAnOlderNotYetStartedRequest() {
+        let pipeline = FilePipeline()
+        let admitted = pipeline.intentSnapshot["changes"]!
+        pipeline.cancel("changes") // Selection B arrives before queued A registers its ticket.
+        XCTAssertThrowsError(try pipeline.run(source: .changes, reason: .selection, period: .current(), cancelled: {},
+            work: { _ in XCTFail("Superseded request must not access provider"); return 0 }, cleanup: {},
+            expectedIntent: admitted, commit: { _, _ in XCTFail("Superseded commit") })) { error in
+                XCTAssertEqual(error as? FilePipeline.Failure, .stale)
+            }
+        XCTAssertFalse(pipeline.isRecovering(.changes))
+    }
+
+    func testSourceCancellationDoesNotDropAnotherDrainedBatchRequest() {
+        var checked: [MaterialKind] = []
+        XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: ["timetable", "changes"], check: {}) { kind in
+            checked.append(kind)
+            if kind == .timetable { throw FilePipeline.Failure.cancelled }
+        })
+        XCTAssertEqual(checked, [.timetable, .changes])
+    }
+
+    func testRetryBudgetExpiresEvenWhenOwnerQueueCannotRun() throws {
+        let clock = PipelineClock()
+        var limits = FilePipeline.Limits(); limits.retryDelay = 0
+        let pipeline = FilePipeline(limits: limits, now: { clock.now() })
+        let owner = DispatchQueue(label: "fictional-blocked-owner")
+        owner.suspend()
+        defer { owner.resume() }
+        XCTAssertThrowsError(try pipeline.run(source: .examReturn, reason: .manual, period: .current(), cancelled: {},
+            work: { _ in throw URLError(.networkConnectionLost) }, cleanup: {}, retryQueue: owner,
+            commit: { (_: Int, _) in XCTFail("No commit") }))
+        clock.advance(240)
+        XCTAssertEqual(pipeline.snapshot[.examReturn]?.stage, .timedOut)
+        XCTAssertFalse(pipeline.isRecovering(.examReturn))
+    }
+
+    #if canImport(Darwin)
+    func testInjectedProviderCannotPublishDelayedCompletionForAnySelectedKind() {
+        final class Provider: SelectedFileProviding, @unchecked Sendable {
+            let entered = DispatchSemaphore(value: 0), release = DispatchSemaphore(value: 0)
+            func copy(_ url: URL, to staged: URL, source: FileRefreshDiagnostics.Source?, workbook: Bool,
+                      control: AcquisitionControl) throws -> SelectedFileCopy {
+                control.pipelineTicket?.enter(.access)
+                entered.signal(); release.wait()
+                // Deliberately noncooperative: ignore cancellation and return late.
+                return SelectedFileCopy(count: workbook ? 4 : 14, digest: "fictional", modifiedAt: nil, receipt: .unobserved)
+            }
+        }
+        for source in FileRefreshDiagnostics.Source.allCases {
+            let clock = PipelineClock(), provider = Provider(), done = DispatchSemaphore(value: 0), cleaned = DispatchSemaphore(value: 0)
+            let pipeline = FilePipeline(now: { clock.now() })
+            let control = AcquisitionControl(); control.provider = provider
+            DispatchQueue.global().async {
+                defer { done.signal() }
+                do {
+                    try pipeline.run(source: source, reason: .automatic, period: .current(), cancelled: control.check,
+                        registerCancellation: control.registerCancellationTarget, work: { ticket in
+                            let inner = AcquisitionControl(); inner.pipelineTicket = ticket; inner.provider = control.provider
+                            return try inner.provider.copy(URL(fileURLWithPath: "/fictional-input"), to: URL(fileURLWithPath: "/fictional-stage"),
+                                source: source, workbook: source == .changes, control: inner)
+                        }, cleanup: { cleaned.signal() }, commit: { _, _ in XCTFail("Late provider commit") })
+                } catch FilePipeline.Failure.timedOut { }
+                catch { XCTFail("Unexpected provider outcome") }
+            }
+            XCTAssertEqual(provider.entered.wait(timeout: .now() + 5), .success)
+            clock.advance(30)
+            XCTAssertEqual(done.wait(timeout: .now() + 5), .success)
+            XCTAssertTrue(pipeline.isRecovering(source))
+            provider.release.signal()
+            XCTAssertEqual(cleaned.wait(timeout: .now() + 5), .success)
+            XCTAssertFalse(pipeline.isRecovering(source))
+        }
+    }
+    #endif
+
+    func testDiagnosticElapsedTimeUsesInjectedMonotonicClock() {
+        final class Clock: @unchecked Sendable {
+            let lock = NSLock()
+            private var tick: TimeInterval = 100
+            func now() -> TimeInterval { lock.lock(); defer { lock.unlock() }; return tick }
+            func advance() { lock.lock(); defer { lock.unlock() }; tick += 2.5 }
+        }
+        let clock = Clock()
+        let diagnostic = FileRefreshDiagnostics(now: { clock.now() })
+        diagnostic.record(.refreshStarted, source: .changes)
+        clock.advance()
+        diagnostic.record(.cancelled, source: .changes)
+        XCTAssertEqual(diagnostic.snapshot.entries.map(\.elapsedMilliseconds), [0, 2500])
+    }
+
+    func testBlockedReaderRejectsLateBytesAfterCancellation() {
+        final class Provider: @unchecked Sendable {
+            let lock = NSLock()
+            let entered = DispatchSemaphore(value: 0)
+            let release = DispatchSemaphore(value: 0)
+            let finished = DispatchSemaphore(value: 0)
+            var cancelled = false, completed = false, writes = 0, rejected = false
+            func check() throws {
+                lock.lock(); defer { lock.unlock() }
+                if cancelled { throw MaterialError.cancelled }
+            }
+        }
+        let provider = Provider()
+        DispatchQueue.global().async {
+            do {
+                _ = try MaterialFileReader.read(isWorkbook: false, check: provider.check, next: {
+                    provider.entered.signal()
+                    guard provider.release.wait(timeout: .now() + 5) == .success else {
+                        throw MaterialError.unavailable
+                    }
+                    return Data("%PDF-fictional".utf8)
+                }, write: { _ in
+                    provider.lock.lock(); defer { provider.lock.unlock() }
+                    provider.writes += 1
+                }, synchronize: {})
+            } catch MaterialError.cancelled {
+                provider.lock.lock(); provider.rejected = true; provider.lock.unlock()
+            } catch { XCTFail("Unexpected provider result: \(type(of: error))") }
+            provider.lock.lock(); provider.completed = true; provider.lock.unlock()
+            provider.finished.signal()
+        }
+        defer { provider.release.signal() }
+        XCTAssertEqual(provider.entered.wait(timeout: .now() + 5), .success)
+        provider.lock.lock()
+        provider.cancelled = true
+        XCTAssertFalse(provider.completed, "Cancel is a request; the provider still owns the read")
+        provider.lock.unlock()
+        provider.release.signal()
+        XCTAssertEqual(provider.finished.wait(timeout: .now() + 5), .success)
+        provider.lock.lock(); defer { provider.lock.unlock() }
+        XCTAssertTrue(provider.rejected)
+        XCTAssertTrue(provider.completed)
+        XCTAssertEqual(provider.writes, 0, "Late bytes must never reach the staged result")
+    }
+
+    func testSharedReaderChecksCancellationBeforeReadAndAfterLateBytesOrEOF() {
+        for late in [Data("%PDF-fictional".utf8), Data(), nil] {
+            var cancelled = false
+            var reads = 0, writes = 0, syncs = 0
+            XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false, check: {
+                if cancelled { throw MaterialError.cancelled }
+            }, next: {
+                reads += 1
+                cancelled = true // The read returns after the user has cancelled.
+                return late
+            }, write: { _ in writes += 1 }, synchronize: { syncs += 1 })) { error in
+                guard case MaterialError.cancelled = error else { return XCTFail("Expected cancellation") }
+            }
+            XCTAssertEqual(reads, 1)
+            XCTAssertEqual(writes, 0)
+            XCTAssertEqual(syncs, 0)
+        }
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false,
+            check: { throw MaterialError.cancelled }, next: { XCTFail("Must not read"); return nil },
+            write: { _ in XCTFail("Must not write") }, synchronize: { XCTFail("Must not synchronize") }))
+    }
+
+    func testSharedReaderPrefersCancellationOverLateIOErrors() {
+        enum Failure: Error { case io }
+        for stage in 0...2 {
+            var cancelled = false
+            var chunks = [Data("%PDF-fictional".utf8)]
+            XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false,
+                check: { if cancelled { throw MaterialError.cancelled } }, next: {
+                    if stage == 0 { cancelled = true; throw Failure.io }
+                    return chunks.isEmpty ? nil : chunks.removeFirst()
+                }, write: { _ in
+                    if stage == 1 { cancelled = true; throw Failure.io }
+                }, synchronize: {
+                    if stage == 2 { cancelled = true; throw Failure.io }
+                })) { error in
+                    guard case MaterialError.cancelled = error else { return XCTFail("Expected cancellation") }
+                }
+        }
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false, check: {},
+            next: { throw Failure.io }, write: { _ in }, synchronize: {})) { error in
+                guard case Failure.io = error else { return XCTFail("Must retain genuine I/O errors") }
+            }
+    }
+
+    func testSharedReaderRejectsCancellationDuringSynchronize() {
+        var cancelled = false
+        var chunks = [Data("%PDF-fictional".utf8)]
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false,
+            check: { if cancelled { throw MaterialError.cancelled } },
+            next: { chunks.isEmpty ? nil : chunks.removeFirst() }, write: { _ in },
+            synchronize: { cancelled = true })) { error in
+                guard case MaterialError.cancelled = error else { return XCTFail("Expected cancellation") }
+            }
+    }
+
+    func testSharedReaderValidatesSplitHeadersSizeAndDigest() throws {
+        // Independent SHA-256 reference for the complete fictional byte sequence.
+        let bytes = Data("%PDF-fictional".utf8)
+        var chunks = bytes.map { Data([$0]) }
+        var written = Data(), syncs = 0
+        let receipt = try MaterialFileReader.read(isWorkbook: false, maximumBytes: bytes.count,
+            check: {}, next: { chunks.isEmpty ? nil : chunks.removeFirst() },
+            write: { written.append($0) }, synchronize: { syncs += 1 })
+        XCTAssertEqual(receipt.count, bytes.count)
+        XCTAssertEqual(receipt.digest, "e604a9e2526224c5bddcfba54526a87aa865443e5967c35f05675c532f332060")
+        XCTAssertEqual(written, bytes)
+        XCTAssertEqual(syncs, 1)
+        var reads = 0
+        XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: false, maximumBytes: bytes.count - 1,
+            check: {}, next: { reads += 1; return bytes }, write: { _ in XCTFail("Oversize write") },
+            synchronize: { XCTFail("Oversize sync") })) { error in
+                guard case MaterialError.tooLarge = error else { return XCTFail("Expected size rejection") }
+            }
+        XCTAssertEqual(reads, 1)
+        for (workbook, input) in [(false, Data()), (false, Data("invalid".utf8)),
+                                   (true, bytes), (false, Data([0x50, 0x4b, 0x03, 0x04]))] {
+            var chunks = [input]
+            XCTAssertThrowsError(try MaterialFileReader.read(isWorkbook: workbook, check: {},
+                next: { chunks.isEmpty ? nil : chunks.removeFirst() }, write: { _ in },
+                synchronize: { XCTFail("Invalid data must not reach success") }))
+        }
+        var zipChunks = [Data([0x50]), Data([0x4b, 0x03]), Data([0x04])]
+        let zip = try MaterialFileReader.read(isWorkbook: true, check: {},
+            next: { zipChunks.isEmpty ? nil : zipChunks.removeFirst() }, write: { _ in }, synchronize: {})
+        XCTAssertEqual(zip.count, 4)
+    }
+
+    func testSharedReaderCopiesRealFileIntoStagingWithoutChangingSource() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("fictional.pdf")
+        let staged = root.appendingPathComponent("staged")
+        let bytes = Data("%PDF-fictional".utf8)
+        try bytes.write(to: source)
+        let receipt = try MaterialFileReader.copy(source, to: staged, isWorkbook: false, check: {})
+        XCTAssertEqual(receipt.count, bytes.count)
+        XCTAssertEqual(try Data(contentsOf: staged), bytes)
+        XCTAssertEqual(try Data(contentsOf: source), bytes)
+    }
+
     func testRefreshPreservesTheFirstFailureAndStillChecksOtherSources() throws {
         let failure = PDFParseError(code: .unsupported, page: 2)
         var checked: [MaterialKind] = []
         XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: ["timetable", "changes"], check: {}) { kind in
             checked.append(kind)
             if kind == .timetable { throw failure }
-            return false
         }) { error in
             XCTAssertEqual((error as? PDFParseError)?.code, .unsupported)
             XCTAssertEqual((error as? PDFParseError)?.page, 2)
@@ -28,13 +520,21 @@ final class FileRefreshTests: XCTestCase {
     }
 
     func testRefreshCancellationStopsBeforeTheNextSourceAndAfterTheLastRead() {
+        let errors: [Error] = [MaterialError.cancelled, PDFParseError(code: .cancelled),
+                               ChangeParseError(code: .cancelled), CancellationError()]
         for finalSource in [false, true] {
-            var calls: [MaterialKind] = []
-            XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: finalSource ? ["changes"] : ["timetable", "changes"],
-                check: {}) { kind in calls.append(kind); throw MaterialError.cancelled }) { error in
-                XCTAssertEqual(error.localizedDescription, MaterialError.cancelled.localizedDescription)
+            for expected in errors {
+                var calls: [MaterialKind] = []
+                XCTAssertThrowsError(try SelectedFileRefresher.refresh(requested: finalSource ? ["changes"] : ["timetable", "changes"],
+                    check: {}) { kind in calls.append(kind); throw expected }) { error in
+                    XCTAssertEqual(String(reflecting: type(of: error)), String(reflecting: type(of: expected)))
+                    XCTAssertEqual(error.localizedDescription, expected.localizedDescription)
+                }
+                XCTAssertEqual(calls, finalSource ? [.changes] : [.timetable])
+                let lastEntry = FileRefreshDiagnostics.shared.snapshot.entries.last
+                XCTAssertEqual(lastEntry?.step, .cancelled)
+                XCTAssertEqual(lastEntry?.source, finalSource ? .changes : .timetable)
             }
-            XCTAssertEqual(calls, finalSource ? [.changes] : [.timetable])
         }
     }
 
@@ -78,6 +578,9 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertTrue(queue.suspended)
         XCTAssertTrue(queue.take(ready: true, busy: false).isEmpty)
         queue.setForeground(false)
+        XCTAssertTrue(queue.suspended, "Backgrounding does not resume paused file checks")
+        queue.setForeground(false)
+        XCTAssertTrue(queue.suspended, "A background refresh cannot clear a user's pause")
         queue.setForeground(true)
         queue.request("changes")
         XCTAssertFalse(queue.suspended)

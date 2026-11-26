@@ -74,6 +74,7 @@ struct MaterialRecord: Codable {
     var digest: String
     var sourceModifiedAt: Date?
     var acquiredAt: Date
+    var lastAcquiredAt: Date? = nil
     var lastCheckedAt: Date? = nil
 }
 

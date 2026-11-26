@@ -17,6 +17,7 @@ struct SpecialScheduleSource: Codable {
     let byteCount: Int
     let digest: String
     let acquiredAt: Date
+    var lastAcquiredAt: Date? = nil
     var lastCheckedAt: Date? = nil
     var failure: PDFParseError?
     var recoveryJob: RecoveryJob? = nil

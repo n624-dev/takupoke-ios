@@ -42,7 +42,7 @@ struct CountdownManagementView: View {
             if model.storageState == .ready {
                 Section {
                     NavigationLink {
-                        CountdownAutomaticEditor(automatic: model.library.automatic)
+                        CountdownAutomaticEditor(automatic: model.library.automatic, target: model.automaticProgress?.key)
                     } label: {
                         LabeledContent("試験の自動表示",
                             value: model.library.automatic.enabled ? model.library.automatic.mode.label : "オフ")
@@ -139,9 +139,13 @@ private struct CountdownRow: View {
                 Text(dates.phase(on: day).label).font(.subheadline.weight(.semibold))
                 Text(dates.ranges.map(\.label).joined(separator: "、"))
                     .font(.caption).foregroundStyle(.secondary)
-                if case .value(let progress) = dates.progress(from: card.preferences.progressStart, on: day) {
-                    ProgressView("設定期間の経過率", value: progress)
-                        .font(.caption)
+                if case .value(let progress) = card.progress(on: day) {
+                    let label = card.preferences.displayedProgressLabel
+                    ProgressView(value: progress) {
+                        if !label.isEmpty { Text(label).font(.caption).lineLimit(3) }
+                    }
+                    .accessibilityLabel(Text(label.isEmpty ? CountdownPreferences.defaultProgressLabel : label))
+                    .accessibilityIdentifier("countdown-progress")
                 }
             }
             if let status = card.availability.label { Text(status).font(.caption).foregroundStyle(.secondary) }
@@ -203,9 +207,12 @@ private struct CountdownDetail: View {
                                 LabeledContent("実施区間 \(index + 1)", value: dates.ranges[index].label)
                             }
                         }
-                        if dates.progress(from: card.preferences.progressStart, on: model.day) == .invalid {
+                        if card.progress(on: model.day) == .invalid {
                             InlineWarning("進捗の起点日は、開始日より前に設定してください。")
                         }
+                    }
+                    if card.preferences.showsProgress, id == CountdownAutomatic.identity {
+                        CountdownOriginSummary(origin: card.examProgress?.origin ?? .pending)
                     }
                 }
                 Section("出典") {
@@ -264,7 +271,9 @@ private struct CountdownDetail: View {
                     }
                 } else if id == CountdownAutomatic.identity {
                     Section {
-                        NavigationLink("自動表示を設定") { CountdownAutomaticEditor(automatic: model.library.automatic) }
+                        NavigationLink("自動表示を設定") {
+                            CountdownAutomaticEditor(automatic: model.library.automatic, target: model.automaticProgress?.key)
+                        }
                         if card.availability == .missingYear {
                             Button("学校行事を取得") { events.fetch(year: model.day.schoolYear) }.disabled(events.busy)
                         }
@@ -438,7 +447,16 @@ private struct CountdownEditor: View {
                     }
                 }
             }
-            CountdownPreferencesFields(value: $preferences, reminderDays: $reminderDays)
+            CountdownPreferencesFields(value: $preferences, reminderDays: $reminderDays, needsManualOrigin: true) {
+                let goal = sourceDates?.start ?? TimetableDaySchedule.schoolDay(at: start)
+                DatePicker("進捗の起点日", selection: Binding(
+                    get: { preferences.progressStart?.dateInJapan() ?? Date() },
+                    set: { preferences.progressStart = TimetableDaySchedule.schoolDay(at: $0) }
+                ), displayedComponents: .date)
+                if let origin = preferences.progressStart, origin >= goal {
+                    InlineWarning("進捗の起点日は、開始日より前に設定してください。")
+                }
+            }
             if let message = model.message { InlineWarning(message) }
         }
         .environment(\.calendar, SchoolDate.japanCalendar)
@@ -450,7 +468,7 @@ private struct CountdownEditor: View {
                 Button("保存") {
                     guard canSave, model.save(draft) else { return }
                     if preferences.notifications && !oldNotifications {
-                        Task { await model.notificationPermission(); model.onChange?() }
+                        Task { await model.notificationPermission(); _ = model.onChange?() }
                     }
                     dismiss()
                 }
@@ -466,16 +484,84 @@ private struct CountdownAutomaticEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State var automatic: CountdownAutomatic
     @State private var reminderDays = CountdownReminderDayEdits()
+    @State private var originEdit: CountdownOriginEdit?
+    @State private var openedTarget: CountdownExamProgressKey?
     private let oldNotifications: Bool
 
-    init(automatic: CountdownAutomatic) {
+    init(automatic: CountdownAutomatic, target: CountdownExamProgressKey?) {
         _automatic = State(initialValue: automatic)
         oldNotifications = automatic.enabled && automatic.preferences.notifications
+        _openedTarget = State(initialValue: target)
     }
 
     private var canSave: Bool {
         automatic.preferences.valid &&
+            canSaveOrigin &&
             (!automatic.enabled || !automatic.preferences.notifications || !reminderDays.hasInvalidInput)
+    }
+
+    private var context: CountdownExamProgress? {
+        guard automatic.mode == model.library.automatic.mode,
+              let current = model.automaticProgress, current.key == openedTarget else { return nil }
+        return current
+    }
+
+    private var canSaveOrigin: Bool {
+        guard case .change(let key, let day, _) = originEdit else { return true }
+        guard let context, context.key == key, !(key.isPrivate && model.classProgressUnavailable) else { return false }
+        return day.map { $0 < context.goal } != false
+    }
+
+    @ViewBuilder private var originFields: some View {
+        if case .change(let key, let date, let usesUnlinked) = originEdit {
+            if let context, context.key == key {
+                if let date {
+                    LabeledContent("進捗の起点日", value: "カスタム")
+                    DatePicker("この試験に適用する日", selection: Binding(
+                        get: { date.dateInJapan() ?? Date() },
+                        set: { originEdit = .change(key, date: TimetableDaySchedule.schoolDay(at: $0), useUnlinked: usesUnlinked) }
+                    ), displayedComponents: .date)
+                    if date >= context.goal { InlineWarning("進捗の起点日は、目標日より前に設定してください。") }
+                } else {
+                    LabeledContent("進捗の起点日", value: "自動に戻す")
+                }
+            } else {
+                InlineWarning("対象の試験が変わりました。設定を開き直すか、起点日の変更を取り消してください。")
+            }
+            Button("起点日の変更を取り消す") { originEdit = nil }
+        } else if let context {
+            CountdownOriginSummary(origin: context.origin)
+            if context.origin.date.map({ $0 >= context.goal }) == true {
+                InlineWarning("進捗の起点日は、目標日より前に設定してください。")
+            }
+            if context.key.isPrivate && model.classProgressUnavailable {
+                InlineWarning("この試験の起点日を読み込めません。設定を開き直して再試行してください。")
+            } else {
+                Button(context.origin.date == nil ? "起点日を設定" : "この試験だけ起点日を変更") {
+                    let suggested = context.origin.date ?? min(model.day, context.goal.addingDays(-1) ?? model.day)
+                    originEdit = .change(context.key, date: suggested, useUnlinked: false)
+                }
+                if case .custom = context.origin {
+                    Button("試験発表から自動に戻す") {
+                        originEdit = .change(context.key, date: nil, useUnlinked: false)
+                    }
+                }
+            }
+        } else {
+            Text("対象の試験を確認できると、この試験だけの起点日を設定できます。")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+        if let legacy = model.library.automatic.unlinkedProgressStart, originEdit == nil {
+            LabeledContent("以前の起点日（未紐付け）", value: legacy.iso8601)
+            if let context, !(context.key.isPrivate && model.classProgressUnavailable) {
+                Button("以前の起点日をこの試験に適用") {
+                    originEdit = .change(context.key, date: legacy, useUnlinked: true)
+                }
+            }
+            Button("以前の起点日を解除して自動に戻す") { originEdit = .discardUnlinked }
+        } else if originEdit == .discardUnlinked {
+            Button("以前の起点日の変更を取り消す") { originEdit = nil }
+        }
     }
 
     var body: some View {
@@ -489,7 +575,12 @@ private struct CountdownAutomaticEditor: View {
                 }
             }
             if automatic.enabled {
-                CountdownPreferencesFields(value: $automatic.preferences, reminderDays: $reminderDays)
+                CountdownPreferencesFields(value: $automatic.preferences, reminderDays: $reminderDays) { originFields }
+            }
+            if originEdit != nil && (!automatic.enabled || !automatic.preferences.showsProgress) {
+                Section("起点日の変更") {
+                    Button("起点日の変更を取り消す") { originEdit = nil }
+                }
             }
             if let message = model.message { InlineWarning(message) }
         }
@@ -500,9 +591,9 @@ private struct CountdownAutomaticEditor: View {
             ToolbarItem(placement: .cancellationAction) { Button("キャンセル") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") {
-                    guard canSave, model.save(automatic) else { return }
+                    guard canSave, model.save(automatic, originEdit: originEdit) else { return }
                     if automatic.enabled && automatic.preferences.notifications && !oldNotifications {
-                        Task { await model.notificationPermission(); model.onChange?() }
+                        Task { await model.notificationPermission(); _ = model.onChange?() }
                     }
                     dismiss()
                 }
@@ -513,16 +604,44 @@ private struct CountdownAutomaticEditor: View {
     }
 }
 
-private struct CountdownPreferencesFields: View {
+private struct CountdownOriginSummary: View {
+    let origin: CountdownProgressOrigin
+
+    var body: some View {
+        switch origin {
+        case .announcement(let date, _):
+            LabeledContent("進捗の起点日", value: "\(date.iso8601)・自動")
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("countdown-origin")
+            LabeledContent("起点日の出典", value: "試験発表")
+            Text("試験開始前1か月以内の「試験発表」を使用しています。").font(.footnote).foregroundStyle(.secondary)
+        case .custom(let date):
+            LabeledContent("進捗の起点日", value: "\(date.iso8601)・カスタム")
+            Text("この試験に適用").font(.footnote).foregroundStyle(.secondary)
+        case .pending:
+            LabeledContent("進捗の起点日", value: "未確定")
+            Text("必要な年度の学校行事を取得・確認すると、起点日が表示されます。").font(.footnote).foregroundStyle(.secondary)
+        case .checking:
+            LabeledContent("進捗の起点日", value: "学校行事を確認中")
+        case .unavailable:
+            LabeledContent("進捗の起点日", value: "未確定")
+            Text("必要な年度の学校行事を確認できませんでした。学校行事の設定から再試行できます。")
+                .font(.footnote).foregroundStyle(.secondary)
+        case .unset:
+            LabeledContent("進捗の起点日", value: "未設定")
+            Text("試験開始前1か月以内に「試験発表」がありません。起点日を指定できます。")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct CountdownPreferencesFields<OriginFields: View>: View {
     @Binding var value: CountdownPreferences
     @Binding var reminderDays: CountdownReminderDayEdits
+    var needsManualOrigin = false
+    @ViewBuilder var originFields: () -> OriginFields
     @FocusState private var editingReminder: Int?
     @State private var reminderEditorGeneration = UUID()
-
-    private var progress: Binding<Date> {
-        Binding(get: { value.progressStart?.dateInJapan() ?? Date() },
-                set: { value.progressStart = TimetableDaySchedule.schoolDay(at: $0) })
-    }
 
     var body: some View {
         Section("ホーム・進捗") {
@@ -530,9 +649,19 @@ private struct CountdownPreferencesFields: View {
             Picker("表示開始", selection: $value.lookahead) {
                 ForEach(CountdownLookahead.allCases) { Text($0.label).tag($0) }
             }
-            Toggle("進捗を表示", isOn: Binding(get: { value.progressStart != nil },
-                set: { value.progressStart = $0 ? .today() : nil }))
-            if value.progressStart != nil { DatePicker("進捗の起点日", selection: progress, displayedComponents: .date) }
+            Toggle("進捗を表示", isOn: Binding(get: { value.showsProgress }, set: { enabled in
+                value.progressEnabled = enabled
+                if enabled && needsManualOrigin && value.progressStart == nil { value.progressStart = .today() }
+            }))
+            if value.showsProgress {
+                originFields()
+                TextField("進捗の表示名", text: Binding(
+                    get: { value.progressLabel ?? CountdownPreferences.defaultProgressLabel },
+                    set: { value.progressLabel = $0 }
+                ))
+                .accessibilityIdentifier("countdown-progress-label")
+                Text("空欄にすると表示名を表示しません").font(.footnote).foregroundStyle(.secondary)
+            }
         }
         Section("通知（日本時間）") {
             Toggle("通知を予約", isOn: $value.notifications)

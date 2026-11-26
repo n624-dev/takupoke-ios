@@ -84,7 +84,9 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         }
         XCTAssertFalse(try present(wire()).warning)
         let differs = try present(wire(status: "source_differs", success: "source_differs"))
-        XCTAssertTrue(differs.warning); XCTAssertTrue(differs.message.contains("影響は確認待ち"))
+        XCTAssertTrue(differs.warning); XCTAssertTrue(differs.message.contains("更新待ち"))
+        XCTAssertTrue(differs.updateWaiting)
+        XCTAssertTrue(differs.message.contains("端末の再取得では解消しません"))
         XCTAssertTrue(try present(wire(status: "unknown", success: nil, date: nil)).message.contains("未確認"))
         let failed = try present(wire(status: "unavailable"))
         XCTAssertFalse(failed.warning); XCTAssertEqual(failed.lastSuccessAt, instant)
@@ -110,6 +112,42 @@ final class SchoolEventsSourceStatusTests: XCTestCase {
         let completed = SchoolEventsSourcePresentation.make(saved: saved(), cached: matched,
             error: nil, now: instant)
         XCTAssertFalse(completed.warning); XCTAssertEqual(completed.message, "元PDFの本文は登録元と一致しています。")
+    }
+
+    func testStructuredEvidenceNeverPromotesStaleFailedOrMismatchedResultsToMatched() throws {
+        func evidence(_ data: Data, age: TimeInterval = 0, error: String? = nil) throws -> SchoolEventsSourcePresentation.Evidence {
+            SchoolEventsSourcePresentation.make(saved: saved(), cached: .init(receivedAt: instant,
+                response: try .decode(data, year: 2032)), error: error, now: instant.addingTimeInterval(age)).evidence
+        }
+        XCTAssertEqual(try evidence(wire()), .matched)
+        XCTAssertEqual(try evidence(wire(status: "source_differs", success: "source_differs")), .differs)
+        XCTAssertEqual(try evidence(wire(checking: true)), .checking)
+        XCTAssertEqual(try evidence(wire(checking: true), age: 60), .unknown)
+        XCTAssertEqual(try evidence(wire(), age: 43_200), .unknown)
+        XCTAssertEqual(try evidence(wire(stale: true)), .unknown)
+        XCTAssertEqual(try evidence(wire(status: "unavailable")), .unknown)
+        XCTAssertEqual(try evidence(wire(status: "unknown", success: nil, date: nil)), .unknown)
+        XCTAssertEqual(try evidence(wire(), error: "架空の通信失敗"), .unknown)
+        XCTAssertEqual(try evidence(wire(hash: String(repeating: "e", count: 64))), .unknown)
+        XCTAssertEqual(SchoolEventsSourcePresentation.make(saved: saved(), cached: nil, error: nil, now: instant).evidence, .unknown)
+    }
+
+    func testStatusDoesNotHideAnEventsFailureOrCheckBehindACachedPDFMatch() throws {
+        let source = SchoolEventsSourcePresentation.make(saved: saved(), cached: .init(receivedAt: instant,
+            response: try .decode(wire(), year: 2032)), error: nil, now: instant)
+        XCTAssertEqual(source.evidence, .matched)
+        func status(ready: Bool = true, failed: Bool = false, checking: Bool = false,
+                    cacheFailed: Bool = false, acquired: Bool = true) -> StatusPresentation {
+            .schoolEvents(ready: ready, failed: failed, checking: checking,
+                          cacheFailed: cacheFailed, acquired: acquired, source: source)
+        }
+        XCTAssertEqual(status().tone, .good)
+        XCTAssertEqual(status(failed: true).tone, .attention)
+        XCTAssertEqual(status(checking: true).tone, .checking)
+        XCTAssertEqual(status(ready: false, failed: true).tone, .unavailable)
+        XCTAssertEqual(status(cacheFailed: true).tone, .attention)
+        XCTAssertEqual(status(acquired: false).tone, .neutral)
+        XCTAssertEqual(source.evidence, .matched, "The retained source evidence is not discarded")
     }
 
     func testExpiredCheckingDescribesThePastWithoutDiscardingSuccessfulEvidence() throws {

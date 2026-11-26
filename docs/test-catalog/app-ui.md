@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`2869d06ef5d652459b4d5318ae3d6ae14953af1b9f09a5ab8d2223d6c5e28aa2`
+`f0e30a97631892e39e177659586e9654e7282f29b30939e207d292c49af83e2f`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -109,6 +109,7 @@ bash tools/test-app-ui.sh
 - `test_unregistered_split_file_is_rejected`
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
 - `test_network_rewrite_preserves_standard_xlsx_identifiers_only`
+- `test_service_status_fixture_changes_only_the_network_endpoint`
 - `test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift`
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
@@ -145,6 +146,7 @@ bash tools/test-app-ui.sh
 - `testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover`
 - `testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair`
 - `testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates`
+- `testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel`
 - `testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent`
 
 ## [tests/ui/ApplicationChecks+Recovery.swift](../../tests/ui/ApplicationChecks+Recovery.swift)
@@ -161,6 +163,7 @@ bash tools/test-app-ui.sh
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`
+- `testStatusScreenUsesPublicResourcesAndDataRoutes`
 - `testEmptyDataCanBeConfigured`
 - `testChangedAccountDataNoticeOpensSharedAcquisition`
 - `testFileFailuresKeepResultsAndStayInTheirOwnDetails`
@@ -334,6 +337,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 
+- `test_picker_lease_typechecks_with_only_picker_dependencies`
 - `test_preparation_order_exact_completions_failures_and_owned_cleanup`
 
 ## [tests/test_xcode_selection.py](../../tests/test_xcode_selection.py)
