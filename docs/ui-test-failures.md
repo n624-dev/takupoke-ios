@@ -6426,3 +6426,7 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `0294c79`、[全体45714093730・試行1のiOS 26.5手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970143)、SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。2欄目で実消去、フォーカス、入力まで進み、2026-11-25 23:00:02 UTCに `ManualAssistanceChecks+Input.swift:126` で期限内の完了ボタンを確認できず、203.834秒で失敗。終了時のAXには背後の通常時間割のナビゲーションバーがあった。入力確定、採用、再起動は未確認。完了ボタンを確認できなかった原因は未確定。
 - `manual-edit-done|keyboard-will-hide|text-edit-ended|N191|N183-CI21` を照合した。今回は待機開始時にキーボードが閉じて `text-edit-ended` が出ており、終了時AXには復旧バーも残った。N191と似た症状だがSDKが異なり、N183-CI21では消去後に止まっており入力に未到達。直前の全体CI 45557966509では同じiOS 26.5・SDK 27.2の[元ケースが成功](https://github.com/n624-dev/takupoke-ios/actions/runs/45557966509/job/139016457641)。入力テストと復旧画面に変更はなく、キーボードが閉じた理由は未確定。全ジョブの終端後、この実行の失敗分を新しいRunnerで比較する。操作と合格条件を維持する。
+
+### N187-CI6 — 全体のiOS 26通常UI Aで連続週送りの4接触が揃わない
+
+- `99fa7e2`、[全体45736484307・試行1のiOS 26通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/job/139632621700)、SDK 27.2・iOS 26.5。2026-11-26 02:54:34 UTCに `ApplicationChecks+WeekAppearance.swift:274`、`testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating` が「4回のネイティブドラッグと最後の高さ調整」を確認できず28.005秒で失敗。同ジョブの残りのテストは進行し、全体では14件成功、公開はスキップ。XCTestで失敗時の画像が1枚記録され、129290バイトのPNGの出力を確認した。
