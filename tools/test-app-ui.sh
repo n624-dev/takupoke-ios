@@ -214,7 +214,7 @@ PY_BADGES
         fi
         local phase_status=0
         python3 -B tools/timed_command.py "App UI $runtime shard $shard" xcodebuild "${xcode_args[@]}" "$@" 2>&1 | tee "$log_path" || phase_status=$?
-        capture_failed_simulator_screen "$phase_status" "$simulator_id" "$scratch_dir"
+        capture_failed_simulator_screen "$phase_status" "$simulator_id" "$scratch_dir" "$log_path"
         stop_hang_watch
         if [[ "${TKPK_UI_PROBE_CASE:-}" == "week-appearance" || "${TKPK_UI_PROBE_CASE:-}" == "week-motion" ||
               "${TKPK_UI_PROBE_CASE:-}" == "week-navigation-and-yellow" ]] &&

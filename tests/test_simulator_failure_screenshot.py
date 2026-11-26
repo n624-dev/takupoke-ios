@@ -18,6 +18,23 @@ IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQV
 
 
 class SimulatorFailureScreenshotTests(unittest.TestCase):
+    def test_fallback_skips_a_complete_native_capture_and_keeps_once_limit(self):
+        script = r'''
+source tools/simulator-ci-trace.sh
+python3() { printf 'fallback\n'; }
+capture_failed_simulator_screen 1 "$1" "$2" "$2/native.log"
+capture_failed_simulator_screen 1 "$1" "$2"
+'''
+        with tempfile.TemporaryDirectory() as scratch:
+            for suffix, expected in (("END simulator-failure 1", ""),
+                                     ("BEGIN simulator-failure abc 1", "fallback\n")):
+                with self.subTest(suffix=suffix):
+                    (Path(scratch) / "native.log").write_text("TAKUPOKE_UI_IMAGE " + suffix + "\n")
+                    result = subprocess.run(["bash", "-euc", script, "bash", DEVICE, scratch],
+                                            cwd=ROOT, capture_output=True, text=True, timeout=5)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout, expected)
+
     def test_capture_exact_device_once_with_checksummed_image_and_owned_cleanup(self):
         def run(args, **kwargs):
             self.assertEqual(args[:-1], ["xcrun", "simctl", "io", DEVICE, "screenshot"])
