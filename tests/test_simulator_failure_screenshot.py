@@ -20,8 +20,8 @@ IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQV
 class SimulatorFailureScreenshotTests(unittest.TestCase):
     def test_capture_exact_device_once_with_checksummed_image_and_owned_cleanup(self):
         def run(args, **kwargs):
-            self.assertEqual(args[:-1], ["xcrun", "simctl", "io", DEVICE, "screenshot", "--type=png"])
-            self.assertEqual(kwargs["timeout"], 8)
+            self.assertEqual(args[:-1], ["xcrun", "simctl", "io", DEVICE, "screenshot"])
+            self.assertEqual(kwargs["timeout"], 15)
             Path(args[-1]).write_bytes(IMAGE)
             return subprocess.CompletedProcess(args, 0)
 
@@ -39,7 +39,7 @@ class SimulatorFailureScreenshotTests(unittest.TestCase):
     def test_rejects_device_alias_command_failure_and_invalid_image(self):
         def run(args, **_):
             if self.mode == "timeout":
-                raise subprocess.TimeoutExpired(args, 8)
+                raise subprocess.TimeoutExpired(args, 15)
             image = IMAGE[:-1] if self.mode == "truncated" else b"x" * (screenshot.MAX_IMAGE_BYTES + 1)
             Path(args[-1]).write_bytes(image)
             return subprocess.CompletedProcess(args, 1 if self.mode == "error" else 0)
@@ -53,6 +53,8 @@ class SimulatorFailureScreenshotTests(unittest.TestCase):
                     output = io.StringIO()
                     with redirect_stdout(output):
                         screenshot.capture(DEVICE, scratch)
-                    self.assertIn("TAKUPOKE_SIMULATOR_FAILURE_SCREEN", output.getvalue())
+                    reason = {"timeout": "timeout", "error": "unavailable exit=1",
+                              "truncated": "invalid-or-too-large", "large": "invalid-or-too-large"}[self.mode]
+                    self.assertEqual(output.getvalue().strip(), "TAKUPOKE_SIMULATOR_FAILURE_SCREEN " + reason)
                     self.assertNotIn("TAKUPOKE_UI_IMAGE", output.getvalue())
                     self.assertEqual(list(Path(scratch).iterdir()), [])

@@ -150,7 +150,7 @@ def capture_failed_simulator_screen(identity, scratch):
     if identity and sys.exc_info()[0] is not None:
         try:
             subprocess.run([sys.executable, '-B', str(ROOT.parent / 'simulator_failure_screenshot.py'),
-                            identity, str(scratch)], timeout=10)
+                            identity, str(scratch)], timeout=17)
         except (OSError, subprocess.TimeoutExpired):
             print('TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable', flush=True)
 
