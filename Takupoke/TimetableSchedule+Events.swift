@@ -1,7 +1,7 @@
 import Foundation
 
 extension TimetableSchedule {
-    struct DayPlan: Equatable {
+    struct DayPlan {
         let events: [PDFSchoolEvent]
         let isNoClass: Bool
         let isSupplementary: Bool
@@ -10,8 +10,6 @@ extension TimetableSchedule {
         let apiTest: Bool
         let apiTestReturn: Bool
         let weekendEventLabels: [String]
-        var weekdayOverrideConflict = false
-        var weekdayOverrideWarning: String? { weekdayOverrideConflict ? "曜日振替を確定できません" : nil }
 
         var fullDayLabels: [String] {
             Array(Set(noClassLabels + events.filter { $0.apiTag == "補講日" }
@@ -56,9 +54,6 @@ extension TimetableSchedule {
 
     static func dayPlan(on day: SchoolDate, events analysis: PDFAnalysis?) -> DayPlan {
         let visible = events(on: day, analysis: analysis)
-        return dayPlan(on:day,visible:visible)
-    }
-    static func dayPlan(on day:SchoolDate,visible:[PDFSchoolEvent]) -> DayPlan {
         let reliable = visible.compactMap { event -> PDFEventClassification? in
             guard event.classification?.needsReview == false else { return nil }
             return event.classification
@@ -73,6 +68,6 @@ extension TimetableSchedule {
                        apiTestReturn: visible.contains { $0.apiTag == "テスト返却" },
                        weekendEventLabels: day.schoolWeekday > 5 ? Array(Set(visible.filter {
                            $0.apiTag == "行事（授業なし）" || $0.apiTag == "補講日"
-                       }.map(\.title))).sorted() : [], weekdayOverrideConflict: overrides.count > 1)
+                       }.map(\.title))).sorted() : [])
     }
 }

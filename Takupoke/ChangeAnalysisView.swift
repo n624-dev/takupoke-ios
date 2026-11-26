@@ -5,13 +5,14 @@ struct ChangeAnalysisView: View {
     @ObservedObject var mappings: MappingModel
     @AppStorage("changeDefaultSchoolYear") private var year = ""
     @AppStorage("changeAnalysisSelectedClass") private var selectedClass = ""
-    @State private var fileRequest: FileSelectionRequest?
+    @State private var confirmingPreview = false
 
-    private var defaultYear: Int? {
+    private var defaultYear: Int {
         ChangeNormalizer.effectiveSchoolYear(configured: year, today: SchoolDate.today())
     }
     private var validYear: Bool {
-        defaultYear != nil
+        year.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            Int(year.trimmingCharacters(in: .whitespacesAndNewlines)).map { (1900...9998).contains($0) } == true
     }
     private var analysis: ChangeAnalysis? { model.state.changeAnalysis }
     private var classes: [String] { Set(analysis?.records.map(\.displayClassName) ?? []).sorted() }
@@ -19,61 +20,55 @@ struct ChangeAnalysisView: View {
         (analysis?.records ?? []).filter { selectedClass.isEmpty || $0.displayClassName == selectedClass }
     }
 
-    private var currentFailure: ChangeParseError? {
-        guard let source = model.state.record(for: .changes), let attempt = model.state.changeParseAttempt,
-              attempt.matches(digest: source.digest, defaultYear: defaultYear) else { return nil }
-        return attempt.failure
-    }
-
-    private var skippedRows: [Int] {
-        model.state.excludedChangeRows(year: defaultYear)
-    }
-
     var body: some View {
         List {
             Section {
                 TextField("補完年度（自動：\(SchoolDate.today().schoolYear)年度）", text: $year)
                     .keyboardType(.numberPad).disabled(model.busy)
-                if !validYear { InlineWarning("西暦1900〜9998の学校年度を入力してください。") }
+                if !validYear { Text("西暦1900〜9998の学校年度を入力してください。").foregroundStyle(.orange) }
                 if let source = model.state.record(for: .changes) {
-                    StatusRow(title: source.originalName, status: model.fileStatus(.changes))
+                    LabeledContent("状態", value: model.analysisStatus(.changes, record: source))
                         .accessibilityIdentifier("change-analysis-status")
-                        .accessibilityValue(model.fileStatus(.changes).title)
                 }
                 if model.busy {
-                    LoadingRow(title: model.cancellationRequested ? "中止して処理の終了を待っています⋯" : "ファイルを処理中⋯",
-                               cancel: model.cancellationRequested ? nil : { model.cancelCurrentOperation() })
+                    LoadingRow(title: "処理中⋯", cancel: { model.cancel() })
                 }
-                if let message = model.changeFailureMessage {
-                    InlineWarning(message)
-                } else if let attempt = model.state.attempts[MaterialKind.changes.rawValue], let failure = attempt.failure {
-                    if attempt.wasCancelled { Text(failure).foregroundStyle(.secondary) }
-                    else { InlineWarning(failure) }
+                if model.failed, let message = model.message {
+                    Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                } else if let failure = model.state.attempts[MaterialKind.changes.rawValue]?.failure {
+                    Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
-                if model.lastOperationWasCancelled { Text("前回の処理を中止しました。").foregroundStyle(.secondary) }
-                if model.changeFailureMessage == nil, let failure = currentFailure {
-                    if failure.code == .cancelled { Text(failure.localizedDescription).foregroundStyle(.secondary) }
-                    else { InlineWarning(failure.localizedDescription) }
+                if !model.failed, let failure = model.state.changeParseAttempt?.failure {
+                    Label(failure.localizedDescription, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                }
+                if model.canPreviewChanges {
+                    Button("警告を確認して内容を見る") { confirmingPreview = true }
+                        .disabled(model.busy || !model.ready)
                 }
             } header: { Text("状態").accessibilityIdentifier("material-state-section") }
             if model.state.record(for: .changes)?.source.weekdayConsent?.matches(digest: model.state.record(for: .changes)?.digest ?? "", defaultYear: defaultYear) == true {
-                Section { Text("曜日は日付から計算しています。更新後も元の行の内容が同じ場合は引き継ぎます。") }
+                Section { Text("曜日は日付から計算しています。ファイルの内容が更新されると解除されます。") }
             }
-            let skipped = skippedRows
-            if !skipped.isEmpty {
+            if let source = model.state.record(for: .changes), let skip = source.source.rowSkipConsent,
+               skip.matches(sourceIdentity: source.source.selectionID ?? source.storedName, digest: source.digest, defaultYear: defaultYear) {
                 Section {
-                    Text("\(skipped.count)行を除外して読み込んでいます。更新後も元の行の内容が同じ場合は引き継ぎます。")
+                    Text("\(skip.rows.count)行を除外して読み込んでいます。ファイルの内容が更新されると解除されます。")
                         .accessibilityIdentifier("change-skipped-count")
-                    Text("除外した行：" + ChangeReviewGroup.rangeLabel(skipped))
+                    Text("除外した行：" + ChangeReviewGroup.rangeLabel(skip.rows))
                         .accessibilityIdentifier("change-skipped-rows")
                 }
             }
+            Section {
+                Button("同じファイルを再取得") { model.refresh(.changes) }
+                    .disabled(model.busy || !model.ready || model.state.record(for: .changes) == nil)
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: .changes) {
                 Section {
+                    Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.lastAcquiredAt ?? source.acquiredAt, format: JapaneseDateDisplay.timestamp)
+                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {
@@ -87,27 +82,14 @@ struct ChangeAnalysisView: View {
                     }
                 } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
-            Section {
-                Button("更新を確認") { model.checkForUpdates(.changes) }
-                    .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
-                if model.state.record(for: .changes) != nil {
-                    Button("内容を確認・修正") { model.openChangeEditor() }
-                        .disabled(model.busy || !model.ready || !validYear)
-                }
-                Button("同じファイルを再取得") { model.refresh(.changes) }
-                    .disabled(model.busy || !model.ready || !validYear || model.state.record(for: .changes) == nil)
-                Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .material(.changes)) }
-                    .disabled(model.busy || !model.ready)
-                    .accessibilityLabel("時間割変更のファイルを選び直す")
-            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let analysis = analysis {
                 Section {
                     Text(analysis.sourceName)
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("年なし日付の補完", value: analysis.defaultYear.map { "\($0)年度" } ?? "指定なし")
                     LabeledContent("件数", value: "\(analysis.records.count)件")
-                    if model.state.record(for: .changes).map({ analysis.matches(record: $0, defaultYear: defaultYear) }) != true {
-                        InlineWarning("前回の解析結果です。現在のファイルを解析してください。")
+                    if analysis.sourceDigest != model.state.record(for: .changes)?.digest || analysis.version != ChangeAnalysis.parserVersion {
+                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                     }
                 } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
                 Section {
@@ -119,7 +101,8 @@ struct ChangeAnalysisView: View {
                         ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                     }
                     if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                        InlineWarning("選択したクラスは現在の解析結果にありません。選択は保持しています。")
+                        Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
                     }
                 }
                 // Use positions so identical source rows remain visible as distinct records.
@@ -133,18 +116,24 @@ struct ChangeAnalysisView: View {
         .navigationTitle("時間割変更")
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .scrollDismissesKeyboard(.interactively)
+        .alert("曜日を確認できないファイルです", isPresented: $confirmingPreview) {
+            Button("確認して表示") { model.previewChanges() }
+            Button("キャンセル", role: .cancel) {}
+        } message: {
+            Text("曜日に問題のある行があります。元の記載を確認してください。内容を見るだけでは前回の正常データは置き換えません。")
+        }
         .sheet(isPresented: Binding(get: { model.changePreview != nil }, set: { if !$0 { model.dismissPreview() } })) {
-            if let preview = model.changePreview, let editor = preview.editor {
-                ChangeWorkbookEditorView(model: model, mappings: mappings, preview: preview, initial: editor).id(editor.id)
+            if let preview = model.changePreview {
+                ChangePreviewView(preview: preview, mappings: mappings,
+                    actionFailure: model.changePreviewActionFailure(preview),
+                    correctWeekdays: preview.canCorrectWeekdays ? {
+                    model.correctWeekdays(preview)
+                } : nil, skipRows: preview.canSkipRows ? { rows in
+                    model.skipChangeRows(preview, rows: rows)
+                } : nil)
             }
         }
         .onChange(of: year) { _, _ in model.dismissPreview() }
-        .background(
-            MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
-                type: { $0.type }, instruction: { $0.instruction },
-                selected: { _, selection in model.selectFile(selection, kind: .changes) })
-                .allowsHitTesting(false)
-        )
     }
 
     @ViewBuilder private var parseButton: some View {

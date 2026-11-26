@@ -3,12 +3,11 @@ import SwiftUI
 extension TimetableView {
     var daySchedule: TimetableDaySchedule {
         TimetableDaySchedule(timetable: timetable, changes: changes, events: events,
-                             specials: specials, includesChanges: includesChanges, customTimes: times.current?.data,
-                             sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:model,specials:specialSchedules,events:schoolEvents))
+                             specials: specials, includesChanges: includesChanges, customTimes: times.current?.data)
     }
 
     var presentation: TimetablePresentation {
-        TimetablePresentation(schedule: daySchedule, mappings: mappings, sourceRecord: model.state.record(for: .changes))
+        TimetablePresentation(schedule: daySchedule, mappings: mappings)
     }
 
     func lessonDetail(_ selection: LessonSelection) -> some View {

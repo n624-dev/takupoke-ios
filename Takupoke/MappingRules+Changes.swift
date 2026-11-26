@@ -1,21 +1,14 @@
 import Foundation
 
 extension MappingRules {
-    func isInternationalStudentChangeField(_ source: String, className: String, schoolYear: Int?) -> Bool {
-        isInternationalStudentSubject(separatingChangeField(source, className: className,
-            schoolYear: schoolYear).subject, className: className)
-    }
-
     private func contextualTeacher(_ alias: String, subject: String, className: String,
                                    schoolYear: Int?) -> String? {
         guard let schoolYear, let canonical = canonicalSubject(subject, className: className) else { return nil }
-        let candidates = teacherContexts.filter {
-            Self.comparable($0.alias) == Self.comparable(alias) && $0.className == className &&
-                $0.schoolYear == schoolYear && Self.comparable($0.subject) == canonical
-        }
-        let exact = candidates.filter { $0.alias == alias }
-        let names = Set((exact.isEmpty ? candidates : exact).map(\.fullName))
-        return names.count == 1 ? names.first : nil
+        let matches = Set(teacherContexts.filter {
+            $0.alias == alias && $0.className == className && $0.schoolYear == schoolYear &&
+                Self.comparable($0.subject) == canonical
+        }.map(\.fullName))
+        return matches.count == 1 ? matches.first : nil
     }
 
     private func presenting(_ names: TimetableLessonNames, className: String,
@@ -33,38 +26,27 @@ extension MappingRules {
     /// subject component such as 「架空科目X（分野A）」 remains part of the subject.
     func separatingChangeField(_ source: String, className: String? = nil,
                                schoolYear: Int? = nil) -> TimetableLessonNames {
-        func suffix(_ value: String) -> (subject: String, token: String)? {
-            guard let closing = value.last, closing == ")" || closing == "）" else { return nil }
-            let opening: Character = closing == ")" ? "(" : "（"
-            var depth = 0
-            for index in value.indices.reversed() {
-                if value[index] == closing { depth += 1 }
-                else if value[index] == opening {
-                    depth -= 1
-                    if depth == 0 {
-                        return (String(value[..<index]).trimmingCharacters(in: .whitespacesAndNewlines),
-                            String(value[value.index(after: index)..<value.index(before: value.endIndex)]).trimmingCharacters(in: .whitespacesAndNewlines))
-                    }
-                }
-            }
-            return nil
-        }
-        func contextualSubject(_ subject: String) -> String {
-            guard let className, canonicalSubject(subject, className: className) == nil,
-                  let tail = suffix(subject), confirmsMetadata(tail.token, in: rooms),
-                  !confirmsMetadata(tail.token, in: teachers, contextual: {
-                      contextualTeacher($0, subject: tail.subject, className: className, schoolYear: schoolYear)
-                  }), canonicalSubject(tail.subject, className: className) != nil else { return subject }
-            return tail.subject
-        }
         var remaining = source.trimmingCharacters(in: .whitespacesAndNewlines)
         var teacher = ""
         var room = ""
-        while let tail = suffix(remaining) {
-            let token = tail.token
-            let subject = tail.subject
+        while let closing = remaining.last, closing == ")" || closing == "）" {
+            let opening: Character = closing == ")" ? "(" : "（"
+            var depth = 0
+            var openingIndex: String.Index?
+            for index in remaining.indices.reversed() {
+                let character = remaining[index]
+                if character == closing { depth += 1 }
+                else if character == opening {
+                    depth -= 1
+                    if depth == 0 { openingIndex = index; break }
+                }
+            }
+            guard let openingIndex, depth == 0 else { break }
+            let token = String(remaining[remaining.index(after: openingIndex)..<remaining.index(before: remaining.endIndex)])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let subject = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
             let isTeacher = confirmsMetadata(token, in: teachers, contextual: { alias in
-                className.flatMap { contextualTeacher(alias, subject: contextualSubject(subject),
+                className.flatMap { contextualTeacher(alias, subject: subject,
                     className: $0, schoolYear: schoolYear) }
             })
             let isRoom = confirmsMetadata(token, in: rooms)
@@ -76,7 +58,7 @@ extension MappingRules {
                 guard room.isEmpty else { break }
                 room = token
             }
-            remaining = subject
+            remaining = String(remaining[..<openingIndex]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return TimetableLessonNames(subject: remaining, teacher: teacher, room: room)
     }

@@ -1,6 +1,5 @@
 import SwiftUI
 import Combine
-import Observation
 
 struct TimetableView: View {
     @EnvironmentObject var times: TimetableTimesModel
@@ -11,25 +10,14 @@ struct TimetableView: View {
     @Binding var todayRequest: UUID?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) var gridDynamicTypeSize
-    @EnvironmentObject var mainColor: MainColorModel
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage("timetableSelectedClasses") var selectedClassesValue = ""
     @AppStorage("timetableChangeClasses") var changeClassesValue = ""
     @AppStorage("timetableInternationalStudent") var isInternationalStudent = false
-    @State var weekPull = WeekPullProgress()
-    @State private var selectedWeek = TimetableWeekSelection(date: SchoolDate.today().displayWeekStart)
-    var weekSelection: TimetableWeekSelection { selectedWeek }
-    var weekStart: SchoolDate {
-        get { selectedWeek.date }
-        nonmutating set {
-            guard selectedWeek.date != newValue else { return }
-            selectedWeek.date = newValue
-            closeDetailSelections()
-        }
-    }
+    @State var weekStart = SchoolDate.today().displayWeekStart
     @State var navigationHalfAnchor = SchoolDate.today()
     @State var today = SchoolDate.today()
     private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
-    @AppStorage(ChangeNormalizer.schoolYearSettingKey) var changeSchoolYear = ""
     @AppStorage("timetableIncludesChanges") var includesChanges = true
     @AppStorage("timetableChangeRange") var changeRangeValue = ChangeRange.today.rawValue
     @State var selectedLesson: LessonSelection?
@@ -37,6 +25,7 @@ struct TimetableView: View {
     @State var selectedChange: ChangeSelection?
     @State var showingWeekPicker = false
     @State var weekPickerDate = Date()
+    @State var dayHeaderHeight: CGFloat = 0
     @State var gridViewportWidth: CGFloat = 0
     @State var standardPeriodColumnWidth: CGFloat = 34
     @State var measuredPeriodColumnWidth: CGFloat = 34
@@ -46,7 +35,7 @@ struct TimetableView: View {
     var events: PDFAnalysis? { schoolEvents.analysis }
     var changes: ChangeAnalysis? { model.state.changeAnalysis }
     var specials: [SpecialScheduleAnalysis] {
-        specialSchedules.scheduleAnalyses
+        specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue }
     }
     var classes: [String] { TimetableSchedule.selectableClasses }
     var availableClasses: [String] { TimetableSchedule.classes(in: model.state, specials: specials) }
@@ -57,9 +46,10 @@ struct TimetableView: View {
         changeClassesValue.isEmpty ? selectedClasses : savedChangeClasses.filter(classes.contains)
     }
     var changeRange: ChangeRange { ChangeRange(rawValue: changeRangeValue) ?? .today }
-    func isMappedInternational(_ subject: String, _ className: String, _ schoolYear: Int?) -> Bool {
+    func isMappedInternational(_ subject: String, _ className: String) -> Bool {
         guard let rules = mappings.current?.rules else { return false }
-        return rules.isInternationalStudentChangeField(subject, className: className, schoolYear: schoolYear)
+        return rules.isInternationalStudentSubject(rules.separatingChangeField(subject).subject,
+                                                   className: className)
     }
     let weekdayNames = ["月", "火", "水", "木", "金", "土", "日"]
     var standardDayColumnWidth: CGFloat {
@@ -80,9 +70,9 @@ struct TimetableView: View {
 
     // Selections hold lesson snapshots. Close them when their underlying
     // accepted data or display scope changes; loading status is not a revision.
-    var detailRevision: [String] {
+    private var detailRevision: [String] {
         let schedule = daySchedule
-        var values = [today.iso8601, selectedClassesValue, changeClassesValue, String(isInternationalStudent), String(includesChanges), changeRangeValue]
+        var values = [weekStart.iso8601, today.iso8601, selectedClassesValue, changeClassesValue, String(isInternationalStudent), String(includesChanges), changeRangeValue]
         values.append(times.current?.revision ?? "")
         values.append(mappings.current?.revision ?? "")
         for kind: MaterialKind in [.timetable,.changes] {
@@ -114,7 +104,8 @@ struct TimetableView: View {
                 if !model.ready {
                     Section {
                         if model.failed && !model.busy {
-                            InlineWarning(model.message ?? "データを読み込めませんでした。")
+                            Label(model.message ?? "データを読み込めませんでした。", systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
                             Button("再試行") { model.loadIfNeeded() }
                                 .buttonStyle(.glass)
                         } else {
@@ -136,7 +127,8 @@ struct TimetableView: View {
                             LabeledContent("クラス", value: savedClasses.isEmpty ? "未選択" : TimetableDisplayText.classNames(savedClasses))
                         }
                         if savedClasses.contains(where: { !availableClasses.contains($0) }) {
-                            InlineWarning("保存したクラスの一部は現在の資料にありません。選択は保持しています。")
+                            Label("保存したクラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
                         }
                     }
                     weekSection
@@ -152,7 +144,6 @@ struct TimetableView: View {
             .task { schoolEvents.loadIfNeeded() }
             .onChange(of: scenePhase) { phase in
                 if phase == .active { refreshToday() }
-                else { weekPull.completeWeekMove() }
             }
             .onChange(of: weekBounds) { bounds in
                 weekStart = min(max(weekStart, bounds.lowerBound), bounds.upperBound)
@@ -162,7 +153,7 @@ struct TimetableView: View {
                 }
             }
             .onChange(of: detailRevision) { _ in
-                closeDetailSelections()
+                selectedLesson = nil; selectedSpecial = nil; selectedChange = nil
             }
             .sheet(item: $selectedLesson) { selection in
                 NavigationStack { lessonDetail(selection) }
@@ -196,24 +187,9 @@ struct TimetableView: View {
         }
     }
 
-    private func closeDetailSelections() {
-        if selectedLesson != nil { selectedLesson = nil }
-        if selectedSpecial != nil { selectedSpecial = nil }
-        if selectedChange != nil { selectedChange = nil }
-    }
-
-    var weekControlColor: WeekControlAccent { WeekControlAccent(theme: mainColor.selection) }
+    var weekControlColor: Color { (MainColor(rawValue: mainColor) ?? .systemDefault).displayColor }
 
 
-}
-
-@Observable
-final class TimetableWeekSelection {
-    var date: SchoolDate
-
-    init(date: SchoolDate) {
-        self.date = date
-    }
 }
 
 private struct ContentUnavailableViewPlaceholder: View {

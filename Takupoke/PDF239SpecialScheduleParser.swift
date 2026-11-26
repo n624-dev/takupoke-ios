@@ -1,6 +1,6 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
 // Return cells exclude the header band above the class table.
-// Exam scope is discovered from headers and ruled rows; no recovery proof is implied.
+// Other conditions remain from 239.1; no recovery proof is implied.
 import Foundation
 
 enum PDF239SpecialScheduleParser {
@@ -24,14 +24,12 @@ enum PDF239SpecialScheduleParser {
 
     static func parse(_ pages: [PDFPageLayout], kind: SpecialScheduleKind, digest: String,
                       name: String, geometry: PDFReturnGeometryRecorder? = nil, check: () throws -> Void = {}) throws -> SpecialScheduleAnalysis {
-        guard !pages.isEmpty, pages.count <= 12, kind == .exam || pages.count == 1 else {
+        guard !pages.isEmpty, pages.count == (kind == .exam ? 6 : 1) else {
             throw PDFParseError(code: .unsupported, stage: .documentHeading, branch:.b396)
         }
         var year: Int?
         var lessons: [SpecialScheduleLesson] = []
         var expectedDates: [String]?
-        var scopes: [SpecialScheduleScope] = []
-        var dedicatedTimeDate: String?
         var coveredClasses: Set<String> = []
         var periodTimes: Times?
         for (index, page) in pages.enumerated() {
@@ -55,7 +53,6 @@ enum PDF239SpecialScheduleParser {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .yearHeading, branch:.b393)
             }
             year = pageYear
-            if kind == .exam { try validateDeclaredExamPages(page,count:pages.count,pageNumber:index+1) }
             let pageTimes = try readPeriodTimes(page, count: kind == .exam ? 6 : 8,
                                                 pageNumber: index + 1)
             guard periodTimes == nil || periodTimes == pageTimes else {
@@ -66,14 +63,12 @@ enum PDF239SpecialScheduleParser {
                 ? parseExamPage(page, schoolYear: pageYear, pageNumber: index + 1,
                                 times: pageTimes, check: check)
                 : parseReturnPage(page, schoolYear: pageYear, times: pageTimes, geometry: geometry, check: check)
-            if kind == .examReturn { dedicatedTimeDate = parsed.dates.first }
             let dates = parsed.dates.sorted()
-            guard kind == .exam || expectedDates == nil || expectedDates == dates else {
+            guard expectedDates == nil || expectedDates == dates else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .calendarDates, branch:.b391)
             }
-            expectedDates = Array(Set((expectedDates ?? []) + dates)).sorted()
-            scopes.append(SpecialScheduleScope(page:index + 1,classes:parsed.classes,dates:dates))
-            guard kind == .exam || coveredClasses.isDisjoint(with: parsed.classes) else {
+            expectedDates = dates
+            guard coveredClasses.isDisjoint(with: parsed.classes) else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .duplicateClass, branch:.b390)
             }
             coveredClasses.formUnion(parsed.classes)
@@ -81,26 +76,12 @@ enum PDF239SpecialScheduleParser {
             guard lessons.count <= PDF239SchoolParser.maximumRecords else { throw PDFParseError(code: .limit, branch:.b389) }
         }
         guard let year, let dates = expectedDates, let periodTimes,
-              (kind == .exam || coveredClasses.count == 17), !lessons.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b388) }
-        let analysis = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
+              coveredClasses.count == 17, !lessons.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b388) }
+        return SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
                                        lessons: lessons.sorted { ($0.date, $0.className, $0.period, $0.page) <
-                                           ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate, scopes: scopes)
-        guard analysis.validScopes else { throw PDFParseError(code:.ambiguous,stage:.duplicateClass,branch:.b427) }
-        return analysis
-    }
-
-    static func validateDeclaredExamPages(_ page: PDFPageLayout, count: Int, pageNumber: Int) throws {
-        let rows = PDF239Grid.rows(page.glyphs.filter { $0.cy < page.height/4 || $0.cy > page.height*0.9 })
-        let pattern = try NSRegularExpression(pattern:"全([0-9]{1,2})ページ")
-        for row in rows {
-            let text = PDF239SchoolParser.key(row.map(\.text).joined()) as NSString
-            let matches = pattern.matches(in:text as String,range:NSRange(location:0,length:text.length))
-            guard matches.allSatisfy({ Int(text.substring(with:$0.range(at:1))) == count }) else {
-                throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.documentHeading,branch:.b434)
-            }
-        }
+                                           ($1.date, $1.className, $1.period, $1.page) })
     }
 
     static func runs(_ glyphs: [PDFGlyph]) -> [Run] {
@@ -123,36 +104,23 @@ enum PDF239SpecialScheduleParser {
         }
     }
 
-    static func periodHeader(_ page: PDFPageLayout, sequence: String, repeats: Int? = nil) throws -> [PDFGlyph] {
-        let rows = PDF239Grid.rows(page.glyphs)
-        let matching = rows.filter {
-            let text = PDF239SchoolParser.key($0.map(\.text).joined())
-            let count = repeats ?? (text.count / sequence.count)
-            return count > 0 && count <= 64 && text == String(repeating:sequence,count:count)
-        }
-        guard matching.count == 1, matching[0].count == sequence.count * (repeats ?? (matching[0].count / sequence.count)) else {
+    static func periodHeader(_ page: PDFPageLayout, sequence: String, repeats: Int) throws -> [PDFGlyph] {
+        let rows = PDF239Grid.rows(page.glyphs.filter { $0.cy < page.height / 4 })
+        let matching = rows.filter { PDF239SchoolParser.key($0.map(\.text).joined()) == String(repeating: sequence, count: repeats) }
+        guard matching.count == 1, matching[0].count == sequence.count * repeats else {
             throw PDFParseError(code: .unsupported, stage: .periodHeading, branch:.b387)
         }
         return matching[0]
     }
 
     static func date(_ text: String, schoolYear: Int, slash: Bool) -> SchoolDate? {
-        let weekday = #"([月火水木金土日])(?:曜日?)?"#
-        let pattern = slash ? "^([0-9]{1,2})/([0-9]{1,2})$"
-            : #"^([0-9]{1,2})月([0-9]{1,2})日(?:\("# + weekday + #"\)|"# + weekday + #")?\z"#
+        let pattern = slash ? "^([0-9]{1,2})/([0-9]{1,2})$" : "^([0-9]{1,2})月([0-9]{1,2})日"
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
               let monthRange = Range(match.range(at: 1), in: text),
               let dayRange = Range(match.range(at: 2), in: text),
-              let month = Int(text[monthRange]), let day = Int(text[dayRange]),
-              let date = SchoolDate(year: month >= 4 ? schoolYear : schoolYear + 1, month: month, day: day) else { return nil }
-        if !slash, let printed = Range(match.range(at: 3),in:text) ?? Range(match.range(at: 4),in:text),
-           text[printed] != examWeekday(for:date) { return nil }
-        return date
-    }
-
-    static func examWeekday(for date: SchoolDate) -> String {
-        ["月","火","水","木","金","土","日"][date.schoolWeekday-1]
+              let month = Int(text[monthRange]), let day = Int(text[dayRange]) else { return nil }
+        return SchoolDate(year: month >= 4 ? schoolYear : schoolYear + 1, month: month, day: day)
     }
 
     static func lessons(in page: PDFPageLayout, box: PDFBox, date: SchoolDate,

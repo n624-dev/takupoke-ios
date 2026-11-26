@@ -9,23 +9,12 @@ struct SchoolDate: Codable, Hashable, Comparable {
 
     init?(year: Int, month: Int, day: Int) {
         guard (1...9999).contains(year), (1...12).contains(month) else { return nil }
-        guard (1...Self.daysInMonth(year: year, month: month)).contains(day) else { return nil }
+        let leap = year.isMultiple(of: 4) && (!year.isMultiple(of: 100) || year.isMultiple(of: 400))
+        let days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        guard (1...days[month - 1]).contains(day) else { return nil }
         self.year = year
         self.month = month
         self.day = day
-    }
-
-    private static func daysInMonth(year: Int, month: Int) -> Int {
-        let leap = year.isMultiple(of: 4) && (!year.isMultiple(of: 100) || year.isMultiple(of: 400))
-        return [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
-    }
-
-    func previousMonth() -> Self? {
-        guard isValidCalendarDay, year > 1 || month > 1 else { return nil }
-        let priorYear = month == 1 ? year - 1 : year
-        let priorMonth = month == 1 ? 12 : month - 1
-        return Self(year: priorYear, month: priorMonth,
-                    day: min(day, Self.daysInMonth(year: priorYear, month: priorMonth)))
     }
 
     init?(iso8601: String) {
@@ -57,26 +46,6 @@ struct SchoolDate: Codable, Hashable, Comparable {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar
-    }
-
-    static var japanCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
-        return calendar
-    }
-
-    var isValidCalendarDay: Bool { Self(year: year, month: month, day: day) != nil }
-
-    func dateInJapan(hour: Int = 0, minute: Int = 0) -> Date? {
-        guard isValidCalendarDay, (0..<24).contains(hour), (0..<60).contains(minute) else { return nil }
-        return Self.japanCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))
-    }
-
-    func days(until other: Self) -> Int {
-        let calendar = Self.arithmeticCalendar
-        guard let from = calendar.date(from: DateComponents(year: year, month: month, day: day)),
-              let to = calendar.date(from: DateComponents(year: other.year, month: other.month, day: other.day)) else { return 0 }
-        return calendar.dateComponents([.day], from: from, to: to).day ?? 0
     }
 
     static func today(in timeZone: TimeZone = TimeZone(identifier: "Asia/Tokyo")!) -> Self {

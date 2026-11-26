@@ -13,7 +13,7 @@ extension TimetableView {
             if case .change(let change) = block.content { return change.isCancellation }
             return false
         }()
-        let showTime = isCancellation || block.startPeriod != block.endPeriod ||
+        let showTime = block.startPeriod != block.endPeriod ||
             commonPeriodTime(block.startPeriod, days: days) == nil
         return Button {
             switch block.content {
@@ -162,9 +162,13 @@ extension TimetableView {
                           lines: Int = 1, width: CGFloat? = nil, alternatives: [String] = []) -> String {
         let font = gridUIFont(fontSize, weight: weight)
         let available = (width ?? dayColumnWidth - 8) - 2
-        return ApplicationData.shared.textMeasurements.fit(value,alternatives:alternatives,font:font,width:available,lines:lines) {
-        @MainActor func fits(_ text: String) -> Bool {
-            ApplicationData.shared.textMeasurements.fits(text,font:font,width:available,lines:lines)
+        func fits(_ text: String) -> Bool {
+            let attributes: [NSAttributedString.Key: Any] = [.font: font]
+            if lines == 1 { return (text as NSString).size(withAttributes: attributes).width <= available }
+            let bounds = (text as NSString).boundingRect(
+                with: CGSize(width: available, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes, context: nil)
+            return bounds.height <= font.lineHeight * CGFloat(lines) + 0.5
         }
         let primary = TimetableDisplayText.cardLine(value)
         if fits(primary) { return primary }
@@ -179,6 +183,5 @@ extension TimetableView {
             else { upper = middle - 1 }
         }
         return String(characters.prefix(lower)) + "⋯"
-        }
     }
 }

@@ -348,21 +348,6 @@ struct PDFParseError: Error, LocalizedError, Codable, Equatable {
         case b421 = "R421"
         case b422 = "R422"
         // R423 was reserved for a withdrawn, unpublished vertical-label experiment. Do not reuse.
-        case b424 = "R424"
-        case b425 = "R425"
-        case b426 = "R426"
-        case b427 = "R427"
-        case b428 = "R428"
-        case b429 = "R429"
-        case b430 = "R430"
-        case b431 = "R431"
-        case b432 = "R432"
-        case b433 = "R433"
-        case b434 = "R434"
-        case b435 = "R435"
-        case b436 = "R436"
-        case b437 = "R437"
-        case b438 = "R438"
         case b271 = "R271"
     }
     var branch: Branch? = nil

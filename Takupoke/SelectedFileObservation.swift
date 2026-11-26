@@ -2,7 +2,7 @@
 import Foundation
 
 /// One foreground registration. Stop also invalidates an in-flight registration.
-final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable {
+final class SelectedFileObservation: @unchecked Sendable {
     private let lock = NSLock()
     private var stopped = false
     private var coordinator: NSFileCoordinator?
@@ -10,11 +10,10 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
     private var scopedURL: URL?
     private let resolve: () throws -> (url: URL, scope: URL?)
     private let changed: () -> Void
-    private let registered: (Bool) -> Void
     private let diagnosticSource: FileRefreshDiagnostics.Source?
 
-    init(source: SelectedFileSource, registered: @escaping (Bool) -> Void = { _ in }, changed: @escaping () -> Void) {
-        self.changed = changed; self.registered = registered
+    init(source: SelectedFileSource, changed: @escaping () -> Void) {
+        self.changed = changed
         diagnosticSource = .init(rawValue: source.id)
         resolve = {
             guard let bookmark = source.bookmark else { throw MaterialError.accessExpired }
@@ -33,13 +32,13 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
     }
 
     // Local-file injection exercises the real coordination lifecycle in host tests.
-    init(resolve: @escaping () throws -> (url: URL, scope: URL?), registered: @escaping (Bool) -> Void = { _ in }, changed: @escaping () -> Void) {
+    init(resolve: @escaping () throws -> (url: URL, scope: URL?), changed: @escaping () -> Void) {
         self.resolve = resolve
-        self.changed = changed; self.registered = registered
+        self.changed = changed
         diagnosticSource = nil
     }
 
-    func start(requestInitialRefresh: Bool = true) {
+    func start() {
         DispatchQueue.global(qos: .utility).async { [self] in
             do {
                 let target = try resolve()
@@ -65,27 +64,23 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
                         guard scope.startAccessingSecurityScopedResource() else { return }
                         self.scopedURL = scope
                     }
-                    // Metadata at registration is not a successful content read.
+                    newPresenter.recordContentVersion(at: safeURL)
                     NSFileCoordinator.addFilePresenter(newPresenter)
                     self.presenter = newPresenter
                     FileRefreshDiagnostics.shared.record(.registrationComplete, source: self.diagnosticSource)
                 }
                 lock.lock()
                 coordinator = nil
-                let active = !stopped, succeeded = presenter != nil
                 lock.unlock()
-                if active { registered(succeeded) }
-                if !succeeded {
+                if error != nil {
                     FileRefreshDiagnostics.shared.record(.registrationFailure, source: diagnosticSource)
                 }
-                if requestInitialRefresh { notifyIfActive() }
+                notifyIfActive()
             } catch {
                 FileRefreshDiagnostics.shared.record(.registrationFailure, source: diagnosticSource)
                 // The normal refresh records an actionable failure while retaining
                 // the last successful analysis. Registration failure is not success.
-                lock.lock(); let active = !stopped; lock.unlock()
-                if active { registered(false) }
-                if requestInitialRefresh { notifyIfActive() }
+                notifyIfActive()
             }
         }
     }
@@ -98,11 +93,6 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
             FileRefreshDiagnostics.shared.record(.initialRefresh, source: diagnosticSource)
             changed()
         }
-    }
-
-    func refreshCompleted() {
-        lock.lock(); let current = stopped ? nil : presenter; lock.unlock()
-        current?.refreshCompleted()
     }
 
     func stop() {

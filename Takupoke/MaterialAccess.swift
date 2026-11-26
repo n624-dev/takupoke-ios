@@ -1,10 +1,7 @@
 import Foundation
 
 final class MaterialWorker {
-    let ownerQueue = DispatchQueue(label: "io.github.n624dev.takupoke.materials", qos: .userInitiated)
     private(set) var library: MaterialLibrary?
-
-    init(library: MaterialLibrary? = nil) { self.library = library }
     var changePreview: ChangePreview?
     var timetableReadReport: String?
     var timetableFailure: PDFParseError?
@@ -29,9 +26,8 @@ final class MaterialWorker {
             try selection.access { url in
                 guard url.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(url, to: staged, kind: kind, control: control)
-                control.pipelineTicket?.enter(.access)
                 let source = MaterialSource(grant: try grant(for: url), childName: nil)
-                return .downloaded((source, url.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
+                return .downloaded((source, url.lastPathComponent, result.0, result.1, result.2))
             }
         }
     }
@@ -43,34 +39,30 @@ final class MaterialWorker {
 
     /// Reads the selected provider file again, then reparses only if its content
     /// digest changed, analysis was interrupted, or the parser changed. An unavailable provider preserves the previous result.
-    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int?, control: AcquisitionControl) throws {
-        if kind == .changes, defaultYear.map({ (1900...9998).contains($0) }) != true { throw ChangeParseError(code: .defaultYear) }
+    func refreshIfChanged(_ kind: MaterialKind, defaultYear: Int, control: AcquisitionControl) throws -> Bool {
         guard kind == .timetable || kind == .changes,
-              let previous = library?.state.record(for: kind), previous.source.grant != nil else { return }
+              let previous = library?.state.record(for: kind), previous.source.grant != nil else { return false }
         try refresh(kind, control: control)
-        guard let current = library?.state.record(for: kind) else { return }
-        let sameDigest = current.digest == previous.digest
-        FileRefreshDiagnostics.shared.record(sameDigest ? .hashSame : .hashChanged,
-                                             source: FileRefreshDiagnostics.Source(rawValue: kind.rawValue))
-        if sameDigest {
-            control.pipelineTicket?.unchanged()
-            if kind == .timetable, try library?.recertifyAcceptedTimetable(hash:current.digest) == true { return }
-            guard let state = library?.state else { return }
+        guard let current = library?.state.record(for: kind) else { return false }
+        if current.digest == previous.digest {
+            if kind == .timetable, try library?.recertifyAcceptedTimetable(hash:current.digest) == true { return false }
+            guard let state = library?.state else { return false }
             if kind == .changes {
                 guard ChangeParseAttempt.needsAnalysis(digest: current.digest, defaultYear: defaultYear,
                     analysis: state.changeAnalysis, attempt: state.changeParseAttempt, weekdayConsent: current.source.weekdayConsent,
-                    rowSkipConsent: current.source.rowSkipConsent, personalSourceIdentity: current.personalChangeIdentity(for: defaultYear)) else { return }
+                    rowSkipConsent: current.source.rowSkipConsent) else { return false }
             } else {
             let saved = state.pdfAnalyses?[kind.rawValue]
             let analysis = saved.flatMap { RecoveryConversion.trustsAcquisitionCache($0,hash:current.digest) ? $0:nil }
             let attempt = state.pdfParseAttempts?[kind.rawValue]
             guard PDFParseAttempt.needsAnalysis(digest: current.digest, parserVersion: PDFAnalysis.parserVersion,
                 analysisDigest: analysis?.sourceDigest, analysisVersion: analysis?.version, attemptDigest: attempt?.sourceDigest,
-                failure: attempt?.failure, attemptVersion: attempt?.parserVersion) else { return }
+                failure: attempt?.failure, attemptVersion: attempt?.parserVersion) else { return false }
             }
         }
         if kind == .changes { try analyzeChanges(defaultYear: defaultYear, control: control) }
         else { try analyzePDF(kind: kind, control: control) }
+        return true
     }
 
     func fetchEvents(control: AcquisitionControl) throws {
@@ -95,7 +87,7 @@ final class MaterialWorker {
                 } else { target = root }
                 guard target.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(target, to: staged, kind: kind, control: control)
-                return .downloaded((source, target.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
+                return .downloaded((source, target.lastPathComponent, result.0, result.1, result.2))
             }
         }
     }
@@ -112,11 +104,10 @@ final class MaterialWorker {
                                     remoteETag: response.metadata.etag, remoteLastModified: response.metadata.lastModified)
         if response.notModified { return .unchanged(source) }
         let result = try readMaterial(staged, copyingTo: nil, kind: .events, control: control)
-        return .downloaded((source, "学校行事.pdf", result.0, result.1, response.modifiedAt, nil))
+        return .downloaded((source, "学校行事.pdf", result.0, result.1, response.modifiedAt))
     }
 
-    private typealias Acquisition = (source: MaterialSource, name: String, count: Int, digest: String,
-                                     modified: Date?, receipt: SelectedFilePresenter.ReadReceipt?)
+    private typealias Acquisition = (source: MaterialSource, name: String, count: Int, digest: String, modified: Date?)
 
     private enum AcquisitionOutcome {
         case downloaded(Acquisition)
@@ -130,30 +121,18 @@ final class MaterialWorker {
         defer { library.discardStaging(staged) }
         do {
             let result = try read(staged)
-            control.pipelineTicket?.enter(.validating)
             try control.check()
             switch result {
             case .downloaded(let file):
-                let legacySettings = kind == .changes && reuseUnchanged && library.state.record(for:kind)?.digest != file.digest
-                    ? try library.legacyChangeSettings(check:control.check) : nil
-                try control.check()
                 try library.commit(staged: staged, kind: kind, source: file.source,
                                    originalName: file.name, byteCount: file.count,
-                                   digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged,
-                                   legacyChangeSettings:legacySettings)
-                if let receipt = file.receipt {
-                    if let ticket = control.pipelineTicket { ticket.afterCommit { receipt.acknowledge() } }
-                    else { receipt.acknowledge() }
-                    control.recordProviderAcquisition(kind.rawValue)
-                }
+                                   digest: file.digest, modifiedAt: file.modified, reuseUnchanged: reuseUnchanged)
             case .unchanged(let source):
                 try library.recordUnchanged(kind, source: source)
             }
         } catch {
             let safeError = (error as? MaterialError) ?? .unavailable
-            let cancelled: Bool
-            if case .cancelled = safeError { cancelled = true } else { cancelled = false }
-            try library.recordFailure(kind, message: safeError.localizedDescription, cancelled: cancelled)
+            try library.recordFailure(kind, message: safeError.localizedDescription)
             throw safeError
         }
     }

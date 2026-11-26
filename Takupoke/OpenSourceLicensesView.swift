@@ -21,10 +21,10 @@ private enum OpenSourceLicense: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String { self == .grdb ? "GRDB.swift" : rawValue }
 
-    var text: String? {
+    var text: String {
         guard let url = Bundle.main.url(forResource: rawValue, withExtension: "txt", subdirectory: "LicenseDocuments"),
               let text = try? String(contentsOf: url, encoding: .utf8) else {
-            return nil
+            return "ライセンス情報を読み取れません。"
         }
         return text
     }
@@ -35,16 +35,11 @@ struct OpenSourceLicensesView: View {
         List(OpenSourceLicense.allCases) { license in
             NavigationLink(license.title) {
                 ScrollView {
-                    Group {
-                        if let text = license.text {
-                            Text(text).font(.footnote)
-                        } else {
-                            InlineWarning("ライセンス情報を読み取れません。")
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .padding()
+                    Text(license.text)
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding()
                 }
                 .navigationTitle(license.title)
                 .navigationBarTitleDisplayMode(.inline)

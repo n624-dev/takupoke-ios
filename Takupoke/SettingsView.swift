@@ -1,10 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(\.colorScheme) private var scheme
-    @EnvironmentObject private var mainColor: MainColorModel
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
-    @AppStorage(SyllabusLinkPolicy.storageKey) private var syllabusDepartmentID = ""
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
     @ObservedObject var materials: MaterialsModel
@@ -16,81 +14,46 @@ struct SettingsView: View {
     @State private var showingSetup = false
 
     private var colorSelection: Binding<MainColor> {
-        Binding(get: { mainColor.selection }, set: { mainColor.select($0) })
-    }
-
-    @ViewBuilder private func dataLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {
-        if mainColor.selection.usesLightYellowIcons(in: scheme) {
-            Label {
-                Text(title)
-            } icon: {
-                Image(systemName: systemImage).foregroundStyle(MainColor.lightYellowIcon)
-            }
-        } else {
-            Label(title, systemImage: systemImage)
-        }
+        Binding(get: { MainColor(rawValue: mainColor) ?? .systemDefault },
+                set: { $0.save() })
     }
 
     var body: some View {
         NavigationStack {
             List {
-                Section("ステータス") {
-                    NavigationLink {
-                        AppStatusView(materials: materials, specialSchedules: specialSchedules,
-                                      schoolEvents: schoolEvents, mappings: mappings)
-                    } label: {
-                        AppStatusSummaryRow(materials: materials, specialSchedules: specialSchedules,
-                                            schoolEvents: schoolEvents, mappings: mappings)
-                    }
-                    .accessibilityIdentifier("settings-status")
-                }
                 Section("データ") {
                     NavigationLink {
                         MaterialsView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents,
                                       mappings: mappings)
                     } label: {
-                        dataLabel("時間割ファイル", systemImage: "folder")
+                        Label("時間割ファイル", systemImage: "folder")
                     }
                     NavigationLink {
                         SchoolEventsSettingsView(model: schoolEvents)
                     } label: {
-                        dataLabel("学校行事", systemImage: "calendar")
+                        Label("学校行事", systemImage: "calendar")
                     }
                     NavigationLink {
                         AccountDataSettingsView()
                     } label: {
                         HStack {
-                            dataLabel("リンク・名称・授業時刻", systemImage: "arrow.down.circle")
+                            Label("リンク・名称・授業時刻", systemImage: "arrow.down.circle")
                             Spacer()
                             if (mappings.current != nil && mappings.updateAvailable) || (links.saved != nil && links.updateAvailable) || (times.current != nil && times.updateAvailable) { Text("更新あり").font(.caption).foregroundStyle(.orange) }
                             else if mappings.failed || links.failed || times.failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
                         }
                     }
                 }
-                Section("時間割・学習") {
+                Section("アプリ設定") {
                     NavigationLink {
                         TimetablePrimaryClassSelection(classes: TimetableSchedule.selectableClasses, value: $selectedClasses)
                     } label: {
                         LabeledContent("クラス", value: selectedClasses.isEmpty ? "未選択" :
                             TimetableDisplayText.classNames(selectedClasses.split(separator: "|").map(String.init)))
                     }
-                    NavigationLink("カウントダウン") { CountdownManagementView(events: schoolEvents) }
-                        .accessibilityIdentifier("countdown-settings")
-                    Picker("シラバスの学科", selection: $syllabusDepartmentID) {
-                        Text("学科を選択しない").tag("")
-                        ForEach(SyllabusLinkPolicy.departments) { department in
-                            Text(department.name).tag(department.id)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    .accessibilityIdentifier("syllabus-department")
-                }
-                Section("AI・OCR") {
                     Toggle("AI・OCRを使用する", isOn: Binding(get: { useAiFeatures }, set: { useAiFeatures = $0; LocalAIFeaturePolicy.setEnabled($0) }))
                         .accessibilityIdentifier("use-ai-features")
                     NavigationLink("端末内AIモデル") { RecoveryModelSettingsView() }
-                }
-                Section("アプリ設定") {
                     NavigationLink("通知") { NotificationSettingsView() }
                     Picker("メインカラー", selection: colorSelection) {
                         ForEach(MainColor.allCases) { choice in

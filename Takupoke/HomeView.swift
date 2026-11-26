@@ -10,7 +10,6 @@ struct HomeView: View {
     @EnvironmentObject private var links: LinksModel
     @EnvironmentObject private var mappings: MappingModel
     @State private var safariPage: SafariPage?
-    @State private var linkActionOwner = UUID()
     @State private var selectedLesson: LessonSelection?
     @State private var selectedSpecial: SpecialSelection?
     @State private var selectedChange: ChangeSelection?
@@ -19,10 +18,8 @@ struct HomeView: View {
         TimetablePresentation(schedule: TimetableDaySchedule(
             timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
-            specials: specialSchedules.scheduleAnalyses,
-            includesChanges: true, customTimes: times.current?.data,
-            sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:materials,specials:specialSchedules,events:schoolEvents)), mappings: mappings,
-            sourceRecord: materials.state.record(for: .changes))
+            specials: specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue },
+            includesChanges: true, customTimes: times.current?.data), mappings: mappings)
     }
 
     var body: some View {
@@ -35,23 +32,21 @@ struct HomeView: View {
                         }
                     }
                 }
-                LinksPreferencesWarning(model: links)
                 HomeTodayView(materials: materials, specialSchedules: specialSchedules,
                               schoolEvents: schoolEvents, selectedLesson: $selectedLesson,
                               selectedSpecial: $selectedSpecial, selectedChange: $selectedChange,
                               openTimetable: openTimetable)
-                CountdownHomeSection(events: schoolEvents)
                 if !links.visibleFavorites.isEmpty {
                     Section("お気に入り") {
                         ForEach(links.visibleFavorites) { item in
-                            LinkRow(item: item, model: links, actionOwner: linkActionOwner) { safariPage = SafariPage(url: $0) }.equatable()
+                            LinkRow(item: item, model: links) { safariPage = SafariPage(url: $0) }
                         }
                     }
                 }
                 if !links.visibleRecommendations.isEmpty {
                     Section("おすすめ") {
                         ForEach(links.visibleRecommendations) { item in
-                            LinkRow(item: item, model: links, actionOwner: linkActionOwner) { safariPage = SafariPage(url: $0) }.equatable()
+                            LinkRow(item: item, model: links) { safariPage = SafariPage(url: $0) }
                         }
                     }
                 }

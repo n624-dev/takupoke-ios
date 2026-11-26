@@ -7,7 +7,7 @@ import Crypto
 
 enum RecoveryValidator {
     static let schemaVersion = 2
-    static let version = 9
+    static let version = 8
     private static func text(_ value: String) -> String {
         value.precomposedStringWithCompatibilityMapping.components(separatedBy: .whitespacesAndNewlines).joined()
     }
@@ -17,11 +17,7 @@ enum RecoveryValidator {
         if kind == .timetable { let label = ["1": "月", "2": "火", "3": "水", "4": "木", "5": "金"][day] ?? "?"; return [label, label + "曜", label + "曜日"] }
         let parts = day.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return [] }
-        let label = "\(parts[1])月\(parts[2])日"
-        let original = [day, "\(parts[0])/\(parts[1])/\(parts[2])", "\(parts[1])/\(parts[2])", label]
-        guard kind == .exam, let date = SchoolDate(iso8601:day) else { return original }
-        let weekday = PDF239SpecialScheduleParser.examWeekday(for:date)
-        return original + [weekday,weekday+"曜",weekday+"曜日"].flatMap { [label+$0,label+"("+$0+")"] }
+        return [day, "\(parts[0])/\(parts[1])/\(parts[2])", "\(parts[1])/\(parts[2])", "\(parts[1])月\(parts[2])日"]
     }
     private static func classLabels(_ cls: String) -> [String] {
         [cls, cls.replacingOccurrences(of: "_", with: "-"), cls.replacingOccurrences(of: "_", with: ""), cls.hasPrefix("AI_") ? cls.replacingOccurrences(of: "AI_", with: "") + "年" : cls]
@@ -60,8 +56,8 @@ enum RecoveryValidator {
         guard (1900...9998).contains(doc.schoolYear), (1...64).contains(doc.classes.count), (1...31).contains(doc.days.count), (1...20000).contains(doc.cells.count), doc.sources.count <= 100000, result.cells.count <= 20000, (result.humanCorrections?.count ?? 0) <= RecoveryManualAssistance.maximumFields else { return RecoveryValidation(errors: ["inputLimit"]) }
         var errors = [String]()
         func check(_ ok: Bool, _ code: String) { if work.charge(), !ok && !errors.contains(code) { errors.append(code) } }
-        // Older coverage proofs did not account for closed shapes misidentified
-        // as table rules. Their saved text cannot establish current coverage.
+        // Old OCR audits lack this acquisition proof and cannot be recertified
+        // from text/result metadata alone. Vector audits retain their prior path.
         var ocrPages = Set<Int>()
         for source in doc.sources {
             guard work.charge() else { return RecoveryValidation(errors:["validationLimit"]) }
@@ -70,8 +66,7 @@ enum RecoveryValidator {
         if ocrPages.isEmpty { check(doc.ocrCoverageProof == nil,"ocrCoverage") }
         else if let proof = doc.ocrCoverageProof {
             guard proof.pages.count <= 12, work.charge(proof.pages.count * 65) else { return RecoveryValidation(errors:["inputLimit"]) }
-            check(proof.version == RecoveryOCRCoverageProof.currentVersion &&
-                  Set(proof.pages.map(\.page)) == ocrPages && Set(proof.pages.map(\.page)).count == proof.pages.count,"ocrCoverage")
+            check(proof.version == 1 && Set(proof.pages.map(\.page)) == ocrPages && Set(proof.pages.map(\.page)).count == proof.pages.count,"ocrCoverage")
             for page in proof.pages {
                 check((1...12).contains(page.page) && (1...4096).contains(page.width) && (1...4096).contains(page.height) &&
                       page.grayscaleSHA256.utf8.count == 64 && page.grayscaleSHA256.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) },"ocrCoverage")
@@ -134,8 +129,7 @@ enum RecoveryValidator {
               [result.metadata.provider, result.metadata.modelId, result.metadata.modelVersion, result.metadata.runtimeVersion,
                result.metadata.promptVersion, result.metadata.osVersion, result.metadata.recoveryVersion].allSatisfy { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }, "versions")
         check(!doc.classes.isEmpty && Set(doc.classes).count == doc.classes.count && Set(doc.classes).isSubset(of: Set(RecoveryValidator.knownClasses)) && !doc.days.isEmpty && Set(doc.days).count == doc.days.count, "scope")
-        if doc.kind == .return { check(Set(doc.classes) == Set(RecoveryValidator.specialClasses) && doc.days.count == 5, "specialScope") }
-        if doc.kind == .exam { check(Set(doc.classes).isSubset(of:Set(specialClasses)) && doc.days.count <= 31, "specialScope") }
+        if doc.kind != .timetable { check(Set(doc.classes) == Set(RecoveryValidator.specialClasses) && doc.days.count == 5, "specialScope") }
         let maxPeriod = doc.kind == .exam ? 6 : 8
         var periodIds = [Int:Set<String>]()
         for period in 1...maxPeriod {
@@ -161,19 +155,7 @@ enum RecoveryValidator {
                 check(valid, "dates")
             }
         }
-        var expectedSlots = doc.classes.flatMap { cls in doc.days.flatMap { day in (1...maxPeriod).map { RecoverySlot(className: cls, day: day, period: $0) } } }
-        if doc.kind == .exam {
-            let pages = Set(doc.sources.map(\.page))
-            check(pages.count <= 12 && pages.allSatisfy { (1...12).contains($0) }, "specialPages")
-            expectedSlots = pages.sorted().flatMap { page in
-                let classes = doc.classes.filter { doc.classEvidence[$0,default:[]].contains { index.byId[$0]?.page == page } }
-                let days = doc.days.filter { doc.dayEvidence[$0,default:[]].contains { index.byId[$0]?.page == page } }
-                check(!classes.isEmpty && !days.isEmpty, "specialPageScope")
-                return classes.flatMap { cls in days.flatMap { day in (1...maxPeriod).map { RecoverySlot(className:cls,day:day,period:$0) } } }
-            }
-        }
-        let required = Set(expectedSlots)
-        check(required.count == expectedSlots.count, "duplicatePageScope")
+        let required = Set(doc.classes.flatMap { cls in doc.days.flatMap { day in (1...maxPeriod).map { RecoverySlot(className: cls, day: day, period: $0) } } })
         check(doc.requiredSlots.count == required.count && Set(doc.requiredSlots) == required, "requiredScope")
         let slots = doc.cells.flatMap(\.slots)
         check(slots.count == required.count && Set(slots) == required, "coverage")
@@ -277,7 +259,7 @@ enum RecoveryValidator {
                       evidence(doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }, doc.commonClockEvidence),
                       doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }.allSatisfy({ id in sources[id].map { $0.page == binding.page && region.box.contains($0.box) } ?? false }) else { return false }
                 if doc.kind == .exam {
-                    return header(doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }, doc.commonClockEvidence, ["試験時間割", "試験時間", "試験時刻"]) && Set(pageCells[binding.page,default:[]].flatMap { $0.slots.map(\.day) }) == Set(doc.days.filter { doc.dayEvidence[$0,default:[]].contains { sources[$0]?.page == binding.page } })
+                    return header(doc.commonClockEvidence.filter { sources[$0]?.page == binding.page }, doc.commonClockEvidence, ["試験時間割", "試験時間", "試験時刻"]) && Set(pageCells[binding.page,default:[]].flatMap { $0.slots.map(\.day) }) == Set(doc.days)
                 }
                 if doc.kind == .return, day == doc.days.sorted().first {
                     let parts = day.split(separator: "-").compactMap { Int($0) }
@@ -548,51 +530,39 @@ enum RecoveryValidator {
     }
     /// Only exact historical acceptance fingerprints plus full current validation
     /// can carry confirmation forward. Native atom proof cannot be backdated.
-    private static func withValidatorVersion(_ original:RecoveryAdopted, _ version:Int) throws -> RecoveryAdopted? {
-        // Prove the existing receipt before changing the document snapshot.
-        guard try RecoveryManualAssistance.validationErrors(original.document,original.result,inputOnly:false).isEmpty else { return nil }
-        var changed = original
-        changed.result.metadata.validatorVersion = version
-        if changed.document.structureMetadata != nil { changed.document.structureMetadata!.validatorVersion = version }
-        if let corrections = original.result.humanCorrections {
-            let snapshot = try fingerprint(changed.document)
-            changed.result.humanCorrections = corrections.map { edit in
-                RecoveryHumanCorrection(schemaVersion:edit.schemaVersion,target:edit.target,pdfHash:edit.pdfHash,
-                    acquisitionHash:edit.acquisitionHash,documentSnapshotHash:snapshot,page:edit.page,
-                    parentSourceIds:edit.parentSourceIds,crop:edit.crop,value:edit.value,provenance:edit.provenance,
-                    confirmedAt:edit.confirmedAt,selectedTargets:edit.selectedTargets)
-            }
-        }
-        return changed
-    }
     static func recertify(_ adopted: RecoveryAdopted, hash: String) throws -> RecoveryAdopted? {
         guard adopted.document.pdfHash == hash else { return nil }
         if adopted.result.metadata.validatorVersion == version {
             guard try canReuse(adopted.acceptance,document:adopted.document,result:adopted.result) else { return nil }
             if let original = adopted.previousAcceptance {
-                guard var old = try withValidatorVersion(adopted,original.metadata.validatorVersion) else { return nil }
+                var old = adopted
                 old.previousAcceptance = nil; old.acceptance = original
+                old.result.metadata.validatorVersion = original.metadata.validatorVersion
+                if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = original.metadata.validatorVersion }
                 guard try recertify(old,hash:hash) == adopted else { return nil }
             }
             return adopted
         }
-        if [5,6,7,8].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
-            guard [4,5,6,7].contains(original.metadata.validatorVersion),
+        if [5,6,7].contains(adopted.result.metadata.validatorVersion), let original = adopted.previousAcceptance {
+            guard [4,5,6].contains(original.metadata.validatorVersion),
                   original.metadata.validatorVersion < adopted.result.metadata.validatorVersion else { return nil }
-            guard var old = try withValidatorVersion(adopted,original.metadata.validatorVersion) else { return nil }
-            old.previousAcceptance = nil; old.acceptance = original
+            var old = adopted; old.previousAcceptance = nil; old.acceptance = original
+            old.result.metadata.validatorVersion = original.metadata.validatorVersion
+            if old.document.structureMetadata != nil { old.document.structureMetadata!.validatorVersion = original.metadata.validatorVersion }
             guard let upgraded = try recertify(old,hash:hash) else { return nil }
-            guard var expected = try withValidatorVersion(upgraded,adopted.result.metadata.validatorVersion) else { return nil }
+            var expected = upgraded
+            expected.result.metadata.validatorVersion = adopted.result.metadata.validatorVersion
+            if expected.document.structureMetadata != nil { expected.document.structureMetadata!.validatorVersion = adopted.result.metadata.validatorVersion }
             expected.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(expected.result),scopeHash:try fingerprint(expected.document),metadata:expected.result.metadata,acceptedAt:original.acceptedAt)
             return expected == adopted ? upgraded : nil
         }
-        guard adopted.previousAcceptance == nil, (adopted.result.metadata.validatorVersion >= 8 || !adopted.document.cells.contains(where:{ $0.orderedRowProof != nil })),
-              adopted.result.metadata.validatorVersion >= 7 || adopted.document.ocrLineAtomSourceIds == nil,
-              [6,7,8].contains(adopted.result.metadata.validatorVersion) ||
+        guard adopted.previousAcceptance == nil, !adopted.document.cells.contains(where:{ $0.orderedRowProof != nil }),
+              adopted.result.metadata.validatorVersion == 7 || adopted.document.ocrLineAtomSourceIds == nil,
+              [6,7].contains(adopted.result.metadata.validatorVersion) ||
                 (adopted.document.nativeCapture == nil && adopted.result.humanCorrections == nil &&
                  adopted.document.sources.allSatisfy({ $0.nativeConfidence == nil })),
-              [6,7,8].contains(adopted.result.metadata.validatorVersion) || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
-              [4,5,6,7,8].contains(adopted.result.metadata.validatorVersion),
+              [6,7].contains(adopted.result.metadata.validatorVersion) || adopted.document.structureMetadata == nil || adopted.document.structureMetadata == adopted.result.metadata,
+              [4,5,6,7].contains(adopted.result.metadata.validatorVersion),
               adopted.result.metadata.recoverySchemaVersion == schemaVersion,
               adopted.result.metadata.recoveryVersion == "2",
               adopted.acceptance.pdfHash == hash,
@@ -600,7 +570,9 @@ enum RecoveryValidator {
               adopted.acceptance.resultHash == (try fingerprint(adopted.result)),
               adopted.acceptance.scopeHash == (try fingerprint(adopted.document)),
               adopted.document.structureMetadata.map({ $0.validatorVersion == adopted.result.metadata.validatorVersion && $0.recoverySchemaVersion == schemaVersion && $0.recoveryVersion == "2" }) ?? true else { return nil }
-        guard var current = try withValidatorVersion(adopted,version) else { return nil }
+        var current = adopted
+        current.result.metadata.validatorVersion = version
+        if current.document.structureMetadata != nil { current.document.structureMetadata!.validatorVersion = version }
         guard validate(current.document,current.result).canAdopt else { return nil }
         current.previousAcceptance = adopted.acceptance
         current.acceptance = RecoveryAcceptance(pdfHash:hash,resultHash:try fingerprint(current.result),scopeHash:try fingerprint(current.document),metadata:current.result.metadata,acceptedAt:adopted.acceptance.acceptedAt)

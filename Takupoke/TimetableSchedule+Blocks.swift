@@ -1,8 +1,8 @@
 import Foundation
 
 extension TimetableSchedule {
-    struct GridBlock: Equatable {
-        enum Content: Equatable {
+    struct GridBlock {
+        enum Content {
             case normal(PDFLesson)
             case special(SpecialItem)
             case change(ScheduleChange)
@@ -13,7 +13,7 @@ extension TimetableSchedule {
         let content: Content
     }
 
-    struct PositionedBlock: Equatable {
+    struct PositionedBlock {
         let block: GridBlock
         let lane: Int
     }
@@ -21,14 +21,11 @@ extension TimetableSchedule {
     static func blocks(on day: SchoolDate, className: String, timetable: PDFAnalysis?,
                        changes: ChangeAnalysis?, includesChanges: Bool, events: PDFAnalysis? = nil,
                        specials: [SpecialScheduleAnalysis] = [], isInternationalStudent: Bool = false,
-                       matchedByRule: ((String, String, Int?) -> Bool)? = nil,
-                       sourceIndex:SourceIndex? = nil) -> [GridBlock] {
+                       matchedByRule: ((String, String) -> Bool)? = nil) -> [GridBlock] {
         var result: [GridBlock] = []
         for period in 1...8 {
             let item = slot(on: day, period: period, className: className, timetable: timetable,
-                            changes: changes, includesChanges: includesChanges, events: events, specials: specials,sourceIndex:sourceIndex)
-                .filteringChanges(isInternationalStudent: isInternationalStudent,
-                                  matchedByRule: matchedByRule)
+                            changes: changes, includesChanges: includesChanges, events: events, specials: specials)
             for lesson in item.displayedLessons where shouldDisplay(lesson, isInternationalStudent: isInternationalStudent,
                                                                     matchedByRule: matchedByRule) {
                 if let previous = result.indices.last(where: { index in

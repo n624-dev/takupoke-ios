@@ -2,16 +2,16 @@
 import PackageDescription
 
 #if os(macOS)
-let mappingSources = ["ScopedMaterialSelection.swift", "SelectedFileProvider.swift", "TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
-let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
+let mappingSources = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingTests = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
 let mappingExcludes: [String] = []
 let mappingTestExcludes: [String] = []
 #else
 // CryptoKit and URLSession host tests run on the macOS release runner.
 let mappingSources: [String] = []
 let mappingTests: [String] = []
-let mappingExcludes = ["ScopedMaterialSelection.swift", "SelectedFileProvider.swift", "TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift", "TimetableTimesModel.swift", "LinksModel.swift", "MappingModel.swift", "TimetablePresentation.swift", "SchoolEventsModel.swift"]
-let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift", "TimetableModelTests.swift", "SchoolEventsSourceModelTests.swift"]
+let mappingExcludes = ["TimetableTimesService.swift", "MappingPackage.swift", "MappingStore.swift", "MappingService.swift"]
+let mappingTestExcludes = ["TimetableTimesServiceTests.swift", "MappingPackageTests.swift", "MappingServiceTests.swift"]
 #endif
 
 // Host tests compile the same Foundation-based sources used by the iOS target.
@@ -34,12 +34,12 @@ let package = Package(
                     "OpenSourceLicensesView.swift",
                     "TakupokeApp.swift",
                     "ContentView.swift",
-                    "ApplicationData.swift", "BackgroundRefresh.swift",
+                    "ApplicationData.swift", "BackgroundRefresh.swift", "TimetableTimesModel.swift",
                     "ScheduleNotifications.swift", "NotificationSettingsView.swift",
-                    "SettingsView.swift", "AppStatusView.swift", "ServiceStatusView.swift", "StatusRow.swift", "ServiceStatusModel.swift",
+                    "SettingsView.swift",
                     "HomeView.swift",
                     "HomeTodayView.swift", "HomeLessonRow.swift",
-                    "TimetablePresentation+Details.swift",
+                    "TimetablePresentation.swift", "TimetablePresentation+Details.swift",
                     "LoadingRow.swift",
                     "AboutView.swift",
                     "UsageHelpView.swift",
@@ -49,8 +49,9 @@ let package = Package(
                     "LegalDocumentView.swift",
                     "LegalDocuments",
                     "MaterialAccess.swift",
-                                        "MaterialWorker+Analysis.swift",
-                    "MaterialWorker+Provider.swift", "MaterialWorker+Pipeline.swift", "SpecialSchedulesModel+Pipeline.swift",
+                    "ScopedMaterialSelection.swift",
+                    "MaterialWorker+Analysis.swift",
+                    "MaterialWorker+Provider.swift",
                     "MaterialsModel.swift",
                     "MaterialsModel+Updates.swift",
                     "SpecialSchedulesModel+Updates.swift",
@@ -59,7 +60,8 @@ let package = Package(
                     "GuidedDocumentPicker.swift",
                     "SpecialScheduleAnalysisView.swift",
                     "ChangeAnalysisView.swift",
-                    "ChangePreviewView.swift", "ChangeWorkbookEditorView.swift",
+                    "ChangePreviewView.swift",
+                    "WebPDFDownloader.swift",
                     "PDFAnalysisView.swift", "SystemLanguageRecoveryProvider.swift", "PDFRecoveryRecognition.swift",
                     "PDFRecoveryCoordinator.swift", "PDFRecoveryView.swift", "LocalRecoveryModelManager.swift", "LocalLlamaRecoveryProvider.swift", "CoreAIRecoveryProvider.swift",
                     "PDFLessonDetail.swift",
@@ -77,15 +79,18 @@ let package = Package(
                     "SpecialSchedulesModel+Startup.swift",
                     "SpecialSchedulesModel+Analysis.swift",
                     "SpecialSchedulesModel+Provider.swift",
-                    "SchoolEventsView.swift", "CountdownModel.swift", "CountdownView.swift",
+                    "SchoolEventsModel.swift",
+                    "SchoolEventsView.swift",
                     "MappingOIDC.swift",
+                    "MappingModel.swift",
                     "MappingSettingsView.swift",
+                    "LinksModel.swift",
                     "LinksView.swift",
                     "SafariLinkView.swift",
                     "LinkRow.swift",
                 ] + mappingExcludes,
                 sources: [
-                    "MainColor.swift", "CancellationLinkedTask.swift", "StatusPresentation.swift", "ServiceStatus.swift",
+                    "MainColor.swift",
                     "LocalMaterialDatabase.swift",
                     "LocalMaterialDatabase+Current.swift", "LocalMaterialDatabase+Snapshot.swift",
                     "PDFAnalysis.swift", "RecoveryModels.swift", "RecoveryValidator.swift", "RecoveryPromptCatalog.swift", "RecoveryModelStore.swift", "RecoveryEngine.swift", "RecoveryStructure.swift", "RecoveryDocumentBuilder.swift", "RecoveryConversion.swift", "RecoveryRasterGrid.swift", "RecoveryOCRAcquisition.swift", "RecoveryOCRStructure.swift", "RecoveryVisionCapture.swift", "RecoveryManualAssistance.swift", "RecoveryManualReview.swift",
@@ -99,12 +104,12 @@ let package = Package(
                     "LegacyDatabaseMigration.swift",
                     "ChangeNormalizer.swift", "ChangeNormalizer+Dates.swift",
                     "ChangeAnalysis.swift",
-                    "XLSXReader.swift", "ChangeWorkbookEditor.swift", "XLSXReader+Worksheet.swift",
+                    "XLSXReader.swift", "XLSXReader+Worksheet.swift",
                     "BoundedXML.swift",
                     "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift",
-                    "MaterialModels.swift", "WebPDFDownloader.swift",
+                    "MaterialModels.swift",
                     "SelectedFileSource.swift",
-                    "FileRefreshDiagnostics.swift", "MaterialFileReader.swift", "FilePipeline.swift", "PipelineWorkspace.swift", "MaterialLibrary+Pipeline.swift", "SpecialScheduleStore+Pipeline.swift",
+                    "FileRefreshDiagnostics.swift",
                     "SelectedFilePresenter.swift",
                     "SelectedFileObservation.swift",
                     "SelectedFileMonitor.swift",
@@ -141,7 +146,7 @@ let package = Package(
                     "SchoolDataRetention.swift",
                     "ScheduleNotificationSnapshot.swift",
                     "TimetableSchedule.swift",
-                    "TimetableDaySchedule.swift", "TimetableRenderCache.swift", "TimetableBoundaryClock.swift", "TimetableTimes.swift",
+                    "TimetableDaySchedule.swift", "TimetableTimes.swift",
                     "TimetableSchedule+Blocks.swift",
                     "TimetableSchedule+Events.swift",
                     "TimetableSchedule+Weeks.swift",
@@ -151,8 +156,8 @@ let package = Package(
                     "SpecialScheduleParser+Pages.swift",
                     "SpecialScheduleStore.swift",
                     "SpecialScheduleRecord.swift",
-                    "SchoolEventsAPI.swift", "SchoolEventsSourceStatus.swift",
-                    "SchoolEventsStore.swift", "Countdown.swift",
+                    "SchoolEventsAPI.swift",
+                    "SchoolEventsStore.swift",
                     "LinksAPI.swift",
                     "LinksStore.swift",
                     "LinkSearch.swift",
@@ -160,6 +165,8 @@ let package = Package(
         .testTarget(name: "ParsingTests", dependencies: ["TakupokeParsing", "ZIPFoundation", .product(name: "GRDB", package: "GRDB.swift")], path: "tests",
                     exclude: [
                     "ui",
+                    "MaterialLibraryChecks.swift",
+                    "WebPDFChecks.swift",
                     "test_distribution.py",
                     "test_change_preview_actions.py",
                     "test_parallel_build.py",
@@ -170,7 +177,7 @@ let package = Package(
                     "test-catalog.json",
                 ] + mappingTestExcludes,
                     sources: [
-                    "MainColorTests.swift", "CancellationLinkedTaskTests.swift", "StatusPresentationTests.swift", "ServiceStatusTests.swift",
+                    "MainColorTests.swift",
                     "FileRefreshTests.swift",
                     "ParsingTests.swift",
                     "ParsingTests+Normalization.swift",
@@ -204,20 +211,19 @@ let package = Package(
                     "LocalDatabaseTests+Legacy.swift",
                     "LocalDatabaseTests+Current.swift",
                     "MaterialPickerLayoutTests.swift",
-                    "MaterialLibraryChecks.swift", "WebPDFChecks.swift",
                     "ObservedScreenGeometryTests.swift", "Support/ObservedScreenGeometry.swift",
                     "SchoolDateTests.swift", "JapaneseDateDisplayTests.swift",
-                    "SchoolDataRetentionTests.swift", "SchoolDataRecoveryTests.swift",
+                    "SchoolDataRetentionTests.swift",
                     "ScheduleNotificationTests.swift",
                     "TimetableScheduleTests.swift",
-                    "HomeScheduleTests.swift", "TimetableTimesTests.swift", "TimetableClockEvidenceTests.swift", "SpecialAvailabilityTests.swift",
+                    "HomeScheduleTests.swift", "TimetableTimesTests.swift",
                     "TimetableScheduleTests+Changes.swift",
                     "TimetableScheduleTests+Blocks.swift",
                     "TimetableScheduleTests+Events.swift",
                     "SpecialScheduleTests.swift",
                     "SpecialScheduleTests+Fixtures.swift",
                     "SpecialScheduleTests+Persistence.swift",
-                    "SchoolEventsAPITests.swift", "SchoolEventsSourceStatusTests.swift", "CountdownTests.swift",
+                    "SchoolEventsAPITests.swift",
                     "LinksTests.swift",
                 ] + mappingTests, resources: [.copy("fixtures")])
     ]

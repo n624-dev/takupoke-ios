@@ -3,7 +3,7 @@ import SwiftUI
 
 extension SpecialSchedulesModel {
     func runPendingFileRefresh() {
-        let requested = fileRefreshQueue.take(ready: ready, busy: busy, blocked: Set(FilePipeline.shared.activeSources.map(\.rawValue)))
+        let requested = fileRefreshQueue.take(ready: ready, busy: busy)
         guard !requested.isEmpty else { return }
         perform(success: nil) { store, control, _ in
             try Self.refreshSelectedFiles(store, requested: requested, control: control)
@@ -11,7 +11,7 @@ extension SpecialSchedulesModel {
     }
 
     nonisolated static func refreshSelectedFiles(_ store: SpecialScheduleStore, requested: Set<String>,
-                                                 control: AcquisitionControl, force: Bool = false, reason: FilePipeline.Reason = .automatic) throws {
+                                                 control: AcquisitionControl) throws {
             var failure: Error?
             for kind in SpecialScheduleKind.allCases where requested.contains(kind.rawValue) {
                 try control.check()
@@ -24,7 +24,6 @@ extension SpecialSchedulesModel {
                     analysisDigest: saved?.digest, analysisVersion: saved?.analysis.version, attemptDigest: source.digest,
                     failure: source.failure, attemptVersion: source.attemptParserVersion)
                 do {
-                    try Self.pipeline(store, kind: kind, reason: force ? .manual : reason, control: control) { store, control in
                     var changed = false
                     if let grant = source.grant {
                         let staged = store.newStagingURL()
@@ -34,29 +33,22 @@ extension SpecialSchedulesModel {
                                           relativeTo: nil, bookmarkDataIsStale: &stale)
                         guard !stale else { throw MaterialError.accessExpired }
                         let selection = ScopedMaterialSelection(url)
-                        let (name, count, digest, receipt) = try Self.copy(selection, to: staged, kind: kind, control: control)
+                        let (name, count, digest) = try Self.copy(selection, to: staged, control: control)
                         FileRefreshDiagnostics.shared.record(digest == source.digest ? .hashSame : .hashChanged,
                                                              source: diagnosticSource)
-                        control.pipelineTicket?.enter(.validating)
-                        try control.check()
-                        if digest == source.digest, !force, store.hasSelectedFile(kind) {
-                            control.pipelineTicket?.unchanged()
+                        if digest == source.digest {
                             try store.recordSuccessfulCheck(kind, digest: digest, originalName:name)
                         } else {
                             try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                                     byteCount: count, digest: digest, grant: grant)
                             changed = true
                         }
-                        if let ticket = control.pipelineTicket { ticket.afterCommit { receipt.acknowledge() } }
-                    else { receipt.acknowledge() }
-                        control.recordProviderAcquisition(kind.rawValue)
                     }
                     // Check the provider before retrying an older local parser failure.
                     // A malformed old copy must not prevent acquiring its replacement.
-                    if changed || needsAnalysis || force {
+                    if changed || needsAnalysis {
                         guard let selectedURL = store.selectedURL(for: kind),
                               let selectedSource = store.sources[kind] else { throw MaterialError.unavailable }
-                        control.pipelineTicket?.enter(.parsing)
                         let parseCheck: () throws -> Void = {
                             do { try control.check() } catch { throw PDFParseError(code: .cancelled) }
                         }
@@ -65,24 +57,14 @@ extension SpecialSchedulesModel {
                                                                        digest: selectedSource.digest,
                                                                        name: selectedSource.originalName,
                                                                        check: parseCheck)
-                        control.pipelineTicket?.enter(.validating)
                         try parseCheck()
-                        try store.saveAnalysis(analysis); control.pipelineTicket?.parsed()
-                    }
+                        try store.saveAnalysis(analysis)
                     }
                 } catch {
-                    if (error as? FilePipeline.Failure) == .cancelled || (error as? FilePipeline.Failure) == .stale {
-                        try control.check()
-                        FileRefreshDiagnostics.shared.record(.cancelled, source: diagnosticSource)
-                        failure = error
-                        continue
-                    }
-                    if FileOperationOutcome.isCancellation(error) {
-                        FileRefreshDiagnostics.shared.record(.cancelled, source: diagnosticSource)
-                        throw error
-                    }
                     FileRefreshDiagnostics.shared.record(.refreshFailed, source: diagnosticSource)
                     failure = error
+                    if let parseFailure = error as? PDFParseError { try? store.recordFailure(parseFailure, kind: kind) }
+                    else { try? store.recordAcquisitionFailure(kind: kind) }
                 }
             }
             if let failure { throw failure }

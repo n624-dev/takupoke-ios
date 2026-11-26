@@ -44,11 +44,11 @@ extension TimetablePresentation {
 
     func changeDetail(_ selection: ChangeSelection) -> some View {
         let change = selection.change
-        let comparison = selection.comparison
+        let names = mappings.names(for: change)
         let times = schedule.changeTimeRanges(change)
         return List {
             Section("変更内容") {
-                LabeledContent("日付", value: change.displayDate)
+                LabeledContent("日付", value: change.change_date)
                 LabeledContent("クラス", value: TimetableDisplayText.className(change.displayClassName))
                 LabeledContent("時限", value: change.displayPeriod)
                 if times.contains(where: { $0 != nil }) {
@@ -56,72 +56,38 @@ extension TimetablePresentation {
                         LabeledContent("時刻", value: time ?? "時刻未確認")
                     }
                 }
-                if change.personallyEdited == true { Text("個人修正を反映").font(.caption) }
-            }
-            ForEach(Array(comparison.groups.enumerated()), id: \.offset) { _, group in
-                let prefix = comparison.groups.count > 1 ? group.periods.map(String.init).joined(separator: "・") + "限　" : ""
-                if change.isCancellation || change.isMakeup {
-                    Section(prefix + change.cardKindLabel) {
-                        ForEach(group.pairs, id: \.field) { pair in
-                            let value = change.isMakeup ? pair.after :
-                                (pair.before.isEmpty && pair.field != .subject ? pair.after : pair.before)
-                            if !value.isEmpty {
-                                LabeledContent(pair.field.rawValue, value: TimetableDisplayText.kana(value))
-                                if change.isCancellation, let source = pair.source { Text(source + "から補完").font(.caption) }
-                            }
-                        }
-                    }
-                } else {
-                    let changed = group.pairs.filter(\.changed)
-                    if !changed.isEmpty {
-                        Section(prefix + "変更した項目") {
-                            ForEach(changed, id: \.field) { pair in ChangeFieldRow(pair: pair) }
-                        }
-                    }
-                    let remaining = group.pairs.filter { !$0.changed }
-                    if !remaining.isEmpty {
-                        Section(prefix + "その他の授業情報") {
-                            ForEach(remaining, id: \.field) { pair in ChangeFieldRow(pair: pair) }
-                        }
-                    }
+                LabeledContent("変更前", value: TimetableDisplayText.kana(
+                    change.before_subject.isEmpty ? beforeSubject(selection) : names.before.detailSubject))
+                if change.before_subject.isEmpty && !selection.baseLessons.isEmpty {
+                    Text("変更前は通常時間割から表示しています。")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                if !group.unresolved.isEmpty {
-                    Section("変更前の候補") {
-                        ForEach(Array(group.unresolved.enumerated()), id: \.offset) { _, base in
-                            VStack(alignment: .leading) {
-                                Text(group.periods.map(String.init).joined(separator: "・") + "限　" + base.source).font(.caption)
-                                Text([base.names.detailSubject, base.names.detailTeacher, base.names.detailRoom]
-                                    .filter { !$0.isEmpty }.joined(separator: "　"))
-                            }
-                        }
-                    }
+                if !names.before.detailTeacher.isEmpty {
+                    LabeledContent("変更前の教員", value: TimetableDisplayText.kana(names.before.detailTeacher))
                 }
-            }
-            Section("変更理由・備考") {
-                LabeledContent("変更理由", value: change.reason ?? "記載なし")
-                if change.reason != nil {
-                    Text(change.personalReason == true ? "個人修正" : (change.reasonSource.map { "元の資料の「" + $0 + "」" } ?? "元の資料")).font(.caption)
+                if !names.before.detailRoom.isEmpty {
+                    LabeledContent("変更前の教室", value: TimetableDisplayText.kana(names.before.detailRoom))
                 }
-                let note = change.remainingNote ?? change.note
-                if !note.isEmpty {
-                    LabeledContent("備考", value: TimetableDisplayText.kana(note))
-                }
-            }
-            Section("更新情報") {
-                if let row = change.updated {
-                    LabeledContent(row.hasTime ? "この変更の更新日時" : "この変更の更新日", value: row.display)
-                    Text(change.personalUpdate == true ? "個人修正" : "元の資料").font(.caption)
-                }
-                if let file = displayedSourceDate {
-                    LabeledContent("元ファイルの更新日時", value: ChangeTimestamp.japan(file))
-                } else if change.updated == nil { LabeledContent("更新日時", value: "記載なし") }
-                if let parsed = schedule.changes?.parsedAt { LabeledContent("端末での解析日時", value: ChangeTimestamp.japan(parsed)) }
-            }
-            Section {
+                LabeledContent("変更後", value: names.after.detailSubject.isEmpty ? "記載なし" : TimetableDisplayText.kana(names.after.detailSubject))
+                LabeledContent("変更後の教員", value: names.after.detailTeacher.isEmpty ? "記載なし" : TimetableDisplayText.kana(names.after.detailTeacher))
+                LabeledContent("変更後の教室", value: names.after.detailRoom.isEmpty ? "記載なし" : TimetableDisplayText.kana(names.after.detailRoom))
+                if !change.note.isEmpty { LabeledContent("備考", value: TimetableDisplayText.kana(change.note)) }
                 DisclosureGroup("元の記載") {
                     if !change.before_subject.isEmpty { LabeledContent("変更前", value: change.before_subject) }
                     if !change.after_subject.isEmpty { LabeledContent("変更後", value: change.after_subject) }
-                    if !change.raw_text.isEmpty { Text(change.originalForDisplay).textSelection(.enabled) }
+                    if !change.raw_text.isEmpty { Text(change.raw_text).textSelection(.enabled) }
+                }
+            }
+            if !selection.baseLessons.isEmpty {
+                Section("通常の時間割") {
+                    ForEach(Array(selection.baseLessons.enumerated()), id: \.offset) { _, lesson in
+                        let names = mappings.names(for: lesson)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(TimetableDisplayText.kana(names.detailSubject)).font(.headline)
+                            if !names.detailTeacher.isEmpty { Text("教員：" + TimetableDisplayText.kana(names.detailTeacher)) }
+                            if !names.detailRoom.isEmpty { Text("教室：" + TimetableDisplayText.kana(names.detailRoom)) }
+                        }
+                    }
                 }
             }
             if !selection.relatedChanges.isEmpty {
@@ -139,9 +105,22 @@ extension TimetablePresentation {
                                 Text("変更後：" + TimetableDisplayText.kana(relatedNames.after.detailSubject))
                             }
                             if !related.raw_text.isEmpty {
-                                Text("元の記載：" + related.originalForDisplay).font(.caption)
+                                Text("元の記載：" + related.raw_text).font(.caption)
                                     .foregroundStyle(.secondary).textSelection(.enabled)
                             }
+                        }
+                    }
+                }
+            }
+            if !selection.baseSpecialLessons.isEmpty {
+                Section("変更前の試験時間割・試験返却時間割") {
+                    ForEach(Array(selection.baseSpecialLessons.enumerated()), id: \.offset) { _, item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(TimetableDisplayText.kana(item.lesson.subject)).font(.headline)
+                            Text(item.kind.title).font(.caption).foregroundStyle(.secondary)
+                            if let time = item.timeRange { Text("時刻：" + time) }
+                            if !item.lesson.teacher.isEmpty { Text("教員：" + TimetableDisplayText.kana(item.lesson.teacher)) }
+                            if !item.lesson.room.isEmpty { Text("教室：" + TimetableDisplayText.kana(item.lesson.room)) }
                         }
                     }
                 }
@@ -149,34 +128,5 @@ extension TimetablePresentation {
         }
         .navigationTitle("時間割変更")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private struct ChangeFieldRow: View {
-    let pair: ChangeComparison.Pair
-    @Environment(\.dynamicTypeSize) private var size
-    private var before: String { pair.before.isEmpty ? "記載なし" : TimetableDisplayText.kana(pair.before) }
-    private var after: String { pair.after.isEmpty ? "記載なし" : TimetableDisplayText.kana(pair.after) }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if pair.before == pair.after {
-                LabeledContent(pair.field.rawValue, value: before)
-            } else {
-                Text(pair.field.rawValue).font(.headline)
-                let layout = size.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading)) : AnyLayout(HStackLayout(alignment: .top))
-                layout {
-                    VStack(alignment: .leading) { Text("変更前").font(.caption); Text(before) }
-                    VStack(alignment: .leading) { Text("変更後").font(.caption); Text(after).fontWeight(pair.changed ? .bold : .regular) }
-                }
-            }
-            if let source = pair.source { Text("変更前は" + source + "から補完").font(.caption).foregroundStyle(.secondary) }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(pair.before == pair.after ? "\(pair.field.rawValue)、\(before)" :
-            "\(pair.field.rawValue)、変更前、\(before)、変更後、\(after)")
-        .accessibilityIdentifier("change-detail-" + (pair.field == .room ? "room" : pair.field == .teacher ? "teacher" : "subject"))
-        .accessibilityValue(pair.source.map { "変更前は" + $0 + "から補完" } ?? "")
     }
 }

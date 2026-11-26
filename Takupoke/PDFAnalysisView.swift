@@ -5,21 +5,14 @@ import UniformTypeIdentifiers
 
 struct PDFAnalysisFailureRows: View {
     let failure: PDFParseError
-    let hasPreviousAnalysis: Bool
 
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: 6) {
-                if failure.code == .cancelled {
-                    Text(failure.userMessage).foregroundStyle(.secondary)
-                        .accessibilityIdentifier("pdf-failure-message")
-                } else {
-                    InlineWarning(failure.userMessage)
-                        .accessibilityIdentifier("pdf-failure-message")
-                }
-                if hasPreviousAnalysis {
-                    Text(failure.retentionMessage).font(.callout).foregroundStyle(.secondary)
-                }
+                Label(failure.userMessage, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .accessibilityIdentifier("pdf-failure-message")
+                Text(failure.retentionMessage).font(.footnote).foregroundStyle(.secondary)
             }
             if let code = failure.userCode {
                 LabeledContent("エラーコード") {
@@ -41,7 +34,6 @@ struct PDFAnalysisView: View {
     @State private var showingSource = false
     @State private var showingRecovery = false
     @State private var copiedDiagnostic: String?
-    @State private var fileRequest: FileSelectionRequest?
     private var analysis: PDFAnalysis? { model.state.pdfAnalyses?[kind.rawValue] }
     private var failure: PDFParseError? {
         (kind == .timetable ? model.timetableFailure : nil) ?? model.state.pdfParseAttempts?[kind.rawValue]?.failure
@@ -57,16 +49,14 @@ struct PDFAnalysisView: View {
         List {
             Section {
                 if let source = model.state.record(for: kind) {
-                    StatusRow(title: source.originalName, status: model.fileStatus(kind))
+                    LabeledContent("状態", value: model.analysisStatus(kind, record: source))
                 }
-                if model.busy { LoadingRow(title: model.cancellationRequested ? "中止して処理の終了を待っています⋯" : "ファイルを処理中⋯") }
-                if model.lastOperationWasCancelled { Text("前回の処理を中止しました。").foregroundStyle(.secondary) }
-                if let attempt = model.state.attempts[kind.rawValue], let failure = attempt.failure {
-                    if attempt.wasCancelled { Text(failure).foregroundStyle(.secondary) }
-                    else { InlineWarning(failure) }
+                if model.busy { LoadingRow(title: "処理中⋯") }
+                if let failure = model.state.attempts[kind.rawValue]?.failure {
+                    Label(failure, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }
                 if let failure = failure {
-                    PDFAnalysisFailureRows(failure: failure, hasPreviousAnalysis: analysis != nil)
+                    PDFAnalysisFailureRows(failure: failure)
                 }
 #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
                 if kind == .timetable, let report = model.timetableReadReport {
@@ -83,16 +73,23 @@ struct PDFAnalysisView: View {
             if model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.pdfHash == model.state.record(for: kind)?.digest,
                model.state.pdfParseAttempts?[kind.rawValue]?.recoveryJob?.state == .pending {
                 Section("復旧") {
-                    InlineWarning("新しい資料は未反映です。")
+                    Text("新しい資料は未反映です。")
                     Button("端末内で復旧する",systemImage:"doc.text.magnifyingglass") { showingRecovery = true }.disabled(!useAiFeatures || model.busy)
                 }
             }
+            Section {
+                Button("同じファイルを再取得") { model.refresh(kind) }
+                    .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
+                Button("保存済みのPDFを見る") { showingSource = true }
+                    .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
+            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let source = model.state.record(for: kind) {
                 Section {
+                    Text(source.originalName)
                     LabeledContent("サイズ", value: ByteCountFormatter.string(
                         fromByteCount: Int64(source.byteCount), countStyle: .file))
                     LabeledContent("最終取得") {
-                        Text(source.lastAcquiredAt ?? source.acquiredAt, format: JapaneseDateDisplay.timestamp)
+                        Text(source.acquiredAt, format: JapaneseDateDisplay.timestamp)
                     }
                     if let date = source.lastCheckedAt {
                         LabeledContent("最終確認") {
@@ -106,17 +103,6 @@ struct PDFAnalysisView: View {
                     }
                 } header: { Text("ファイル情報").accessibilityIdentifier("material-file-section") }
             }
-            Section {
-                Button("更新を確認") { model.checkForUpdates(kind) }
-                    .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
-                Button("同じファイルを再取得") { model.refresh(kind) }
-                    .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
-                Button("保存済みのPDFを見る") { showingSource = true }
-                    .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
-                Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .material(kind)) }
-                    .disabled(model.busy || !model.ready)
-                    .accessibilityLabel("\(kind.title)のファイルを選び直す")
-            } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let analysis = analysis {
                 Section {
                     Text(analysis.sourceName)
@@ -125,9 +111,11 @@ struct PDFAnalysisView: View {
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("件数", value: "\(analysis.lessons.count + analysis.events.count)件")
                     if analysis.version < 3 {
-                        InlineWarning("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。")
+                        Label("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
                     } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.currentVersion(for: kind) {
-                        InlineWarning("前回の解析結果です。現在のファイルを解析してください。")
+                        Label("前回の解析結果です。現在のファイルを解析してください。", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
                     }
                     ForEach(analysis.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
                 } header: { Text("解析結果").accessibilityIdentifier("material-analysis-section") }
@@ -141,7 +129,8 @@ struct PDFAnalysisView: View {
                             ForEach(classes, id: \.self) { Text(TimetableDisplayText.className($0)).tag($0) }
                         }
                         if !selectedClass.isEmpty && !classes.contains(selectedClass) {
-                            InlineWarning("選択したクラスは現在の解析結果にありません。選択は保持しています。")
+                            Label("選択したクラスは現在の解析結果にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.orange)
                         }
                         Picker("曜日", selection: $selectedWeekday) {
                             ForEach(0..<weekdays.count, id: \.self) { Text(weekdays[$0]).tag($0) }
@@ -166,12 +155,9 @@ struct PDFAnalysisView: View {
                             Text(event.title).font(.headline)
                             LabeledContent("対象欄", value: event.scope)
                             if let classification = event.classification {
-                                if classification.needsReview {
-                                    InlineWarning(classification.label)
-                                } else {
-                                    Label(classification.label, systemImage: classification.type == .noClass ? "calendar.badge.minus" : "tag")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
+                                Label(classification.label, systemImage: classification.type == .noClass ? "calendar.badge.minus" : "tag")
+                                    .font(.caption)
+                                    .foregroundStyle(classification.needsReview ? Color.orange : Color.secondary)
                                 if classification.type == .supplementary {
                                     Text("基本時間割は使わず、時間割変更で指定された授業だけを扱う日です。")
                                         .font(.caption).foregroundStyle(.secondary)
@@ -183,7 +169,8 @@ struct PDFAnalysisView: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             if event.periodNeedsReview {
-                                InlineWarning("終了日を確認できません。元PDFを確認してください。")
+                                Label("終了日を確認できません。元PDFを確認してください。", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.orange)
                             }
                         } header: { Text(event.date) }
                     }
@@ -196,21 +183,13 @@ struct PDFAnalysisView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) { parseButton }
-            if model.busy { ToolbarItem(placement: .cancellationAction) {
-                Button("中止") { model.cancelCurrentOperation() }.disabled(model.cancellationRequested)
-            } }
+            if model.busy { ToolbarItem(placement: .cancellationAction) { Button("中止") { model.cancel() } } }
         }
         .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
         .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:.timetable) }
         .sheet(isPresented: $showingSource) {
             if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }
         }
-        .background(
-            MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
-                type: { $0.type }, instruction: { $0.instruction },
-                selected: { _, selection in model.selectFile(selection, kind: kind) })
-                .allowsHitTesting(false)
-        )
     }
 
     @ViewBuilder private var parseButton: some View {

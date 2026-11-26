@@ -3,9 +3,24 @@ import Foundation
 extension SpecialScheduleParser {
     static func parseExamPage(_ page: PDFPageLayout, schoolYear: Int, pageNumber: Int,
                                       times: Times, check: () throws -> Void) throws -> ParsedPage {
-        let (periods, names, dateRuns) = try PDF239SpecialScheduleParser.examStructure(page,schoolYear:schoolYear,pageNumber:pageNumber)
-        guard names.count == periods.count / 6 else { throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.classLabel,branch:.b237) }
-        guard !dateRuns.isEmpty && Set(dateRuns.map { $0.1 }).count == dateRuns.count else { throw PDFParseError(code:.unsupported,page:pageNumber,stage:.calendarDates,branch:.b238) }
+        let columns = pageNumber == 6 ? 2 : 3
+        let periods = try periodHeader(page, sequence: "123456", repeats: columns)
+        let headerY = periods[0].cy
+        let labels = runs(page.glyphs.filter { $0.cy < headerY - 3 && $0.cy > headerY - page.height / 10 })
+            .filter { run in
+                if pageNumber == 6 { return run.text.range(of: "^[12]年$", options: .regularExpression) != nil }
+                return run.text.range(of: "^[1-5]-(?:[1-3]|[A-Z]{2})$", options: .regularExpression) != nil
+            }.sorted { $0.cx < $1.cx }
+        guard labels.count == columns else { throw PDFParseError(code: .unsupported, page: pageNumber, stage: .classLabel, branch:.b237) }
+        let names = labels.map { pageNumber == 6 ? "AI_" + String($0.text.prefix(1)) : $0.text.replacingOccurrences(of: "-", with: "_") }
+        let dateRuns = runs(page.glyphs.filter { $0.cy > headerY + 5 && $0.cy < page.height * 0.7 })
+            .compactMap { run -> (Run, SchoolDate)? in
+                guard run.cx < periods[0].cx, let day = date(run.text, schoolYear: schoolYear, slash: false) else { return nil }
+                return (run, day)
+            }.sorted { $0.0.cy < $1.0.cy }
+        guard dateRuns.count == 5, Set(dateRuns.map { $0.1 }).count == 5 else {
+            throw PDFParseError(code: .unsupported, page: pageNumber, stage: .calendarDates, branch:.b238)
+        }
         let grid = PDFGrid(page: page)
         let referenceBoxes = try grid.lessonBoxes(rows:dateRuns.map { try grid.box($0.0.cx,$0.0.cy,check:check) },columns:periods.map(\.cx),check:check)
         var result: [SpecialScheduleLesson] = []
@@ -22,10 +37,6 @@ extension SpecialScheduleParser {
                     var seen: Set<PDFBox> = []
                     for i in 0..<(edges.count - 1) where edges[i + 1] - edges[i] >= 2 {
                         let box = try grid.box(x, (edges[i] + edges[i + 1]) / 2,check:check)
-                        guard box.top >= row.top-0.8, box.bottom <= row.bottom+0.8,
-                              !periods.enumerated().contains(where:{ index,g in
-                                  index/6 != column && box.left+0.5 < g.cx && g.cx < box.right-0.5
-                              }) else { throw PDFParseError(code:.ambiguous,page:pageNumber,stage:.gridCell,branch:.b433) }
                         guard seen.insert(box).inserted else { continue }
                         result += try lessons(in: page, box: box, date: day, className: name,
                                               period: period, periodXs: periodXs,
@@ -80,15 +91,13 @@ extension SpecialScheduleParser {
         let referenceBoxes = try grid.lessonBoxes(rows:classRuns.map { try grid.box($0.cx,$0.cy,check:check) },columns:periods.map(\.cx),check:check)
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
-        guard let gradeOwners = PDF239SpecialScheduleParser.returnGrades(grades, for: classRuns, in: page) else {
-            if classRuns.contains(where: { row in !grades.contains { abs($0.cy - row.cy) < step * 2.5 } }) {
+        for run in classRuns {
+            try check()
+            guard let grade = grades.min(by: { abs($0.cy - run.cy) < abs($1.cy - run.cy) }),
+                  abs(grade.cy - run.cy) < step * 2.5 else {
                 throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b243)
             }
-            throw PDFParseError(code: .ambiguous, page: 1, stage: .gradeLabel, branch:.b437)
-        }
-        for (classIndex, run) in classRuns.enumerated() {
-            try check()
-            let name = gradeOwners[classIndex].text + "_" + run.text
+            let name = grade.text == "AI" ? "AI_" + run.text : grade.text + "_" + run.text
             guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch:.b244) }
             let row = try grid.box(run.cx, run.cy,check:check)
             for (dayIndex, (_, day)) in dates.enumerated() {

@@ -23,16 +23,8 @@ struct SpecialScheduleLesson: Codable, Equatable {
     var room: String { lines.count > 2 ? lines[2] : "" }
 }
 
-/// Scope comes from each parsed table, including its empty slots. Keeping class
-/// and date membership together prevents a union from inventing cross-page scope.
-struct SpecialScheduleScope: Codable, Equatable {
-    let page: Int
-    let classes: [String]
-    let dates: [String]
-}
-
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 39
+    static let parserVersion = 32
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -44,70 +36,27 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     let periodTimes: [Int: String]
     var lessons: [SpecialScheduleLesson]
     var recovery: RecoveryAdopted? = nil
-    var dedicatedTimeDate: String? = nil
-
-    var scopes: [SpecialScheduleScope]? = nil
 
     func applies(date: String, className: String) -> Bool {
-        func contains(_ classes: [String]) -> Bool {
-            classes.contains(className) || (version >= 31 &&
-                TimetableSchedule.firstYearDepartments.contains(className) &&
-                classes.contains(where: { $0.hasPrefix("1_") }))
-        }
-        if let scopes { return scopes.contains { $0.dates.contains(date) && contains($0.classes) } }
-        return coveredDates.contains(date) && contains(coveredClasses)
-    }
-
-    /// Validate acquired scope independently of whether a slot contains a lesson.
-    var validScopes: Bool {
-        guard let scopes, !scopes.isEmpty, scopes.count <= 12 else { return false }
-        var pairs: Set<String> = []
-        for scope in scopes {
-            guard (1...12).contains(scope.page), !scope.classes.isEmpty, !scope.dates.isEmpty,
-                  scope.classes.count <= 64, scope.dates.count <= 31,
-                  Set(scope.classes).count == scope.classes.count,
-                  Set(scope.dates).count == scope.dates.count else { return false }
-            for cls in scope.classes {
-                guard cls.range(of: "^(?:[1-5]_(?:[1-3]|[A-Z]{2})|AI_[12])$", options: .regularExpression) != nil else { return false }
-                for date in scope.dates {
-                    guard let day = SchoolDate(iso8601: date), day.schoolYear == schoolYear,
-                          pairs.insert(cls + "/" + date).inserted else { return false }
-                }
-            }
-        }
-        return Set(scopes.flatMap(\.classes)) == Set(coveredClasses) &&
-            Set(scopes.flatMap(\.dates)) == Set(coveredDates) &&
-            lessons.allSatisfy { lesson in
-                scopes.contains { $0.page == lesson.page && $0.dates.contains(lesson.date) &&
-                    $0.classes.contains(lesson.sourceClassName ?? lesson.className) }
-            }
+        coveredDates.contains(date) && (coveredClasses.contains(className) ||
+            (version >= 31 && TimetableSchedule.firstYearDepartments.contains(className) &&
+             coveredClasses.contains(where: { $0.hasPrefix("1_") })))
     }
 
     func periodTime(on date: String, period: Int) -> String? {
         guard coveredDates.contains(date) else { return nil }
         if let recovered = recovery?.document.times["\(date):\(period)"] { return recovered }
-        if kind == .examReturn {
-            // Old sorted date lists cannot prove the original first PDF column.
-            guard let dedicatedTimeDate, coveredDates.contains(dedicatedTimeDate) else { return nil }
-            if date != dedicatedTimeDate {
-                guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
-                return TimetableSchedule.normalPeriodTimes[period - 1]
-            }
+        if kind == .examReturn && date != coveredDates.first {
+            guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
+            return TimetableSchedule.normalPeriodTimes[period - 1]
         }
         return periodTimes[period]
     }
 
-    /// A retained fragment must use individual verified period clocks. The
-    /// original merged range remains available when the whole source cell is shown.
-    func displayTime(for lesson: SpecialScheduleLesson, in periods: ClosedRange<Int>) -> String? {
-        guard periods.contains(lesson.period), applies(date: lesson.date, className: lesson.className) else { return nil }
-        if periods.lowerBound <= lesson.spanStart && periods.upperBound >= lesson.spanEnd { return timeRange(for: lesson) }
-        return periodTime(on: lesson.date, period: lesson.period)
-    }
-
     func timeRange(for lesson: SpecialScheduleLesson) -> String? {
         guard applies(date: lesson.date, className: lesson.className) else { return nil }
-        if let recorded = lesson.timeRange { return recorded }
+        if kind != .examReturn || lesson.date == coveredDates.first,
+           let recorded = lesson.timeRange { return recorded }
         guard let start = periodTime(on: lesson.date, period: lesson.spanStart)?
             .components(separatedBy: "〜").first,
               let end = periodTime(on: lesson.date, period: lesson.spanEnd)?

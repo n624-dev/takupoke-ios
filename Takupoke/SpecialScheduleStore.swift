@@ -4,19 +4,16 @@ import GRDB
 /// The special PDFs have their own source and parser contract. This sidecar
 /// SQLite store leaves the existing material database and parser untouched.
 final class SpecialScheduleStore {
-    let ownerQueue: DispatchQueue
-    var pipelineEvidence: [SpecialScheduleKind: SpecialPipelineEvidence] = [:]
     enum StoreError: Error { case invalidState }
 
     private let root: URL
-    let files: URL
+    private let files: URL
     private let staging: URL
-    let queue: DatabaseQueue
-    var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
-    var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
+    private let queue: DatabaseQueue
+    private(set) var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
+    private(set) var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
 
-    init(root: URL, ownerQueue: DispatchQueue = DispatchQueue(label: "io.github.n624dev.takupoke.special-owner", qos: .userInitiated)) throws {
-        self.ownerQueue = ownerQueue
+    init(root: URL) throws {
         self.root = root
         files = root.appendingPathComponent("files", isDirectory: true)
         staging = root.appendingPathComponent("staging", isDirectory: true)
@@ -36,39 +33,20 @@ final class SpecialScheduleStore {
         #endif
         var config = Configuration()
         config.publicStatementArguments = false
-        let database = root.appendingPathComponent("specials.sqlite")
-        let existingDatabase = manager.fileExists(atPath: database.path)
-        let storedFiles = try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil)
-        guard existingDatabase || storedFiles.isEmpty else { throw StoreError.invalidState }
-        queue = try DatabaseQueue(path: database.path, configuration: config)
-        let hasSources = try queue.write { db in
-            let hasSchedule = try db.tableExists("specialSchedule")
-            if existingDatabase && !hasSchedule {
-                // Opening SQLite can create the formal file before the first
-                // schema transaction. Only that completely blank state is
-                // resumable: retained PDFs or any schema/version evidence still
-                // require recovery rather than silently reinitializing a store.
-                guard storedFiles.isEmpty,
-                      try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM sqlite_master") == 0,
-                      try Int.fetchOne(db, sql: "PRAGMA user_version") == 0,
-                      try Int.fetchOne(db, sql: "PRAGMA application_id") == 0 else {
-                    throw StoreError.invalidState
-                }
-            }
-            if !hasSchedule {
-                try db.execute(sql: """
-                    CREATE TABLE specialSchedule (
-                        kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
-                        payload BLOB NOT NULL
-                    );
-                    CREATE TABLE specialSource (
-                        kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
-                        payload BLOB NOT NULL
-                    )
-                    """)
-                return true
-            }
-            return try db.tableExists("specialSource")
+        queue = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path, configuration: config)
+        try queue.write { db in
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS specialSchedule (
+                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                    payload BLOB NOT NULL
+                )
+                """)
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS specialSource (
+                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                    payload BLOB NOT NULL
+                )
+                """)
         }
         records = try queue.read { db in
             var result: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
@@ -88,20 +66,6 @@ final class SpecialScheduleStore {
                 result[kind] = record
             }
             return result
-        }
-        // The legacy schema had only accepted analyses. Upgrade it only when
-        // those validated records account for every retained PDF copy.
-        if !hasSources {
-            let known = Set(records.values.map(\.storedName))
-            guard storedFiles.allSatisfy({ known.contains($0.lastPathComponent) }) else { throw StoreError.invalidState }
-            try queue.write { db in
-                try db.execute(sql: """
-                    CREATE TABLE specialSource (
-                        kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
-                        payload BLOB NOT NULL
-                    )
-                    """)
-            }
         }
         sources = try queue.read { db in
             var result: [SpecialScheduleKind: SpecialScheduleSource] = [:]
@@ -129,21 +93,6 @@ final class SpecialScheduleStore {
         }
         try removeUnreferencedFiles()
         for kind in Array(records.keys) { try recertifyAccepted(kind:kind) }
-    }
-
-    func displayableRecords() -> (records: [SpecialScheduleKind: SpecialScheduleRecord], rejected: Set<SpecialScheduleKind>) {
-        var visible = records
-        var rejected = Set<SpecialScheduleKind>()
-        for (kind, var record) in records where record.analysis.recovery != nil {
-            if let proved = try? RecoveryConversion.recertifiedSpecial(record.analysis,hash:record.digest) {
-                record.analysis = proved
-                visible[kind] = record
-            } else {
-                visible.removeValue(forKey:kind)
-                rejected.insert(kind)
-            }
-        }
-        return (visible, rejected)
     }
 
     /// Revalidate only already accepted results; never confirm an old preview.
@@ -181,10 +130,6 @@ final class SpecialScheduleStore {
         sources[kind].map { files.appendingPathComponent($0.storedName) }
     }
 
-    func hasSelectedFile(_ kind: SpecialScheduleKind) -> Bool {
-        selectedURL(for: kind).map { FileManager.default.fileExists(atPath: $0.path) } == true
-    }
-
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String,
                        byteCount: Int, digest: String, grant: SourceGrant? = nil) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
@@ -196,7 +141,7 @@ final class SpecialScheduleStore {
         let now = Date()
         let source = SpecialScheduleSource(kind: kind, originalName: originalName,
             storedName: storedName, byteCount: byteCount, digest: digest,
-            acquiredAt: now, lastAcquiredAt: now, lastCheckedAt: now, failure: nil, grant: grant)
+            acquiredAt: now, lastCheckedAt: now, failure: nil, grant: grant)
         do {
             let payload = try JSONEncoder().encode(source)
             try queue.write { db in
@@ -218,7 +163,6 @@ final class SpecialScheduleStore {
             source.originalName = originalName
         }
         source.lastCheckedAt = checkedAt
-        source.lastAcquiredAt = checkedAt
         source.acquisitionFailure = nil
         let payload = try JSONEncoder().encode(source)
         try queue.write { db in
@@ -272,16 +216,10 @@ final class SpecialScheduleStore {
 
     func recordFailure(_ failure: PDFParseError, kind: SpecialScheduleKind) throws {
         guard var source = sources[kind] else { throw StoreError.invalidState }
-        let recoveryKind: RecoveryDocumentKind = kind == .exam ? .exam : .return
-        let parserVersion = SpecialScheduleAnalysis.parserVersion
-        if failure.code == .cancelled, source.recoveryJob?.state == .pending,
-           RecoveryPolicy.mayRecover(digest: source.digest, kind: recoveryKind, parserVersion: parserVersion,
-                                     attemptDigest: source.digest, attemptVersion: source.attemptParserVersion,
-                                     failure: source.failure, job: source.recoveryJob) { return }
         source.failure = failure
-        source.attemptParserVersion = parserVersion
-        source.recoveryJob = RecoveryPolicy.eligible(failure) && !(records[kind]?.analysis.version == parserVersion && RecoveryValidator.previouslyAccepted(records[kind]?.analysis.recovery,hash:source.digest)) ? RecoveryJob(pdfHash: source.digest,
-            kind: recoveryKind, state: .pending, createdAt: Date()) : nil
+        source.attemptParserVersion = SpecialScheduleAnalysis.parserVersion
+        source.recoveryJob = RecoveryPolicy.eligible(failure) && !(records[kind]?.analysis.version == SpecialScheduleAnalysis.parserVersion && RecoveryValidator.previouslyAccepted(records[kind]?.analysis.recovery,hash:source.digest)) ? RecoveryJob(pdfHash: source.digest,
+            kind: kind == .exam ? .exam : .return, state: .pending, createdAt: Date()) : nil
         let payload = try JSONEncoder().encode(source)
         try queue.write { db in
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
@@ -306,54 +244,18 @@ final class SpecialScheduleStore {
 
     private static func valid(_ analysis: SpecialScheduleAnalysis) -> Bool {
         let count = analysis.kind == .exam ? 6 : 8
-        func hasStoredTime(_ lesson: SpecialScheduleLesson) -> Bool {
-            if analysis.timeRange(for: lesson) != nil { return true }
-            // Preserve the previous acceptance contract for legacy cache loads.
-            // This validates old bytes only; display never guesses their PDF order.
-            guard analysis.version < 33, analysis.kind == .examReturn, analysis.dedicatedTimeDate == nil else { return false }
-            func oldClock(_ period: Int) -> String? {
-                if lesson.date == analysis.coveredDates.first { return analysis.periodTimes[period] }
-                guard (1...TimetableSchedule.normalPeriodTimes.count).contains(period) else { return nil }
-                return TimetableSchedule.normalPeriodTimes[period - 1]
-            }
-            return oldClock(lesson.spanStart)?.components(separatedBy: "〜").first != nil &&
-                oldClock(lesson.spanEnd)?.components(separatedBy: "〜").last != nil
-        }
-        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) else { return false }
-        if analysis.kind == .examReturn {
-            guard analysis.coveredDates.count == 5, analysis.coveredClasses.count == 17 else { return false }
-        }
-        let scopeIsValid: Bool
-        if analysis.scopes != nil {
-            scopeIsValid = analysis.validScopes
-        } else {
-            scopeIsValid = analysis.version < 35 && analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17
-        }
-        guard scopeIsValid else { return false }
-        let dates = Set(analysis.coveredDates)
-        let classes = Set(analysis.coveredClasses)
-        guard dates.count == analysis.coveredDates.count, classes.count == analysis.coveredClasses.count else { return false }
-        guard analysis.periodTimes.count == count, !analysis.lessons.isEmpty else { return false }
-        if let dedicated = analysis.dedicatedTimeDate {
-            guard dates.contains(dedicated) else { return false }
-        }
-        if analysis.version >= 33, analysis.kind == .examReturn, analysis.recovery == nil {
-            guard analysis.dedicatedTimeDate != nil else { return false }
-        }
-        for lesson in analysis.lessons {
-            guard (1...count).contains(lesson.period) else { return false }
-            guard (1...lesson.period).contains(lesson.spanStart),
-                  (lesson.period...count).contains(lesson.spanEnd) else { return false }
-            guard dates.contains(lesson.date), classes.contains(lesson.sourceClassName ?? lesson.className) else { return false }
-            if analysis.version >= 31 {
-                guard PDFClassAssignment.assign(lesson) == lesson else { return false }
-            }
-            guard analysis.applies(date:lesson.date,className:lesson.className) else { return false }
-            if analysis.version >= 6 {
-                guard hasStoredTime(lesson) else { return false }
-            }
-        }
-        return true
+        return (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version) &&
+            analysis.coveredDates.count == 5 && Set(analysis.coveredDates).count == 5 &&
+            analysis.coveredClasses.count == 17 && Set(analysis.coveredClasses).count == 17 &&
+            analysis.periodTimes.count == count && !analysis.lessons.isEmpty &&
+            analysis.lessons.allSatisfy { (1...count).contains($0.period) &&
+                (1...$0.period).contains($0.spanStart) &&
+                ($0.period...count).contains($0.spanEnd) &&
+                analysis.coveredDates.contains($0.date) &&
+                analysis.coveredClasses.contains($0.sourceClassName ?? $0.className) &&
+                (analysis.version < 31 || PDFClassAssignment.assign($0) == $0) &&
+                analysis.applies(date: $0.date, className: $0.className) &&
+                (analysis.version < 6 || analysis.timeRange(for: $0) != nil) }
     }
 
     private func removeUnreferencedFiles() throws {

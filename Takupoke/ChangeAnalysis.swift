@@ -12,51 +12,18 @@ struct ScheduleChange: Codable, Equatable {
     var note: String
     var raw_text: String
     var canonical_text: String
-    var change_kind: String? = nil
-
-    var readableOriginal: String? = nil
-    var sourceRow: Int? = nil
-    var reasonSource: String? = nil
-    var reason: String? = nil
-    var remainingNote: String? = nil
-    var updated: ChangeTimestamp? = nil
-    var personallyEdited: Bool? = nil
-    var personalReason: Bool? = nil
-    var personalUpdate: Bool? = nil
-
-    var displayDate: String {
-        ChangeNormalizer.readableDate(change_date, defaultYear: nil) ?? "月日を確認"
-    }
-
-    var originalForDisplay: String {
-        if let readableOriginal { return readableOriginal }
-        // Older rows only retained a labeled string. Limit conversion to the date field.
-        return raw_text.components(separatedBy: " | ").map { field in
-            guard field.hasPrefix("月日:") else { return field }
-            let value = String(field.dropFirst(3))
-            let year = SchoolDate(iso8601: change_date)?.schoolYear
-            if ChangeNormalizer.matches(value, #"^[0-9]+(?:\.[0-9]+)?$"#) {
-                let options = [false, true].compactMap {
-                    ChangeNormalizer.readableDate(value, defaultYear: year, uses1904: $0)
-                }
-                return "月日:" + (options.contains(displayDate) ? displayDate : "月日を確認")
-            }
-            let day = value.contains("T") && ChangeTimestamp.parse(value) != nil ? String(value.prefix(10)) : value
-            return "月日:" + (ChangeNormalizer.readableDate(day, defaultYear: year) ?? "月日を確認")
-        }.joined(separator: " | ")
-    }
 
     // Old successful results remain on disk until an explicit reparse, but their
     // class picker, filtering and labels use the same identity as new results.
     var displayClassName: String { ChangeNormalizer.canonicalClassName(class_name) }
 
     var isCancellation: Bool {
-        (change_kind ?? note).precomposedStringWithCompatibilityMapping
+        note.precomposedStringWithCompatibilityMapping
             .trimmingCharacters(in: .whitespacesAndNewlines) == "休講"
     }
 
     var isMakeup: Bool {
-        (change_kind ?? note).precomposedStringWithCompatibilityMapping
+        note.precomposedStringWithCompatibilityMapping
             .trimmingCharacters(in: .whitespacesAndNewlines) == "補講"
     }
 
@@ -112,10 +79,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 14
-    var sourceModifiedAt: Date? = nil
-    var personalEdit: Bool? = nil
-    var personalSourceIdentity: String? = nil
+    static let parserVersion = 6
     var version = parserVersion
     var sourceDigest: String
     var sourceName: String
@@ -124,21 +88,6 @@ struct ChangeAnalysis: Codable {
     var records: [ScheduleChange]
     var weekdayConsent: ChangeWeekdayConsent? = nil
     var rowSkipConsent: ChangeRowSkipConsent? = nil
-
-    func matches(record: MaterialRecord, defaultYear: Int?) -> Bool {
-        guard let defaultYear else { return false }
-        return personalSourceIdentity == record.personalChangeIdentity(for: defaultYear) &&
-        sourceDigest == record.digest && version == Self.parserVersion &&
-        self.defaultYear == defaultYear && weekdayConsent == record.source.weekdayConsent &&
-        rowSkipConsent == record.source.rowSkipConsent
-    }
-}
-
-extension MaterialRecord {
-    func personalChangeIdentity(for year: Int?) -> String? {
-        guard let year, source.personalChanges?.year == year else { return nil }
-        return source.selectionID ?? storedName
-    }
 }
 
 struct ChangeRowSkipConsent: Codable, Equatable {
@@ -223,20 +172,13 @@ struct ChangeParseAttempt: Codable {
     var failure: ChangeParseError?
     var parserVersion: Int? = nil
 
-    func matches(digest: String, defaultYear: Int?) -> Bool {
-        guard let defaultYear, (1900...9998).contains(defaultYear) else { return false }
-        return sourceDigest == digest && self.defaultYear == defaultYear && parserVersion == ChangeAnalysis.parserVersion
-    }
-
-    static func needsAnalysis(digest: String, defaultYear: Int?, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil, personalSourceIdentity: String? = nil) -> Bool {
-        // An invalid configured year must be corrected before acquisition/parse.
-        guard let defaultYear, (1900...9998).contains(defaultYear) else { return false }
+    static func needsAnalysis(digest: String, defaultYear: Int, analysis: ChangeAnalysis?, attempt: ChangeParseAttempt?, weekdayConsent: ChangeWeekdayConsent? = nil, rowSkipConsent: ChangeRowSkipConsent? = nil) -> Bool {
         if analysis?.sourceDigest == digest, analysis?.version == ChangeAnalysis.parserVersion,
-           analysis?.defaultYear == defaultYear, analysis?.personalSourceIdentity == personalSourceIdentity, analysis?.weekdayConsent == weekdayConsent,
+           analysis?.defaultYear == defaultYear, analysis?.weekdayConsent == weekdayConsent,
            analysis?.rowSkipConsent == rowSkipConsent { return false }
         if attempt?.sourceDigest == digest, attempt?.defaultYear == defaultYear,
            attempt?.parserVersion == ChangeAnalysis.parserVersion, let failure = attempt?.failure,
-           failure.code != .cancelled && failure.code != .storage && failure.code != .staleConfirmation { return false }
+           failure.code != .cancelled && failure.code != .storage { return false }
         return true
     }
 }
@@ -251,9 +193,6 @@ struct ChangePreview {
     var sourceDigest: String? = nil
     var parserVersion: Int = ChangeAnalysis.parserVersion
     var reviewRows: [ChangeReviewRow] = []
-    var excludedRows: Set<Int> = []
-    var editor: ChangeWorkbookReview? = nil
-    var usesDateDerivedWeekdays = false
     var reviewGroups: [ChangeReviewGroup] { ChangeReviewGroup.group(reviewRows) }
     var canCorrectWeekdays: Bool { sourceIdentity != nil && sourceDigest != nil && !warnings.isEmpty && warnings.allSatisfy(\.canCorrectWeekday) }
     var canSkipRows: Bool { sourceIdentity != nil && sourceDigest != nil && reviewRows.contains(where: \.canSkip) }
@@ -262,14 +201,13 @@ struct ChangePreview {
 struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
-        case date, defaultYear, year, classes, unknownAll, empty, cancelled, storage, staleConfirmation
+        case date, year, classes, unknownAll, empty, cancelled, storage
         case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType
     }
     var code: Code
     var row: Int? = nil
     var printedWeekday: String? = nil
     var calculatedWeekday: String? = nil
-    var column: Int? = nil
     var canCorrectWeekday: Bool { code == .weekdayMismatch && printedWeekday.map(ChangeNormalizer.knownWeekday) == true && calculatedWeekday != nil }
     var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch || code == .weekdayOnly }
     var errorDescription: String? {
@@ -281,470 +219,21 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .missingSheet: detail = "「時間割変更」シートが見つからないか、重複しています。"
         case .unsupported: detail = "このXLSXには未対応の構造や外部参照が含まれています。"
         case .formula: detail = "見出し、または曜日以外の列に数式があります。この箇所の数式は解析できません。"
-        case .formulaCache: detail = "曜日の計算結果が保存されていません。内容を確認して修正できます。"
-        case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。内容を確認して修正できます。"
+        case .formulaCache: detail = "曜日の計算結果が保存されていません。警告を確認して内容だけを見ることができます。"
+        case .weekdayMismatch: detail = "曜日と月日が一致しないか、曜日の表記を確認できません。警告を確認して内容だけを見ることができます。"
         case .weekdayOnly: detail = "曜日以外の値がない行があります。内容を確認して、その行を除外できます。"
         case .mergedCells: detail = "見出しや表の行に結合セルがあります。結合された値は推測して補えません。"
-        case .dateSystem: detail = "ブックの日付システムを確認できません。"
+        case .dateSystem: detail = "1904年起点の日付を使用するXLSXは未対応です。"
         case .cellType: detail = "表に未対応のセル形式やExcelのエラー値があります。"
         case .headers: detail = "必要な見出し（学 年・学科・クラス・月日）がないか、見出しが重複しています。"
         case .date: detail = "日付を確定できません。年なし日付の場合は補完する年を指定してください。"
-        case .defaultYear: detail = "西暦1900〜9998の学校年度を入力してください。"
         case .year: detail = "学年の指定を読み取れません。"
         case .classes: detail = "クラスの指定を読み取れません。"
         case .unknownAll: detail = "「全」の対象クラスをファイル内の記載から確定できません。"
         case .empty: detail = "時間割変更の行がありません。空の結果では前回の解析結果を置き換えません。"
         case .cancelled: detail = "解析を中止しました。"
-        case .staleConfirmation: detail = "資料・補完年度・確認内容が変わりました。現在の資料を解析して、内容を確認し直してください。"
         case .storage: detail = "解析結果を保存できません。"
         }
-        return (row.map { "\($0)行目：" } ?? "") + detail
-    }
-}
-
-struct ChangeEditBaseline: Equatable {
-    let personal: PersonalChangeSettings?
-    let weekday: ChangeWeekdayConsent?
-    let skipped: ChangeRowSkipConsent?
-
-    init(source: MaterialSource) {
-        personal = source.personalChanges
-        weekday = source.weekdayConsent
-        skipped = source.rowSkipConsent
-    }
-}
-
-struct ChangeWorkbookReview {
-    let id = UUID()
-    var baseline: ChangeEditBaseline? = nil
-    var sheets: [String]
-    var table: ChangeEditTable
-    var layout: ChangeColumnLayout
-    var requiresLayoutConfirmation: Bool
-    var edits: [Int: ChangeRowEdit] = [:]
-    var conflicts: Set<Int> = []
-    var previous: [ChangeEdits.Entry] = []
-}
-
-/// Column indexes are zero-based. Row numbers are the physical one-based XLSX numbers.
-struct ChangeRowEdit: Codable, Equatable {
-    var values: [Int: String] = [:]
-    var excluded = false
-    var deriveWeekday = false
-    // nil also decodes decisions saved before the weekday control could be turned off explicitly.
-    var keepPrintedWeekday: Bool? = nil
-    var isEmpty: Bool { values.isEmpty && !excluded && !deriveWeekday && keepPrintedWeekday != true }
-    var isExclusionOnly: Bool { excluded && values.isEmpty && !deriveWeekday && keepPrintedWeekday != true }
-
-    mutating func chooseDateDerivedWeekday(_ derive: Bool) {
-        deriveWeekday = derive
-        keepPrintedWeekday = derive ? nil : true
-    }
-}
-
-struct ChangeEdits: Codable, Equatable {
-    struct Original: Codable, Hashable {
-        var values: [String]
-        var issues: [Int: ChangeParseError.Code]
-        var sources: [Int: String]
-        var date1904: Bool? = nil
-    }
-    struct Entry: Codable, Equatable {
-        var row: Int
-        var original: Original
-        var occurrences: Int
-        var edit: ChangeRowEdit
-        var valueLabels: [Int: String]? = nil
-        var editedSerialUses1904: Bool? = nil
-        var dateColumn: Int? = nil
-        var dateSchoolYear: Int? = nil
-    }
-    var sourceIdentity: String
-    var digest: String
-    var defaultYear: Int
-    var sheet: String
-    var headers: [String]
-    var entries: [Entry]
-    var originalHeaders: [String]? = nil
-    var headerSources: [Int: String]? = nil
-    var reviewedHeaderRow: Int? = nil
-    var physicalWidth: Int? = nil
-}
-
-/// One action can operate on the listed rows. Row identity is still saved independently.
-struct ChangeIssueGroup: Identifiable, Hashable {
-    var code: ChangeParseError.Code
-    var column: Int
-    var rows: [Int]
-    var printed = ""
-    var formula = false
-    var blankField = false
-    var optional = false
-    enum Saved: Hashable { case excluded, derived, printed, field(String) }
-    var saved: Saved? = nil
-    struct Carryover: Hashable {
-        let original: ChangeEdits.Original
-        let offersPriorExclusion: Bool
-    }
-    var carryover: Carryover? = nil
-    var id: String {
-        switch saved {
-        case .excluded: return "excluded"
-        case .derived: return "derived"
-        case .printed: return "printed"
-        case .field: return "field-\(column)-\(rows[0])"
-        case nil: return "\(code.rawValue)-\(column)-\(rows[0])"
-        }
-    }
-
-    static func savedGroups(_ edits: [Int: ChangeRowEdit]) -> [Self] {
-        struct Key: Hashable { var action: Saved; var column: Int }
-        var members: [Key: [Int]] = [:], order: [Key] = []
-        func append(_ action: Saved, _ column: Int, row: Int) {
-            let key = Key(action: action, column: column)
-            if members[key] == nil { order.append(key) }
-            members[key, default: []].append(row)
-        }
-        for row in edits.keys.sorted() {
-            guard let edit = edits[row] else { continue }
-            if edit.excluded { append(.excluded, -1, row: row) }
-            if edit.deriveWeekday { append(.derived, -2, row: row) }
-            if edit.keepPrintedWeekday == true { append(.printed, -3, row: row) }
-            for column in edit.values.keys.sorted() {
-                if let value = edit.values[column] { append(.field(value), column, row: row) }
-            }
-        }
-        return order.map { Self(code: .staleConfirmation, column: $0.column, rows: members[$0]!, saved: $0.action) }
-    }
-
-    enum Action { case exclude, weekday, value(String), undo }
-
-    func apply(_ action: Action, selecting selected: Set<Int>, headers: [String], edits: inout [Int: ChangeRowEdit]) {
-        for row in rows where selected.contains(row) {
-            switch action {
-            case .undo:
-                switch saved {
-                case .excluded: edits[row]?.excluded = false
-                case .derived: edits[row]?.deriveWeekday = false
-                case .printed: edits[row]?.keepPrintedWeekday = nil
-                case .field: edits[row]?.values.removeValue(forKey: column)
-                case nil: break
-                }
-            case .exclude: edits[row, default: ChangeRowEdit()].excluded = true
-            case .weekday: edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday(true)
-            case .value(let value):
-                guard headers.indices.contains(column) else { continue }
-                edits[row, default: ChangeRowEdit()].values[column] = value
-                let header = ChangeNormalizer.token(headers[column])
-                if ["曜", "曜日"].contains(header) {
-                    edits[row, default: ChangeRowEdit()].chooseDateDerivedWeekday(false)
-                } else if header == "月日", edits[row]?.keepPrintedWeekday != true {
-                    edits[row, default: ChangeRowEdit()].deriveWeekday = true
-                }
-            }
-        }
-    }
-
-    func confirmExclusions(selecting selected: Set<Int>, table: ChangeEditTable, defaultYear: Int,
-                           edits: inout [Int: ChangeRowEdit], conflicts: inout Set<Int>) {
-        guard let carryover else { return }
-        for row in rows where selected.contains(row) && conflicts.contains(row) {
-            guard row > table.headerRow, table.rows.indices.contains(row - 1), edits[row]?.isEmpty != false,
-                  table.original(at: row) == carryover.original,
-                  table.isOriginalWeekdayOnly(row, defaultYear: defaultYear) else { continue }
-            edits[row] = ChangeRowEdit(excluded: true)
-            conflicts.remove(row)
-        }
-    }
-
-    static func groups(_ problems: [Int: [ChangeParseError]], table: ChangeEditTable, edits: [Int: ChangeRowEdit] = [:],
-                       conflicts: Set<Int> = [], previous: [ChangeEdits.Entry] = []) -> [Self] {
-        struct Field: Hashable { let code: ChangeParseError.Code; let column: Int; let blank: Bool }
-        var groups: [Self] = []
-        var fields: [Field: Int] = [:]
-        var carryovers: [ChangeEdits.Original: Int] = [:]
-        let previousByOriginal = Dictionary(grouping: previous, by: \.original)
-        for row in problems.keys.sorted() {
-            for issue in problems[row] ?? [] {
-                guard let column = issue.column else { continue }
-                let code: ChangeParseError.Code = issue.code == .formulaCache && issue.calculatedWeekday != nil ? .weekdayMismatch : issue.code
-                if conflicts.contains(row), code != .weekdayOnly { continue }
-                if code == .weekdayOnly {
-                    let printed = ChangeNormalizer.text(issue.printedWeekday ?? "")
-                    let formula = table.cellIssues[row]?[column] == .formula || table.cellIssues[row]?[column] == .formulaCache
-                    if conflicts.contains(row) {
-                        guard edits[row]?.isEmpty != false else { continue }
-                        let original = table.original(at: row)
-                        let candidates = previousByOriginal[original] ?? []
-                        guard candidates.allSatisfy({ $0.edit.isExclusionOnly }) else { continue }
-                        if let index = carryovers[original] {
-                            groups[index].rows.append(row)
-                        } else {
-                            let prior = !candidates.isEmpty
-                                && !original.sources.values.contains { $0.hasPrefix("unresolved-shared/") }
-                            carryovers[original] = groups.count
-                            groups.append(Self(code: code, column: column, rows: [row], printed: printed,
-                                               formula: formula, carryover: Carryover(original: original, offersPriorExclusion: prior)))
-                        }
-                    } else if let last = groups.last, last.code == code, last.column == column, last.carryover == nil,
-                       last.rows.last == row - 1, last.printed == printed, last.formula == formula {
-                        groups[groups.count - 1].rows.append(row)
-                    } else {
-                        groups.append(Self(code: code, column: column, rows: [row], printed: printed, formula: formula))
-                    }
-                } else {
-                    let original = table.rows[row - 1]
-                    let value = edits[row]?.values[column] ?? (original.indices.contains(column) ? original[column] : "")
-                    let blank = (code == .year || code == .classes) && ChangeNormalizer.text(value).isEmpty
-                    let key = Field(code: code, column: column, blank: blank)
-                    if let index = fields[key] { groups[index].rows.append(row) }
-                    else {
-                        fields[key] = groups.count
-                        groups.append(Self(code: code, column: column, rows: [row], blankField: blank))
-                    }
-                }
-            }
-        }
-        return groups
-    }
-}
-
-struct ChangeEditTable: Equatable {
-    var sheet: String
-    var headers: [String]
-    var rows: [[String]]
-    var headerRow: Int
-    var cellIssues: [Int: [Int: ChangeParseError.Code]] = [:]
-    /// Includes e.g. an unexecuted formula's source, Excel error value or relative merge offsets.
-    var cellSources: [Int: [Int: String]] = [:]
-    var originalHeaders: [String]? = nil
-
-    var headerSources: [Int: String]? = nil
-    var physicalWidth: Int? = nil
-    var uses1904 = false
-    var numericCells: [Int: Set<Int>] = [:]
-    var dateCells: [Int: Set<Int>] = [:]
-    var formattedDates: [Int: [Int: Bool]] = [:] // true when the format includes a clock
-
-    var rowIDs: [Int] {
-        guard headerRow > 0, headerRow < rows.count else { return [] }
-        return ((headerRow + 1)...rows.count).filter { number in
-            rows[number - 1].contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                || cellIssues[number]?.isEmpty == false || cellSources[number]?.isEmpty == false
-        }
-    }
-
-    func original(at row: Int) -> ChangeEdits.Original {
-        // An omitted trailing XLSX cell and an explicit blank are the same input.
-        var values = rows[row - 1]
-        while values.last == "" { values.removeLast() }
-        let date = headers.firstIndex(where: { ChangeNormalizer.text($0) == "月日" })
-        let date1904 = uses1904 && date.map { column in
-            values.indices.contains(column) && ChangeNormalizer.matches(ChangeNormalizer.text(values[column]), #"^[0-9]+(?:\.[0-9]+)?$"#)
-        } == true
-        return ChangeEdits.Original(values: values, issues: cellIssues[row] ?? [:], sources: cellSources[row] ?? [:],
-                                    date1904: date1904 ? true : nil)
-    }
-
-    func savedEdits(sourceIdentity: String, digest: String, defaultYear: Int,
-                    edits: [Int: ChangeRowEdit], check: () throws -> Void = {}) throws -> ChangeEdits? {
-        try check()
-        let active = edits.filter { !$0.value.isEmpty }
-        guard !active.isEmpty else { return nil }
-        let ids = rowIDs
-        guard !sourceIdentity.isEmpty, !digest.isEmpty, Set(active.keys).isSubset(of: Set(ids)),
-              active.values.allSatisfy({ $0.values.allSatisfy { headers.indices.contains($0.key) && $0.value.utf8.count <= 4096 } })
-        else { throw ChangeParseError(code: .staleConfirmation) }
-        var occurrencesByOriginal: [ChangeEdits.Original: Int] = [:]
-        for row in ids {
-            try check()
-            occurrencesByOriginal[original(at: row), default: 0] += 1
-        }
-        let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
-        let entries = try active.keys.sorted().compactMap { number -> ChangeEdits.Entry? in
-            try check()
-            let key = original(at: number)
-            guard let occurrences = occurrencesByOriginal[key], let edit = active[number] else { return nil }
-            let editedDate = dateColumn.flatMap { edit.values[$0] }
-            let editedSerial = editedDate.map { ChangeNormalizer.matches(ChangeNormalizer.text($0), "^[0-9]+(?:\\.[0-9]+)?$") } == true
-            return ChangeEdits.Entry(row: number, original: key, occurrences: occurrences, edit: edit,
-                valueLabels: Dictionary(uniqueKeysWithValues: edit.values.keys.map { ($0, headers[$0]) }), editedSerialUses1904: editedSerial ? uses1904 : nil, dateColumn: dateColumn, dateSchoolYear: defaultYear)
-        }
-        return ChangeEdits(sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear,
-                           sheet: sheet, headers: headers, entries: entries, originalHeaders: originalHeaders, headerSources: headerSources, reviewedHeaderRow: headerRow, physicalWidth: physicalWidth)
-    }
-
-    /// An appended source column may shift fields supplied by the editor. The old
-    /// physical prefix must keep its meaning. A virtual field follows its unique
-    /// label, and only an identical original row is eligible for those values.
-    private func restoredColumns(from saved: ChangeEdits) -> [Int: Int]? {
-        let previous = saved.originalHeaders ?? saved.headers
-        let current = originalHeaders ?? headers
-        let oldSources = saved.headerSources ?? [:]
-        let newSources = headerSources ?? [:]
-        if previous == current && saved.headers == headers && oldSources == newSources {
-            return Dictionary(uniqueKeysWithValues: headers.indices.map { ($0, $0) })
-        }
-        guard let oldWidth = saved.physicalWidth, let newWidth = physicalWidth,
-              oldWidth < newWidth, saved.headers.count >= oldWidth, headers.count >= newWidth,
-              current.starts(with: previous), oldSources == newSources.filter({ $0.key < oldWidth }),
-              Array(saved.headers.prefix(oldWidth)) == Array(headers.prefix(oldWidth)) else { return nil }
-        var mapping = Dictionary(uniqueKeysWithValues: (0..<oldWidth).map { ($0, $0) })
-        for column in oldWidth..<saved.headers.count {
-            let candidates = headers.indices.filter { $0 >= oldWidth && headers[$0] == saved.headers[column] }
-            if candidates.count == 1 { mapping[column] = candidates[0] }
-        }
-        return mapping
-    }
-
-    func restoreDetailed(_ saved: ChangeEdits?, sourceIdentity: String, digest: String, defaultYear: Int)
-        -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>, unmatched: [ChangeEdits.Entry]) {
-        guard let saved else { return ([:], [], []) }
-        guard saved.sourceIdentity == sourceIdentity, saved.defaultYear == defaultYear,
-              saved.sheet == sheet, let columns = restoredColumns(from: saved),
-              saved.digest != digest || saved.reviewedHeaderRow == nil || saved.reviewedHeaderRow == headerRow else {
-            return ([:], [], saved.entries.map { $0.withDateContext(headers: saved.headers, year: saved.defaultYear) })
-        }
-        let groups = Dictionary(grouping: rowIDs, by: original(at:))
-        let dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
-        func epochMatches(_ entry: ChangeEdits.Entry) -> Bool {
-            if let originalEpoch = entry.editedSerialUses1904 { return originalEpoch == uses1904 }
-            // v10 saved no epoch for a numeric correction of an empty source cell.
-            guard saved.digest != digest, let column = dateColumn, let value = entry.edit.values[column],
-                  ChangeNormalizer.matches(ChangeNormalizer.text(value), "^[0-9]+(?:\\.[0-9]+)?$") else { return true }
-            if entry.original.sources[column]?.hasPrefix("/type/n/") == true {
-                return (entry.original.date1904 == true) == uses1904
-            }
-            return false
-        }
-        var edits: [Int: ChangeRowEdit] = [:], conflicts = Set<Int>(), unmatched: [ChangeEdits.Entry] = []
-        var mappedEntries: [ChangeEdits.Entry] = []
-        for previous in saved.entries {
-            var entry = previous.withDateContext(headers: saved.headers, year: saved.defaultYear)
-            let fields = entry.edit.values
-            guard fields.keys.allSatisfy({ columns[$0] != nil }) else {
-                unmatched.append(entry)
-                continue
-            }
-            entry.edit.values = Dictionary(uniqueKeysWithValues: fields.map { (columns[$0.key]!, $0.value) })
-            entry.valueLabels = Dictionary(uniqueKeysWithValues: entry.edit.values.keys.map { ($0, headers[$0]) })
-            mappedEntries.append(entry)
-        }
-        for (key, previous) in Dictionary(grouping: mappedEntries, by: \.original) {
-            guard let numbers = groups[key], let first = previous.first,
-                  previous.allSatisfy(epochMatches) else {
-                unmatched += previous
-                continue
-            }
-            if saved.digest == digest {
-                let candidates = Set(numbers)
-                for entry in previous where candidates.contains(entry.row) { edits[entry.row] = entry.edit }
-            } else {
-                let oldCount = first.occurrences
-                let complete = previous.count == oldCount && Set(previous.map(\.row)).count == oldCount
-                    && previous.allSatisfy {
-                        $0.row > (saved.reviewedHeaderRow ?? 0) && $0.occurrences == oldCount && $0.edit == first.edit
-                    }
-                // With a complete uniform exclusion, every unchanged weekday-only
-                // copy that remains receives the same decision, regardless of its row number.
-                let safeSubset = numbers.count < oldCount && first.edit.isExclusionOnly
-                    && numbers.allSatisfy { isOriginalWeekdayOnly($0, defaultYear: defaultYear) }
-                if complete, !key.sources.values.contains(where: { $0.hasPrefix("unresolved-shared/") }),
-                   numbers.count == oldCount || safeSubset {
-                    for number in numbers { edits[number] = first.edit }
-                } else {
-                    conflicts.formUnion(numbers)
-                    unmatched += previous
-                }
-            }
-        }
-        return (edits, conflicts, unmatched.sorted { $0.row < $1.row })
-    }
-
-    func restore(_ saved: ChangeEdits?, sourceIdentity: String, digest: String, defaultYear: Int)
-        -> (edits: [Int: ChangeRowEdit], conflicts: Set<Int>) {
-        let restored = restoreDetailed(saved, sourceIdentity: sourceIdentity, digest: digest, defaultYear: defaultYear)
-        return (restored.edits, restored.conflicts)
-    }
-
-    func priorEdit(_ entry: ChangeEdits.Entry, on row: Int, defaultYear: Int) -> ChangeRowEdit? {
-        guard row > headerRow, rows.indices.contains(row - 1), original(at: row) == entry.original else { return nil }
-        let labels = headers.map(ChangeNormalizer.text)
-        let tokens = headers.map(ChangeNormalizer.token)
-        var result = entry.edit
-        result.values.removeAll()
-        for (oldColumn, value) in entry.edit.values {
-            guard let savedLabel = entry.valueLabels?[oldColumn] else { return nil }
-            let label = ChangeNormalizer.text(savedLabel)
-            guard !label.isEmpty, !ChangeNormalizer.matches(label, #"^列[0-9]+$"#) else { return nil }
-            let matches = labels.indices.filter { labels[$0] == label }
-            guard matches.count == 1, let column = matches.first, result.values[column] == nil else { return nil }
-            let token = tokens[column]
-            if let field = ChangeNormalizer.OptionalColumn.allCases.first(where: { $0.aliases.contains(token) }),
-               tokens.filter(field.aliases.contains).count != 1 { return nil }
-            if ["曜日", "曜"].contains(token), tokens.filter({ ["曜日", "曜"].contains($0) }).count != 1 { return nil }
-            if label == "月日" {
-                guard entry.dateColumn == column, entry.dateSchoolYear == defaultYear else { return nil }
-                if ChangeNormalizer.matches(ChangeNormalizer.text(value), #"^[0-9]+(?:\.[0-9]+)?$"#) {
-                    let epoch = entry.editedSerialUses1904 ?? (entry.original.sources[column]?.hasPrefix("/type/n/") == true
-                        ? entry.original.date1904 == true : nil)
-                    guard epoch == uses1904 else { return nil }
-                }
-            }
-            result.values[column] = value
-        }
-        return result
-    }
-}
-
-extension ChangeEdits.Entry {
-    func withDateContext(headers: [String], year: Int) -> Self {
-        var entry = self
-        if entry.dateSchoolYear == nil { entry.dateSchoolYear = year }
-        if entry.dateColumn == nil {
-            entry.dateColumn = headers.firstIndex { ChangeNormalizer.text($0) == "月日" }
-        }
-        return entry
-    }
-
-    func displayValue(column: Int, edited: Bool) -> String {
-        let value = edited ? edit.values[column] ?? "" :
-            (original.values.indices.contains(column) ? original.values[column] : "")
-        // Original positions stay with their source row. Virtual edits may move
-        // when a later workbook adds a physical column with the same label.
-        if edited, let label = valueLabels?[column] {
-            guard ChangeNormalizer.text(label) == "月日" else { return value }
-        } else {
-            guard column == dateColumn || (dateColumn == nil && valueLabels?[column] == "月日") else { return value }
-        }
-        guard edited || original.issues[column] == nil else { return "月日を確認" }
-        let typed = !edited && original.sources[column]?.hasPrefix("/type/d/") == true
-        let epoch = edited ? editedSerialUses1904 ?? (original.date1904 == true) : original.date1904 == true
-        return ChangeNormalizer.readableDate(typed ? String(value.prefix(10)) : value,
-                                             defaultYear: dateSchoolYear, uses1904: epoch) ?? "月日を確認"
-    }
-}
-
-extension ChangeEdits {
-    /// Old edited records have a joined source string but their saved editor
-    /// entries still contain the exact cells and epoch. Rebuild the displayed
-    /// original only when those entries agree on the same full source string.
-    func readableOriginals() -> [String: String] {
-        let labels = originalHeaders ?? headers
-        var matches: [String: String] = [:], ambiguous = Set<String>()
-        for old in entries {
-            let entry = old.withDateContext(headers: headers, year: defaultYear)
-            var original: [String] = [], readable: [String] = []
-            for (column, value) in entry.original.values.enumerated() where !value.isEmpty {
-                let name = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
-                original.append(name + ":" + value)
-                readable.append(name + ":" + entry.displayValue(column: column, edited: false))
-            }
-            let key = original.joined(separator: " | "), display = readable.joined(separator: " | ")
-            if let previous = matches[key], previous != display { ambiguous.insert(key) }
-            matches[key] = display
-        }
-        for key in ambiguous { matches.removeValue(forKey: key) }
-        return matches
+        return (row.map { "\($0)行目：" } ?? "") + detail + " 前回の正常な解析結果は保持しています。"
     }
 }

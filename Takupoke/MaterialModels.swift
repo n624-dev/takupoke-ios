@@ -32,29 +32,7 @@ struct SourceGrant: Codable {
     #endif
 }
 
-/// Only configuration confirmed for this header is reused after a provider update.
-struct ChangeColumnLayout: Codable, Equatable {
-    var sheet: String
-    var headerRow: Int
-    var original: [String]
-    var headers: [String]
-    var physicalWidth: Int? = nil
-    var headerSources: [Int: String]? = nil
-}
-
-struct PersonalChangeSettings: Codable, Equatable {
-    var year: Int
-    var layout: ChangeColumnLayout
-    var rows: ChangeEdits?
-    var history: [ChangeEdits.Entry]
-    var reviewedDigest: String? = nil
-    var ambiguousRows: [Int]? = nil
-    var ambiguousOriginals: [ChangeEdits.Original]? = nil
-    var ambiguousLayout: ChangeColumnLayout? = nil
-}
-
 struct MaterialSource: Codable {
-    var personalChanges: PersonalChangeSettings? = nil
     var grant: SourceGrant?
     var childName: String?
     var selectionID: String? = nil
@@ -74,20 +52,12 @@ struct MaterialRecord: Codable {
     var digest: String
     var sourceModifiedAt: Date?
     var acquiredAt: Date
-    var lastAcquiredAt: Date? = nil
     var lastCheckedAt: Date? = nil
 }
 
 struct AcquisitionAttempt: Codable {
     var date: Date
     var failure: String?
-    var cancelled: Bool? = nil
-
-    var failedToAcquire: Bool {
-        guard let failure else { return false }
-        // Older records stored Japanese error text without a cancellation bit.
-        return !(cancelled ?? (failure == MaterialError.cancelled.errorDescription))
-    }
 }
 
 struct MaterialLibraryState: Codable {

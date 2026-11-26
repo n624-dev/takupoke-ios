@@ -38,13 +38,13 @@ extension TimetableView {
             TimetableSchedule.positioned(TimetableSchedule.blocks(on: day, className: className,
                 timetable: timetable, changes: changes, includesChanges: includesChanges, events: events,
                 specials: specials, isInternationalStudent: isInternationalStudent,
-                matchedByRule: isMappedInternational,sourceIndex:daySchedule.sourceIndex))
+                matchedByRule: isMappedInternational))
         }
         let widths = positioned.map { laneWidth($0) }
         let width = widths.reduce(0, +) + gridSpacing * CGFloat(max(0, widths.count - 1))
         return DayGridLayout(day: day, positioned: positioned, width: width,
                              fullDayEventTitle: TimetableSchedule.fullDayEventTitle(
-                                plan: daySchedule.sourceIndex.plan(on:day), layouts: positioned))
+                                plan: TimetableSchedule.dayPlan(on: day, events: events), layouts: positioned))
     }
 
     func laneWidth(_ blocks: [TimetableSchedule.PositionedBlock]) -> CGFloat {
@@ -115,11 +115,7 @@ extension TimetableView {
             }
             if !names.cellRoom.isEmpty { parts.append((cardRoom(names.cellRoom), gridUIFont(9), 1)) }
         }
-        let isCancellation: Bool = {
-            if case .change(let change) = block.content { return change.isCancellation }
-            return false
-        }()
-        if (isCancellation || block.startPeriod != block.endPeriod || commonPeriodTime(block.startPeriod, days: days) == nil),
+        if (block.startPeriod != block.endPeriod || commonPeriodTime(block.startPeriod, days: days) == nil),
            let time = cardTime(block, on: day, className: className) {
             let timeIndex: Int
             if case .change = block.content { timeIndex = 2 }
@@ -137,6 +133,9 @@ extension TimetableView {
     }
 
     func measuredTextHeight(_ value: String, font: UIFont, width: CGFloat) -> CGFloat {
-        ApplicationData.shared.textMeasurements.height(value,font:font,width:width)
+        let bounds = (value as NSString).boundingRect(
+            with: CGSize(width: max(1, width), height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: font], context: nil)
+        return max(font.lineHeight, ceil(bounds.height))
     }
 }

@@ -1,26 +1,5 @@
 import SwiftUI
 import Combine
-import UIKit
-
-@MainActor
-final class HomeScheduleClock: ObservableObject {
-    @Published private(set) var epoch = 0
-    private(set) var acceptsPlans = false
-    private let nowProvider: @MainActor () -> Date
-    init(now: @escaping @MainActor () -> Date = Date.init) { nowProvider = now }
-    private lazy var driver = TimetableBoundaryClock(now:{ [unowned self] in nowProvider() },schedule:{ date,action in
-        let timer = Timer(fire:date,interval:0,repeats:false) { _ in Task { @MainActor in action() } }
-        RunLoop.main.add(timer,forMode:.common)
-        return { timer.invalidate() }
-    },changed:{ [weak self] in self?.epoch += 1 })
-    var currentDate:Date { driver.currentDate }
-    func allow() { acceptsPlans = true }
-    func configure(_ intervals:[TimetableBoundaryClock.Interval]) { if acceptsPlans { driver.configure(intervals) } }
-    func start() { if acceptsPlans { driver.start() } }
-    func pause() { driver.stop() }
-    func refresh() { if acceptsPlans { driver.refresh() } }
-    func suspend() { acceptsPlans = false; driver.clear() }
-}
 
 /// Embedded in HomeView's List; every row uses the same saved models as the timetable.
 struct HomeTodayView: View {
@@ -30,41 +9,37 @@ struct HomeTodayView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @EnvironmentObject private var mappings: MappingModel
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorContrast
     @AppStorage("timetableSelectedClasses") private var classesValue = ""
-    @AppStorage(ChangeNormalizer.schoolYearSettingKey) private var changeSchoolYear = ""
     @AppStorage("timetableInternationalStudent") private var international = false
-    @EnvironmentObject private var mainColor: MainColorModel
-    @ObservedObject private var homeClock = ApplicationData.shared.homeClock
-    private var now:Date { homeClock.currentDate }
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
+    @State private var now = Date()
     @Binding var selectedLesson: LessonSelection?
     @Binding var selectedSpecial: SpecialSelection?
     @Binding var selectedChange: ChangeSelection?
     let openTimetable: () -> Void
+    private let clock = Timer.publish(every: 15, on: .main, in: .common).autoconnect()
 
     private var day: SchoolDate { TimetableDaySchedule.schoolDay(at: now) }
     private var classes: [String] { TimetableView.decode(classesValue) }
-    private var accent: Color { mainColor.selection.displayColor(for: colorScheme, contrast: colorContrast) }
+    private var accent: Color { (MainColor(rawValue: mainColor) ?? .systemDefault).displayColor }
     private var schedule: TimetableDaySchedule {
         TimetableDaySchedule(timetable: materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue],
             changes: materials.state.changeAnalysis, events: schoolEvents.analysis,
-            specials: specialSchedules.scheduleAnalyses,
-            includesChanges: true, customTimes: times.current?.data,
-            sourceIndex:ApplicationData.shared.scheduleSourceIndex(materials:materials,specials:specialSchedules,events:schoolEvents))
+            specials: specialSchedules.records.values.map(\.analysis).sorted { $0.kind.rawValue < $1.kind.rawValue },
+            includesChanges: true, customTimes: times.current?.data)
     }
-    private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings, sourceRecord: materials.state.record(for: .changes)) }
-    private var availability: HomeScheduleAvailability {
-        HomeScheduleAvailability(materials: .init(ready: materials.ready, busy: materials.busy, failed: materials.failed),
-            specials: .init(ready: specialSchedules.ready, busy: specialSchedules.busy, failed: specialSchedules.failed),
-            events: .init(ready: schoolEvents.ready, busy: schoolEvents.busy, failed: schoolEvents.failed))
-    }
-    private var ready: Bool { availability.ready }
+    private var presentation: TimetablePresentation { TimetablePresentation(schedule: schedule, mappings: mappings) }
+    private var ready: Bool { materials.ready && specialSchedules.ready && schoolEvents.ready && mappings.ready }
     private var eventsAvailable: Bool {
         SchoolEventsCoverage(savedYears: Set(schoolEvents.saved.keys)).contains(day: day)
     }
 
-    private var loadFailed: Bool { availability.loadFailed }
+    private var loadFailed: Bool {
+        (!materials.ready && !materials.busy && materials.failed) ||
+        (!specialSchedules.ready && !specialSchedules.busy && specialSchedules.failed) ||
+        (!schoolEvents.ready && !schoolEvents.busy && schoolEvents.failed) ||
+        (!mappings.ready && !mappings.busy && mappings.failed)
+    }
 
     private func retryLoading() {
         materials.loadIfNeeded()
@@ -73,9 +48,17 @@ struct HomeTodayView: View {
         mappings.loadIfNeeded()
     }
 
-    private var materialWarnings: [String] {
-        let year = ChangeNormalizer.effectiveSchoolYear(configured: changeSchoolYear, today: day)
-        return [MaterialKind.timetable, .changes].compactMap { materials.state.scheduleWarning(for: $0, changeSchoolYear: year) }
+    private var unreflectedTitles: [String] {
+        var values = [String]()
+        if let source = materials.state.record(for:.timetable) {
+            let a = materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
+            if a?.sourceDigest != source.digest || a?.version != PDFAnalysis.currentVersion(for:.timetable) { values.append(MaterialKind.timetable.title) }
+        }
+        if let source = materials.state.record(for:.changes), materials.state.changeAnalysis?.sourceDigest != source.digest || materials.state.changeAnalysis?.version != ChangeAnalysis.parserVersion { values.append(MaterialKind.changes.title) }
+        for kind in SpecialScheduleKind.allCases {
+            if let source = specialSchedules.sources[kind], specialSchedules.records[kind]?.digest != source.digest || specialSchedules.records[kind]?.analysis.version != SpecialScheduleAnalysis.parserVersion { values.append(kind.title) }
+        }
+        return values
     }
 
     // Selections hold lesson snapshots. Close them when their underlying
@@ -119,12 +102,13 @@ struct HomeTodayView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            ForEach(materialWarnings, id: \.self) { InlineWarning($0) }
-            SpecialScheduleWarnings(model: specialSchedules)
-            SchoolEventsWarnings(model: schoolEvents)
-            if schoolEvents.ready && !eventsAvailable { status("学校行事は未取得です。") }
+            ForEach(unreflectedTitles,id:\.self) { title in
+                Label("\(title)の新しい資料をまだ反映できていません。前回の正常結果を表示しています。",systemImage:"exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             if loadFailed {
-                InlineWarning("データを読み込めませんでした。")
+                Text("データを読み込めませんでした。")
+                    .font(.subheadline).foregroundStyle(.secondary)
                 Button("再試行", action: retryLoading)
             } else if !ready {
                 LoadingRow(title: "読み込み中⋯")
@@ -134,6 +118,7 @@ struct HomeTodayView: View {
                 }
             } else {
                 if schedule.changes == nil { status("時間割変更の解析結果がありません。") }
+                if !eventsAvailable { status("学校行事は未取得です。") }
                 ForEach(classes, id: \.self) { className in
                     classRows(className)
                 }
@@ -154,51 +139,23 @@ struct HomeTodayView: View {
             }
             .textCase(nil)
         }
-        .onAppear { configureClock() }
-        .onDisappear { homeClock.configure([]) }
-        .onReceive(NotificationCenter.default.publisher(for:UIApplication.significantTimeChangeNotification)) { _ in
-            if scenePhase == .active { homeClock.refresh() }
-        }
-        .onChange(of: scenePhase) { phase in
-            if phase == .active { configureClock() }
-        }
+        .onAppear { now = Date() }
+        .onReceive(clock) { date in if scenePhase == .active { now = date } }
+        .onChange(of: scenePhase) { phase in if phase == .active { now = Date() } }
         .onChange(of: detailRevision) { _ in
             selectedLesson = nil; selectedSpecial = nil; selectedChange = nil
-            configureClock()
         }
-    }
-
-    private func configureClock() {
-        guard homeClock.acceptsPlans else { return }
-        let day = self.day, schedule = self.schedule
-        var calendar = Calendar(identifier:.gregorian)
-        calendar.timeZone = TimeZone(identifier:"Asia/Tokyo")!
-        guard let midnight = calendar.date(from:DateComponents(year:day.year,month:day.month,day:day.day)) else { return }
-        var intervals = [TimetableBoundaryClock.Interval]()
-        for className in classes {
-            let blocks = schedule.blocks(on:day,className:className,international:international) { subject,name,year in
-                mappings.current?.rules.isInternationalStudentChangeField(subject,className:name,schoolYear:year) == true
-            }
-            for (index,block) in blocks.enumerated() {
-                for range in schedule.activityMinuteRanges(block,on:day,className:className) {
-                    intervals.append(.init(id:className+":\(index)",start:midnight.addingTimeInterval(Double(range.lowerBound)*60),
-                        end:midnight.addingTimeInterval(Double(range.upperBound)*60)))
-                }
-            }
-        }
-        homeClock.configure(intervals)
     }
 
     @ViewBuilder private func classRows(_ className: String) -> some View {
-        let blocks = schedule.blocks(on: day, className: className, international: international) { subject, name, schoolYear in
+        let blocks = schedule.blocks(on: day, className: className, international: international) { subject, name in
             guard let rules = mappings.current?.rules else { return false }
-            return rules.isInternationalStudentChangeField(subject, className: name, schoolYear: schoolYear)
+            return rules.isInternationalStudentSubject(rules.separatingChangeField(subject).subject, className: name)
         }
-        let missing = schedule.missingMessages(on: day, className: className) + (mappings.failed && mappings.current == nil
-            ? ["名称データを読み込めません。資料に記載された名称で表示しています。"] : [])
+        let missing = schedule.missingMessages(on: day, className: className)
         Text(TimetableDisplayText.className(className))
             .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-        ForEach(missing, id: \.self) { InlineWarning($0) }
+        ForEach(missing, id: \.self) { status($0) }
         if blocks.isEmpty && missing.isEmpty && schedule.changes != nil && eventsAvailable {
             // The event title is already shown once above all classes.
             Text("授業はありません。")
@@ -234,33 +191,5 @@ struct HomeTodayView: View {
     private func status(_ message: String) -> some View {
         Text(message).font(.subheadline).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-
-struct SpecialScheduleWarnings: View {
-    @ObservedObject var model: SpecialSchedulesModel
-    var showLoadState = true
-
-    var body: some View {
-        let availability = model.availability
-        if !availability.ready && showLoadState {
-            if availability.loadFailed {
-                InlineWarning("試験・返却資料の保存情報を読み込めませんでした。通常時間割は参考表示です。")
-                Button("試験・返却資料を再読み込み") { model.loadIfNeeded() }
-            } else {
-                LoadingRow(title: "試験・返却資料を読み込み中⋯")
-                Text("試験・返却資料は未確認です。通常時間割は参考表示です。")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        ForEach(SpecialScheduleKind.allCases) { kind in
-            if let message = availability.message(for: kind) {
-                InlineWarning(message)
-                NavigationLink("\(kind.title)の資料を確認") {
-                    SpecialScheduleAnalysisView(model: model, kind: kind)
-                }
-            }
-        }
     }
 }

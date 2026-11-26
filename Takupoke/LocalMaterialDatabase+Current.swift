@@ -25,7 +25,6 @@ extension LocalMaterialDatabase {
                     var comparable = record
                     comparable.source = old.source
                     comparable.lastCheckedAt = old.lastCheckedAt
-                    comparable.lastAcquiredAt = old.lastAcquiredAt
                     comparable.sourceModifiedAt = old.sourceModifiedAt
                     guard try Self.encode(comparable) == Self.encode(old),
                           let id = try String.fetchOne(db, sql: "SELECT originalID FROM currentRecord WHERE kind = ?",
@@ -98,8 +97,6 @@ extension LocalMaterialDatabase {
                try previous.changeParseAttempt.map(Self.encode) != Self.encode(attempt) {
                 try Self.insertAttempt(db, kind: "changes", operation: "parse", date: attempt.date,
                                        succeeded: attempt.failure == nil, payload: Self.encode(attempt))
-            } else if previous.changeParseAttempt != nil && state.changeParseAttempt == nil {
-                try db.execute(sql: "DELETE FROM attempt WHERE kind = 'changes' AND operation = 'parse'")
             }
             for (kind, attempt) in state.pdfParseAttempts ?? [:] {
                 if try previous.pdfParseAttempts?[kind].map(Self.encode) != Self.encode(attempt) {

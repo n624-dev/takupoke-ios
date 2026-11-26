@@ -9,11 +9,6 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
     private let diagnosticSource: FileRefreshDiagnostics.Source?
     private var contentGate = FileContentChangeGate()
     private var active = true
-    private var readEpoch: UInt64 = 0
-    private var acknowledgedEpoch: UInt64 = 0
-    private func reserveReadEpoch() -> UInt64 {
-        lock.lock(); defer { lock.unlock() }; readEpoch &+= 1; return readEpoch
-    }
     private var metadataCoordinator: NSFileCoordinator?
     let presentedItemOperationQueue: OperationQueue = {
         let queue = OperationQueue()
@@ -82,28 +77,14 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
         coordinator?.cancel()
     }
 
-    private func acknowledge(_ version: FileContentVersion?, epoch: UInt64) {
+    @discardableResult
+    func recordContentVersion(at url: URL) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard active, epoch >= acknowledgedEpoch else { return }
-        acknowledgedEpoch = epoch
+        guard active else { return false }
+        let version = Self.contentVersion(at: url)
         contentGate.record(version)
-        FileRefreshDiagnostics.shared.record(version == nil ? .readVersionUnavailable : .readVersionRecorded,
-                                             source: diagnosticSource)
-    }
-
-    struct ReadReceipt {
-        static var unobserved: Self { .init(presenter: nil, version: nil, epoch: 0) }
-        fileprivate let presenter: SelectedFilePresenter?
-        fileprivate let version: FileContentVersion?
-        fileprivate let epoch: UInt64
-
-        func acknowledge() { presenter?.acknowledge(version, epoch: epoch) }
-    }
-
-    func refreshCompleted() {
-        lock.lock(); defer { lock.unlock() }
-        if active { contentGate.readFailed() }
+        return version != nil
     }
 
     private static func contentVersion(at url: URL) -> FileContentVersion? {
@@ -121,29 +102,27 @@ final class SelectedFilePresenter: NSObject, NSFilePresenter {
     struct ReadAccess {
         let coordinator: NSFileCoordinator
         fileprivate let presenter: SelectedFilePresenter?
-        fileprivate let epoch: UInt64
 
-        /// Capture the version inside coordination once source handles close.
-        /// The caller acknowledges it only after saving the selected source.
-        func read<T>(at url: URL, body: () throws -> T) rethrows -> (value: T, receipt: ReadReceipt) {
-            do {
-                let result = try body()
-                let version = presenter.flatMap { _ in SelectedFilePresenter.contentVersion(at: url) }
-                return (result, ReadReceipt(presenter: presenter, version: version, epoch: epoch))
-            } catch {
-                presenter?.refreshCompleted()
-                throw error
+        /// Call inside the coordinated accessor, after all source handles close.
+        /// A later external write cannot be mistaken for the bytes just read.
+        func read<T>(at url: URL, body: () throws -> T) rethrows -> T {
+            let result = try body()
+            if let presenter {
+                let recorded = presenter.recordContentVersion(at: url)
+                FileRefreshDiagnostics.shared.record(recorded ? .readVersionRecorded : .readVersionUnavailable,
+                                                     source: presenter.diagnosticSource)
             }
+            return result
         }
     }
 
-    static func readAccess(for url: URL, source: FileRefreshDiagnostics.Source? = nil) -> ReadAccess {
+    static func readAccess(for url: URL) -> ReadAccess {
         let presenter = NSFileCoordinator.filePresenters.compactMap { $0 as? SelectedFilePresenter }.first {
-            (source == nil || $0.diagnosticSource == source) && $0.presentedItemURL?.standardizedFileURL == url.standardizedFileURL
+            $0.presentedItemURL?.standardizedFileURL == url.standardizedFileURL
         }
         FileRefreshDiagnostics.shared.record(presenter == nil ? .coordinatorUnmatched : .coordinatorMatched,
-                                             source: source ?? presenter?.diagnosticSource)
-        return ReadAccess(coordinator: NSFileCoordinator(filePresenter: presenter), presenter: presenter, epoch: presenter?.reserveReadEpoch() ?? 0)
+                                             source: presenter?.diagnosticSource)
+        return ReadAccess(coordinator: NSFileCoordinator(filePresenter: presenter), presenter: presenter)
     }
 
     static func coordinator(for url: URL) -> NSFileCoordinator {

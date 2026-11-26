@@ -1,7 +1,6 @@
 import Foundation
 #if canImport(SwiftUI)
 import SwiftUI
-import Combine
 #endif
 
 enum MainColor: String, CaseIterable, Identifiable {
@@ -32,16 +31,11 @@ enum MainColor: String, CaseIterable, Identifiable {
         }
     }
     #if canImport(SwiftUI)
-    static let lightYellowIcon = Color(.sRGB, red: 1, green: 0.8, blue: 0)
-
-    func color(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color? {
+    var color: Color? {
         switch self {
         case .systemDefault: return nil
         case .blue: return .blue
-        case .yellow:
-            // Light yellow is applied separately to icons. Native controls
-            // inside each page use the standard tint.
-            return scheme == .dark ? .yellow : nil
+        case .yellow: return .yellow
         case .green: return .green
         case .orange: return .orange
         case .red: return .red
@@ -50,59 +44,8 @@ enum MainColor: String, CaseIterable, Identifiable {
         }
     }
 
-    func usesLightYellowIcons(in scheme: ColorScheme) -> Bool {
-        self == .yellow && scheme == .light
-    }
-
-    func tabTitleTint(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color? {
-        guard usesLightYellowIcons(in: scheme) else { return color(for: scheme, contrast: contrast) }
-        if contrast == .increased { return .primary }
-        return Color(.sRGB, red: 71.0 / 255, green: 71.0 / 255, blue: 76.0 / 255)
-    }
-
     // Custom text and shapes need a concrete color; use the inherited accent
     // when the user has not selected an override.
-    func displayColor(for scheme: ColorScheme, contrast: ColorSchemeContrast) -> Color {
-        color(for: scheme, contrast: contrast) ?? .accentColor
-    }
+    var displayColor: Color { color ?? .accentColor }
     #endif
 }
-
-#if canImport(SwiftUI)
-@MainActor
-final class MainColorModel: ObservableObject {
-    @Published private(set) var selection: MainColor
-    private let defaults: UserDefaults
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        selection = defaults.string(forKey: MainColor.storageKey)
-            .flatMap(MainColor.init(rawValue:)) ?? .systemDefault
-    }
-
-    func select(_ color: MainColor) {
-        color.save(in: defaults)
-        selection = color
-    }
-}
-
-@MainActor
-struct MainColorScope: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.colorSchemeContrast) private var contrast
-    @StateObject private var model = MainColorModel()
-
-    func body(content: Content) -> some View {
-        content.environmentObject(model).tint(model.selection.color(for: scheme, contrast: contrast))
-    }
-}
-
-@available(macOS 14.0, *)
-struct WeekControlAccent: ShapeStyle {
-    let theme: MainColor
-
-    func resolve(in environment: EnvironmentValues) -> Color {
-        theme.displayColor(for: environment.colorScheme, contrast: environment.colorSchemeContrast)
-    }
-}
-#endif

@@ -11,28 +11,16 @@ final class MappingModel: ObservableObject {
     @Published private(set) var failed = false
 
     private var store: MappingStore?
-    private var damagedFile: MappingStore.DamagedFile?
-    private var storedReadFailed = false
-    private static let storedReadWarning = "保存した名称データを読み込めません。学校アカウントで取得し直してください。"
     private var checkedAtStartup = false
     private var generation = UUID()
-    private let directory: URL?
-    private let baseURL: URL
-
-    init(directory: URL? = nil, baseURL: URL = URL(string: "https://takupoke-api.n624.jp")!) {
-        self.directory = directory; self.baseURL = baseURL
-    }
+    private let baseURL = URL(string: "https://takupoke-api.n624.jp")!
 
     func loadIfNeeded() {
         guard !ready else { return }
         do {
-            let directory: URL
-            if let configured = self.directory { directory = configured }
-            else {
-                let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                    appropriateFor: nil, create: true)
-                directory = base.appendingPathComponent("NameMappings", isDirectory: true)
-            }
+            let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                                   appropriateFor: nil, create: true)
+            let directory = base.appendingPathComponent("NameMappings", isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var protectedDirectory = directory
             var values = URLResourceValues()
@@ -42,29 +30,16 @@ final class MappingModel: ObservableObject {
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: directory.path)
             #endif
             let file = directory.appendingPathComponent("mappings.sqlite")
-            try? MappingStore.DamagedFile.discardAbandonedStage(in:directory)
-            do {
-                let store = try MappingStore(url: file)
-                #if os(iOS)
-                try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
-                #endif
-                do {
-                    current = try store.load()
-                    storedReadFailed = false
-                } catch is MappingStore.InvalidPayload {
-                    current = nil
-                    storedReadFailed = true
-                }
-                self.store = store
-            } catch {
-                guard let damage = try? MappingStore.DamagedFile(url:file,error:error) else { throw error }
-                damagedFile = damage
-                current = nil
-                storedReadFailed = true
-            }
-            failed = storedReadFailed
-            message = storedReadFailed ? Self.storedReadWarning : nil
+            let store = try MappingStore(url: file)
+            let saved = try store.load()
+            #if os(iOS)
+            try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: file.path)
+            #endif
+            self.store = store
+            current = saved
             ready = true
+            failed = false
+            message = nil
         } catch {
             failed = true
             message = MappingError.storage.localizedDescription
@@ -87,7 +62,9 @@ final class MappingModel: ObservableObject {
                 apply(result)
             } catch {
                 guard operation == generation else { return }
-                reportFailure("名称データの更新を確認できませんでした。")
+                failed = true
+                message = "名称データの更新を確認できませんでした。" +
+                    (current == nil ? "" : "保存済みの対応表を使用します。")
             }
         }
     }
@@ -100,7 +77,7 @@ final class MappingModel: ObservableObject {
         try Task.checkCancellation()
         guard operation == generation else { throw CancellationError() }
         apply(result)
-        if case .unchanged = result, !failed { message = "名称データは最新です。" }
+        if case .unchanged = result { message = "名称データは最新です。" }
         return result
     }
 
@@ -115,27 +92,11 @@ final class MappingModel: ObservableObject {
     }
 
     func download(token: String, revision: String, network: URLSession) async throws {
-        let damagedFile = self.damagedFile
-        guard store != nil || damagedFile != nil else { throw MappingError.storage }
-        let operation = generation
+        guard let store else { throw MappingError.storage }
         let package = try await MappingService(baseURL: baseURL, network: network)
             .download(accessToken: token, expectedRevision: revision)
         try Task.checkCancellation()
-        guard operation == generation, damagedFile == nil || self.damagedFile != nil else { throw CancellationError() }
-        do {
-            if let damagedFile {
-                try damagedFile.install(package)
-                self.damagedFile = nil
-                ready = false
-                loadIfNeeded()
-                guard store != nil, current == package else { throw MappingError.storage }
-            } else {
-                guard let store else { throw MappingError.storage }
-                try store.save(package)
-            }
-        } catch is CancellationError { throw CancellationError() }
-        catch { throw MappingError.storage }
-        storedReadFailed = false
+        do { try store.save(package) } catch { throw MappingError.storage }
         current = package
         updateAvailable = false
         failed = false
@@ -143,19 +104,14 @@ final class MappingModel: ObservableObject {
     }
 
     func report(_ error: Error) {
-        reportFailure((error as? MappingError ?? .unavailable).localizedDescription)
-    }
-
-    private func reportFailure(_ description: String) {
         failed = true
-        let warning = storedReadFailed ? Self.storedReadWarning + "\n" : ""
-        message = warning + description + (current == nil ? "" : "保存済みの対応表を使用します。")
+        message = (error as? MappingError ?? .unavailable).localizedDescription +
+            (current == nil ? "" : "保存済みの対応表を使用します。")
     }
 
     func resetForRetention() {
         generation = UUID()
-        current = nil; store = nil; damagedFile = nil; ready = false; busy = false
-        storedReadFailed = false
+        current = nil; store = nil; ready = false; busy = false
         checkedAtStartup = false; updateAvailable = false; message = nil; failed = false
     }
 
@@ -168,9 +124,15 @@ final class MappingModel: ObservableObject {
     }
 
     private func apply(_ result: MappingRevisionResult) {
-        updateAvailable = result != .unchanged
-        failed = storedReadFailed
-        message = storedReadFailed ? Self.storedReadWarning : nil
+        failed = false
+        switch result {
+        case .unchanged:
+            updateAvailable = false
+            message = nil
+        case .available:
+            updateAvailable = true
+            message = nil
+        }
     }
 
     private static func networkSession() -> URLSession {

@@ -4,45 +4,39 @@ import SwiftUI
 struct TimetablePresentation {
     let schedule: TimetableDaySchedule
     let mappings: MappingModel
-    var sourceRecord: MaterialRecord? = nil
-
-    var displayedSourceDate: Date? {
-        guard let analysis = schedule.changes else { return nil }
-        if let date = analysis.sourceModifiedAt { return date }
-        guard let record = sourceRecord, record.digest == analysis.sourceDigest,
-              record.originalName == analysis.sourceName else { return nil }
-        return record.sourceModifiedAt
-    }
+    private var timetable: PDFAnalysis? { schedule.timetable }
     private var changes: ChangeAnalysis? { schedule.changes }
+    private var events: PDFAnalysis? { schedule.events }
+    private var specials: [SpecialScheduleAnalysis] { schedule.specials }
 
     func normalTime(from start: Int, to end: Int) -> String {
         schedule.normalTime(from: start, to: end)
     }
 
+    func beforeSubject(_ selection: ChangeSelection) -> String {
+        if !selection.change.before_subject.isEmpty {
+            return mappings.names(for: selection.change).before.cellSubject
+        }
+        let names = selection.baseLessons.map(\.names.cellSubject).reduce(into: [String]()) { result, name in
+            if !name.isEmpty && !result.contains(name) { result.append(name) }
+        }
+        return names.isEmpty ? "記載なし" : names.joined(separator: "・")
+    }
+
     func changeSelection(for change: ScheduleChange) -> ChangeSelection {
-        let names = mappings.names(for: change)
         guard let day = SchoolDate(iso8601: change.change_date) else {
-            return ChangeSelection(change: change, baseLessons: [], baseSpecialLessons: [], relatedChanges: [],
-                                   comparison: ChangeComparison(change: change, names: names, candidates: [:]))
+            return ChangeSelection(change: change, baseLessons: [], baseSpecialLessons: [], relatedChanges: [])
         }
-        let periods = change.detailPeriods ?? []
+        let periods = change.gridPeriods ?? []
         let originals = periods.map { period in
-            schedule.sourceIndex.slot(on: day, period: period, className: change.displayClassName, includesChanges: false)
-        }
-        var candidates: [Int: [ChangeBaseCandidate]] = [:]
-        for (period, slot) in zip(periods, originals) {
-            candidates[period] = slot.baseLessons.map { ChangeBaseCandidate(names: mappings.names(for: $0), source: "通常時間割") }
-                + slot.specialLessons.map { item in
-                    let source = TimetableLessonNames(subject: item.lesson.subject, teacher: item.lesson.teacher, room: item.lesson.room)
-                    let mapped = mappings.current?.rules.applying(to: source, className: change.displayClassName) ?? source
-                    return ChangeBaseCandidate(names: mapped, source: item.kind.title)
-                }
+            TimetableSchedule.slot(on: day, period: period, className: change.displayClassName,
+                                   timetable: timetable, changes: nil, includesChanges: false,
+                                   events: events, specials: specials)
         }
         let related = TimetableSchedule.changes(on: day, className: change.displayClassName, analysis: changes)
-            .filter { $0 != change && !Set($0.detailPeriods ?? []).isDisjoint(with: periods) }
+            .filter { $0 != change && !Set($0.gridPeriods ?? []).isDisjoint(with: periods) }
         return ChangeSelection(change: change, baseLessons: originals.flatMap(\.baseLessons),
-                               baseSpecialLessons: originals.flatMap(\.specialLessons), relatedChanges: related,
-                               comparison: ChangeComparison(change: change, names: names, candidates: candidates))
+                               baseSpecialLessons: originals.flatMap(\.specialLessons), relatedChanges: related)
     }
 
 
@@ -62,7 +56,6 @@ struct ChangeSelection: Identifiable {
     let baseLessons: [PDFLesson]
     let baseSpecialLessons: [TimetableSchedule.SpecialItem]
     let relatedChanges: [ScheduleChange]
-    let comparison: ChangeComparison
 }
 
 struct SpecialSelection: Identifiable {

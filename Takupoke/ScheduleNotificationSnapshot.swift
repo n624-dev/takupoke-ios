@@ -1,9 +1,4 @@
 import Foundation
-#if canImport(CryptoKit)
-import CryptoKit
-#else
-import Crypto
-#endif
 
 /// Fingerprints contain no subject, teacher, room, file name or original text.
 /// Keeping all classes as a baseline prevents class selection from becoming a
@@ -14,7 +9,6 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         let className: String
         let period: String
         let fingerprint: String
-        fileprivate var slot: Slot { .init(date:date,className:className,period:period) }
     }
     struct ChangeTarget: Codable, Hashable {
         let date: String
@@ -22,21 +16,6 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         let period: String
         let expectedFingerprints: [String]
         var key: String { [date,className,period].joined(separator: "|") }
-        fileprivate var slot: Slot { .init(date:date,className:className,period:period) }
-    }
-    fileprivate struct Slot: Hashable {
-        let date: String
-        let className: String
-        let period: String
-
-        func isRelevant(today: SchoolDate, classes: Set<String>) -> Bool {
-            guard classes.contains(className), let day = SchoolDate(iso8601:date) else { return false }
-            return day >= today
-        }
-
-        func target(fingerprints: [String]) -> ChangeTarget {
-            ChangeTarget(date:date,className:className,period:period,expectedFingerprints:fingerprints)
-        }
     }
     struct Pending: Codable, Equatable {
         let fingerprint: String
@@ -45,118 +24,13 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         var changeTargets: [ChangeTarget]? = nil
     }
 
-    var changeDocument: String? = nil
     var changes: Set<Change>?
     var specialDigests: [String: String] = [:]
     var pending: [String: Pending] = [:]
 
-    static func load(from file: URL) throws -> Self {
-        let original = URL(fileURLWithPath:file.path)
-        let info: URLResourceValues
-        do { info = try original.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey]) }
-        catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return Self() }
-        guard info.isRegularFile == true, info.isSymbolicLink != true else { throw CocoaError(.fileReadCorruptFile) }
-        let bytes = try Data(contentsOf:original)
-        do { return try JSONDecoder().decode(Self.self,from:bytes) }
-        catch let error as DecodingError {
-            // A structurally different but well-formed document might belong to
-            // a newer app. Only replace an unreadable JSON representation.
-            guard (try? JSONSerialization.jsonObject(with:bytes,options:.fragmentsAllowed)) == nil else { throw error }
-            let retained = original.deletingLastPathComponent()
-                .appendingPathComponent("baseline-malformed-\(UUID().uuidString).json")
-            try write(bytes,to:retained)
-            let empty = Self()
-            do {
-                guard try Data(contentsOf:original) == bytes else { throw CocoaError(.fileReadCorruptFile) }
-                try empty.save(to:original)
-            } catch {
-                try? FileManager.default.removeItem(at:retained)
-                throw error
-            }
-            return empty
-        }
-    }
-
-    func save(to file: URL) throws {
-        try Self.write(JSONEncoder().encode(self),to:file)
-    }
-
-    private static func write(_ bytes: Data, to file: URL) throws {
-        #if os(iOS)
-        try bytes.write(to:file,options:[.atomic,.completeFileProtection])
-        #else
-        try bytes.write(to:file,options:.atomic)
-        #endif
-    }
-
-    enum Readiness { case unavailable, absent, available }
-    struct Availability {
-        var changes: Readiness
-        var specials: [String: Readiness]
-        func state(for kind: String) -> Readiness { kind == "changes" ? changes : specials[kind] ?? .unavailable }
-    }
-
-    static func availability(materialsReady: Bool, specialsReady: Bool, state: MaterialLibraryState,
-                             records: [SpecialScheduleKind: SpecialScheduleRecord], sources: [SpecialScheduleKind: SpecialScheduleSource]) -> Availability {
-        let changes: Readiness = !materialsReady ? .unavailable : state.record(for: .changes) == nil ? .absent
-            : acceptedChanges(in: state) == nil ? .unavailable : .available
-        let accepted = acceptedSpecialDigests(records: records, sources: sources)
-        return Availability(changes: changes, specials: Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { kind in
-            (kind.rawValue, !specialsReady ? .unavailable : sources[kind] == nil ? .absent
-                : accepted[kind.rawValue] == nil ? .unavailable : .available)
-        }))
-    }
-
-    static func notice(_ targets: [ChangeTarget]) throws -> Pending {
-        let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-        let hash = SHA256.hash(data: try encoder.encode(targets)).map { String(format: "%02x", $0) }.joined()
-        return Pending(fingerprint: hash, count: targets.count, changeTargets: targets)
-    }
-
-    func reconciling(changes nextChanges: Set<Change>?, specials: [String: String], availability: Availability,
-                     today: SchoolDate, classes: Set<String>, changesEnabled: Bool, specialsEnabled: Bool,
-                     changeDocument: String? = nil, personalEdit: Bool = false) throws -> Self {
-        var next = self
-        switch availability.changes {
-        case .available:
-            if let nextChanges {
-                // Pre-document snapshots already contain the last accepted rows. On the
-                // first personal save, adopt its document identity without announcing the edit.
-                let rebasePersonalEdit = personalEdit && changeDocument != nil &&
-                    (self.changeDocument == nil || self.changeDocument == changeDocument)
-                let targets = rebasePersonalEdit
-                    ? validTargets(pending["changes"]?.changeTargets ?? [], in: nextChanges, today: today, classes: classes)
-                    : next.pendingChangeTargets(in: nextChanges, today: today, classes: classes)
-                next.changeDocument = changeDocument
-                if changesEnabled, !targets.isEmpty { next.pending["changes"] = try Self.notice(targets) }
-                else { next.pending.removeValue(forKey: "changes") }
-                next.changes = nextChanges
-            }
-        case .absent:
-            next.pending.removeValue(forKey: "changes"); next.changes = nil; next.changeDocument = nil
-        case .unavailable: break
-        }
-        for kind in SpecialScheduleKind.allCases {
-            switch availability.state(for: kind.rawValue) {
-            case .available:
-                guard let digest = specials[kind.rawValue] else { continue }
-                if specialsEnabled, next.specialChanged(kind: kind.rawValue, digest: digest) {
-                    next.pending[kind.rawValue] = Pending(fingerprint: digest, count: 1)
-                } else if next.pending[kind.rawValue]?.fingerprint != digest { next.pending.removeValue(forKey: kind.rawValue) }
-                next.specialDigests[kind.rawValue] = digest
-            case .absent:
-                next.pending.removeValue(forKey: kind.rawValue); next.specialDigests.removeValue(forKey: kind.rawValue)
-            case .unavailable: break
-            }
-        }
-        if !changesEnabled { next.pending.removeValue(forKey: "changes") }
-        if !specialsEnabled { for kind in SpecialScheduleKind.allCases { next.pending.removeValue(forKey: kind.rawValue) } }
-        return next
-    }
-
     static func acceptedChanges(in state: MaterialLibraryState) -> [ScheduleChange]? {
-        guard let analysis = state.changeAnalysis, let source = state.record(for: .changes),
-              analysis.matches(record: source, defaultYear: analysis.defaultYear) else { return nil }
+        guard let analysis = state.changeAnalysis, analysis.version == ChangeAnalysis.parserVersion,
+              analysis.sourceDigest == state.record(for: .changes)?.digest else { return nil }
         return analysis.records
     }
 
@@ -173,45 +47,27 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     }
 
     func changeTargets(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
-        let slots = changedSlots(comparedWith:next,today:today,classes:classes)
-        let fingerprints = Self.fingerprints(for:slots,in:next)
-        return slots.map { $0.target(fingerprints:fingerprints[$0] ?? []) }.sorted { $0.key < $1.key }
+        guard let changes else { return [] }
+        let changed = changes.symmetricDifference(next)
+        let slots = Set(changed.map { ChangeTarget(date:$0.date,className:$0.className,period:$0.period,expectedFingerprints:[]) })
+        return validTargets(slots.map { slot in
+            ChangeTarget(date:slot.date,className:slot.className,period:slot.period,
+                         expectedFingerprints:next.filter { $0.date == slot.date && $0.className == slot.className && $0.period == slot.period }.map(\.fingerprint).sorted())
+        }, in:next,today:today,classes:classes)
     }
 
     func validTargets(_ targets: [ChangeTarget], in next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
-        let eligible = targets.filter { $0.slot.isRelevant(today:today,classes:classes) }
-        let fingerprints = Self.fingerprints(for:Set(eligible.map(\.slot)),in:next)
-        return eligible.filter { $0.expectedFingerprints == (fingerprints[$0.slot] ?? []) }.sorted { $0.key < $1.key }
+        targets.filter { target in
+            guard let date = SchoolDate(iso8601:target.date), date >= today, classes.contains(target.className) else { return false }
+            return target.expectedFingerprints == next.filter { $0.date == target.date && $0.className == target.className && $0.period == target.period }.map(\.fingerprint).sorted()
+        }.sorted { $0.key < $1.key }
     }
 
     func pendingChangeTargets(in next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
-        let pending = (pending["changes"]?.changeTargets ?? []).filter { $0.slot.isRelevant(today:today,classes:classes) }
-        let changed = changedSlots(comparedWith:next,today:today,classes:classes)
-        let fingerprints = Self.fingerprints(for:changed.union(pending.map(\.slot)),in:next)
         var bySlot = [String:ChangeTarget]()
-        for target in pending where target.expectedFingerprints == (fingerprints[target.slot] ?? []) {
-            bySlot[target.key] = target
-        }
-        for slot in changed {
-            let target = slot.target(fingerprints:fingerprints[slot] ?? [])
-            bySlot[target.key] = target
-        }
+        for target in validTargets(pending["changes"]?.changeTargets ?? [],in:next,today:today,classes:classes) { bySlot[target.key] = target }
+        for target in changeTargets(comparedWith:next,today:today,classes:classes) { bySlot[target.key] = target }
         return bySlot.values.sorted { $0.key < $1.key }
-    }
-
-    private func changedSlots(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> Set<Slot> {
-        guard let changes, !classes.isEmpty else { return [] }
-        return Set(changes.symmetricDifference(next).map(\.slot)).filter { $0.isRelevant(today:today,classes:classes) }
-    }
-
-    private static func fingerprints(for slots: Set<Slot>, in changes: Set<Change>) -> [Slot:[String]] {
-        guard !slots.isEmpty else { return [:] }
-        var result = [Slot:[String]]()
-        for change in changes {
-            let slot = change.slot
-            if slots.contains(slot) { result[slot,default:[]].append(change.fingerprint) }
-        }
-        return result.mapValues { $0.sorted() }
     }
 
     func changeCount(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> Int {

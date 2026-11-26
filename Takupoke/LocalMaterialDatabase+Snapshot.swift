@@ -32,7 +32,6 @@ extension LocalMaterialDatabase {
             var comparable = record
             comparable.source = original.source
             comparable.lastCheckedAt = original.lastCheckedAt
-            comparable.lastAcquiredAt = original.lastAcquiredAt
                     comparable.sourceModifiedAt = original.sourceModifiedAt
             guard try encode(comparable) == encode(original),
                   row["currentKind"] as String == record.kind.rawValue,

@@ -8,8 +8,7 @@ struct PDFRecoveryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var phase
     @State private var selectedClass = ""
-    private struct SourcePage: Identifiable { let id = UUID(); let url: URL }
-    @State private var sourcePage: SourcePage?
+    @State private var showingSource = false
     @State private var zoomedField: String?
     @State private var manualValues = [String:String]()
     @State private var manualAcknowledged = [String:Bool]()
@@ -22,15 +21,57 @@ struct PDFRecoveryView: View {
                     Text("学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。")
                         .font(.subheadline).foregroundStyle(.secondary)
                     if coordinator.running { LoadingRow(title:coordinator.status,cancel:{ coordinator.cancel() }) }
-                    else if let failure = coordinator.failure { InlineWarning(failure) }
+                    else if let failure = coordinator.failure { Label(failure,systemImage:"exclamationmark.triangle").foregroundStyle(.orange) }
                     else { Text(coordinator.status) }
                 }
                 if let preview = coordinator.preview {
-                    previewSections(preview)
+                    Section("採用する資料全体") {
+                        LabeledContent("年度",value:"\(preview.document.schoolYear)年度")
+                        if let term = preview.document.term { LabeledContent("学期",value:term) }
+                        LabeledContent("対象",value:"\(preview.document.classes.count)クラス・\(preview.document.days.count)日分")
+                        Text("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
+                        if let corrections = preview.result.humanCorrections {
+                            Text("原本を確認して入力した\(corrections.count)項目を含みます。")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Section("読み取り結果") {
+                        Picker("クラス",selection:$selectedClass) {
+                            ForEach(preview.document.classes,id:\.self) { Text(TimetableDisplayText.className($0)).tag($0) }
+                        }
+                        let input = Dictionary(uniqueKeysWithValues:preview.document.cells.map { ($0.id,$0) })
+                        ForEach(preview.result.cells.filter { input[$0.cellId]?.slots.first?.className == (selectedClass.isEmpty ? preview.document.classes.first : selectedClass) },id:\.cellId) { result in
+                            if let cell = input[result.cellId], let slot = cell.slots.first {
+                                VStack(alignment:.leading,spacing:5) {
+                                    Text("\(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.headline)
+                                    if result.state == .empty { Text("空欄").foregroundStyle(.secondary) }
+                                    ForEach(Array(result.lessons.enumerated()),id:\.offset) { _,lesson in
+                                        Text(lesson.subject.value)
+                                        let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
+                                        if destination != slot.className {
+                                            LabeledContent("保存先クラス",value:TimetableDisplayText.className(destination))
+                                                .font(.caption)
+                                        }
+                                        Text("教員: \(lesson.teacher.state == .empty ? "記載なし" : lesson.teacher.value) / 教室: \(lesson.room.state == .empty ? "記載なし" : lesson.room.value)")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    let periods = cell.slots.map(\.period).sorted()
+                                    let key = periods.count > 1 ? "\(slot.day):\(periods.first!)-\(periods.last!)" : "\(slot.day):\(slot.period)"
+                                    if let time = periods.count > 1 ? preview.document.spanTimes[key] : preview.document.times[key] { Text(time).font(.caption).foregroundStyle(.secondary) }
+                                }
+                            }
+                        }
+                    }
+                    Section {
+                        Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
+                            .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
+                    }
                 } else if let review = coordinator.manualReview, let draft = coordinator.manualDraft {
                     Section("訂正箇所を先に確認") {
                         Text("この段階では採用しません。入力した本文と、比較できる前回の結果からの変更を確認してください。")
-                        Button("元のPDFを確認",systemImage:"doc.richtext") { showSource() }
+                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
                     }
                     ForEach(draft.fields) { field in
                         Section(role(field.target.role)) {
@@ -69,7 +110,7 @@ struct PDFRecoveryView: View {
                 } else if let draft = coordinator.manualDraft {
                     Section("原本との照合") {
                         Text("確認が必要な\(draft.fields.count)項目を原本と照合してください。入力後に資料全体の結果を確認し、採用を選べます。")
-                        Button("元のPDFを確認",systemImage:"doc.richtext") { showSource() }
+                        Button("元のPDFを確認",systemImage:"doc.richtext") { showingSource = true }
                     }
                     ForEach(draft.fields) { field in
                         Section(role(field.target.role)) {
@@ -103,29 +144,12 @@ struct PDFRecoveryView: View {
                                 } label: {
                                     Image(systemName:"xmark.circle.fill").foregroundStyle(.secondary)
                                         .frame(minWidth:44,minHeight:44)
-                                        .contentShape(Rectangle())
                                 }.buttonStyle(.borderless).accessibilityLabel("入力を消去")
                                     .accessibilityIdentifier("manual-clear-" + field.id)
                                     .opacity(canClear ? 1:0).disabled(!canClear).accessibilityHidden(!canClear)
                             }
-                            let acknowledged = manualAcknowledged[field.id] ?? false
-                            Button {
-                                guard coordinator.manualDraft?.id == draft.id, coordinator.manualReview == nil else { return }
-                                let newAcknowledgement = !(manualAcknowledged[field.id] ?? false)
-                                manualAcknowledged[field.id] = newAcknowledgement
-                            } label: {
-                                HStack {
-                                    Text("原本と一致することを確認")
-                                    Spacer()
-                                    Image(systemName: acknowledged ? "checkmark.circle.fill" : "circle")
-                                        .accessibilityHidden(true)
-                                }
-                                .frame(minHeight: 44)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityAddTraits(acknowledged ? .isSelected : [])
-                            .disabled(!useAiFeatures || coordinator.running)
+                            Toggle("原本と一致することを確認",isOn:Binding(get:{ manualAcknowledged[field.id] ?? false },set:{ guard coordinator.manualDraft?.id == draft.id else { return }; if coordinator.manualReview != nil { return }; manualAcknowledged[field.id] = $0 }))
+                                .disabled(!useAiFeatures || coordinator.running)
                         }
                     }
                     Section {
@@ -154,21 +178,21 @@ struct PDFRecoveryView: View {
                     }
                 }
             }
-            .sheet(item:$sourcePage) { page in
-                SavedPDFView(url:page.url,title:"元のPDF")
+            .sheet(isPresented:$showingSource) {
+                if let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL { SavedPDFView(url:url,title:"元のPDF") }
             }
             .sheet(isPresented:Binding(get:{ zoomedField != nil },set:{ if !$0 { zoomedField = nil } })) {
                 if let id = zoomedField, let image = coordinator.manualContextImages[id] {
                     RecoveryManualImageView(context:image)
                 }
             }
-            .onChange(of:coordinator.preview?.id) { _,_ in sourcePage = nil; selectedClass = coordinator.preview?.document.classes.first ?? "" }
+            .onChange(of:coordinator.preview?.id) { _,_ in selectedClass = coordinator.preview?.document.classes.first ?? "" }
             .onChange(of:coordinator.manualDraft?.id) { _,_ in
-                manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,coordinator.manualInitialValues[$0.id] ?? $0.originalText) } ?? [])
-                manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil; sourcePage = nil
+                manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,$0.originalText) } ?? [])
+                manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil
             }
             .onChange(of:phase) { _,phase in
-                if phase != .active { sourcePage = nil; coordinator.suspendForInactivity(); models.cancel() }
+                if phase != .active { coordinator.suspendForInactivity(); models.cancel() }
                 else { coordinator.invalidateManualIfSourceChanged() }
             }
             .onReceive(ApplicationData.shared.materials.$state) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
@@ -177,80 +201,7 @@ struct PDFRecoveryView: View {
             .task { await models.refresh() }
         }
     }
-    private func showSource() {
-        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL else { return }
-        sourcePage = SourcePage(url:url)
-    }
-    @ViewBuilder private func previewSections(_ preview:RecoveryPreview) -> some View {
-        Section("採用する資料全体") {
-            LabeledContent("年度",value:"\(preview.document.schoolYear)年度")
-            if let term = preview.document.term { LabeledContent("学期",value:term) }
-            LabeledContent("対象",value:"\(preview.document.classes.count)クラス・\(preview.document.days.count)日分")
-            Text("選択クラスだけでなく、以下の資料全体を採用します。元のPDFと読み取り結果を確認してください。")
-                .font(.caption).foregroundStyle(.secondary)
-            Button("元のPDFを確認",systemImage:"doc.richtext") { showSource() }
-            if let corrections = preview.result.humanCorrections {
-                Text("原本を確認して入力した\(corrections.count)項目を含みます。")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        Section("読み取り結果") {
-            if preview.document.nativeCapture != nil {
-                Text("訂正する授業の科目名を長押しすると、科目・教員・教室を選べます。確認が必要な項目を含め合計3項目まで、原本を見て訂正できます。")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Picker("クラス",selection:$selectedClass) {
-                ForEach(preview.document.classes,id:\.self) { Text(TimetableDisplayText.className($0)).tag($0) }
-            }
-            let input = Dictionary(uniqueKeysWithValues:preview.document.cells.map { ($0.id,$0) })
-            ForEach(preview.result.cells.filter { input[$0.cellId]?.slots.first?.className == (selectedClass.isEmpty ? preview.document.classes.first : selectedClass) },id:\.cellId) { result in
-                if let cell = input[result.cellId], let slot = cell.slots.first {
-                    VStack(alignment:.leading,spacing:5) {
-                        Text("\(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.headline)
-                        if result.state == .empty { Text("空欄").foregroundStyle(.secondary) }
-                        ForEach(Array(result.lessons.enumerated()),id:\.offset) { lessonIndex,lesson in
-                            Text(lesson.subject.value)
-                                .accessibilityIdentifier("recovery-correction-menu-"+cell.id+"-\(lessonIndex)")
-                                .contextMenu {
-                                    if preview.document.nativeCapture != nil {
-                                        manualCorrectionMenu(lesson,cellId:cell.id,lessonIndex:lessonIndex)
-                                    }
-                                }
-                            let destination = PDFClassAssignment.destination(sourceClass:slot.className,rawSubject:lesson.subject.value)
-                            if destination != slot.className {
-                                LabeledContent("保存先クラス",value:TimetableDisplayText.className(destination))
-                                    .font(.caption)
-                            }
-                            Text("教員: \(lesson.teacher.state == .empty ? "記載なし" : lesson.teacher.value) / 教室: \(lesson.room.state == .empty ? "記載なし" : lesson.room.value)")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        let periods = cell.slots.map(\.period).sorted()
-                        let key = periods.count > 1 ? "\(slot.day):\(periods.first!)-\(periods.last!)" : "\(slot.day):\(slot.period)"
-                        if let time = periods.count > 1 ? preview.document.spanTimes[key] : preview.document.times[key] { Text(time).font(.caption).foregroundStyle(.secondary) }
-                    }
-                }
-            }
-        }
-        Section {
-            Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
-                .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
-        }
-    }
     private var modelSection: some View { RecoveryModelControls(models:models) }
-    private func manualCorrectionMenu(_ lesson:RecoveryLesson,cellId:String,lessonIndex:Int) -> some View {
-        ForEach(RecoveryRole.allCases,id:\.self) { value in
-            let field:RecoveryField = value == .subject ? lesson.subject : value == .teacher ? lesson.teacher : lesson.room
-            let target = RecoveryManualTarget(cellId:cellId,lessonIndex:lessonIndex,role:value)
-            if coordinator.manualCorrectionTargets.contains(target) {
-                manualCorrectionButton(target,field:field)
-            }
-        }
-    }
-    private func manualCorrectionButton(_ target:RecoveryManualTarget,field:RecoveryField) -> some View {
-        Button("\(role(target.role))を訂正") { coordinator.selectManualCorrection(target) }
-            .disabled(!useAiFeatures || coordinator.running || field.state != .present)
-            .accessibilityIdentifier("recovery-select-"+target.key)
-    }
     @ViewBuilder private func fieldLocation(_ field:RecoveryManualField,draft:RecoveryManualDraft) -> some View {
         if let cell = draft.document.cells.first(where:{ $0.id == field.target.cellId }), let slot = cell.slots.first {
             Text("\(TimetableDisplayText.className(slot.className)) · \(day(slot.day)) · \(cell.slots.map(\.period).sorted().map(String.init).joined(separator:"・"))限").font(.subheadline)
@@ -274,7 +225,6 @@ struct RecoveryModelControls: View {
                 .font(.caption).foregroundStyle(.secondary)
             if models.isInUse { Text("復旧処理の終了後にモデルを変更できます。").foregroundStyle(.secondary) }
             if models.busy { LoadingRow(title:models.message ?? "準備中⋯",cancel:{ models.cancel() }) }
-            else if let failure = models.failure { InlineWarning(failure) }
             else if let message = models.message { Text(message) }
             if models.catalog.isEmpty { Text("追加モデルは品質評価後に提供します。OSの端末内AIが利用可能な端末では追加ダウンロードは不要です。") }
             ForEach(models.catalog,id:\.sha256) { manifest in

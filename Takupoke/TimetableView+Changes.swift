@@ -1,14 +1,10 @@
 import SwiftUI
 
 extension TimetableView {
-    var changesSection: some View { TimetableChangesSection(timetable: self) }
-
-    fileprivate var changesSectionContent: some View {
-        let range = changeRange
-        let start = range == .week ? weekStart : today
+    var changesSection: some View {
         let visible = listClasses.flatMap { className in
-            TimetableSchedule.changes(in: changes, className: className, range: range,
-                                      today: today, weekStart: start)
+            TimetableSchedule.changes(in: changes, className: className, range: changeRange,
+                                      today: today, weekStart: weekStart)
         }.filter { TimetableSchedule.shouldDisplay($0, isInternationalStudent: isInternationalStudent,
                                                    matchedByRule: isMappedInternational) }
             .sorted { ($0.change_date, $0.period, $0.displayClassName) < ($1.change_date, $1.period, $1.displayClassName) }
@@ -28,7 +24,8 @@ extension TimetableView {
                     : TimetableDisplayText.classNames(savedChangeClasses))
             }
             if !changeClassesValue.isEmpty && savedChangeClasses.contains(where: { !availableClasses.contains($0) }) {
-                InlineWarning("保存した対象クラスの一部は現在の資料にありません。選択は保持しています。")
+                Label("保存した対象クラスの一部は現在の資料にありません。選択は保持しています。", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
             if !changeClassesValue.isEmpty {
                 Button("時間割設定に戻す") { changeClassesValue = "" }
@@ -49,10 +46,10 @@ extension TimetableView {
                         selectedChange = selection
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(change.displayDate) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
+                            Text("\(change.change_date) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
-                            Text(TimetableDisplayText.kana(selection.comparison.summary)).font(.subheadline)
-                            if !(change.remainingNote ?? change.note).isEmpty { Text(TimetableDisplayText.kana(change.remainingNote ?? change.note)).font(.caption).foregroundStyle(.secondary) }
+                            Text(TimetableDisplayText.kana(changeSummary(selection))).font(.subheadline)
+                            if !change.note.isEmpty { Text(TimetableDisplayText.kana(change.note)).font(.caption).foregroundStyle(.secondary) }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -62,12 +59,18 @@ extension TimetableView {
         } header: { Text("時間割変更一覧") }
     }
 
+    func beforeSubject(_ selection: ChangeSelection) -> String {
+        presentation.beforeSubject(selection)
+    }
+
+    private func changeSummary(_ selection: ChangeSelection) -> String {
+        let before = beforeSubject(selection)
+        let parsedAfter = mappings.names(for: selection.change).after.cellSubject
+        let after = parsedAfter.isEmpty ? "記載なし" : parsedAfter
+        return "\(before) → \(after)"
+    }
+
     func changeSelection(for change: ScheduleChange) -> ChangeSelection {
         presentation.changeSelection(for: change)
     }
-}
-
-private struct TimetableChangesSection: View {
-    let timetable: TimetableView
-    var body: some View { timetable.changesSectionContent }
 }

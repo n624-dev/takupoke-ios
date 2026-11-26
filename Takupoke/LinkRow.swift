@@ -30,36 +30,21 @@ private enum LinkPalette {
     }
 }
 
-struct LinkRow: View, Equatable {
+struct LinkRow: View {
     let item: LinkItem
     var subtitle: String? = nil
-    let model: LinksModel
-    let presentation: LinkRowPresentation
+    @ObservedObject var model: LinksModel
     let openInApp: (URL) -> Void
     @AppStorage("linkOpeningMode") private var linkOpeningMode = LinkOpeningMode.inApp.rawValue
-    @AppStorage(SyllabusLinkPolicy.storageKey) private var syllabusDepartmentID = ""
     @Environment(\.openURL) private var openURL
     @State private var openFailed = false
-
-    @MainActor init(item:LinkItem,subtitle:String? = nil,model:LinksModel,actionOwner:UUID,
-                    openInApp:@escaping (URL) -> Void) {
-        self.item = item; self.subtitle = subtitle; self.model = model; self.openInApp = openInApp
-        presentation = LinkRowPresentation(item:item,subtitle:subtitle,preferencesReady:model.preferencesReady,
-            favorite:model.isFavorite(item.id),color:model.color(for:item),
-            hasColorOverride:model.preferences.colorOverrides[item.id] != nil,actionOwner:actionOwner)
-    }
-    nonisolated static func == (lhs:Self,rhs:Self) -> Bool {
-        lhs.presentation == rhs.presentation && lhs.model === rhs.model
-    }
 
     private var preferredMode: LinkOpeningMode {
         LinkOpeningMode(rawValue: linkOpeningMode) ?? .inApp
     }
 
     private func open(opposite: Bool = false) {
-        guard let original = item.url else { openFailed = true; return }
-        let url = SyllabusLinkPolicy.resolve(label: item.label, original: original,
-            departmentID: syllabusDepartmentID, year: SchoolDate.today().year)
+        guard let url = item.url else { openFailed = true; return }
         switch preferredMode.destination(for: url, opposite: opposite) {
         case .inApp:
             openInApp(url)
@@ -71,7 +56,30 @@ struct LinkRow: View, Equatable {
     }
 
     var body: some View {
-        Menu {
+        Button { open() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "link")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(LinkPalette.color(model.color(for: item)), in: RoundedRectangle(cornerRadius: 9))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.label).foregroundStyle(.primary)
+                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
+                }
+                Spacer(minLength: 4)
+                if model.isFavorite(item.id) {
+                    Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("お気に入り")
+                }
+                Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contentShape(.interaction, Rectangle())
+        .contextMenu {
             if item.url?.scheme?.lowercased() == "https" {
                 Button {
                     open(opposite: true)
@@ -80,19 +88,19 @@ struct LinkRow: View, Equatable {
                           systemImage: preferredMode == .external ? "safari" : "arrow.up.right.square")
                 }
             }
-            if presentation.preferencesReady {
+            if model.preferencesReady {
                 Button {
                     model.toggleFavorite(item.id)
                 } label: {
-                    Label(presentation.favorite ? "お気に入りを解除" : "お気に入りに追加",
-                          systemImage: presentation.favorite ? "star.slash" : "star")
+                    Label(model.isFavorite(item.id) ? "お気に入りを解除" : "お気に入りに追加",
+                          systemImage: model.isFavorite(item.id) ? "star.slash" : "star")
                 }
                 Menu {
                     ForEach(LinkPalette.names.indices, id: \.self) { index in
                         let entry = LinkPalette.names[index]
                         Button(entry.label) { model.setColor(entry.id, for: item.id) }
                     }
-                    if presentation.hasColorOverride {
+                    if model.preferences.colorOverrides[item.id] != nil {
                         Button("既定色に戻す") { model.setColor(nil, for: item.id) }
                     }
                 } label: {
@@ -102,42 +110,17 @@ struct LinkRow: View, Equatable {
                     Label("非表示", systemImage: "eye.slash")
                 }
             }
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "link")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(width: 34, height: 34)
-                    .background(LinkPalette.color(presentation.color), in: RoundedRectangle(cornerRadius: 9))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.label).foregroundStyle(.primary)
-                    if let subtitle { Text(subtitle).font(.caption).foregroundStyle(.secondary) }
-                }
-                Spacer(minLength: 4)
-                if presentation.favorite {
-                    Image(systemName: "star.fill").foregroundStyle(.yellow).accessibilityLabel("お気に入り")
-                }
-                Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-            .contentShape(Rectangle())
-        } primaryAction: {
-            open()
         }
-        .buttonStyle(.plain)
-        .menuIndicator(.hidden)
-        .contentShape(.interaction, Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            if presentation.preferencesReady {
+            if model.preferencesReady {
                 Button(role: .destructive) { model.hide(item.id) } label: {
                     Label("非表示", systemImage: "eye.slash")
                 }
                 Button {
                     model.toggleFavorite(item.id)
                 } label: {
-                    Label(presentation.favorite ? "解除" : "お気に入り",
-                          systemImage: presentation.favorite ? "star.slash" : "star")
+                    Label(model.isFavorite(item.id) ? "解除" : "お気に入り",
+                          systemImage: model.isFavorite(item.id) ? "star.slash" : "star")
                 }
                 .tint(.yellow)
             }

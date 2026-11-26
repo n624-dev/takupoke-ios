@@ -1,5 +1,5 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Font acceptance is unchanged; the CMap receives its caller's cancellation check.
+// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
 import Foundation
 #if canImport(CoreGraphics)
 import CoreGraphics
@@ -34,7 +34,7 @@ extension PDF239DrawnTextReader {
         }
         var format = CGPDFDataFormat.raw
         guard let data = CGPDFStreamCopyData(mapStream, &format), format == .raw else { throw PDF239TextFailure.unsupported(.b289) }
-        let mapping = try PDF239UnicodeMap.read(data as Data, check: engine.check)
+        let mapping = try PDF239UnicodeMap.read(data as Data)
         var metrics = dict
         let composite = named(dict, "Subtype") == "Type0"
         if composite {

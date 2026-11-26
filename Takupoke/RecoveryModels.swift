@@ -85,7 +85,6 @@ struct RecoveryOCRCoveragePage: Codable, Equatable, Sendable {
     var page: Int; var width: Int; var height: Int; var grayscaleSHA256: String
 }
 struct RecoveryOCRCoverageProof: Codable, Equatable, Sendable {
-    static let currentVersion = 2
     var version: Int; var pages: [RecoveryOCRCoveragePage]
 }
 struct RecoveryDocument: Codable, Equatable, Sendable {
@@ -205,23 +204,6 @@ extension RecoveryClockBinding {
 }
 
 final class RecoverySourceCapture { var source: RecoverySelectedSource? }
-
-enum RecoveryAdoptionResult { case saved, retryableFailure, invalidated }
-
-/// Records a storage error on the import worker for the completion handler.
-final class RecoverySaveAttempt {
-    private var failed = false
-
-    func persist(_ body: () throws -> Void) throws {
-        do { try body() }
-        catch { failed = true; throw error }
-    }
-
-    func result(saved: Bool) -> RecoveryAdoptionResult {
-        if saved { return .saved }
-        return failed ? .retryableFailure : .invalidated
-    }
-}
 
 /// Canonical comparison also used by the dependency-free persistence checks.
 extension JSONEncoder {

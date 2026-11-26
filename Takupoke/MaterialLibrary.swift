@@ -5,7 +5,7 @@ import Foundation
 final class MaterialLibrary {
     static let maximumBytes = 50 * 1024 * 1024
     private let root: URL
-    let files: URL
+    private let files: URL
     private let staging: URL
     private let manifest: URL
     private let persistence: MaterialLibraryPersistence?
@@ -89,13 +89,9 @@ final class MaterialLibrary {
         state = next
     }
 
-    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
-        let attempt = AcquisitionAttempt(date: Date(), failure: message, cancelled: cancelled)
-        // Cancelling a retry leaves a failed first Changes import unresolved.
-        if kind == .changes, !attempt.failedToAcquire, state.record(for:kind) == nil,
-           state.attempts[kind.rawValue]?.failedToAcquire == true { return }
+    func recordFailure(_ kind: MaterialKind, message: String) throws {
         var next = state
-        next.attempts[kind.rawValue] = attempt
+        next.attempts[kind.rawValue] = AcquisitionAttempt(date: Date(), failure: message)
         try persist(next)
     }
 
@@ -113,16 +109,13 @@ final class MaterialLibrary {
     }
 
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
-                originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false,
-                legacyChangeSettings: PersonalChangeSettings? = nil) throws {
+                originalName: String, byteCount: Int, digest: String, modifiedAt: Date?, reuseUnchanged: Bool = false) throws {
         var source = source
         if reuseUnchanged, let old = state.record(for: kind) {
-            source.personalChanges = old.source.personalChanges ?? (kind == .changes ? legacyChangeSettings : nil)
-            source.selectionID = old.source.selectionID ?? (kind == .changes ? old.storedName : nil)
+            source.selectionID = old.source.selectionID
             source.weekdayConsent = old.digest == digest ? old.source.weekdayConsent : nil
             source.rowSkipConsent = old.digest == digest ? old.source.rowSkipConsent : nil
         } else {
-            source.personalChanges = nil
             source.selectionID = UUID().uuidString
             source.weekdayConsent = nil
             source.rowSkipConsent = nil
@@ -131,14 +124,12 @@ final class MaterialLibrary {
               byteCount > 0, byteCount <= Self.maximumBytes else { throw MaterialError.invalidFile }
         if reuseUnchanged, let index = state.records.firstIndex(where: { $0.kind == kind }),
            state.records[index].digest == digest, state.records[index].byteCount == byteCount,
-           state.records[index].originalName == originalName,
-           FileManager.default.fileExists(atPath: files.appendingPathComponent(state.records[index].storedName).path) {
+           state.records[index].originalName == originalName {
             var next = state
             let now = Date()
             next.records[index].source = source
             next.records[index].sourceModifiedAt = modifiedAt
             next.records[index].lastCheckedAt = now
-            next.records[index].lastAcquiredAt = now
             next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
             try persist(next)
             return
@@ -147,14 +138,11 @@ final class MaterialLibrary {
         let destination = files.appendingPathComponent(name)
         try FileManager.default.moveItem(at: staged, to: destination)
         var next = state
-        // A failure from another provider selection does not describe this file,
-        // even when its bytes match. Retain the last accepted analysis separately.
-        if kind == .changes && !reuseUnchanged { next.changeParseAttempt = nil }
         let now = Date()
         next.records.removeAll { $0.kind == kind }
         next.records.append(MaterialRecord(kind: kind, source: source, originalName: originalName,
                                            storedName: name, byteCount: byteCount, digest: digest,
-                                           sourceModifiedAt: modifiedAt, acquiredAt: now, lastAcquiredAt: now, lastCheckedAt: now))
+                                           sourceModifiedAt: modifiedAt, acquiredAt: now, lastCheckedAt: now))
         next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
         do {
             #if os(iOS)
@@ -174,19 +162,6 @@ final class MaterialLibrary {
 
     func localURL(for kind: MaterialKind) -> URL? {
         state.record(for: kind).map { files.appendingPathComponent($0.storedName) }
-    }
-
-
-    func retirePipelineFiles(_ names: Set<String>) {
-        guard !names.isEmpty, let database = persistence as? LocalMaterialDatabase else { return }
-        let directory = files
-        DispatchQueue.global(qos: .utility).async {
-            // GRDB serializes this read. Failure conservatively retains originals.
-            guard let keep = try? database.retainedStoredNames() else { return }
-            for name in names where !keep.contains(name) {
-                try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
-            }
-        }
     }
 
     private func removeUnreferencedFiles() throws {

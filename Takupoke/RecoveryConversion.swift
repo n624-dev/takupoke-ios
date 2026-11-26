@@ -7,8 +7,6 @@ import Crypto
 
 /// One verified payload goes through the existing transactional Analysis save.
 enum RecoveryConversion {
-    private static let firstSpecialVersionWithFullPeriodHeadings = 39
-
     /// Same-hash acquisition skips require the saved formal projection and its
     /// recovery scope to remain proved; strict analyses use the existing path.
     static func trustsAcquisitionCache(_ analysis:PDFAnalysis,hash:String) -> Bool {
@@ -44,14 +42,6 @@ enum RecoveryConversion {
         }
         return PDFAnalysis(kind:.timetable,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:preview.document.schoolYear,term:preview.document.term,lessons:lessons.map(PDFClassAssignment.assign),events:[],notices:["端末内の復旧結果を確認して採用しました。"],recovery:adopted)
     }
-    static func special(_ preview: RecoveryPreview, selected source: SpecialScheduleSource) throws -> SpecialScheduleAnalysis {
-        guard preview.document.kind == (source.kind == .exam ? .exam : .return),
-              preview.source.storedName == source.storedName, preview.source.digest == source.digest,
-              preview.document.pdfHash == source.digest else { throw PDFParseError(code:.storage) }
-        var current = preview
-        current.source.originalName = source.originalName
-        return try special(current)
-    }
     static func special(_ preview: RecoveryPreview, remapFirstYear: Bool = true) throws -> SpecialScheduleAnalysis {
         guard preview.document.kind != .timetable else { throw PDFParseError(code:.storage) }
         let adopted = try adopted(preview), doc = preview.document
@@ -68,33 +58,19 @@ enum RecoveryConversion {
         }
         guard let day = doc.days.sorted().first else { throw PDFParseError(code:.storage) }
         let periodTimes = Dictionary(uniqueKeysWithValues:(1...(doc.kind == .exam ? 6 : 8)).compactMap { p in doc.times["\(day):\(p)"].map { (p,$0) } })
-        let scopes = Dictionary(grouping:doc.cells,by: \.page).keys.sorted().map { page -> SpecialScheduleScope in
-            let slots = doc.cells.filter { $0.page == page }.flatMap(\.slots)
-            return SpecialScheduleScope(page:page,classes:Array(Set(slots.map(\.className))).sorted(),dates:Array(Set(slots.map(\.day))).sorted())
-        }
-        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted,scopes:scopes)
+        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted)
     }
     static func recertifiedSpecial(_ analysis: SpecialScheduleAnalysis, hash: String) throws -> SpecialScheduleAnalysis? {
-        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash,
-              let original = analysis.recovery else { return nil }
-        // Older vector recovery could bind an explicit clock to only the suffix
-        // of its period list. Re-read the PDF before using a lesson with that evidence.
-        if analysis.version < firstSpecialVersionWithFullPeriodHeadings, original.document.ocrCoverageProof == nil,
-           analysis.lessons.contains(where: { lesson in
-               guard lesson.spanStart < lesson.spanEnd else { return false }
-               let key = "\(lesson.date):\(lesson.spanStart)-\(lesson.spanEnd)"
-               return original.document.clockBindings[key]?.derivedSpan == false
-           }) { return nil }
-        guard let current = try RecoveryValidator.recertify(original,hash:hash),
+        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash, let original = analysis.recovery,
+              let current = try RecoveryValidator.recertify(original,hash:hash),
               let first = current.document.days.sorted().first, let day = SchoolDate(iso8601:first) else { return nil }
         let source = RecoverySelectedSource(kind:current.document.kind,url:URL(fileURLWithPath:"/"),digest:hash,originalName:analysis.sourceName,storedName:"",period:SchoolDataPeriod(day:day))
         let projection = try special(RecoveryPreview(document:current.document,result:current.result,source:source), remapFirstYear: analysis.version >= 31)
         guard analysis.kind == projection.kind, analysis.schoolYear == projection.schoolYear,
               analysis.coveredDates == projection.coveredDates, analysis.coveredClasses == projection.coveredClasses,
               analysis.periodTimes == projection.periodTimes, analysis.lessons == projection.lessons,
-              (analysis.version < 35 && analysis.scopes == nil || analysis.scopes == projection.scopes),
               analysis.parsedAt == original.acceptance.acceptedAt else { return nil }
-        var next = analysis; next.version = SpecialScheduleAnalysis.parserVersion; next.lessons = projection.lessons.map(PDFClassAssignment.assign); next.recovery = current; next.scopes = projection.scopes
+        var next = analysis; next.version = SpecialScheduleAnalysis.parserVersion; next.lessons = projection.lessons.map(PDFClassAssignment.assign); next.recovery = current
         return next
     }
     static func verifyFile(_ source: RecoverySelectedSource, currentPeriod: () -> SchoolDataPeriod = { SchoolDataPeriod.current() }, check: () throws -> Void) throws {

@@ -1,5 +1,5 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Includes the documented whole numeric token fix; no recovery proof is implied.
+// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
 import Foundation
 
 extension PDF239SpecialScheduleParser {
@@ -12,13 +12,7 @@ extension PDF239SpecialScheduleParser {
         for row in PDF239Grid.rows(page.glyphs) {
             let value = PDF239SchoolParser.key(row.map(\.text).joined())
             let ns = value as NSString
-            let singles = pattern.matches(in: value, range: NSRange(location: 0, length: ns.length))
-            let pairs = consecutivePattern.matches(in: value, range: NSRange(location: 0, length: ns.length))
-            let whole = wholeNumericHeadings(singles + pairs, in: ns)
-            guard whole.count == singles.count + pairs.count else {
-                throw PDFParseError(code: .ambiguous, page: pageNumber, stage: .periodHeading, branch:.b424)
-            }
-            for match in singles {
+            for match in pattern.matches(in: value, range: NSRange(location: 0, length: ns.length)) {
                 let period = Int(ns.substring(with: match.range(at: 1)))!
                 let start = ns.substring(with: match.range(at: 2))
                 let end = ns.substring(with: match.range(at: 3))
@@ -30,7 +24,7 @@ extension PDF239SpecialScheduleParser {
                 times[period] = String(format: "%02d:%02d〜%02d:%02d",
                                        startTime / 60, startTime % 60, endTime / 60, endTime % 60)
             }
-            for match in pairs {
+            for match in consecutivePattern.matches(in: value, range: NSRange(location: 0, length: ns.length)) {
                 let first = Int(ns.substring(with: match.range(at: 1)))!
                 let last = Int(ns.substring(with: match.range(at: 2)))!
                 let start = ns.substring(with: match.range(at: 3))
@@ -49,54 +43,6 @@ extension PDF239SpecialScheduleParser {
             throw PDFParseError(code: .unsupported, page: pageNumber, stage: .periodHeading, branch:.b405)
         }
         return Times(single: times, consecutive: consecutive)
-    }
-
-    private static func wholeNumericHeadings(_ input: [NSTextCheckingResult], in text: NSString) -> Set<NSRange> {
-        guard !input.isEmpty else { return [] }
-        let matches = input.sorted { $0.range.location < $1.range.location }
-        let units = Array((text as String).utf16)
-        var accepted = Set<NSRange>()
-        var first = 0
-        while first < matches.count {
-            var next = first + 1
-            // Space normalization can place two complete headings directly next
-            // to each other. Their shared edge is a real grammar boundary.
-            while next < matches.count && NSMaxRange(matches[next - 1].range) == matches[next].range.location {
-                next += 1
-            }
-            let start = matches[first].range.location
-            let end = NSMaxRange(matches[next - 1].range)
-            let startsInNumber = isDecimalDigit(units, at: start - 1)
-            // A dot after an unmatched digit belongs to a longer period list.
-            // A dot separating two complete headings is independent punctuation.
-            let followsHeading = first > 0 && NSMaxRange(matches[first - 1].range) == start - 1
-            let startsInPeriodList = start >= 2 && (units[start - 1] == 0x30FB || units[start - 1] == 0xFF65)
-                && isDecimalDigit(units, at: start - 2) && !followsHeading
-            let endsInNumber = isDecimalDigit(units, at: end)
-            // A colon or decimal point followed by a number extends the clock.
-            let clockContinues = units.indices.contains(end) && (units[end] == 0x3A || units[end] == 0x2E)
-                && isDecimalDigit(units, at: end + 1)
-            if !startsInNumber && !startsInPeriodList && !endsInNumber && !clockContinues {
-                for index in first..<next { accepted.insert(matches[index].range) }
-            }
-            first = next
-        }
-        return accepted
-    }
-
-    private static func isDecimalDigit(_ units: [UInt16], at index: Int) -> Bool {
-        guard units.indices.contains(index) else { return false }
-        var start = index
-        if (0xDC00...0xDFFF).contains(units[start]), start > 0,
-           (0xD800...0xDBFF).contains(units[start - 1]) { start -= 1 }
-        let first = UInt32(units[start])
-        let value: UInt32
-        if (0xD800...0xDBFF).contains(first), start + 1 < units.count,
-           (0xDC00...0xDFFF).contains(UInt32(units[start + 1])) {
-            value = 0x10000 + ((first - 0xD800) << 10) + UInt32(units[start + 1]) - 0xDC00
-        } else { value = first }
-        guard let scalar = Unicode.Scalar(value) else { return false }
-        return CharacterSet.decimalDigits.contains(scalar)
     }
 
     private static func clockMinutes(_ text: String) -> Int? {

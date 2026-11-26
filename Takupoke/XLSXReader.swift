@@ -9,8 +9,6 @@ enum XLSXReader {
     struct PreviewTable {
         var rows: [[String]]
         var warnings: [ChangeParseError]
-        var workbook: ChangeEditTable? = nil
-        var defaultYear: Int? = nil
 
         var reviewRows: [ChangeReviewRow] {
             guard let header = try? ChangeNormalizer.headerIndex(rows) else { return [] }
@@ -19,9 +17,7 @@ enum XLSXReader {
                 let cells = rows[number - 1]
                 let fields = cells.enumerated().compactMap { column, value -> ChangeReviewField? in
                     guard !ChangeNormalizer.text(value).isEmpty else { return nil }
-                    let title = rows[header].indices.contains(column) ? rows[header][column] : "列\(column + 1)"
-                    return ChangeReviewField(title: title, value: title == "月日" ?
-                        ChangeNormalizer.readableDate(value, defaultYear: defaultYear) ?? "月日を確認" : value)
+                    return ChangeReviewField(title: rows[header].indices.contains(column) ? rows[header][column] : "列\(column + 1)", value: value)
                 }
                 return ChangeReviewRow(id: number, warning: warning, fields: fields)
             }
@@ -59,17 +55,12 @@ enum XLSXReader {
     // Only weekday warnings are recoverable for display. All other structural
     // checks still apply, and this entry point never persists a successful result.
     static func readForPreview(_ url: URL, defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> PreviewTable {
-        do {
-            return try withSheet(url, requested: "時間割変更", editing: false, check: check) { sheet, strings, _, _, epoch, formats in
-                try readSheet(sheet, strings: strings, defaultYear: defaultYear, uses1904: epoch, formats: formats, check: check)
-            }
-        }
+        do { return try readArchive(url, defaultYear: defaultYear, check: check) }
         catch let error as ChangeParseError { throw error }
         catch { throw ChangeParseError(code: .invalidArchive) }
     }
 
-    static func withSheet<T>(_ url: URL, requested: String?, editing: Bool, check: @escaping () throws -> Void,
-                             body: (XMLNode, [String], [String], String, Bool, [Int: Bool]) throws -> T) throws -> T {
+    private static func readArchive(_ url: URL, defaultYear: Int?, check: @escaping () throws -> Void) throws -> PreviewTable {
         try check()
         guard let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
               size > 0, size <= 50 * 1024 * 1024 else { throw ChangeParseError(code: .limit) }
@@ -99,20 +90,15 @@ enum XLSXReader {
                 data.append(chunk)
             }
             guard data.count == entry.uncompressedSize, crc == entry.checksum else { throw ChangeParseError(code: .invalidArchive) }
-            return try BoundedXML.parse(data, root: root, namespace: namespace, retainFormulaText: editing && root == "worksheet", check: check)
+            return try BoundedXML.parse(data, root: root, namespace: namespace, check: check)
         }
         let workbook = try xml("xl/workbook.xml", root: "workbook", namespace: spreadsheet)
-        let setting = workbook.child("workbookPr")?.attributes["date1904"] ?? "0"
-        let uses1904 = ["1", "true"].contains(setting)
-        if !["0", "false", "1", "true"].contains(setting) {
+        if let setting = workbook.child("workbookPr")?.attributes["date1904"], !["0", "false"].contains(setting) {
             throw ChangeParseError(code: .dateSystem)
         }
         guard workbook.child("externalReferences") == nil else { throw ChangeParseError(code: .unsupported) }
-        let sheets = workbook.child("sheets")?.children.filter { $0.name == "sheet" } ?? []
-        let names = sheets.compactMap { $0.attributes["name"] }
-        let chosen = requested ?? (names.contains("時間割変更") ? "時間割変更" : names.first)
-        let matching = sheets.filter { $0.attributes["name"] == chosen }
-        guard let chosen, matching.count == 1, let id = matching[0].attributes["{\(documentRelationships)}id"] else {
+        let sheets = workbook.child("sheets")?.children.filter { $0.name == "sheet" && $0.attributes["name"] == "時間割変更" } ?? []
+        guard sheets.count == 1, let id = sheets[0].attributes["{\(documentRelationships)}id"] else {
             throw ChangeParseError(code: .missingSheet)
         }
         let rels = try xml("xl/_rels/workbook.xml.rels", root: "Relationships", namespace: relationships)
@@ -136,28 +122,7 @@ enum XLSXReader {
             }
         }
         let sheet = try xml(path, root: "worksheet", namespace: spreadsheet)
-        var formats: [Int: Bool] = [:]
-        if entries["xl/styles.xml"] != nil {
-            let styles = try xml("xl/styles.xml", root: "styleSheet", namespace: spreadsheet)
-            var custom: [Int: String] = [:]
-            for format in styles.child("numFmts")?.children ?? [] {
-                if let id = Int(format.attributes["numFmtId"] ?? "") { custom[id] = format.attributes["formatCode"] }
-            }
-            for (style, xf) in (styles.child("cellXfs")?.children ?? []).enumerated() {
-                guard let id = Int(xf.attributes["numFmtId"] ?? "") else { continue }
-                if [14, 15, 16, 17, 27, 28, 29, 30, 31, 34, 35, 36, 50, 51, 52, 53, 54, 57, 58].contains(id) {
-                    formats[style] = false
-                } else if id == 22 { formats[style] = true }
-                else if let format = custom[id] {
-                    let code = ChangeNormalizer.replace(format.lowercased(), #""[^"]*"|\\.|\[[^\]]*\]"#, "")
-                    if (code.contains("y") && (code.contains("d") || code.contains("m"))) ||
-                        (code.contains("d") && code.contains("m")) {
-                        formats[style] = code.contains("h") || code.contains("s")
-                    }
-                }
-            }
-        }
-        return try body(sheet, strings, names, chosen, uses1904, formats)
+        return try readSheet(sheet, strings: strings, defaultYear: defaultYear, check: check)
     }
 
 }
@@ -165,15 +130,6 @@ enum XLSXReader {
 // A preview is read-only and is available only for the exact source/year of a
 // failed weekday check. Kept with the reader so this path is tested on Linux too.
 extension MaterialLibrary {
-    /// Preserve the existing legacy identity before a provider refresh can
-    /// replace the local copy's filename. This applies to XLSX selection only.
-    func stabilizeLegacyChangeSelection() throws {
-        guard let index = state.records.firstIndex(where: { $0.kind == .changes }),
-              state.records[index].source.selectionID == nil else { return }
-        var next = state
-        next.records[index].source.selectionID = next.records[index].storedName
-        try persist(next)
-    }
     /// Retain the decision while checking the current original. Only a complete
     /// successful parse can replace it and the last good result atomically.
     func reanalyzeChanges(defaultYear: Int?, dateDerivedWeekdays: Bool = false,
@@ -186,10 +142,9 @@ extension MaterialLibrary {
         var skip = record.source.rowSkipConsent.flatMap {
             $0.identifies(sourceIdentity: identity, digest: record.digest, defaultYear: defaultYear) ? $0 : nil
         }
-        let table = try XLSXReader.readForPreview(url, defaultYear: defaultYear, check: check)
-        let rows = try table.acceptedRows(defaultYear: defaultYear, check: check,
+        let rows = try XLSXReader.read(url, defaultYear: defaultYear, check: check,
             dateDerivedWeekdays: dateDerivedWeekdays, skippingRows: Set(skip?.rows ?? []))
-        let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check, sourceRows: table.workbook?.rows, workbook: table.workbook)
+        let changes = try ChangeNormalizer.parse(rows, defaultYear: defaultYear, check: check)
         skip?.parserVersion = ChangeAnalysis.parserVersion
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
             defaultYear: defaultYear, parsedAt: Date(), records: changes)
@@ -203,52 +158,40 @@ extension MaterialLibrary {
         catch { throw ChangeParseError(code: .storage) }
     }
 
-    func previewChanges(defaultYear: Int? = nil, check: @escaping () throws -> Void = {}) throws -> ChangePreview {
-        let previewYear = defaultYear ?? state.changeParseAttempt?.defaultYear
+    func previewChanges(check: @escaping () throws -> Void = {}) throws -> ChangePreview {
         guard let record = state.record(for: .changes),
-              let attempt = state.changeParseAttempt,
-              ((attempt.defaultYear == previewYear && attempt.failure.map({ $0.permitsPreview || [.cancelled, .storage, .staleConfirmation].contains($0.code) }) == true) ||
-               record.source.rowSkipConsent?.matches(sourceIdentity: record.source.selectionID ?? record.storedName,
-                   digest: record.digest, defaultYear: previewYear) == true),
+              let attempt = state.changeParseAttempt, attempt.failure?.permitsPreview == true,
               attempt.sourceDigest == record.digest,
-              attempt.parserVersion == ChangeAnalysis.parserVersion,
               let url = localURL(for: .changes) else { throw ChangeParseError(code: .unsupported) }
-        let table = try XLSXReader.readForPreview(url, defaultYear: previewYear, check: check)
+        let table = try XLSXReader.readForPreview(url, defaultYear: attempt.defaultYear, check: check)
         let placeholders = Set(table.warnings.filter { $0.code == .weekdayOnly }.compactMap(\.row))
-        let records = try ChangeNormalizer.parse(table.rowsExcluding(placeholders), defaultYear: previewYear,
-                                                check: check, allowEmptyPreview: true, sourceRows: table.workbook?.rows, workbook: table.workbook)
+        let records = try ChangeNormalizer.parse(table.rowsExcluding(placeholders), defaultYear: attempt.defaultYear,
+                                                check: check, allowEmptyPreview: true)
         try check()
-        return ChangePreview(sourceName: record.originalName, defaultYear: previewYear,
+        return ChangePreview(sourceName: record.originalName, defaultYear: attempt.defaultYear,
                              records: records, warnings: table.warnings, sourceIdentity: record.source.selectionID ?? record.storedName,
-                             sourceDigest: record.digest, reviewRows: table.reviewRows,
-                             excludedRows: record.source.rowSkipConsent.flatMap {
-                                 $0.matches(sourceIdentity: record.source.selectionID ?? record.storedName,
-                                            digest: record.digest, defaultYear: previewYear) ? Set($0.rows) : nil
-                             } ?? [], usesDateDerivedWeekdays: record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: previewYear) == true)
+                             sourceDigest: record.digest, reviewRows: table.reviewRows)
     }
 
     func applyRowSkips(_ preview: ChangePreview, rows: Set<Int>, defaultYear: Int,
-                      correctWeekdays: Bool = false,
                       check: @escaping () throws -> Void = {}) throws {
         guard preview.canSkipRows, preview.defaultYear == defaultYear,
               preview.parserVersion == ChangeAnalysis.parserVersion,
               let record = state.record(for: .changes), record.digest == preview.sourceDigest,
               (record.source.selectionID ?? record.storedName) == preview.sourceIdentity,
-              let url = localURL(for: .changes), !rows.isEmpty || correctWeekdays ||
-                record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true else { throw ChangeParseError(code: .staleConfirmation) }
+              let url = localURL(for: .changes), !rows.isEmpty else { throw ChangeParseError(code: .cancelled) }
         let table = try XLSXReader.readForPreview(url, defaultYear: defaultYear, check: check)
-        guard table.reviewRows == preview.reviewRows, table.warnings == preview.warnings else { throw ChangeParseError(code: .staleConfirmation) }
+        guard table.reviewRows == preview.reviewRows, table.warnings == preview.warnings else { throw ChangeParseError(code: .cancelled) }
         let identity = record.source.selectionID ?? record.storedName
-        let useDate = correctWeekdays || record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
+        let useDate = record.source.weekdayConsent?.matches(digest: record.digest, defaultYear: defaultYear) == true
         let filtered = try table.acceptedRows(defaultYear: defaultYear, check: check, dateDerivedWeekdays: useDate, skippingRows: rows)
-        let records = try ChangeNormalizer.parse(filtered, defaultYear: defaultYear, check: check, sourceRows: table.workbook?.rows, workbook: table.workbook)
+        let records = try ChangeNormalizer.parse(filtered, defaultYear: defaultYear, check: check)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName,
                                       defaultYear: defaultYear, parsedAt: Date(), records: records)
-        analysis.weekdayConsent = useDate ? ChangeWeekdayConsent(digest: record.digest, defaultYear: defaultYear,
-                                                               parserVersion: ChangeAnalysis.parserVersion) : nil
-        analysis.rowSkipConsent = rows.isEmpty ? nil : ChangeRowSkipConsent(sourceIdentity: identity, digest: record.digest,
+        analysis.weekdayConsent = useDate ? record.source.weekdayConsent : nil
+        analysis.rowSkipConsent = ChangeRowSkipConsent(sourceIdentity: identity, digest: record.digest,
             defaultYear: defaultYear, parserVersion: ChangeAnalysis.parserVersion, rows: rows.sorted())
         try check()
-        try saveChangeAnalysis(analysis, authorizeWeekdayCorrection: correctWeekdays, authorizeRowSkip: true)
+        try saveChangeAnalysis(analysis, authorizeRowSkip: true)
     }
 }

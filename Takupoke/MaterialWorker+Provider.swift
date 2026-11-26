@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 extension MaterialWorker {
     func grant(for url: URL) throws -> SourceGrant {
@@ -22,18 +23,73 @@ extension MaterialWorker {
         return try selection.access(body)
     }
 
+    private func coordinated<T>(_ url: URL, control: AcquisitionControl,
+                                read: (URL) throws -> T) throws -> T {
+        try control.check()
+        let access = SelectedFilePresenter.readAccess(for: url)
+        let coordinator = access.coordinator
+        control.attach(coordinator)
+        defer { control.attach(nil) }
+        var coordinationError: NSError?
+        var result: Result<T, Error>?
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { safeURL in
+            result = Result {
+                try access.read(at: safeURL) {
+                    try control.check()
+                    let value = try read(safeURL)
+                    try control.check()
+                    return value
+                }
+            }
+        }
+        try control.check()
+        if let error = coordinationError { throw error }
+        guard let result = result else { throw MaterialError.unavailable }
+        return try result.get()
+    }
+
     func copyProviderFile(_ url: URL, to staged: URL, kind: MaterialKind,
-                          control: AcquisitionControl) throws -> (count: Int, digest: String, modified: Date?, receipt: SelectedFilePresenter.ReadReceipt) {
+                                  control: AcquisitionControl) throws -> (Int, String, Date?) {
         do {
-            let copy = try control.provider.copy(url, to: staged, source: .init(rawValue: kind.rawValue), workbook: kind == .changes, control: control)
-            return (copy.count, copy.digest, copy.modifiedAt, copy.receipt)
-        } catch { try control.check(); throw (error as? MaterialError) ?? MaterialError.providerReadFailed }
+            return try coordinated(url, control: control) { file in
+                let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey])
+                guard values.isRegularFile == true, values.isSymbolicLink != true else { throw MaterialError.invalidFile }
+                let result = try readMaterial(file, copyingTo: staged, kind: kind, control: control)
+                return (result.0, result.1, values.contentModificationDate)
+            }
+        } catch {
+            throw (error as? MaterialError) ?? MaterialError.providerReadFailed
+        }
     }
 
     func readMaterial(_ file: URL, copyingTo staged: URL?, kind: MaterialKind,
                               control: AcquisitionControl) throws -> (Int, String) {
-        let receipt = try MaterialFileReader.copy(file, to: staged, isWorkbook: kind == .changes,
-                                                  check: control.check, progress: { control.pipelineTicket?.progress() }, digesting: { control.pipelineTicket?.enter(.checkingDigest) })
-        return (receipt.count, receipt.digest)
+        let input = try FileHandle(forReadingFrom: file)
+        defer { try? input.close() }
+        var output: FileHandle?
+        if let staged = staged {
+            guard FileManager.default.createFile(atPath: staged.path, contents: nil) else { throw MaterialError.unavailable }
+            output = try FileHandle(forWritingTo: staged)
+        }
+        defer { try? output?.close() }
+        var hasher = SHA256()
+        var count = 0
+        var header = Data()
+        while let chunk = try input.read(upToCount: 64 * 1024), !chunk.isEmpty {
+            try control.check()
+            count += chunk.count
+            guard count <= MaterialLibrary.maximumBytes else { throw MaterialError.tooLarge }
+            if header.count < 8 { header.append(chunk.prefix(8 - header.count)) }
+            hasher.update(data: chunk)
+            try output?.write(contentsOf: chunk)
+        }
+        guard count > 0 else { throw MaterialError.invalidFile }
+        if kind == .changes {
+            guard header.starts(with: [0x50, 0x4b, 0x03, 0x04]) else { throw MaterialError.invalidFile }
+        } else {
+            guard header.starts(with: Array("%PDF-".utf8)) else { throw MaterialError.invalidFile }
+        }
+        try output?.synchronize()
+        return (count, hasher.finalize().map { String(format: "%02x", $0) }.joined())
     }
 }

@@ -39,18 +39,16 @@ extension TimetableView {
     func dayHeaderCell(_ column: DayGridLayout) -> some View {
         dayHeader(on: column.day, hasFullDayCard: column.fullDayEventTitle != nil)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(width: column.width, alignment: .top)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .background {
-                let shape = RoundedRectangle(cornerRadius: 10)
-                if column.day == today { shape.fill(weekControlColor).opacity(0.14) }
-                else { shape.fill(Color(uiColor: .secondarySystemGroupedBackground)) }
-            }
+            .frame(width: column.width, height: dayHeaderHeight > 0 ? dayHeaderHeight : nil,
+                   alignment: .top)
+            .background(column.day == today ? Color.accentColor.opacity(0.14) :
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 10))
             .accessibilityIdentifier("timetable-day-\(column.day.iso8601)")
     }
 
     private func dayHeader(on day: SchoolDate, hasFullDayCard: Bool) -> some View {
-        let plan = daySchedule.sourceIndex.plan(on:day)
+        let plan = TimetableSchedule.dayPlan(on: day, events: events)
         return VStack(alignment: .center, spacing: 2) {
             VStack(spacing: 0) {
                 Text("\(day.month)/\(day.day)").font(.subheadline.bold().monospacedDigit())
@@ -60,9 +58,6 @@ extension TimetableView {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(day.month)月\(day.day)日、\(weekdayNames[day.schoolWeekday - 1])曜日" +
                                 (day == today ? "、今日" : ""))
-            if let warning = plan.weekdayOverrideWarning {
-                InlineWarning(warning)
-            }
             ForEach(Array(plan.headerEvents(hasFullDayCard: hasFullDayCard).enumerated()), id: \.offset) { _, event in
                 Text(TimetableDisplayText.kana(event.title))
                     .font(.caption2)
@@ -72,17 +67,33 @@ extension TimetableView {
             if plan.apiTest && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .exam && $0.applies(date: day.iso8601, className: className) }
             }) {
-                InlineWarning("試験時間割：未公開または未解析です")
+                Text("試験時間割：未公開または未解析です")
+                    .font(.caption2).foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if plan.apiTestReturn && selectedClasses.contains(where: { className in
                 !specials.contains { $0.kind == .examReturn && $0.applies(date: day.iso8601, className: className) }
             }) {
-                InlineWarning("試験返却時間割：未公開または未解析です")
+                Text("試験返却時間割：未公開または未解析です")
+                    .font(.caption2).foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(3)
         .frame(maxWidth: .infinity, alignment: .center)
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: DayHeaderHeightKey.self, value: proxy.size.height)
+        })
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct DayHeaderHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

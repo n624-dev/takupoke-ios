@@ -2,17 +2,13 @@ import SwiftUI
 
 @main
 struct TakupokeApp: App {
-    @MainActor init() {
-        // Install the notification delegate before SwiftUI builds the root view,
-        // including a cold launch started by tapping a pending notice.
-        _ = ApplicationData.shared.notifications
-    }
+    @AppStorage(MainColor.storageKey) private var mainColor = MainColor.systemDefault.rawValue
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\.timeZone, JapaneseDateDisplay.timeZone)
-                .modifier(MainColorScope())
+                .tint((MainColor(rawValue: mainColor) ?? .systemDefault).color)
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
             BackgroundRefresh.schedule()

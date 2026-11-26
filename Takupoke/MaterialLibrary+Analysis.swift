@@ -9,17 +9,6 @@ extension MaterialLibrary {
             if let proved = try? RecoveryValidator.recertifiedTimetable(analysis,hash:analysis.sourceDigest) { visible.pdfAnalyses?[key] = proved }
             else { visible.pdfAnalyses?.removeValue(forKey:key); rejected.insert(key) }
         }
-        if var old = state.changeAnalysis, old.version < 13,
-           let source = state.record(for: .changes),
-           let saved = source.source.personalChanges?.rows,
-           old.sourceDigest == saved.digest, old.defaultYear == saved.defaultYear,
-           saved.sourceIdentity == (source.source.selectionID ?? source.storedName) {
-            let originals = saved.readableOriginals()
-            for index in old.records.indices where old.records[index].readableOriginal == nil {
-                old.records[index].readableOriginal = originals[old.records[index].raw_text]
-            }
-            visible.changeAnalysis = old
-        }
         return (visible,rejected)
     }
 
@@ -51,15 +40,13 @@ extension MaterialLibrary {
         } else if let index = next.records.firstIndex(where: { $0.kind == .changes }),
                   let saved = next.records[index].source.rowSkipConsent {
             // A success must never silently omit the exclusions used to obtain it.
-            guard authorizeRowSkip || !saved.identifies(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
+            guard !saved.identifies(sourceIdentity: next.records[index].source.selectionID ?? next.records[index].storedName,
                                    digest: analysis.sourceDigest, defaultYear: analysis.defaultYear) else {
                 throw ChangeParseError(code: .storage)
             }
             next.records[index].source.rowSkipConsent = nil
         }
-        var accepted = analysis
-        accepted.sourceModifiedAt = state.record(for: .changes)?.sourceModifiedAt
-        next.changeAnalysis = accepted
+        next.changeAnalysis = analysis
         next.changeParseAttempt = ChangeParseAttempt(date: analysis.parsedAt, sourceDigest: analysis.sourceDigest,
                                                      defaultYear: analysis.defaultYear, failure: nil, parserVersion: ChangeAnalysis.parserVersion)
         try persist(next)
@@ -100,19 +87,12 @@ extension MaterialLibrary {
     }
 
     func recordPDFFailure(_ error: PDFParseError, kind: MaterialKind) throws {
-        let parserVersion = PDFAnalysis.currentVersion(for: kind)
-        let source = state.record(for: kind)
-        if kind == .timetable, error.code == .cancelled, let source,
-           let previous = state.pdfParseAttempts?[kind.rawValue], previous.recoveryJob?.state == .pending,
-           RecoveryPolicy.mayRecover(digest: source.digest, kind: .timetable, parserVersion: parserVersion,
-                                     attemptDigest: previous.sourceDigest, attemptVersion: previous.parserVersion,
-                                     failure: previous.failure, job: previous.recoveryJob) { return }
         var next = state
         var attempts = next.pdfParseAttempts ?? [:]
-        attempts[kind.rawValue] = PDFParseAttempt(date: Date(), sourceDigest: source?.digest, failure: error,
-            recoveryJob: kind == .timetable && RecoveryPolicy.eligible(error) && !(state.pdfAnalyses?[kind.rawValue]?.version == parserVersion && RecoveryValidator.previouslyAccepted(state.pdfAnalyses?[kind.rawValue]?.recovery, hash:source?.digest ?? "")) ? source.map {
+        attempts[kind.rawValue] = PDFParseAttempt(date: Date(), sourceDigest: state.record(for: kind)?.digest, failure: error,
+            recoveryJob: kind == .timetable && RecoveryPolicy.eligible(error) && !(state.pdfAnalyses?[kind.rawValue]?.version == PDFAnalysis.currentVersion(for:kind) && RecoveryValidator.previouslyAccepted(state.pdfAnalyses?[kind.rawValue]?.recovery, hash:state.record(for:kind)?.digest ?? "")) ? state.record(for: kind).map {
                 RecoveryJob(pdfHash: $0.digest, kind: .timetable, state: .pending, createdAt: Date())
-            } : nil, parserVersion: parserVersion)
+            } : nil, parserVersion: PDFAnalysis.currentVersion(for: kind))
         next.pdfParseAttempts = attempts
         try persist(next)
     }

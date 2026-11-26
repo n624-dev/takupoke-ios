@@ -5,13 +5,7 @@ import SwiftUI
 final class LinksModel: ObservableObject {
     @Published private(set) var updateAvailable = false
     private var generation = UUID()
-    @Published private(set) var saved: SavedLinks? {
-        didSet {
-            searchPreparation?.cancel()
-            searchPreparation = nil
-            searchRevision = UUID()
-        }
-    }
+    @Published private(set) var saved: SavedLinks?
     @Published private(set) var preferences = LinkPreferences()
     @Published private(set) var ready = false
     @Published private(set) var preferencesReady = true
@@ -20,26 +14,8 @@ final class LinksModel: ObservableObject {
     @Published private(set) var message: String?
 
     private var store: LinksStore?
-    private var storedReadWarning: String?
-    private let preferencesStore: LinkPreferencesStore
-    private let storeRoot: URL?
-    private let revisions = LinksRevisionCoordinator()
-    private let revisionNetwork: () -> URLSession
-    private var revisionBusyOwner: UUID?
-    private var searchPreparation: Task<LinkSearch.Index, Error>?
-    private(set) var searchRevision = UUID()
-    var pendingRevisionWaiters: Int { revisions.pendingWaiterCount }
-    @Published private(set) var preferencesError: String?
-
-    init(preferencesStore: LinkPreferencesStore = LinkPreferencesStore(), storeRoot: URL? = nil,
-         revisionNetwork:(() -> URLSession)? = nil,
-         endpoint:URL = URL(string:"https://takupoke-api.n624.jp/links")!) {
-        self.preferencesStore = preferencesStore
-        self.storeRoot = storeRoot
-        self.revisionNetwork = revisionNetwork ?? { Self.networkSession() }
-        self.endpoint = endpoint
-    }
-    private let endpoint: URL
+    private let preferencesStore = LinkPreferencesStore()
+    private let endpoint = URL(string: "https://takupoke-api.n624.jp/links")!
 
     var visibleFavorites: [LinkItem] {
         (saved?.payload.categories ?? []).flatMap(\.buttons)
@@ -50,39 +26,27 @@ final class LinksModel: ObservableObject {
         saved?.payload.recommendations(hiddenIDs: preferences.hiddenIDs) ?? []
     }
 
-    func search(normalizedQuery: String, revision: UUID, excluding hidden: Set<String>) async -> [LinkSearch.Hit]? {
-        guard revision == searchRevision, let saved, !normalizedQuery.isEmpty, !Task.isCancelled else { return nil }
-        if searchPreparation == nil {
-            let categories = saved.payload.categories
-            searchPreparation = Task.detached(priority:.userInitiated) { try LinkSearch.Index(categories:categories) }
-        }
-        guard let index = try? await searchPreparation?.value, revision == searchRevision, !Task.isCancelled else { return nil }
-        let task = Task.detached(priority:.userInitiated) {
-            try index.search(normalizedQuery:normalizedQuery,excluding:hidden)
-        }
-        return await withTaskCancellationHandler {
-            guard let results = try? await task.value, revision == searchRevision, !Task.isCancelled else { return nil }
-            return results
-        } onCancel: { task.cancel() }
-    }
-
     func loadIfNeeded() {
-        guard !ready else {
-            if !preferencesReady { reloadPreferences() }
-            return
-        }
+        guard !ready else { return }
         do {
-            let base = try storeRoot ?? FileManager.default.url(for: .applicationSupportDirectory,
+            let base = try FileManager.default.url(for: .applicationSupportDirectory,
                                                    in: .userDomainMask, appropriateFor: nil, create: true)
             let opened = try LinksStore(root: base.appendingPathComponent("LinksAPI", isDirectory: true))
             store = opened
             do { saved = try opened.load() }
             catch {
                 failed = true
-                storedReadWarning = "保存済みの一覧を読み込めませんでした。更新を試してください。"
-                message = storedReadWarning
+                message = "保存済みの一覧を読み込めませんでした。更新を試してください。"
             }
-            reloadPreferences()
+            do {
+                preferences = try preferencesStore.load()
+                preferencesReady = true
+            }
+            catch {
+                preferencesReady = false
+                failed = true
+                message = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
+            }
             ready = true
         } catch {
             failed = true
@@ -90,55 +54,36 @@ final class LinksModel: ObservableObject {
         }
     }
 
-    func reloadPreferences() {
-        do {
-            preferences = try preferencesStore.load()
-            preferencesReady = true
-            preferencesError = nil
-        } catch {
-            preferencesReady = false
-            preferencesError = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
-        }
-    }
-
     func refresh(force: Bool = false) async {
         guard !Task.isCancelled else { return }
         loadIfNeeded()
-        guard ready else { return }
+        guard ready, !busy else { return }
+        busy = true
         let operation = generation
+        let session = Self.networkSession()
+        defer { session.invalidateAndCancel(); if operation == generation { busy = false } }
         do {
-            _ = try await revision(force:force)
+            let result = try await revision(using: session)
+            guard operation == generation else { return }
+            updateAvailable = result != .unchanged
         } catch {
             guard operation == generation, !Task.isCancelled else { return }
             report(error)
         }
     }
 
-    func revision(force:Bool = true) async throws -> MappingRevisionResult {
+    func revision(using network: URLSession) async throws -> MappingRevisionResult {
         loadIfNeeded()
         guard ready else { throw LinksError.storage }
         let operation = generation
-        let installed = saved?.revision
-        return try await revisions.value(installed:installed,force:force) { [self] in
-            guard operation == generation else { throw CancellationError() }
-            let network = revisionNetwork()
-            let owner = UUID(); revisionBusyOwner = owner
-            busy = true
-            defer {
-                network.invalidateAndCancel()
-                if operation == generation, revisionBusyOwner == owner { revisionBusyOwner = nil; busy = false }
-            }
-            let result = try await MappingService(baseURL:endpoint.deletingLastPathComponent(),network:network)
-                .checkRevision(installed:installed,path:"links-revision")
-            try Task.checkCancellation()
-            guard operation == generation else { throw CancellationError() }
-            updateAvailable = result != .unchanged
-            failed = storedReadWarning != nil
-            message = storedReadWarning ?? (updateAvailable
-                ? (saved == nil ? "認証して一覧を取得してください。学内ネットワークではMicrosoft認証を省略できます。" : "一覧に更新があります。")
-                : "一覧は最新です。")
-            return result
-        }
+        let result = try await MappingService(baseURL: endpoint.deletingLastPathComponent(), network: network)
+            .checkRevision(installed: saved?.revision, path: "links-revision")
+        try Task.checkCancellation()
+        guard operation == generation else { throw CancellationError() }
+        updateAvailable = result != .unchanged
+        failed = false
+        message = updateAvailable ? (saved == nil ? "学校アカウントで認証して一覧を取得してください。" : "一覧に更新があります。") : "一覧は最新です。"
+        return result
     }
 
     func download(token: String, revision: String, network: URLSession) async throws {
@@ -152,37 +97,29 @@ final class LinksModel: ObservableObject {
               response.expectedContentLength <= LinksPayload.maximumBytes,
               data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
         if response.statusCode == 401 || response.statusCode == 403 { throw MappingError.authentication }
-        guard response.statusCode == 200 else { throw LinksError.unavailable }
-        guard let receivedRevision = response.value(forHTTPHeaderField: "X-Links-Revision"),
-              MappingPackage.validRevision(receivedRevision) else { throw LinksError.invalidResponse }
-        guard receivedRevision == revision else { throw MappingError.changedDuringDownload }
+        guard response.value(forHTTPHeaderField: "X-Links-Revision") == revision else {
+            throw MappingError.changedDuringDownload
+        }
         var replacement = try LinksResponse.decode(status: response.statusCode, data: data,
             receivedETag: response.value(forHTTPHeaderField: "ETag"), saved: nil)
         replacement.revision = revision
         do { try store.save(replacement) } catch { throw LinksError.storage }
-        revisions.reset()
-        storedReadWarning = nil
         saved = replacement; updateAvailable = false; failed = false
         message = "一覧を更新しました。"
     }
 
     func report(_ error: Error) {
         failed = true
-        let description: String
         switch error as? MappingError {
-        case .authentication: description = "認証を完了できませんでした。"
-        case .changedDuringDownload: description = "取得中に一覧が更新されました。もう一度お試しください。"
-        default: description = (error as? LinksError ?? .unavailable).localizedDescription
+        case .authentication: message = "認証を完了できませんでした。"
+        case .changedDuringDownload: message = "取得中に一覧が更新されました。もう一度お試しください。"
+        default: message = (error as? LinksError ?? .unavailable).localizedDescription
         }
-        let warning = storedReadWarning.map { $0 + "\n" } ?? ""
-        message = warning + description + (saved == nil ? "" : " 保存済みの一覧を表示しています。")
+        if saved != nil { message! += " 保存済みの一覧を表示しています。" }
     }
 
     func resetForRetention() {
         generation = UUID()
-        revisions.reset()
-        revisionBusyOwner = nil
-        storedReadWarning = nil
         saved = nil; store = nil; ready = false; busy = false
         updateAvailable = false; message = nil; failed = false
     }
@@ -197,10 +134,7 @@ final class LinksModel: ObservableObject {
 
     func isFavorite(_ id: String) -> Bool { preferences.favoriteIDs.contains(id) }
     func isHidden(_ id: String) -> Bool { preferences.hiddenIDs.contains(id) }
-    func color(for item: LinkItem) -> String {
-        guard let color = preferences.colorOverrides[item.id], LinksPayload.colors.contains(color) else { return item.color }
-        return color
-    }
+    func color(for item: LinkItem) -> String { preferences.colorOverrides[item.id] ?? item.color }
 
     func toggleFavorite(_ id: String) {
         changePreferences { draft in
@@ -225,9 +159,9 @@ final class LinksModel: ObservableObject {
         do {
             try preferencesStore.save(draft)
             preferences = draft
-            preferencesError = nil
         } catch {
-            preferencesError = "一覧の設定を保存できませんでした。保存済みの設定は変更していません。"
+            failed = true
+            message = "一覧の設定を保存できませんでした。"
         }
     }
 }

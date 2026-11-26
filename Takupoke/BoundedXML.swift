@@ -23,20 +23,16 @@ final class BoundedXML: NSObject, XMLParserDelegate {
     var count = 0
     var prefixes: [String: [String]] = [:]
     let check: () throws -> Void
-    let retainFormulaText: Bool
-    init(check: @escaping () throws -> Void, retainFormulaText: Bool) {
-        self.check = check
-        self.retainFormulaText = retainFormulaText
-    }
+    init(check: @escaping () throws -> Void) { self.check = check }
 
-    static func parse(_ data: Data, root: String, namespace: String, retainFormulaText: Bool = false, check: @escaping () throws -> Void) throws -> XMLNode {
+    static func parse(_ data: Data, root: String, namespace: String, check: @escaping () throws -> Void) throws -> XMLNode {
         // Reject declarations before parsing, including internal entity expansion.
         guard let text = String(data: data, encoding: .utf8),
               text.range(of: "<!DOCTYPE", options: .caseInsensitive) == nil,
               text.range(of: "<!ENTITY", options: .caseInsensitive) == nil else {
             throw ChangeParseError(code: .unsupported)
         }
-        let delegate = BoundedXML(check: check, retainFormulaText: retainFormulaText)
+        let delegate = BoundedXML(check: check)
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
         parser.shouldReportNamespacePrefixes = true
@@ -76,9 +72,8 @@ final class BoundedXML: NSObject, XMLParserDelegate {
     }
     func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) { _ = stack.popLast() }
     func parser(_ parser: XMLParser, foundCharacters string: String) {
-        guard let node = stack.last, ["t", "v"].contains(node.name) || (node.name == "f" && retainFormulaText) else { return }
-        let limit = node.name == "f" ? 32_768 : 4096
-        guard node.text.utf8.count + string.utf8.count <= limit else { failure = ChangeParseError(code: .limit); parser.abortParsing(); return }
+        guard let node = stack.last, ["t", "v"].contains(node.name) else { return }
+        guard node.text.utf8.count + string.utf8.count <= 4096 else { failure = ChangeParseError(code: .limit); parser.abortParsing(); return }
         node.text += string
     }
     func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {

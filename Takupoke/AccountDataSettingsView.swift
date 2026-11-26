@@ -6,7 +6,6 @@ struct AccountDataSettingsView: View {
     @EnvironmentObject private var links: LinksModel
     @EnvironmentObject private var mappings: MappingModel
     var setupMode = false
-    @State private var selectedData: AccountDataSelection = .all
 
     private var busy: Bool { account.busy || links.busy || mappings.busy || times.busy }
 
@@ -18,22 +17,11 @@ struct AccountDataSettingsView: View {
                 }
             }
             Section {
-                Toggle("リンク一覧", isOn: selectionBinding(.links)).disabled(busy)
-                Toggle("名称データ", isOn: selectionBinding(.mappings)).disabled(busy)
-                Toggle("授業時刻", isOn: selectionBinding(.times)).disabled(busy)
-                Text(selectedData == .links
-                     ? "一覧だけ取得します。学内ネットワークではMicrosoft認証を省略できます。"
-                     : "名称データ・授業時刻には学校アカウントでの認証が必要です。選択したデータを1回の認証で取得します。")
-                    .font(.caption).foregroundStyle(.secondary)
-                if busy {
-                    LoadingRow(title: account.busy ? "取得中⋯" : "更新情報を確認中⋯",
-                        cancel: account.busy ? { account.cancel() } : nil)
-                }
+                if busy { LoadingRow(title: "取得中⋯") }
                 Button(links.saved == nil || mappings.current == nil || times.current == nil ? "学校アカウントで取得" : "更新を確認") {
-                    let selection = selectedData
-                    Task { await account.refresh(mappings: mappings, links: links, times: times, selection: selection) }
+                    Task { await account.refresh(mappings: mappings, links: links, times: times) }
                 }
-                .disabled(busy || selectedData.isEmpty)
+                .disabled(busy)
             }
             Section("データ") {
                 NavigationLink { LinksDataDetailView() } label: {
@@ -49,23 +37,16 @@ struct AccountDataSettingsView: View {
                                          updated: times.updateAvailable, failed: times.failed)
                 }
             }
-            LinksPreferencesWarning(model: links)
             if links.failed || mappings.failed || times.failed {
                 Section("取得・確認のエラー") {
-                    if links.failed, let message = links.message { InlineWarning(message) }
-                    if mappings.failed, let message = mappings.message { InlineWarning(message) }
-                    if times.failed, let message = times.message { InlineWarning(message) }
+                    if links.failed, let message = links.message { Text(message).foregroundStyle(.orange) }
+                    if mappings.failed, let message = mappings.message { Text(message).foregroundStyle(.orange) }
+                    if times.failed, let message = times.message { Text(message).foregroundStyle(.orange) }
                 }
             }
         }
         .navigationTitle(setupMode ? "データを取得" : "リンク・名称・授業時刻")
         .task { links.loadIfNeeded(); mappings.loadIfNeeded(); times.loadIfNeeded() }
-    }
-
-    private func selectionBinding(_ item: AccountDataSelection) -> Binding<Bool> {
-        Binding(get: { selectedData.contains(item) }, set: { selected in
-            if selected { selectedData.insert(item) } else { selectedData.remove(item) }
-        })
     }
 }
 
@@ -88,19 +69,15 @@ struct AcquisitionStatusRow: View {
     }
 }
 
-struct LinksDataDetailView: View {
+private struct LinksDataDetailView: View {
     @EnvironmentObject private var links: LinksModel
 
     var body: some View {
         List {
-            LinksPreferencesWarning(model: links)
             Section("状態") {
                 AcquisitionStatusRow(title: "リンク一覧", acquired: links.saved != nil,
                                      updated: links.updateAvailable, failed: links.failed)
-                if let message = links.message {
-                    if links.failed { InlineWarning(message) }
-                    else { Text(message).foregroundStyle(.secondary) }
-                }
+                if let message = links.message { Text(message).foregroundStyle(links.failed ? Color.orange : Color.secondary) }
                 if !links.ready { Button("保存情報を再読み込み") { links.loadIfNeeded() } }
             }
             if let saved = links.saved {
@@ -114,7 +91,7 @@ struct LinksDataDetailView: View {
     }
 }
 
-struct TimetableTimesDetailView: View {
+private struct TimetableTimesDetailView: View {
     @EnvironmentObject private var times: TimetableTimesModel
 
     var body: some View {
@@ -122,10 +99,7 @@ struct TimetableTimesDetailView: View {
             Section("状態") {
                 AcquisitionStatusRow(title: "授業時刻", acquired: times.current != nil,
                                      updated: times.updateAvailable, failed: times.failed)
-                if let message = times.message {
-                    if times.failed { InlineWarning(message) }
-                    else { Text(message).foregroundStyle(.secondary) }
-                }
+                if let message = times.message { Text(message).foregroundStyle(times.failed ? Color.orange : Color.secondary) }
                 if !times.ready { Button("保存情報を再読み込み") { times.loadIfNeeded() } }
             }
             if let current = times.current {
