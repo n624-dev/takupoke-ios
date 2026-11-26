@@ -6519,3 +6519,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - `8d131dd`、[正式544・試行2のiOS 27.0通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139878036729)、SDK 27.2。2026-11-26 11:50:03 UTCに `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`（63.002秒）が `ApplicationChecks+Notifications.swift:195` で失敗。通知取消の完了文を10秒以内に見つけられず、失敗時の画面は「予約済みのカウントダウン通知を確認できません」と表示した。XCTest画像を取得した。
 - 11:51:56 UTCに `testCountdownDeleteWriteFailureKeepsDetailAndCanRetry`（193.345秒）が同ファイル30行目で失敗。削除確認のボタンを10秒以内に一意・操作可能と判断できなかった。続くケースは継続した。
 - `通知を確認できません|削除確認|N183-CI26` を照合。N183-CI26で参照した通知取消後の完了文と同じ段階で、今回はOSの予約一覧を確認できなかった分岐の文言が画面に出た。削除確認は別ケースの最初の操作で、試行1の行の個人修正とも異なる。通知の実取得・取消、ダイアログの実操作、保存失敗時の保持と再試行の基準を維持する。
+
+### N544-CI7 — iOS 27通常UI Aで通知取消の失敗が同じ箇所に再発
+
+- `8d131dd`、[正式544・試行3のiOS 27.0通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/139917030722)、SDK 27.2。2026-11-26 13:06:01 UTCに `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration`（78.413秒）が `ApplicationChecks+Notifications.swift:195` で失敗。「予約済みのカウントダウン通知を確認できません」が表示された。XCTest画像を取得し、前回失敗した削除確認を含む残りの同ジョブは完了した。
+- `pendingStorageRecoveryIdentifiers|getPendingNotificationRequests|通知を確認できません` でN544-CI6と#134の記録を照合。失敗時点で保留一覧の取得が成功していないことを確認した。OSが応答を返さなかった下位原因は未確定。復旧時の同じ6秒枠内で、3秒たって未応答なら読み取りを1回だけ再要求する。最初の遅延応答も期限内なら有効で、両方が失敗すれば従来どおり取消成功を表示しない。実操作・結果・取消対象の範囲は維持する。

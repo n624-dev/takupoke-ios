@@ -200,7 +200,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     nonisolated static func notificationQuery<Value>(
-        timeout: Duration, _ request: (@escaping @Sendable (Value) -> Void) -> Void
+        timeout: Duration, retryAfter: Duration? = nil,
+        _ request: @escaping @Sendable (@escaping @Sendable (Value) -> Void) -> Void
     ) async -> Value? {
         guard !Task.isCancelled else { return nil }
         let (results, continuation) = AsyncStream<Value>.makeStream(bufferingPolicy:.bufferingNewest(1))
@@ -208,11 +209,19 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             do { try await Task.sleep(for:timeout) } catch { return }
             continuation.finish()
         }
-        defer { timeoutTask.cancel(); continuation.finish() }
-        request { value in
+        let response: @Sendable (Value) -> Void = { value in
             continuation.yield(value)
             continuation.finish()
         }
+        request(response)
+        let retryTask = retryAfter.map { delay in
+            Task {
+                do { try await Task.sleep(for: delay) } catch { return }
+                guard !Task.isCancelled else { return }
+                request(response)
+            }
+        }
+        defer { retryTask?.cancel(); timeoutTask.cancel(); continuation.finish() }
         var iterator = results.makeAsyncIterator()
         let value = await iterator.next()
         return Task.isCancelled ? nil : value
@@ -225,7 +234,10 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
         print("TAKUPOKE_COUNTDOWN_STORAGE pending-read-start")
         #endif
-        let identifiers = await readPending(from:center,timeout:timeout)?.map(\.identifier)
+        let pending: [UNNotificationRequest]? = await notificationQuery(timeout: timeout, retryAfter: timeout / 2) { callback in
+            center.getPendingNotificationRequests(completionHandler: callback)
+        }
+        let identifiers = pending?.map(\.identifier)
         #if DEBUG && TAKUPOKE_INTERNAL_DIAGNOSTICS
         print("TAKUPOKE_COUNTDOWN_STORAGE pending-read-\(identifiers == nil ? "unavailable" : "complete")")
         #endif

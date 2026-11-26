@@ -620,12 +620,13 @@ final class CountdownStore {
     struct Request: Sendable { var identifier: String }
     var state = ["takupoke.countdown.personal.example", "takupoke.countdown.private.example", "takupoke.materials", "takupoke.countdown-other"]
     var reads = 0, responds = true
+    var ignoreFirstRead = false
     var removals: [[String]] = []
     var held: (@Sendable ([Request]) -> Void)?
     nonisolated func getPendingNotificationRequests(completionHandler: @escaping @Sendable ([Request]) -> Void) {
         Task { @MainActor in
             reads += 1
-            if responds { completionHandler(state.map { Request(identifier: $0) }) }
+            if responds && !(ignoreFirstRead && reads == 1) { completionHandler(state.map { Request(identifier: $0) }) }
             else { held = completionHandler }
         }
     }
@@ -703,6 +704,23 @@ typealias UNNotificationRequest = FakeCenter.Request
         let result = await query.value
         precondition(result == ["actual-response"] && delayed.reads == 1)
 
+        let retry = FakeCenter()
+        retry.ignoreFirstRead = true
+        let afterRetry = await ScheduleNotifications.pendingStorageRecoveryIdentifiers(from: retry, timeout: .seconds(1))
+        precondition(afterRetry == retry.state && retry.reads == 2)
+
+        let late = FakeCenter()
+        late.responds = false
+        let lateQuery = Task {
+            await ScheduleNotifications.pendingStorageRecoveryIdentifiers(from: late, timeout: .seconds(2))
+        }
+        while late.held == nil { await Task.yield() }
+        let firstResponse = late.held
+        while late.reads < 2 { await Task.yield() }
+        firstResponse?([.init(identifier: "first-response-after-retry")])
+        let lateResult = await lateQuery.value
+        precondition(lateResult == ["first-response-after-retry"])
+
         let stalledStop = Harness(), stalledReset = Harness()
         for model in [stalledStop, stalledReset] { model.center.responds = false }
         stalledReset.storageState = .corrupt
@@ -713,7 +731,7 @@ typealias UNNotificationRequest = FakeCenter.Request
         precondition(stalledReset.availableStore.writes == 1 && stalledReset.storageState == .ready)
         precondition(stalledReset.message?.contains("確認できていません") == true)
         for model in [stalledStop, stalledReset] {
-            precondition(model.center.reads == 1 && model.center.held != nil)
+            precondition(model.center.reads == 2 && model.center.held != nil)
             let message = model.message
             model.center.held?(model.center.state.map { .init(identifier:$0) })
             await Task.yield()
