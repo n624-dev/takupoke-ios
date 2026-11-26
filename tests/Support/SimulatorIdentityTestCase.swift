@@ -1,5 +1,9 @@
 import Foundation
 import XCTest
+#if targetEnvironment(simulator) && canImport(UIKit)
+import CryptoKit
+import UIKit
+#endif
 
 private enum SimulatorIdentityFailure: Error { case notSimulator, timedOut, invalidCaseName }
 
@@ -37,6 +41,45 @@ func simulatorExecutionIdentity(caseName: String) throws -> String {
 }
 
 class SimulatorIdentityTestCase: XCTestCase {
+    #if targetEnvironment(simulator) && canImport(UIKit)
+    @MainActor private static var attemptedFailureScreenshot = false
+
+    override func record(_ issue: XCTIssue) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { Self.recordFailureScreenshot() }
+        }
+        super.record(issue)
+    }
+
+    @MainActor
+    private static func recordFailureScreenshot() {
+        guard !attemptedFailureScreenshot else { return }
+        attemptedFailureScreenshot = true
+        print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN source=xctest")
+        let screenshot = XCUIScreen.main.screenshot().image
+        let size = screenshot.size
+        guard size.width > 0, size.height > 0 else { return }
+        let scale = 1024 / max(size.width, size.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let bounds = CGRect(x: 0, y: 0, width: (size.width * scale).rounded(.up), height: (size.height * scale).rounded(.up))
+        let renderer = UIGraphicsImageRenderer(bounds: bounds, format: format)
+        let image = renderer.pngData { _ in screenshot.draw(in: bounds) }
+        guard !image.isEmpty, image.count <= 2 * 1024 * 1024 else { return }
+        let hash = SHA256.hash(data: image).map { String(format: "%02x", $0) }.joined()
+        let encoded = Array(image.base64EncodedString())
+        let chunkSize = 6000
+        let name = "simulator-failure"
+        print("TAKUPOKE_UI_IMAGE BEGIN \(name) \(hash) \(image.count)")
+        for offset in stride(from: 0, to: encoded.count, by: chunkSize) {
+            let chunk = String(encoded[offset..<min(offset + chunkSize, encoded.count)])
+            print("TAKUPOKE_UI_IMAGE DATA \(name) \(offset / chunkSize) \(chunk)")
+        }
+        print("TAKUPOKE_UI_IMAGE END \(name) \((encoded.count + chunkSize - 1) / chunkSize)")
+    }
+    #endif
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false

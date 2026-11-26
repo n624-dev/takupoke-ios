@@ -16,7 +16,7 @@ stage() { printf 'TAKUPOKE_MANUAL_RUNNER stage=%s\n' "$1"; }
 cleanup() {
     local original_exit=$?
     stage cleanup-enter
-    capture_failed_simulator_screen "$original_exit" "$simulator_id" "$scratch_dir"
+    capture_failed_simulator_screen "$original_exit" "$simulator_id" "$scratch_dir" "$scratch_dir/manual-ui.log"
     # Capture before shutdown/delete, including test failure or interrupted commands.
     # Diagnostics never turn a failed/cancelled run into success.
     if [[ "${TKPK_MANUAL_DIAGNOSTICS:-0}" == 1 ]]; then

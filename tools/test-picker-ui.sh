@@ -7,7 +7,7 @@ stage() { printf 'TAKUPOKE_PICKER_RUNNER stage=%s\n' "$1"; }
 cleanup() {
     local task_exit_status=$?
     stage cleanup-enter
-    capture_failed_simulator_screen "$task_exit_status" "$simulator_id" "$scratch_dir"
+    capture_failed_simulator_screen "$task_exit_status" "$simulator_id" "$scratch_dir" "$scratch_dir/picker-ui.log"
     stop_simulator_ci_trace
     if [[ -n "$simulator_id" ]]; then
         stage cleanup-shutdown-enter
@@ -53,7 +53,7 @@ python3 -B tools/timed_command.py "Picker UI" xcodebuild "${xcode_args[@]}" test
     2>&1 | tee "$scratch_dir/picker-ui.log"
 ui_status=$?
 set -e
-capture_failed_simulator_screen "$ui_status" "$simulator_id" "$scratch_dir"
+capture_failed_simulator_screen "$ui_status" "$simulator_id" "$scratch_dir" "$scratch_dir/picker-ui.log"
 app_data="$(xcrun simctl get_app_container "$simulator_id" jp.n624.takupoke.picker-checks data)"
 for trace_path in "$app_data"/Documents/trace-*.txt; do
     if [[ -f "$trace_path" ]]; then cat "$trace_path"; fi

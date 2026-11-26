@@ -3,9 +3,12 @@ simulator_ci_trace_pid=""
 simulator_ci_failure_screen_attempted=0
 
 capture_failed_simulator_screen() {
-    local status="$1" device="$2" scratch="$3"
+    local status="$1" device="$2" scratch="$3" test_log="${4:-}"
     if [[ "$status" != 0 && -n "$device" && "$simulator_ci_failure_screen_attempted" == 0 ]]; then
         simulator_ci_failure_screen_attempted=1
+        if [[ -f "$test_log" ]] && grep -Eq '^TAKUPOKE_UI_IMAGE END simulator-failure [1-9][0-9]*$' "$test_log"; then
+            return 0
+        fi
         python3 -B tools/simulator_failure_screenshot.py "$device" "$scratch" || true
     fi
 }
