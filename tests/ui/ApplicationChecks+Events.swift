@@ -219,6 +219,10 @@ extension ApplicationChecks {
         let progress = card.descendants(matching: .any)["countdown-progress"]
         XCTAssertFalse(progress.exists)
         XCTAssertFalse(card.label.contains("設定期間の経過率"), app.debugDescription)
+        if ProcessInfo.processInfo.environment["SIMULATOR_UDID"] != nil {
+            XCTFail("Intentional failure for screenshot copy verification")
+            return
+        }
 
         tab("設定")
         tap("カウントダウン")
