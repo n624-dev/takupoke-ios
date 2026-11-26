@@ -6476,3 +6476,7 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `0294c79`、[全体45714093730・試行2のiOS 26手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139622074047)、SDK 27.2・iOS 26.5。試行1の完了ボタン待機を通過し、2026-11-26 01:39:29 UTCに `ManualAssistanceChecks+Review.swift:148` で3件の一意な項目IDが確認できず失敗（544.086秒）。取得値は `nil, ambiguous=false`。採用と再起動まで未確認。
 - `manual-field-ids|distinct field IDs|Review.swift:148` を照合した。試行1のiOS 26は入力、試行1のiOS 27は確認画面の照合で止まっており、今回は異なる段階。前回全体の同一OS・SDKでは実操作・採用・再起動を完了している。成功したiOS 27の試行2と同じ合格条件で、残件を再検証する。
+
+### N185-CI8 — iOS 26手動明示選択の試行3でAppleカタログ取得が失敗
+
+- `0294c79`、[全体45714093730・試行3のiOS 26手動明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139644912562)。2026-11-26 02:56:46 UTCにApple MobileAsset `tryAgainLater`、iOS 26.5（23F77）の取得が終了70。試行2のN185-CI6と同じ準備エラー。今回、手動訂正ケースは開始していない。ほかのジョブ終端後、同一SDK・Runtimeの要求を維持して照合する。
