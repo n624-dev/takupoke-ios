@@ -1,5 +1,6 @@
 """Capture one screenshot of an owned, fictional CI simulator before cleanup."""
 import base64
+import binascii
 import hashlib
 from pathlib import Path
 import re
@@ -23,6 +24,38 @@ def read_image(path):
 
 def valid_png(data):
     return len(data) <= MAX_IMAGE_BYTES and data.startswith(PNG_START) and data.endswith(PNG_END)
+
+
+def has_native_image(log):
+    prefix = "TAKUPOKE_UI_IMAGE "
+    header = re.compile(r"BEGIN simulator-failure ([0-9a-f]{64}) ([1-9][0-9]{0,6})")
+    data_line = re.compile(r"DATA simulator-failure ([0-9]{1,3}) ([A-Za-z0-9+/=]{1,6000})")
+    trailer = re.compile(r"END simulator-failure ([1-9][0-9]{0,2})")
+    expected = None
+    chunks = []
+    maximum_chunks = 1 + MAX_IMAGE_BYTES * 4 // (3 * 6000)
+    with log.open(encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            if not line.startswith(prefix):
+                continue
+            frame = line[len(prefix):].strip()
+            if match := header.fullmatch(frame):
+                expected, chunks = match.groups(), []
+            elif expected is not None and (match := data_line.fullmatch(frame)):
+                if int(match[1]) != len(chunks) or len(chunks) >= maximum_chunks:
+                    expected = None
+                else:
+                    chunks.append(match[2])
+            elif expected is not None and (match := trailer.fullmatch(frame)):
+                if int(match[1]) == len(chunks):
+                    try:
+                        data = base64.b64decode("".join(chunks), validate=True)
+                    except binascii.Error:
+                        return False
+                    if len(data) == int(expected[1]) and valid_png(data) and hashlib.sha256(data).hexdigest() == expected[0]:
+                        return True
+                expected = None
+    return False
 
 
 def capture(simulator, scratch):
@@ -69,4 +102,10 @@ def capture(simulator, scratch):
 
 
 if __name__ == "__main__":
-    capture(sys.argv[1], Path(sys.argv[2]))
+    if sys.argv[1] == "--verify-log":
+        try:
+            sys.exit(0 if has_native_image(Path(sys.argv[2])) else 1)
+        except OSError:
+            sys.exit(1)
+    else:
+        capture(sys.argv[1], Path(sys.argv[2]))

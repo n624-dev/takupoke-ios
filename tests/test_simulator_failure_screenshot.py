@@ -21,19 +21,37 @@ class SimulatorFailureScreenshotTests(unittest.TestCase):
     def test_fallback_skips_a_complete_native_capture_and_keeps_once_limit(self):
         script = r'''
 source tools/simulator-ci-trace.sh
-python3() { printf 'fallback\n'; }
+python3() {
+    if [[ "$3" == --verify-log ]]; then command python3 "$@"; else printf 'fallback\n'; fi
+}
 capture_failed_simulator_screen 1 "$1" "$2" "$2/native.log"
 capture_failed_simulator_screen 1 "$1" "$2"
 '''
         with tempfile.TemporaryDirectory() as scratch:
-            for suffix, expected in (("END simulator-failure 1", ""),
-                                     ("BEGIN simulator-failure abc 1", "fallback\n")):
-                with self.subTest(suffix=suffix):
-                    (Path(scratch) / "native.log").write_text("TAKUPOKE_UI_IMAGE " + suffix + "\n")
+            begin = f"BEGIN simulator-failure {hashlib.sha256(IMAGE).hexdigest()} {len(IMAGE)}"
+            data = "DATA simulator-failure 0 " + base64.b64encode(IMAGE).decode("ascii")
+            end = "END simulator-failure 1"
+            for frames, expected in (((begin, data, end), ""), ((end,), "fallback\n"),
+                                     ((begin, end), "fallback\n"), ((begin, data[:-1], end), "fallback\n")):
+                with self.subTest(frames=len(frames), expected=expected):
+                    (Path(scratch) / "native.log").write_text("".join("TAKUPOKE_UI_IMAGE " + row + "\n" for row in frames))
                     result = subprocess.run(["bash", "-euc", script, "bash", DEVICE, scratch],
                                             cwd=ROOT, capture_output=True, text=True, timeout=5)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stdout, expected)
+
+    def test_signal_exit_does_not_wait_for_screenshot_before_cleanup(self):
+        script = r'''
+source tools/simulator-ci-trace.sh
+python3() { printf 'Unexpected capture\n'; }
+capture_failed_simulator_screen 130 "$1" "$2"
+capture_failed_simulator_screen 143 "$1" "$2"
+'''
+        with tempfile.TemporaryDirectory() as scratch:
+            result = subprocess.run(["bash", "-euc", script, "bash", DEVICE, scratch],
+                                    cwd=ROOT, capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "")
 
     def test_capture_exact_device_once_with_checksummed_image_and_owned_cleanup(self):
         def run(args, **kwargs):

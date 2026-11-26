@@ -41,7 +41,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 34 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
 | [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 202 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 29 | Apple iOS26/27 UI＋Nativeレイアウト |
-| [シミュレーター失敗時の画面記録](test-catalog/simulator-failure-screenshot.md) | 32 | macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査 |
+| [シミュレーター失敗時の画面記録](test-catalog/simulator-failure-screenshot.md) | 33 | macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査 |
 | [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 96 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |
 | [独立した架空PDF・原文契約・固定期待値](test-catalog/fixtures.md) | 13 | Linux契約検査。PDF描画・OCRはApple限定 |
 | [テスト一覧・対象検索・宣言整合性・CI接続](test-catalog/test-catalog.md) | 82 | Linux Python（隔離Gitリポジトリ） |

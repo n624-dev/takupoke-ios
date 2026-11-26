@@ -158,7 +158,8 @@ def select_runtime(simulation, ios):
 
 
 def capture_failed_simulator_screen(identity, scratch):
-    if identity and sys.exc_info()[0] is not None:
+    error = sys.exc_info()[1]
+    if identity and error is not None and not isinstance(error, (SystemExit, KeyboardInterrupt)):
         try:
             subprocess.run([sys.executable, '-B', str(ROOT.parent / 'simulator_failure_screenshot.py'),
                             identity, str(scratch)], timeout=22)
