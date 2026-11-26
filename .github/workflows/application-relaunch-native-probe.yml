@@ -141,15 +141,19 @@ jobs:
           trap 'exit 130' INT
           trap 'exit 143' TERM
           export TKPK_SIMULATOR_FRONTEND=gui
-          observed_status=0
+          set +e
           python3 -B tools/timed_command.py --timeout 1440 --cleanup-grace 120 'Native screenshot failure proof' \
-            bash tools/test-app-ui.sh 2>&1 | tee "$scratch/failure.log" || observed_status=$?
-          test "$observed_status" = 1
+            bash tools/test-app-ui.sh 2>&1 | tee "$scratch/failure.log"
+          statuses=("${PIPESTATUS[@]}")
+          set -e
+          test "${statuses[0]}" = 1
+          test "${statuses[1]}" = 0
           python3 -B - "$scratch/failure.log" <<'PY'
           import base64, hashlib, sys
           from pathlib import Path
           log = Path(sys.argv[1]).read_text()
-          assert "Intentional failure for screenshot copy verification" in log
+          assert any("error: -[PickerTapChecks.ApplicationChecks testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel]" in line
+                     and "Intentional failure for screenshot copy verification" in line for line in log.splitlines())
           rows = [line.split() for line in log.splitlines() if line.startswith("TAKUPOKE_UI_IMAGE ")]
           assert rows[0][:3] == ["TAKUPOKE_UI_IMAGE", "BEGIN", "simulator-failure"]
           assert rows[-1][:3] == ["TAKUPOKE_UI_IMAGE", "END", "simulator-failure"]
