@@ -6563,3 +6563,4 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 
 - `002d783`、[限定45843658895・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45843658895/job/139991601301)、SDK 27.2。設定詳細は418.049秒で成功。同じSimulatorの通知フェーズで、15:13:14 UTCに `testChangedDataProducesOneLocalNotification` の許可・有効化が成立せず失敗（98.215秒）、15:14:19に `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` の通知取消の確認も失敗（67.633秒）。通知配信を先に行う試行では、配信が完了する前に停止した。
 - 正式544の試行1では同じSDK・Runtimeで実配信が成功し、通常Aの唯一の失敗は個人修正後の照会だった。試行2・3の通知復旧の停止と比較すると、通知サービスの応答可否と、後の個人修正検証の到達が異なる。限定の順序変更は正式版に取り込まず、iOS 26の週送りも含めて元の正式実行を別Runnerで比較する。既存の全15必須条件を維持する。
+- 同じ限定比較の [iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45843658895/job/139991601598) は15:25:56 UTCにGitHubの30分上限で取消。設定詳細と通知復旧の組を完了した証拠はない。この限定結果は正式配布へ合算しない。
