@@ -403,6 +403,10 @@ enum SimulatorEventsYearFixture {
                         self.assertIn(phase, phases)
                         self.assertEqual(manifest.phase_tests(tests, phase), (test,))
         self.assertEqual(manifest.runner_phases(manifest.SHARDS["A"]), ("remaining", "notifications"))
+        for tests in (manifest.SHARDS["A"], manifest.PROBE_GROUPS["countdown-storage-context"]):
+            native_order = sorted(manifest.phase_tests(tests, "notifications"))
+            self.assertLess(native_order.index("testChangedDataProducesOneLocalNotification"),
+                            native_order.index(manifest.COUNTDOWN_STORAGE_TEST))
         self.assertEqual(manifest.phase_tests(manifest.SHARDS["B"], "notifications"),
                          ("testNotificationControlsAndAppearance", manifest.COUNTDOWN_NOTIFICATION_TEST))
         self.assertEqual(manifest.runner_phases(manifest.PROBE_GROUPS["input-delivery"]),
@@ -1607,6 +1611,8 @@ METHOD
             ("countdown-notifications", ("testScheduledCountdownReservationsUseNativeCenterAndCancelOnlyTheirOwnAfterRelaunch",)),
             ("countdown-school-notices", ("testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed",)),
             ("countdown-storage", ("testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",)),
+            ("countdown-storage-context", (manifest.SETTINGS_TEST, "testChangedDataProducesOneLocalNotification",
+                                           manifest.COUNTDOWN_STORAGE_TEST)),
             ("countdown-delete", ("testCountdownDeleteWriteFailureKeepsDetailAndCanRetry",)),
             ("countdown-notification-route", ("testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",)),
             ("countdown-and-yellow", ("testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors",

@@ -181,25 +181,6 @@ extension ApplicationChecks {
             screen(management)
         }
 
-        // Establish the simulator's real permission and list response before
-        // testing cancellation against the corrupt countdown store.
-        let prepare = app.buttons["fixture-countdown-recovery-notification-prepare"]
-        XCTAssertTrue(prepare.waitForExistence(timeout: 10) && prepare.isHittable, app.debugDescription)
-        prepare.tap()
-        let readiness = app.staticTexts["fixture-countdown-recovery-notification-readiness"]
-        let allow = NSPredicate(format: "label BEGINSWITH[c] %@ OR label == %@ OR label == %@ OR label == %@",
-                                "Allow", "許可", "許可する", "通知を許可")
-        var handledAlert = false
-        let responded = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            if !handledAlert, let button = self.permissionAllowButton(allow) {
-                handledAlert = true
-                button.tap()
-                return false
-            }
-            return readiness.exists && readiness.label == "通知一覧の応答を確認済み"
-        }, object: app)
-        XCTAssertEqual(XCTWaiter.wait(for: [responded], timeout: 45), .completed, app.debugDescription)
-
         openCountdown()
         XCTAssertTrue(app.staticTexts[warning].waitForExistence(timeout:10), app.debugDescription)
         XCTAssertTrue(added.exists)

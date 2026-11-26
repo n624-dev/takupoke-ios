@@ -87,8 +87,11 @@ COUNTDOWN_NOTIFICATION_TEST = "testScheduledCountdownReservationsUseNativeCenter
 COUNTDOWN_REMINDER_LAYOUT_TEST = "testCountdownReminderDayUsesSingleLineAndPersistsInBothEditors"
 COUNTDOWN_PROGRESS_TEST = "testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel"
 SCHOOL_COUNTDOWN_NOTIFICATION_TEST = "testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed"
+COUNTDOWN_STORAGE_TEST = "testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration"
 COUNTDOWN_DELETE_TEST = "testCountdownDeleteWriteFailureKeepsDetailAndCanRetry"
-NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (COUNTDOWN_NOTIFICATION_TEST, SCHOOL_COUNTDOWN_NOTIFICATION_TEST)
+NATIVE_NOTIFICATION_CASES = NOTIFICATION_PROBE_TESTS + (
+    COUNTDOWN_NOTIFICATION_TEST, SCHOOL_COUNTDOWN_NOTIFICATION_TEST, COUNTDOWN_STORAGE_TEST,
+)
 CONTROL_PROBE_TESTS = NOTIFICATION_PROBE_TESTS + (
     "testLinkPreferencesSurviveRelaunch",
     "testSettingsAccountDataAndFileDetails",
@@ -125,7 +128,8 @@ PROBE_GROUPS = {
     "weekday-carryover": ("testUpdatedWeekdayExclusionsCarryOverAndResolveInGroups",),
     "countdown-notifications": (COUNTDOWN_NOTIFICATION_TEST,),
     "countdown-school-notices": (SCHOOL_COUNTDOWN_NOTIFICATION_TEST,),
-    "countdown-storage": ("testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",),
+    "countdown-storage": (COUNTDOWN_STORAGE_TEST,),
+    "countdown-storage-context": (SETTINGS_TEST, "testChangedDataProducesOneLocalNotification", COUNTDOWN_STORAGE_TEST),
     "countdown-delete": (COUNTDOWN_DELETE_TEST,),
     "countdown-notification-route": ("testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",),
     "countdown-and-yellow": (COUNTDOWN_REMINDER_LAYOUT_TEST, "testMainColorUpdatesAlreadyOpenedTimetableWithoutRelaunch"),
@@ -178,7 +182,7 @@ SHARDS = {
         "testEventCacheCorruptionKeepsHealthyYearAndAllowsExplicitRepair",
         "testEventAvailabilityUsesCurrentDayAndAllSevenWeekDates",
         "testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover",
-        "testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration",
+        COUNTDOWN_STORAGE_TEST,
         COUNTDOWN_DELETE_TEST,
         "testCountdownNotificationRouteOpensCurrentDetailAndMissingTargetList",
         "testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch",

@@ -315,11 +315,6 @@ struct SimulatorApplication: App {
                     if ProcessInfo.processInfo.arguments.contains("--notification-permission-probe") {
                         FixtureNotificationPermissionTouch()
                     }
-                    if ProcessInfo.processInfo.arguments.contains("--countdown-storage-corrupt") {
-                        FixtureCountdownRecoveryNotificationReadiness()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                            .padding(.bottom, 110)
-                    }
                     if ProcessInfo.processInfo.arguments.contains("--notification-probe") {
                         VStack {
                             Text(notificationProbe).accessibilityIdentifier("fixture-notification-result")
@@ -764,38 +759,6 @@ struct SimulatorRetentionProofView:View {
             guard !Task.isCancelled else { return }
             notificationServiceReady = true
             FixtureCITrace.mark("retention-readiness-complete")
-        }
-    }
-}
-
-private struct FixtureCountdownRecoveryNotificationReadiness: View {
-    @State private var status = ""
-
-    var body: some View {
-        if status.isEmpty {
-            Button("通知サービスを準備") {
-                status = "通知の許可を確認中"
-                Task {
-                    let center = UNUserNotificationCenter.current()
-                    FixtureCITrace.mark("countdown-recovery-authorization-start")
-                    guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else {
-                        status = "通知を許可できませんでした"
-                        return
-                    }
-                    status = "通知一覧の応答を確認中"
-                    FixtureCITrace.mark("countdown-recovery-readiness-start")
-                    _ = await center.pendingNotificationRequests()
-                    status = "通知一覧の応答を確認済み"
-                    FixtureCITrace.mark("countdown-recovery-readiness-complete")
-                }
-            }
-            .buttonStyle(.bordered)
-            .accessibilityIdentifier("fixture-countdown-recovery-notification-prepare")
-        } else {
-            Text(status)
-                .font(.system(size: 1))
-                .accessibilityIdentifier("fixture-countdown-recovery-notification-readiness")
-                .allowsHitTesting(false)
         }
     }
 }
