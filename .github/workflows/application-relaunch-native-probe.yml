@@ -152,9 +152,9 @@ jobs:
           trap cleanup EXIT
           trap 'exit 130' INT
           trap 'exit 143' TERM
-          owned="$(xcrun simctl create 'Takupoke fictional failure screenshot proof' com.apple.CoreSimulator.SimDeviceType.iPhone-16 com.apple.CoreSimulator.SimRuntime.iOS-27-0)"
-          xcrun simctl boot "$owned"
-          python3 -B tools/timed_command.py --timeout 360 --cleanup-grace 10 'Screenshot proof simulator boot' xcrun simctl bootstatus "$owned" -b
+          runtime=com.apple.CoreSimulator.SimRuntime.iOS-27-0
+          owned="$(xcrun simctl create 'Takupoke fictional failure screenshot proof' com.apple.CoreSimulator.SimDeviceType.iPhone-16 "$runtime")"
+          TKPK_SIMULATOR_FRONTEND=gui bash tools/boot-simulator-ui.sh "$owned" "$runtime" 'Screenshot proof simulator boot'
           capture_failed_simulator_screen 0 "$owned" "$scratch" > "$scratch/success.log"
           test ! -s "$scratch/success.log"
           observed_status=0
