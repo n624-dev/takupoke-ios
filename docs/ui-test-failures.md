@@ -6564,3 +6564,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 - `002d783`、[限定45843658895・試行1のiOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/45843658895/job/139991601301)、SDK 27.2。設定詳細は418.049秒で成功。同じSimulatorの通知フェーズで、15:13:14 UTCに `testChangedDataProducesOneLocalNotification` の許可・有効化が成立せず失敗（98.215秒）、15:14:19に `testCountdownCorruptStorageAllowsConfirmedRecoveryAndNewRegistration` の通知取消の確認も失敗（67.633秒）。通知配信を先に行う試行では、配信が完了する前に停止した。
 - 正式544の試行1では同じSDK・Runtimeで実配信が成功し、通常Aの唯一の失敗は個人修正後の照会だった。試行2・3の通知復旧の停止と比較すると、通知サービスの応答可否と、後の個人修正検証の到達が異なる。限定の順序変更は正式版に取り込まず、iOS 26の週送りも含めて元の正式実行を別Runnerで比較する。既存の全15必須条件を維持する。
 - 同じ限定比較の [iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/45843658895/job/139991601598) は15:25:56 UTCにGitHubの30分上限で取消。設定詳細と通知復旧の組を完了した証拠はない。この限定結果は正式配布へ合算しない。
+
+### N544-CI16 — iOS 26通常UI Bで試験進捗ラベルの実入力が途中で止まる
+
+- `8d131dd`、[正式544・試行4のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45794194485/job/140009448421)、SDK 27.2。週送りの先頭検査は15:42:50 UTCに成功。15:54:17 UTCに `testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel`（73.859秒）が `ApplicationChecks+Events.swift:239` で失敗。既定値を確認し、TextFieldへの実タップと削除・英文の入力要求は送ったが、直後の実値は「設定」のままで、保存と再起動後の表示には未到達。XCTestの失敗時画像を取得した。
+- `countdown-progress-label|Fictional progress|N185-CI` で照合。過去の限定45710773715では両OS、試行1のiOS 26 Bでは進捗入力が成功し学校行事の別ケースだけが失敗した。今回とそのときの入力コードは同じ。削除と全文入力が一つの送出で部分的にしか反映されなかった理由は未確定。現行の実入力・完全一致・保存と再起動を保った新しいRunnerで、この1件を含む通常Bの全検査を比較する。iOS 27 Aは通知復旧を含め成功。事前検査は13成功・1失敗、公開はスキップ。
