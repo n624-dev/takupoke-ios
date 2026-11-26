@@ -6461,3 +6461,8 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N187-CI5 — ASCII OCRのiOS 27がiPhone 16向けの端末を作成できない
 
 - `2d77717`、[固定スナップショットのASCII OCR 45727564438](https://github.com/n624-dev/takupoke-ios/actions/runs/45727564438/job/139601152463)。iOS 27の列挙でiPhone19,4専用のランタイムが選ばれ、iPhone 16の端末作成がexit147。起動や撮影には未到達。iOS 26は成功。[標準OCRの両OS](https://github.com/n624-dev/takupoke-ios/actions/runs/45727553482)も成功。ランタイム選択が汎用iOS 27の中で行われるよう両研究ランナーに共通の判定を使う。既存のSDK、固定製品、実プロセスの照合と推論の合格条件は維持する。
+
+### N185-CI5 — iOS 26通常UI Bの背景復帰後に通知設定の表示を確認できない
+
+- `0294c79`、[全体45714093730・試行1のiOS 26.5通常UI B](https://github.com/n624-dev/takupoke-ios/actions/runs/45714093730/job/139557970148)、SDK 27.2。週送りと通常画面の区間は成功。2026-11-26 00:58:33 UTCに `testNotificationControlsAndAppearance` の `ApplicationChecks+Notifications.swift:379` で失敗。次の通知テストも走った。合否を変えずに全体試行2で照合する。
+- N185-CI4の試行ZIPを確認。iOS 27通常UI Bでは通知2件と実文字サイズの先行2ケースが成功し、3ケース目の起動中にGitHubの上限へ到達した。元のケース・端末条件を維持して再検証する。
