@@ -1,7 +1,7 @@
 # シミュレーター失敗時の画面記録
 
 対応関係・宣言名・実行方法のSHA-256：
-`a6d2b7c642c2ae5176d902e8d416748ec5046495a83d5745e801b9089dd3934d`
+`a4f92fe7acf5a53ff39137887ce9644eab081ae8b15b3dd4457f28bee3284927`
 
 環境：macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査
 
@@ -54,6 +54,7 @@ python3 -B -m unittest discover -s tests -p test_simulator_failure_screenshot.py
 
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 
+- `test_picker_viewport_uses_one_complete_current_snapshot`
 - `test_picker_lease_typechecks_with_only_picker_dependencies`
 - `test_preparation_order_exact_completions_failures_and_owned_cleanup`
 

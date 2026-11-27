@@ -103,13 +103,19 @@ final class MaterialPickerTapChecks: SimulatorIdentityTestCase {
             return nil
         }
         // Native existence polling preserves XCTest's normal app idleness.
-        guard navigation.waitForExistence(timeout: 30), tabs.waitForExistence(timeout: 30),
-              list.waitForExistence(timeout: 10) else {
+        guard navigation.waitForExistence(timeout: 30), tabs.waitForExistence(timeout: 30) else {
             XCTFail("File list viewport did not return")
             return nil
         }
         func viewport() -> CGRect? {
-            guard navigation.exists, tabs.exists, list.exists else { return nil }
+            guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root) else { return nil }
+            let navigationBars = nodes.filter {
+                $0.elementType == .navigationBar && ($0.identifier == "ファイル選択" || $0.label == "ファイル選択")
+            }
+            let tabBars = nodes.filter { $0.elementType == .tabBar }
+            let lists = nodes.filter { $0.elementType == .collectionView && $0.identifier == "picker-file-list" }
+            guard navigationBars.count == 1, tabBars.count == 1, lists.count == 1,
+                  let navigation = navigationBars.first, let tabs = tabBars.first, let list = lists.first else { return nil }
             let bar = navigation.frame, tab = tabs.frame, bounds = list.frame
             guard [bar, tab, bounds].allSatisfy({
                 !$0.isNull && !$0.isInfinite && $0.width > 0 && $0.height > 0 &&
@@ -119,6 +125,15 @@ final class MaterialPickerTapChecks: SimulatorIdentityTestCase {
             guard top < bottom else { return nil }
             return CGRect(x: bounds.minX, y: top, width: bounds.width, height: bottom - top)
         }
+        var undisturbedViewport: CGRect?
+        let returned = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            undisturbedViewport = viewport()
+            return undisturbedViewport != nil
+        }, object: app)
+        guard XCTWaiter.wait(for: [returned], timeout: 10) == .completed else {
+            XCTFail("File list did not return with one visible viewport")
+            return nil
+        }
         // The fixture has four ordered rows. After row 3, row 0 may be recycled
         // above the viewport. Scroll back before asking XCTest for its
         // offscreen frame; the failed run blocked on that query before a swipe.
@@ -126,6 +141,7 @@ final class MaterialPickerTapChecks: SimulatorIdentityTestCase {
         // viewport and hittability assertions before its actual button tap.
         if let previous = lastRevealedRow, row < previous {
             for _ in row..<previous { list.swipeDown() }
+            undisturbedViewport = nil
         }
         func finish(_ button: XCUIElement, frame: CGRect, area: CGRect, attempt: Int) -> XCUIElement? {
             guard !frame.isNull, !frame.isInfinite, frame.width > 0, frame.height > 0,
@@ -140,7 +156,8 @@ final class MaterialPickerTapChecks: SimulatorIdentityTestCase {
             return button
         }
         for attempt in 0..<8 {
-            guard let area = viewport() else { XCTFail("File list lost its current viewport"); return nil }
+            guard let area = undisturbedViewport ?? viewport() else { XCTFail("File list lost its current viewport"); return nil }
+            undisturbedViewport = nil
             let matches = buttons.allElementsBoundByAccessibilityElement
             guard matches.count <= 1 else { XCTFail("File button is ambiguous: \(identifier)"); return nil }
             guard let button = matches.first else { list.swipeUp(); continue }

@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`314c289a0764a7b0843168f01ba4e9292978eb486252534712ff0188ee08e8d9`
+`1f4d2c2f9447f62080dfdfbcbebf7994059b5cf9766e481614ef7cdd1e34b8dc`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -340,6 +340,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 
+- `test_picker_viewport_uses_one_complete_current_snapshot`
 - `test_picker_lease_typechecks_with_only_picker_dependencies`
 - `test_preparation_order_exact_completions_failures_and_owned_cleanup`
 

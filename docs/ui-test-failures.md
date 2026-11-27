@@ -4,6 +4,12 @@
 - 先に直した `tools/manual_ui_project.py` の変換に加え、実ジョブはその前に `tools/app_test_project.py` の `--recovery-preview` も挿入する。後者が旧 `failure` へ代入していた。ローカル検査は各変換を別々に読んだため、連結後の最終ソースへの影響を見逃した。両方の変換で架空エラー用の同じ書込先を使い、製品側の公開プロパティは読み取り専用を維持する。
 - 通常用と手動用それぞれの生成済みソースを検査し、手動用は実ランナーと同じ順序で両変換を適用する。架空エラーを設定する実コードと中止時の解除を型検査し、テストが旧プロパティに代入していた場合は失敗させる。
 
+## PR #238のiPhoneビルド確認内でファイル選択の復帰照会が停止（2026-11-27）
+
+- `ed130525868688ac3a88462dbd18f91e7df82a69`、[45982834993 試行1のジョブ140453704458](https://github.com/n624-dev/takupoke-ios/actions/runs/45982834993/job/140453704458)。iOS 27.0／SDK 27.2。`testReselectionThroughActualButtons` が433.106秒で失敗し、ファイル選択の3ケースは成功2・失敗1。12:32:32 UTCにfailure、XCTestの失敗画像あり。
+- 最初の8回の選択・取消と詳細画面から戻った後の再選択・取消が成立。その後にホーム、設定へ一度ずつ触れ、設定の「ファイル選択」画面へ戻った。NavigationBarとTabBarの存在照会は返ったが、 リストの `waitForExistence(timeout: 10)` に付随する内部照会が反復し、`MaterialPickerTapChecks.swift:107` のXCTest snapshot timeoutで停止した。失敗画像にはファイル選択Listと設定タブがあり、次のボタン操作・背景復帰は未到達。実List照会の下位の停止理由は未確定。
+- N83/N203と照合。N83は選択ボタンのhittable、N203は背景復帰後の画面外ボタンの列挙、今回はタブ復帰後のList存在照会。今の画面のNavigationBar・TabBar・Listの型と識別子と枠を同じsnapshotから採り、その試行の枠は画面が動くまで再利用する。30秒、30秒、10秒、8回と最後の5秒、実選択・実取消・背景復帰を保持する。
+
 ## #233 Linuxの架空認証テストで中止済みの通信が開始された（2026-11-27）
 
 - 基点 `8d131dd` の作業差分、Swift 6.1.2 / Linux、ローカルの `test_browser_cancellation_authentication_and_transport_are_distinct`。SDK・Simulator・Actionsは未使用。中止済みのTaskをURLSessionへ渡したケースで、FoundationNetworkingの `TaskRegistry` が `didFailWithError` 中にSIGILLで停止した。先行試行は同じケースを通過しており、常時再現ではなかった。
