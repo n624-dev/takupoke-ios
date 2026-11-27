@@ -138,6 +138,9 @@ extension MaterialLibrary {
               !view.requiresLayoutConfirmation, view.conflicts.isEmpty,
               !manual || view.baseline == ChangeEditBaseline(source: record.source) else { throw ChangeParseError(code: .staleConfirmation) }
         let records = try view.table.records(edits: edits, defaultYear: year, check: check)
+        if records.isEmpty, !manual, record.source.personalChanges?.reviewedDigest != expectedDigest {
+            throw ChangeParseError(code: .staleConfirmation)
+        }
         let rows = try view.table.savedEdits(sourceIdentity: expectedIdentity, digest: expectedDigest, defaultYear: year, edits: edits, check: check)
         let personal = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: view.previous, reviewedDigest: record.digest)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName, defaultYear: year, parsedAt: Date(), records: records)
@@ -163,6 +166,9 @@ extension MaterialLibrary {
               let previous = state.records[index].source.personalChanges else { return }
         let record = state.records[index]
         guard previous.year == year, previous.reviewedDigest != record.digest else { return }
+        if records.isEmpty, !manual, record.source.personalChanges?.reviewedDigest != expectedDigest {
+            throw ChangeParseError(code: .staleConfirmation)
+        }
         let rows = try view.table.savedEdits(sourceIdentity: record.source.selectionID ?? record.storedName,
             digest: record.digest, defaultYear: year, edits: view.edits)
         var next = state
@@ -182,6 +188,9 @@ extension MaterialLibrary {
         guard let source = state.record(for:.changes), source.source.personalChanges == nil,
               let year = source.source.rowSkipConsent?.defaultYear ?? source.source.weekdayConsent?.defaultYear else { return nil }
         let view = try changeEditor(year: year, check: check)
+        if records.isEmpty, !manual, record.source.personalChanges?.reviewedDigest != expectedDigest {
+            throw ChangeParseError(code: .staleConfirmation)
+        }
         let rows = try view.table.savedEdits(sourceIdentity: source.source.selectionID ?? source.storedName,
             digest: source.digest, defaultYear: year, edits: view.edits, check: check)
         guard let rows else { return nil }

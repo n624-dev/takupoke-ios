@@ -13,6 +13,7 @@ struct ChangeWorkbookEditorView: View {
     @State private var savedGroups: [ChangeIssueGroup] = []
     @State private var confirming = false
     @State private var viable = false
+    @State private var recordCount: Int?
     @State private var error: String?
     @State private var headerNumber: String
     @State private var verificationTask: Task<Void, Never>?
@@ -184,7 +185,8 @@ struct ChangeWorkbookEditorView: View {
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 let skipped = edits.keys.filter { edits[$0]?.excluded == true }
-                Text(skipped.isEmpty ? "確認した内容で時間割を更新します。" :
+                Text(recordCount == 0 ? "すべての行を除外し、時間割変更を0件として反映します。" :
+                     skipped.isEmpty ? "確認した内容で時間割を更新します。" :
                        "除外する行：" + ChangeReviewGroup.rangeLabel(skipped))
             }
             .onChange(of: view.table.headers) { _, _ in verify() }
@@ -233,6 +235,7 @@ struct ChangeWorkbookEditorView: View {
             suggestions = result.suggestions
             savedGroups = result.savedGroups
             viable = result.viable
+            recordCount = result.recordCount
             error = result.error
             verifiedInput = requested
         }

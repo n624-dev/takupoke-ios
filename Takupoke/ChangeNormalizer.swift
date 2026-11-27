@@ -402,7 +402,8 @@ extension ChangeEditTable {
         var table = Array(repeating: [String](), count: rows.count)
         table[headerRow - 1] = headers
         guard let date = headers.firstIndex(where: { ChangeNormalizer.text($0) == "月日" }) else { throw ChangeParseError(code: .headers) }
-        for row in rowIDs {
+        let sourceRows = rowIDs
+        for row in sourceRows {
             try check()
             let edit = edits[row] ?? ChangeRowEdit()
             if !edit.excluded {
@@ -411,7 +412,8 @@ extension ChangeEditTable {
                 table[row - 1] = effective
             }
         }
-        return try ChangeNormalizer.parse(table, defaultYear: defaultYear, check: check,
+        let allExcluded = !sourceRows.isEmpty && sourceRows.allSatisfy { edits[$0]?.excluded == true }
+        return try ChangeNormalizer.parse(table, defaultYear: defaultYear, check: check, allowEmptyPreview: allExcluded,
                                           sourceRows: rows, sourceHeaders: originalHeaders ?? headers, workbook: self, edits: edits)
     }
 }
@@ -422,6 +424,7 @@ struct ChangeWorkbookVerification {
     var suggestions: ChangeIssueGroup?
     var savedGroups: [ChangeIssueGroup] = []
     var viable = false
+    var recordCount: Int?
     var error: String?
 
     static func evaluate(_ view: ChangeWorkbookReview, edits: [Int: ChangeRowEdit], year: Int,
@@ -450,7 +453,7 @@ struct ChangeWorkbookVerification {
             result.viable = result.issues.isEmpty && view.conflicts.isEmpty
             if result.viable && !view.requiresLayoutConfirmation {
                 // The same frozen input already passed review. Check only the final model here.
-                _ = try table.recordsAfterReview(edits: edits, defaultYear: year, check: check)
+                result.recordCount = try table.recordsAfterReview(edits: edits, defaultYear: year, check: check).count
             }
         } catch {
             try check()

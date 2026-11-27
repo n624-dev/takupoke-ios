@@ -93,6 +93,48 @@ extension ParsingTests {
         }
     }
 
+    func testOnlyExplicitWholeWorkbookExclusionCanBeSavedAsZeroChanges() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "時限", "変更内容", "科目"]
+            let libraryRoot = root.appendingPathComponent("fictional-library", isDirectory: true)
+            let library = try MaterialLibrary(root: libraryRoot)
+            let original = library.newStagingURL()
+            try write(workbook([header, ["3", "IT", "2032/7/10", "1", "休講", "架空科目"]]), to: original)
+            let size = try XCTUnwrap(original.resourceValues(forKeys: [.fileSizeKey]).fileSize)
+            try library.commit(staged: original, kind: .changes, source: MaterialSource(), originalName: "fictional.xlsx",
+                byteCount: size, digest: "fictional-one-change", modifiedAt: nil)
+            try library.reanalyzeChanges(defaultYear: 2032)
+            let before = try LocalMaterialDatabase.encode(library.state)
+            XCTAssertEqual(library.state.changeAnalysis?.records.count, 1)
+            let record = try XCTUnwrap(library.state.record(for: .changes))
+            let review = try library.changeEditor(year: 2032)
+            let identity = record.source.selectionID ?? record.storedName
+            let excluded = [2: ChangeRowEdit(excluded: true)]
+            let verified = try ChangeWorkbookVerification.evaluate(review, edits: excluded, year: 2032, check: {})
+            XCTAssertTrue(verified.viable)
+            XCTAssertEqual(verified.recordCount, 0)
+            assertCode(.staleConfirmation) {
+                try library.saveChangeEditor(review, year: 2032, expectedIdentity: identity,
+                    expectedDigest: record.digest, edits: excluded, manual: false, check: {})
+            }
+            XCTAssertEqual(try LocalMaterialDatabase.encode(library.state), before)
+            try library.saveChangeEditor(review, year: 2032, expectedIdentity: identity,
+                expectedDigest: record.digest, edits: excluded, manual: true, check: {})
+            let reopened = try MaterialLibrary(root: libraryRoot)
+            let accepted = try XCTUnwrap(reopened.state.changeAnalysis)
+            XCTAssertTrue(accepted.records.isEmpty)
+            XCTAssertTrue(accepted.matches(record: try XCTUnwrap(reopened.state.record(for: .changes)), defaultYear: 2032))
+            XCTAssertEqual(try reopened.changeEditor(year: 2032).edits, excluded)
+            let headerOnly = root.appendingPathComponent("fictional-no-rows.xlsx")
+            try write(workbook([header]), to: headerOnly)
+            assertCode(.empty) {
+                _ = try ChangeNormalizer.parse(XLSXReader.read(headerOnly, defaultYear: 2032), defaultYear: 2032)
+            }
+            let headerReview = try XLSXReader.editableWorkbook(headerOnly, layout: nil, check: {})
+            assertCode(.empty) { _ = try headerReview.table.records(edits: excluded, defaultYear: 2032) }
+        }
+    }
+
     func testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAccepted() throws {
         try temporary { root in
             for value in ["2032-07-10", "2032-07-10T00:00:00.000", "2032-07-10T23:59:59.123456789+14:00", "2032-07-10T00:00:00-12:00", "2032-07-10T01:02:03Z"] {
