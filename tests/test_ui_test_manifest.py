@@ -25,6 +25,44 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_both_countdown_edit_routes_typecheck_with_the_current_initializer(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to type-check the app editor calls")
+        source = (ROOT / "Takupoke/CountdownView.swift").read_text()
+        init = block(source, "    init(automatic: CountdownAutomatic)")
+        calls = [line.strip() for line in source.splitlines() if "CountdownAutomaticEditor(" in line]
+        self.assertEqual(len(calls), 2)
+        probe = """
+struct CountdownAutomatic {
+    struct Preferences { let notifications = false }
+    let enabled = true
+    let preferences = Preferences()
+}
+@propertyWrapper struct State<Value> {
+    var wrappedValue: Value
+    init(wrappedValue: Value) { self.wrappedValue = wrappedValue }
+    init(initialValue: Value) { wrappedValue = initialValue }
+}
+struct EditorModel {
+    struct Library { let automatic = CountdownAutomatic() }
+    let library = Library()
+    var automaticProgress: (key: Int, date: Int)?
+}
+private struct CountdownAutomaticEditor {
+    @State var automatic: CountdownAutomatic
+    private let oldNotifications: Bool
+INITIALIZER
+}
+func openFromListAndDetail(model: EditorModel) {
+CALLS
+}
+""".replace("INITIALIZER", init).replace("CALLS", "\n".join("    _ = " + call for call in calls))
+        with tempfile.TemporaryDirectory(prefix="countdown-edit-routes-") as directory:
+            path = Path(directory) / "CountdownEditRoutes.swift"
+            path.write_text(probe)
+            subprocess.run([compiler, "-typecheck", str(path)], check=True, timeout=30)
+
     def test_notification_navigation_can_reset_timetable_details_from_its_own_file(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

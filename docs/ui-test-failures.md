@@ -1,3 +1,8 @@
+## #219の起点日編集で、詳細画面に旧イニシャライザ呼び出しが残る（2026-11-27）
+
+- `5e36ade`、[全体46031013029 試行1のiOS 26通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/46031013029/job/140617636486)、iOS 26.5／SDK 27.2。16:35:29 UTC、`CountdownView.swift:275` で `extra argument 'target' in call`。シミュレーターを作成済みだがアプリの操作は未開始。
+- 試験設定の起点を画面で再解決する変更で、一覧の呼び出しだけを更新し、試験詳細からの呼び出しに古い引数を残した。両方の呼び出しを実際のイニシャライザに対してSwiftで型検査する。
+
 ## #218の通知から時間割へ移動するコードがAppleビルドで非公開メソッドを参照（2026-11-27）
 
 - `56c0785`、[限定46032776858 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46032776858/job/140620524464)、iOS 27.0／SDK 27.2。16:29:14 UTC、`TimetableView+Navigation.swift:58` が `closeDetailSelections` のアクセス範囲でコンパイル失敗。シミュレーターでの操作は未開始。

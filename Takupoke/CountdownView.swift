@@ -272,7 +272,7 @@ private struct CountdownDetail: View {
                 } else if id == CountdownAutomatic.identity {
                     Section {
                         NavigationLink("自動表示を設定") {
-                            CountdownAutomaticEditor(automatic: model.library.automatic, target: model.automaticProgress?.key)
+                            CountdownAutomaticEditor(automatic: model.library.automatic)
                         }
                         if card.availability == .missingYear {
                             Button("学校行事を取得") { events.fetch(year: model.day.schoolYear) }.disabled(events.busy)
