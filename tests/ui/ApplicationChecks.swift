@@ -24,7 +24,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             "testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"],
             "testSettingsGroupsAndCompactDataOverviews": ["--fixture-input-trace"],
             "testStatusScreenUsesPublicResourcesAndDataRoutes": ["--fixture-input-trace", "--only-distributed-data"],
-            "testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData": ["--retention-corrupt"],
+            "testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals": ["--retention-corrupt"],
             "testTimetableDynamicTypeScalesAndRestoresStandardLayout": ["--grid-probe"],
             "testTimetableUsesSystemTextSize": ["--grid-probe", "--system-text-size", "--fixture-input-trace"],
             "testMergedCardsFromAllSources": ["--fixture-input-trace"],
@@ -83,7 +83,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
         #if !TAKUPOKE_VOICEOVER_AUTOMATION
             if name.contains("testVoiceOverReadsTimetableCard") { return }
         #endif
-        if name.contains("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData") {
+        if name.contains("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals") {
             launchReady(expectDataReady: false)
             return
         }

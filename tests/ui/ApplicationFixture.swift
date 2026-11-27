@@ -714,7 +714,15 @@ enum SimulatorRetentionFixture {
             try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Data("fictional retained bytes".utf8).write(to: url)
         }
+        let staleProof = base.appendingPathComponent("school-data-period-proof.json")
+        if manager.fileExists(atPath: staleProof.path) { try manager.removeItem(at: staleProof) }
         try Data("{fictional invalid period marker".utf8).write(to: base.appendingPathComponent("school-data-period.json"))
+    }
+    private static var archivedPrivateFile: URL? {
+        let root = base.appendingPathComponent("SchoolDataUnverifiedPeriod", isDirectory: true)
+        return (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil))?.first {
+            (try? Data(contentsOf: $0.appendingPathComponent("NameMappings/fixture-retention-old"))) == Data("fictional retained bytes".utf8)
+        }?.appendingPathComponent("NameMappings/fixture-retention-old")
     }
     static var proof: String {
         let manager = FileManager.default
@@ -723,12 +731,13 @@ enum SimulatorRetentionFixture {
         let prefs = UserDefaults.standard.string(forKey: "timetableSelectedClasses") == "3_IT"
         let publicOK = (try? Data(contentsOf: base.appendingPathComponent("SchoolEventsAPI/fixture-retention-public"))) == Data("fictional retained bytes".utf8)
         let originalOK = (try? Data(contentsOf: base.appendingPathComponent("fixture-retention-original"))) == Data("fictional retained bytes".utf8)
-        return "marker=\(current ? 1 : 0);old=\(old ? 1 : 0);prefs=\(prefs ? 1 : 0);public=\(publicOK ? 1 : 0);original=\(originalOK ? 1 : 0)"
+        return "marker=\(current ? 1 : 0);old=\(old ? 1 : 0);prefs=\(prefs ? 1 : 0);public=\(publicOK ? 1 : 0);original=\(originalOK ? 1 : 0);archive=\(archivedPrivateFile == nil ? 0 : 1)"
     }
     static var fingerprints: String {
         ["school-data-period.json", "NameMappings/fixture-retention-old",
          "SchoolEventsAPI/fixture-retention-public", "fixture-retention-original"].map { path in
-            guard let bytes=try? Data(contentsOf:base.appendingPathComponent(path)) else { return "missing" }
+            let file = path == "NameMappings/fixture-retention-old" ? archivedPrivateFile ?? base.appendingPathComponent(path) : base.appendingPathComponent(path)
+            guard let bytes = try? Data(contentsOf: file) else { return "missing" }
             return SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined()
         }.joined(separator:";")
     }

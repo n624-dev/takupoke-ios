@@ -28,6 +28,9 @@ struct SchoolDataPeriod: Codable, Equatable, Sendable {
 struct SchoolDataRetention {
     let root: URL
     private var marker: URL { root.appendingPathComponent("school-data-period.json") }
+    private var proof: URL { root.appendingPathComponent("school-data-period-proof.json") }
+    private var unverified: URL { root.appendingPathComponent("SchoolDataUnverifiedPeriod", isDirectory: true) }
+    private var pendingArchive: URL { unverified.appendingPathComponent("pending", isDirectory: true) }
     static let countdownProgressDirectory = "SchoolCountdownProgress"
     static let privatePaths = ["SchoolFileJobs", "SchoolMaterialsSQLite", "SchoolMaterialsSQLite.initializing",
         "SchoolMaterialsSQLite.lock", "SchoolMaterials", "SpecialSchedulesSQLite", "SpecialSchedules",
@@ -50,8 +53,12 @@ struct SchoolDataRetention {
     private var recoveryDirectory: URL { root.appendingPathComponent("SchoolDataRetentionRecovery", isDirectory: true) }
 
     func installedPeriod(read: (URL) throws -> Data = { try Data(contentsOf: $0) }) throws -> SchoolDataPeriod? {
+        try readPeriod(at: marker, read: read)
+    }
+
+    private func readPeriod(at url: URL, read: (URL) throws -> Data = { try Data(contentsOf: $0) }) throws -> SchoolDataPeriod? {
         do {
-            let attributes = try FileManager.default.attributesOfItem(atPath: marker.path)
+            let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
             guard attributes[.type] as? FileAttributeType == .typeRegular else { throw Failure.unreadableMarker }
         } catch let failure as Failure { throw failure }
         catch {
@@ -60,10 +67,66 @@ struct SchoolDataRetention {
             throw Failure.unreadableMarker
         }
         let data: Data
-        do { data = try read(marker) } catch { throw Failure.unreadableMarker }
+        do { data = try read(url) } catch { throw Failure.unreadableMarker }
         guard let period = try? JSONDecoder().decode(SchoolDataPeriod.self, from: data),
               (1...9998).contains(period.schoolYear), (1...2).contains(period.half) else { throw Failure.invalidMarker }
         return period
+    }
+
+    func saveProofForInstalledPeriod(_ period: SchoolDataPeriod) throws {
+        guard try installedPeriod() == period, (try? readPeriod(at: proof)) != period else { return }
+        do { try JSONEncoder().encode(period).write(to: proof, options: .atomic) }
+        catch { throw Failure.markerWrite }
+    }
+
+    /// Rebuild a damaged marker using the separately stored period proof.
+    /// With no current proof, preserve unverified private files outside the
+    /// active stores and start a clean current period.
+    func restoreInvalidPeriod(_ period: SchoolDataPeriod, move: (URL, URL) throws -> Void = {
+        try FileManager.default.moveItem(at: $0, to: $1)
+    }) throws -> Bool {
+        let manager = FileManager.default
+        let markerExists = manager.fileExists(atPath: marker.path)
+        let pending = manager.fileExists(atPath: pendingArchive.path)
+        let preserveCurrent = !pending && (try? readPeriod(at: proof)) == period
+        let archive = preserveCurrent ? unverified.appendingPathComponent(UUID().uuidString, isDirectory: true) : pendingArchive
+        do {
+            try manager.createDirectory(at: archive, withIntermediateDirectories: true)
+            #if os(iOS)
+            try manager.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: unverified.path)
+            var directory = unverified
+            var values = URLResourceValues(); values.isExcludedFromBackup = true
+            try directory.setResourceValues(values)
+            #endif
+            if markerExists {
+                let bytes = try Data(contentsOf: marker)
+                let snapshot = archive.appendingPathComponent("school-data-period.json")
+                if manager.fileExists(atPath: snapshot.path) {
+                    guard try Data(contentsOf: snapshot) == bytes else { throw Failure.recovery }
+                } else {
+                    try bytes.write(to: snapshot, options: .withoutOverwriting)
+                }
+            }
+            if !preserveCurrent {
+                for name in Self.privatePaths {
+                    let source = root.appendingPathComponent(name)
+                    guard manager.fileExists(atPath: source.path) else { continue }
+                    try move(source, archive.appendingPathComponent(name))
+                }
+            }
+            let bytes = try JSONEncoder().encode(period)
+            try bytes.write(to: proof, options: .atomic)
+            try bytes.write(to: marker, options: .atomic)
+            try finalizeUnverifiedArchive()
+            return preserveCurrent
+        } catch { throw Failure.recovery }
+    }
+
+    func finalizeUnverifiedArchive() throws {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: pendingArchive.path) else { return }
+        do { try manager.moveItem(at: pendingArchive, to: unverified.appendingPathComponent(UUID().uuidString, isDirectory: true)) }
+        catch { throw Failure.recovery }
     }
 
     /// Only an explicit recovery operation may move a readable, malformed marker.
@@ -101,7 +164,9 @@ struct SchoolDataRetention {
         } catch { throw Failure.cleanup }
         do {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-            try write(JSONEncoder().encode(period), marker)
+            let bytes = try JSONEncoder().encode(period)
+            try bytes.write(to: proof, options: .atomic)
+            try write(bytes, marker)
         } catch { throw Failure.markerWrite }
     }
 }

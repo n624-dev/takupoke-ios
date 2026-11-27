@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`59713d49d0a820e883b4b6fd77a56ae163c26adc5c971185fddcf85a5ce5dbcb`
+`533f1acd3fa99d9881e5004cdf29f2fa1ad222f7d26ad84adae4f3d0f9bfc9ba`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -66,7 +66,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_actual_loopback_browser_input_serves_only_fictional_page_and_closes`
 - `test_browser_fixture_changes_only_native_network_input_and_rejects_other_urls`
 - `test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout`
-- `test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy`
+- `test_retention_observation_preserves_the_real_automatic_recovery`
 - `test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files`
 - `test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases`
 - `test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy`

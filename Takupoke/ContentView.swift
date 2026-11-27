@@ -19,7 +19,7 @@ struct ContentView: View {
     private var retentionNotice: Bool { application.retentionNotice }
     @AppStorage("setupPresented") private var setupPresented = false
     @State private var showingSetup = false
-    @State private var confirmingRetentionRecovery = false
+    @State private var protectedDataAvailable = UIApplication.shared.isProtectedDataAvailable
     @ObservedObject private var notifications = ApplicationData.shared.notifications
     private let materials = ApplicationData.shared.materials
     private let specialSchedules = ApplicationData.shared.specialSchedules
@@ -33,24 +33,25 @@ struct ContentView: View {
         Group {
             if dataReady { tabs }
             else {
-                VStack(spacing: 16) {
+                NavigationStack { VStack(spacing: 16) {
                     if retentionFailure {
                         InlineWarning(application.retentionFailureMessage)
-                        if application.canRecoverRetention {
-                            Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }
-                                .buttonStyle(.bordered)
-                        }
                         Button("再試行") { Task { await activate() } }
+                        if protectedDataAvailable {
+                            NavigationLink("公開の学校行事") { SchoolEventsSettingsView(model: schoolEvents) }
+                            NavigationLink("カウントダウン") {
+                                CountdownManagementView(events: schoolEvents)
+                                    .task { schoolEvents.loadIfNeeded(); application.updateCountdown() }
+                            }
+                        }
                     } else { LoadingRow(title: "読み込み中⋯") }
-                }.padding()
+                }.padding() }
             }
         }
-        .confirmationDialog("学校データを初期化して復旧しますか？", isPresented: $confirmingRetentionRecovery, titleVisibility: .visible) {
-            Button("学校データを初期化して復旧", role: .destructive) { Task { await application.recoverRetention() } }
-            Button("キャンセル", role: .cancel) { }
-        } message: {
-            Text("破損した管理情報を隔離し、保存済みの学校データを削除して保存期間を設定し直します。個人設定・公開行事・OneDriveなどの元ファイルは保持します。資料の再選択と再取得が必要です。")
-        }
+        .alert("保存期間の復旧", isPresented: Binding(get: { application.recoveredRetention != nil },
+            set: { if !$0 { application.recoveredRetention = nil } })) {
+            Button("閉じる", role: .cancel) { application.recoveredRetention = nil }
+        } message: { Text(application.recoveredRetention ?? "") }
         .environmentObject(account)
         .environmentObject(links)
         .environmentObject(mappings)
@@ -68,7 +69,11 @@ struct ContentView: View {
             if scenePhase == .active { schoolEvents.reevaluate(); application.updateCountdown() }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in
+            protectedDataAvailable = true
             if scenePhase == .active { Task { await activate() } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataWillBecomeUnavailableNotification)) { _ in
+            protectedDataAvailable = false
         }
         .onReceive(boundaryCheck) { _ in
             if scenePhase == .active, loadedPeriod != SchoolDataPeriod.current() {

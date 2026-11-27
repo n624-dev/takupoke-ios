@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`9892fc434349ea34620dc7d7bf18729bc4909ead658646b7f974a4ddfeb0dcd6`
+`73d2f6d7460506e631b60f60f02ce2db805e83cacf77c9c7ef9ba0aea92d9fc4`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -118,7 +118,7 @@ bash tools/test-app-ui.sh
 - `test_actual_loopback_browser_input_serves_only_fictional_page_and_closes`
 - `test_browser_fixture_changes_only_native_network_input_and_rejects_other_urls`
 - `test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout`
-- `test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy`
+- `test_retention_observation_preserves_the_real_automatic_recovery`
 - `test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files`
 - `test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases`
 - `test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy`
@@ -161,7 +161,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Settings.swift](../../tests/ui/ApplicationChecks+Settings.swift)
 
-- `testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData`
+- `testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals`
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`

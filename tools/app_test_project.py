@@ -76,20 +76,16 @@ def add_swift_sources(project, target, paths, prefix):
         phases[0]['files'].append(build_file)
         group['children'].append(reference)
 
-RETENTION_ACTION_TRACE = '; FixtureLaunchDiagnostics.record("retention-recovery-action"); SimulatorRetentionObservation.shared.capture()'
-RETENTION_DIALOG_TRACE = '''        .onChange(of: confirmingRetentionRecovery) { presented in
-            FixtureLaunchDiagnostics.record(presented ? "retention-dialog-on" : "retention-dialog-off")
-            SimulatorRetentionObservation.shared.capture(closed: !presented)
+RETENTION_RECOVERY_TRACE = '''        .onChange(of: application.recoveredRetention) { _, result in
+            if result != nil { SimulatorRetentionObservation.shared.capture() }
         }
 '''
 
 
 def instrument_retention_recovery(text):
-    action = 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }'
     observer = '        .onChange(of: dataReady) { ready in'
-    assert text.count(action) == 1 and text.count(observer) == 1, 'Retention observation insertion point missing'
-    return text.replace(action, action[:-2] + RETENTION_ACTION_TRACE + ' }').replace(
-        observer, RETENTION_DIALOG_TRACE + observer)
+    assert text.count(observer) == 1, 'Retention observation insertion point missing'
+    return text.replace(observer, RETENTION_RECOVERY_TRACE + observer)
 
 
 def instrument_events_cache(text):

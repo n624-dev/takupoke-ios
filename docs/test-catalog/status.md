@@ -1,7 +1,7 @@
 # ステータス・公開監視情報・取消表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`54f867218cd8f3f8dd5882020971949d777da5881aa8b2a08dea88aedebe2289`
+`90420335fd88a09ed3fef80b0edf5f15ac6785b260fa19a5ace74b6f30d33a8e`
 
 環境：Linux Swift（状態判定）／Apple iOS26/27（画面・通信）
 
@@ -48,7 +48,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Settings.swift](../../tests/ui/ApplicationChecks+Settings.swift)
 
-- `testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData`
+- `testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals`
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`

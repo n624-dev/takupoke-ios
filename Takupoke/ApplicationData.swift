@@ -37,6 +37,7 @@ final class ApplicationData: ObservableObject {
     var readyForCurrentPeriod: Bool { ready && loadedPeriod == SchoolDataPeriod.current() }
     @Published private(set) var retentionFailure = false
     @Published var retentionNotice = false
+    @Published var recoveredRetention: String?
     @Published private(set) var retentionFailureReason: SchoolDataRetention.Failure?
     var canRecoverRetention: Bool {
         retentionFailureReason == .invalidMarker || retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:true)
@@ -104,7 +105,8 @@ final class ApplicationData: ObservableObject {
 
     @discardableResult
     func updateCountdown() -> Bool {
-        guard readyForCurrentPeriod, UIApplication.shared.isProtectedDataAvailable else { return false }
+        guard UIApplication.shared.isProtectedDataAvailable,
+              readyForCurrentPeriod || retentionFailure && loadedPeriod == nil else { return false }
         countdown.update(using: self, at: homeClock.currentDate)
         return true
     }
@@ -131,10 +133,12 @@ final class ApplicationData: ObservableObject {
             let retention = SchoolDataRetention(root: base)
             let period = SchoolDataPeriod.current()
             let installed: SchoolDataPeriod?
-            do { installed = try retention.installedPeriod() }
-            catch SchoolDataRetention.Failure.invalidMarker {
-                guard recoverInvalidMarker else { throw SchoolDataRetention.Failure.invalidMarker }
-                installed = nil
+            let invalid: Bool
+            do { installed = try retention.installedPeriod(); invalid = false }
+            catch SchoolDataRetention.Failure.invalidMarker { installed = nil; invalid = true }
+            if installed == period {
+                try retention.finalizeUnverifiedArchive()
+                try retention.saveProofForInstalledPeriod(period)
             }
             if installed != period {
                 let hadPrivateData = SchoolDataRetention.privatePaths.contains {
@@ -143,22 +147,25 @@ final class ApplicationData: ObservableObject {
                 ready = false
                 guard await stopPrivateWork(resetNotifications: true) else {
                     retentionFailure = !Task.isCancelled
-                    retentionFailureReason = retentionFailure ? .notificationCleanup(recoveringInvalidMarker:recoverInvalidMarker) : nil
+                    retentionFailureReason = retentionFailure ? .notificationCleanup(recoveringInvalidMarker: invalid || recoverInvalidMarker) : nil
                     loadedPeriod = nil
                     return false
                 }
                 try Task.checkCancellation()
                 // Protected data can become unavailable while workers unwind.
                 guard UIApplication.shared.isProtectedDataAvailable else { return false }
-                if recoverInvalidMarker {
-                    do { _ = try retention.installedPeriod() }
-                    catch SchoolDataRetention.Failure.invalidMarker { try retention.quarantineInvalidMarker() }
+                if invalid {
+                    let keptCurrent = try retention.restoreInvalidPeriod(period)
+                    retentionNotice = false
+                    recoveredRetention = keptCurrent ? "保存期間の記録を復旧しました。" :
+                        "保存期間の記録を復旧しました。期間を確認できない資料は端末に保全しています。"
+                } else {
+                    try retention.replace(with: period)
+                    retentionNotice = hadPrivateData
                 }
-                try retention.replace(with: period)
                 FileRefreshDiagnostics.shared.clear()
                 materials.resumeAfterRetention()
                 specialSchedules.resumeAfterRetention()
-                retentionNotice = hadPrivateData
             }
             try retention.finishRecovery()
             materials.resumeAfterRetention()

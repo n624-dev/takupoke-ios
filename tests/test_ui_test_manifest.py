@@ -1219,17 +1219,13 @@ METHOD
                             "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
 
-    def test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy(self):
+    def test_retention_observation_preserves_the_real_automatic_recovery(self):
         source = (ROOT / "Takupoke/ContentView.swift").read_text(encoding="utf-8")
         self.assertNotIn("FixtureLaunchDiagnostics", source)
         generated = app_test_project.instrument_retention_recovery(source)
-        self.assertEqual(generated.count(app_test_project.RETENTION_ACTION_TRACE), 1)
-        self.assertEqual(generated.count(app_test_project.RETENTION_DIALOG_TRACE), 1)
-        self.assertEqual(generated.replace(app_test_project.RETENTION_ACTION_TRACE, "", 1)
-                         .replace(app_test_project.RETENTION_DIALOG_TRACE, "", 1), source)
-        for changed in (source.replace('confirmingRetentionRecovery = true', 'confirmingRetentionRecovery = false'),
-                        source.replace('.onChange(of: dataReady)', '.onChange(of: retentionFailure)'),
-                        source + source):
+        self.assertEqual(generated.count(app_test_project.RETENTION_RECOVERY_TRACE), 1)
+        self.assertEqual(generated.replace(app_test_project.RETENTION_RECOVERY_TRACE, "", 1), source)
+        for changed in (source.replace('.onChange(of: dataReady)', '.onChange(of: retentionFailure)'), source + source):
             with self.assertRaises(AssertionError):
                 app_test_project.instrument_retention_recovery(changed)
 
@@ -1253,12 +1249,11 @@ METHOD
         self.assertLess(readiness.index("await (pending,delivered)"), readiness.index("notificationServiceReady = true"))
         self.assertNotRegex(readiness, r"requestAuthorization|removePending|removeDelivered|Task\.sleep")
         case = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text(encoding="utf-8")
-        recovery = case.split("func testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
-        self.assertLess(recovery.index("XCTWaiter.wait(for:[dismissed,observed],timeout:10)"),
-                        recovery.index("XCTWaiter.wait(for:[serviceReady],timeout:90)"))
-        self.assertLess(recovery.index("XCTWaiter.wait(for:[serviceReady],timeout:90)"), recovery.index("let currentBounds=recovery.frame"))
-        self.assertRegex(recovery, r'guard XCTWaiter\.wait\(for:\[serviceReady\],timeout:90\) == \.completed else \{\s+XCTFail\([^\n]+\)\s+return\s+\}')
-        self.assertIn("notice.waitForExistence(timeout: 30)", recovery)
+        recovery = case.split("func testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
+        self.assertIn('notice.waitForExistence(timeout: 45)', recovery)
+        self.assertIn('marker=1;old=0;prefs=1;public=1;original=1;archive=1', recovery)
+        self.assertLess(recovery.index('let fingerprints'), recovery.index('app.terminate()'))
+        self.assertIn('XCTAssertFalse(app.alerts["保存期間の復旧"].exists)', recovery)
 
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
@@ -1414,7 +1409,7 @@ METHOD
         self.assertIn("testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating",
                       manifest.PROBE_GROUPS["week-navigation-and-yellow"])
         self.assertIn("testChangedRoomInHomeWeekAndList", manifest.SHARDS["A"])
-        self.assertIn("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData", manifest.SHARDS["A"])
+        self.assertIn("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals", manifest.SHARDS["A"])
         self.assertIn("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails", manifest.SHARDS["A"])
         self.assertIn("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", manifest.SHARDS["A"])
         self.assertTrue(all(manifest.SHARDS[shard] for shard in ("A", "B")))

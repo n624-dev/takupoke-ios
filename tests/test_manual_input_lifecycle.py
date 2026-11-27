@@ -396,7 +396,11 @@ struct SchoolDataPeriod: Equatable {
         return Self.installed
     }
     func replace(with period: SchoolDataPeriod) throws { Self.replaced += 1; Self.installed = period }
-    func quarantineInvalidMarker() throws { Self.corrupt = false; Self.quarantined += 1 }
+    func finalizeUnverifiedArchive() throws {}
+    func saveProofForInstalledPeriod(_ period: SchoolDataPeriod) throws {}
+    func restoreInvalidPeriod(_ period: SchoolDataPeriod) throws -> Bool {
+        Self.corrupt = false; Self.quarantined += 1; try replace(with: period); return false
+    }
     func finishRecovery() throws {}
 }
 @MainActor final class FileRefreshDiagnostics {
@@ -435,6 +439,7 @@ struct SchoolDataPeriod: Equatable {
     let mappings = Unit(), links = Unit(), times = Unit(), countdown = Countdown()
     var ready = true, preparing = false, retentionNotice = false, retentionFailure = false
     var retentionFailureReason: SchoolDataRetention.Failure?
+    var recoveredRetention: String?
     var loadedPeriod: SchoolDataPeriod? = .init(half:1)
     func setFileMonitoring(_ enabled: Bool) { precondition(!enabled) }
 RECOVERY_ACTION
@@ -455,7 +460,7 @@ STOP
             let app = Application(root:root)
             app.countdown.response = countdownResponds
             app.notifications.response = updatesRespond
-            let blocked = await app.prepare(recoverInvalidMarker:corrupt)
+            let blocked = await app.prepare()
             precondition(!blocked && !app.ready && app.loadedPeriod == nil && !app.preparing)
             precondition(app.retentionFailure && app.retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:corrupt))
             precondition(app.canRecoverRetention == corrupt)
@@ -466,9 +471,10 @@ STOP
             precondition(app.links.resets == 1 && app.times.resets == 1 && app.countdown.includesDelivered == [true])
             app.countdown.response = true
             app.notifications.response = true
-            let recovered = await app.prepare(recoverInvalidMarker:app.canRecoverRetention)
+            let recovered = await app.prepare()
             precondition(recovered && app.ready && !app.retentionFailure && app.retentionFailureReason == nil)
-            precondition(app.loadedPeriod?.half == 2 && app.retentionNotice && !app.preparing)
+            precondition(app.loadedPeriod?.half == 2 && app.retentionNotice == !corrupt && !app.preparing)
+            precondition((app.recoveredRetention != nil) == corrupt)
             precondition(SchoolDataRetention.replaced == 1 && SchoolDataRetention.quarantined == (corrupt ? 1 : 0))
             precondition(app.countdown.includesDelivered == [true,true])
         }
