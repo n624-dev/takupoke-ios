@@ -63,6 +63,22 @@ CALLS
             path.write_text(probe)
             subprocess.run([compiler, "-typecheck", str(path)], check=True, timeout=30)
 
+    def test_countdown_progress_fixture_uses_matching_confirmed_source_evidence(self):
+        fixture = (ROOT / "tests/ui/ApplicationFixture+Events.swift").read_text()
+        progress = block(fixture, "static func seedProgress(")
+        self.assertIn('arguments.contains("--countdown-progress-announced") ? 0 : 2', progress)
+        self.assertIn('today.addingDays(7)', progress)
+        self.assertIn('responseDataVersion: version, lastEventsCheckedAt: observed', progress)
+        self.assertIn('dataVersion: version,', progress)
+        self.assertIn('adoptedSourcePdfSha256: source, status: .matched, lastSuccessfulStatus: .matched', progress)
+        self.assertIn('receivedAt: observed, response: status, requestedTarget: .init(saved)', progress)
+        self.assertLess(progress.index('try store.save(saved)'), progress.index('try store.saveSourceStatus'))
+        test = block((ROOT / "tests/ui/ApplicationChecks+Events.swift").read_text(),
+                     "func testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel()")
+        self.assertIn('XCTAssertFalse(progress.exists)', test)
+        self.assertIn('contains("・自動")', test)
+        self.assertIn('card.label.contains(label)', test)
+
     def test_notification_navigation_can_reset_timetable_details_from_its_own_file(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
