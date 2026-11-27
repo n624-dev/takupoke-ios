@@ -13,21 +13,16 @@ struct TimetableTimesService {
         guard MappingPackage.validRevision(revision), !token.isEmpty else { throw TimetableTimesError.invalidData }
         var request = URLRequest(url: baseURL.appendingPathComponent("timetable-times"))
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (file, raw) = try await network.download(for: request)
-        defer { try? FileManager.default.removeItem(at: file) }
+        let (body, response) = try await BoundedHTTPResponse.read(request, using: network, maximum: 128 * 1024)
         try Task.checkCancellation()
-        guard let response = raw as? HTTPURLResponse else { throw TimetableTimesError.unavailable }
         if response.statusCode == 401 || response.statusCode == 403 { throw TimetableTimesError.authentication }
         guard response.statusCode == 200,
               response.value(forHTTPHeaderField: "Content-Type")?.lowercased().hasPrefix("application/json") == true else {
             throw TimetableTimesError.unavailable
         }
         guard response.value(forHTTPHeaderField: "X-Timetable-Times-Revision") == revision else { throw TimetableTimesError.changed }
-        guard let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0, size <= 128 * 1024 else {
-            throw TimetableTimesError.invalidData
-        }
         let data: TimetableTimes
-        do { data = try JSONDecoder().decode(TimetableTimes.self, from: Data(contentsOf: file)).validated() }
+        do { data = try JSONDecoder().decode(TimetableTimes.self, from: body).validated() }
         catch { throw TimetableTimesError.invalidData }
         return SavedTimetableTimes(revision: revision, fetchedAt: Date(), data: data)
     }

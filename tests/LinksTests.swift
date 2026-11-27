@@ -1,5 +1,10 @@
 import Foundation
 import XCTest
+#if canImport(CryptoKit)
+import CryptoKit
+#elseif canImport(Crypto)
+import Crypto
+#endif
 @testable import TakupokeParsing
 
 final class LinksTests: XCTestCase {
@@ -178,6 +183,65 @@ final class LinksTests: XCTestCase {
             XCTAssertEqual(selection.acceptsAssurance(acr: "urn:takunin:assurance:standard", amr: ["school_network"]), mask == 1)
             XCTAssertFalse(selection.acceptsAssurance(acr: "urn:takunin:assurance:standard", amr: ["microsoft"]))
         }
+    }
+
+    func testMappingIDTokenChecksClaimsClockAndRealSignatureSeparately() throws {
+        let signer = P256.Signing.PrivateKey()
+        let issuer = "https://auth.example.invalid", client = "fictional-client", nonce = "fictional-nonce"
+        let now: TimeInterval = 10_000
+        let base: [String: Any] = ["iss": issuer, "aud": client, "nonce": nonce, "sub": "fictional-subject",
+                                  "acr": "urn:takunin:assurance:strict", "amr": ["microsoft"], "iat": now, "exp": now + 600]
+        func encodeURL(_ value: Data) -> String {
+            value.base64EncodedString().replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        }
+        func token(claims: [String: Any] = [:], header: [String: String] = [:],
+                   key: P256.Signing.PrivateKey? = nil) throws -> String {
+            let fields = ["alg": "ES256", "typ": "JWT", "kid": "fictional-key"].merging(header) { _, new in new }
+            let input = try JSONSerialization.data(withJSONObject: fields)
+            let payload = try JSONSerialization.data(withJSONObject: base.merging(claims) { _, new in new })
+            let signing = encodeURL(input) + "." + encodeURL(payload)
+            let signature = try (key ?? signer).signature(for: Data(signing.utf8))
+            return signing + "." + encodeURL(signature.rawRepresentation)
+        }
+        func keys(_ key: P256.Signing.PublicKey? = nil, changes: [String: String] = [:]) throws -> Data {
+            let raw = (key ?? signer.publicKey).x963Representation
+            let value = ["kid": "fictional-key", "kty": "EC", "crv": "P-256", "alg": "ES256", "use": "sig",
+                         "x": encodeURL(Data(raw[1..<33])), "y": encodeURL(Data(raw[33..<65]))]
+            return try JSONSerialization.data(withJSONObject: ["keys": [value.merging(changes) { _, new in new }]])
+        }
+        func check(_ jwt: String) throws -> MappingIDTokenVerification {
+            try MappingIDTokenVerification(jwt: jwt, issuer: issuer, clientID: client, nonce: nonce, selection: .all, now: now)
+        }
+
+        let verified = try check(token())
+        try verified.verifySignature(using: keys())
+        try check(token(claims: ["iat": now + 30])).verifySignature(using: keys())
+        let invalidClaims: [[String: Any]] = [["iss": "https://other.example.invalid"], ["aud": "other"], ["nonce": "other"],
+                                             ["sub": ""], ["exp": now], ["exp": now + 601], ["iat": now + 31],
+                                             ["iat": now + 30, "exp": now + 30], ["amr": ["school_network"]]]
+        for claims in invalidClaims {
+            XCTAssertThrowsError(try check(token(claims: claims)))
+        }
+        for header in [["alg": "HS256"], ["typ": "other"], ["kid": ""]] {
+            XCTAssertThrowsError(try check(token(header: header)))
+        }
+        XCTAssertThrowsError(try check("fictional.malformed"))
+        for jwks in [Data("{}".utf8), Data("fictional".utf8), try keys(changes: ["kid": "other"]),
+                     try keys(changes: ["x": "AA"]), try keys(P256.Signing.PrivateKey().publicKey)] {
+            XCTAssertThrowsError(try verified.verifySignature(using: jwks))
+        }
+        let incorrectSignature = try check(token(key: P256.Signing.PrivateKey()))
+        XCTAssertThrowsError(try incorrectSignature.verifySignature(using: keys()))
+    }
+
+    func testMappingAccessTokenCacheKeepsScopeAndExpirySeparate() {
+        let now = Date(timeIntervalSince1970: 100)
+        let cache = MappingAccessTokenCache(value: "fictional-token", scopes: ["links.read", "mapping.read"], expiresAt: now.addingTimeInterval(31))
+        XCTAssertEqual(cache.usableToken(requiring: ["links.read"], now: now), "fictional-token")
+        XCTAssertNil(cache.usableToken(requiring: ["links.read", "other.read"], now: now))
+        XCTAssertNil(cache.usableToken(requiring: ["links.read"], now: now.addingTimeInterval(1)))
+        XCTAssertNil(cache.usableToken(requiring: ["links.read"], now: now.addingTimeInterval(32)))
     }
 
     func testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear() throws {

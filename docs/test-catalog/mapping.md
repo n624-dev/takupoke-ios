@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`df0be6195f341b8f2922f50cb0c206ff2e49f56a1a864d3875f286974a5e77b0`
+`0923888c14c93e2603dfd91246e2da494ba83fc7d5a91335fcf74db0faa5bcb0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -12,6 +12,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 
 ## 変更時に確認するソース
 
+- [Takupoke/MappingIDTokenVerification.swift](../../Takupoke/MappingIDTokenVerification.swift)
 - [Takupoke/MappingModel.swift](../../Takupoke/MappingModel.swift)
 - [Takupoke/MappingModels.swift](../../Takupoke/MappingModels.swift)
 - [Takupoke/MappingOIDC.swift](../../Takupoke/MappingOIDC.swift)
@@ -21,6 +22,13 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - [Takupoke/MappingService.swift](../../Takupoke/MappingService.swift)
 - [Takupoke/MappingSettingsView.swift](../../Takupoke/MappingSettingsView.swift)
 - [Takupoke/MappingStore.swift](../../Takupoke/MappingStore.swift)
+
+## [tests/BoundedHTTPResponseTests.swift](../../tests/BoundedHTTPResponseTests.swift)
+
+- `testRejectsExcessiveDeclaredLengthBeforeReadingAnyBytes`
+- `testUnknownAndUnderstatedLengthsBothStopAtFirstExcessByte`
+- `testExactLimitAndEmptyRevisionResponsesRemainUsable`
+- `testCancelledReaderDoesNotConsumeAnyPartOfTheResponse`
 
 ## [tests/MappingPackageTests.swift](../../tests/MappingPackageTests.swift)
 
@@ -77,6 +85,8 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
 - `testPreparedSearchPreservesRankingOrderAndCurrentVisibilityAcrossQueries`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
+- `testMappingIDTokenChecksClaimsClockAndRealSignatureSeparately`
+- `testMappingAccessTokenCacheKeepsScopeAndExpirySeparate`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`
 - `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`
 - `testRecommendationsRespectVisibilityAndAstroOrdering`

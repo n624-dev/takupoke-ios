@@ -13,7 +13,8 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     private var completionID: UUID?
     private var session: ASWebAuthenticationSession?
     private var timeoutTask: Task<Void, Never>?
-    private var cachedToken: (value: String, scopes: Set<String>, expiresAt: Date)?
+    private var cachedToken: MappingAccessTokenCache?
+    private var activeAuthorization: UUID?
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
@@ -21,14 +22,16 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     }
 
     func accessToken(using network: URLSession, selection: AccountDataSelection = .all) async throws -> String {
-        guard !selection.isEmpty, selection.subtracting(.all).isEmpty, session == nil else { throw MappingError.authentication }
+        guard !selection.isEmpty, selection.subtracting(.all).isEmpty, activeAuthorization == nil else { throw MappingError.authentication }
         try Task.checkCancellation()
         let requiredScopes = Set(selection.scope.split(separator: " ").map(String.init))
-        if let cachedToken, cachedToken.expiresAt > Date().addingTimeInterval(30), requiredScopes.isSubset(of: cachedToken.scopes) {
-            return cachedToken.value
-        }
+        if let token = cachedToken?.usableToken(requiring: requiredScopes, now: Date()) { return token }
         cachedToken = nil
-        defer { session = nil }
+        let authorization = UUID()
+        activeAuthorization = authorization
+        defer {
+            if activeAuthorization == authorization { activeAuthorization = nil; session = nil }
+        }
         let verifier = try Self.randomURLToken()
         let state = try Self.randomURLToken()
         let nonce = try Self.randomURLToken()
@@ -68,6 +71,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
             }
             if !browser.start() { finish(.failure(MappingError.authentication)) }
         }
+        try checkAuthorization(authorization)
         guard callback.scheme == "jp.n624.takupoke", callback.host == nil,
               callback.path == "/oauth/callback",
               let query = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems,
@@ -102,9 +106,11 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
               value.token_type == "Bearer", value.expires_in > 0, value.expires_in <= 600,
               Set(value.scope.split(separator: " ").map(String.init)) == requiredScopes,
               !value.access_token.isEmpty else { throw MappingError.authentication }
+        try checkAuthorization(authorization)
         try await verifyIDToken(value.id_token, nonce: nonce, selection: selection, network: network)
-        try Task.checkCancellation()
-        cachedToken = (value.access_token, requiredScopes, tokenRequestedAt.addingTimeInterval(TimeInterval(value.expires_in)))
+        try checkAuthorization(authorization)
+        cachedToken = MappingAccessTokenCache(value: value.access_token, scopes: requiredScopes,
+                                              expiresAt: tokenRequestedAt.addingTimeInterval(TimeInterval(value.expires_in)))
         return value.access_token
     }
 
@@ -119,7 +125,8 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     private static func fetch(_ request: URLRequest, using network: URLSession) async throws -> (Data, URLResponse) {
         try Task.checkCancellation()
         let result: (Data, URLResponse)
-        do { result = try await network.data(for: request) }
+        do { result = try await BoundedHTTPResponse.read(request, using: network, maximum: 64 * 1024) }
+        catch let failure as BoundedHTTPResponse.Failure { throw failure }
         catch {
             try Task.checkCancellation()
             if error is CancellationError { throw error }
@@ -142,7 +149,13 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
         callback?(result)
     }
 
+    private func checkAuthorization(_ id: UUID) throws {
+        try Task.checkCancellation()
+        guard activeAuthorization == id else { throw CancellationError() }
+    }
+
     func cancel() {
+        activeAuthorization = nil
         cachedToken = nil
         finish(.failure(CancellationError()))
         session?.cancel()
@@ -158,43 +171,14 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     }
 
     private func verifyIDToken(_ jwt: String, nonce: String, selection: AccountDataSelection, network: URLSession) async throws {
-        let parts = jwt.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 3, let headerBytes = Self.decodeURL(String(parts[0])),
-              let payloadBytes = Self.decodeURL(String(parts[1])),
-              let signatureBytes = Self.decodeURL(String(parts[2])),
-              let header = try? JSONSerialization.jsonObject(with: headerBytes) as? [String: Any],
-              let payload = try? JSONSerialization.jsonObject(with: payloadBytes) as? [String: Any],
-              header["alg"] as? String == "ES256", header["typ"] as? String == "JWT",
-              let kid = header["kid"] as? String, !kid.isEmpty,
-              payload["iss"] as? String == Self.issuer,
-              payload["aud"] as? String == Self.clientID,
-              payload["nonce"] as? String == nonce,
-              let acr = payload["acr"] as? String, let amr = payload["amr"] as? [String],
-              selection.acceptsAssurance(acr: acr, amr: amr),
-              let subject = payload["sub"] as? String, !subject.isEmpty,
-              let exp = payload["exp"] as? TimeInterval,
-              let iat = payload["iat"] as? TimeInterval,
-              exp > Date().timeIntervalSince1970, iat <= Date().timeIntervalSince1970 + 30,
-              exp > iat, exp - iat <= 600 else { throw MappingError.authentication }
-
+        let verification = try MappingIDTokenVerification(jwt: jwt, issuer: Self.issuer, clientID: Self.clientID, nonce: nonce,
+                                                         selection: selection, now: Date().timeIntervalSince1970)
         var request = URLRequest(url: URL(string: Self.issuer + "/oauth/jwks")!)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (bytes, response) = try await Self.fetch(request, using: network)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200,
-              bytes.count <= 64 * 1024,
-              let object = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
-              let keys = object["keys"] as? [[String: Any]],
-              let key = keys.first(where: { $0["kid"] as? String == kid && $0["kty"] as? String == "EC" &&
-                                           $0["crv"] as? String == "P-256" && $0["alg"] as? String == "ES256" &&
-                                           $0["use"] as? String == "sig" }),
-              let x = (key["x"] as? String).flatMap(Self.decodeURL),
-              let y = (key["y"] as? String).flatMap(Self.decodeURL),
-              x.count == 32, y.count == 32,
-              let publicKey = try? P256.Signing.PublicKey(x963Representation: Data([4]) + x + y),
-              let signature = try? P256.Signing.ECDSASignature(rawRepresentation: signatureBytes),
-              publicKey.isValidSignature(signature, for: Data((String(parts[0]) + "." + String(parts[1])).utf8)) else {
-            throw MappingError.authentication
-        }
+              bytes.count <= 64 * 1024 else { throw MappingError.authentication }
+        try verification.verifySignature(using: bytes)
     }
 
     private static func randomURLToken() throws -> String {
@@ -211,10 +195,5 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
     private static func base64URL(_ data: Data) -> String {
         data.base64EncodedString().replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-    }
-
-    private static func decodeURL(_ value: String) -> Data? {
-        let base = value.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
-        return Data(base64Encoded: base + String(repeating: "=", count: (4 - base.count % 4) % 4))
     }
 }

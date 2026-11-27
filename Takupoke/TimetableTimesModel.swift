@@ -131,7 +131,8 @@ final class TimetableTimesModel: ObservableObject {
         guard !(error is CancellationError) else { return }
         failed = true
         let warning = storedReadWarning.map { $0 + "\n" } ?? ""
-        let description = (error as? MappingError)?.authenticationFailureDescription ??
+        let description = (error as? BoundedHTTPResponse.Failure)?.errorDescription ??
+            (error as? MappingError)?.authenticationFailureDescription ??
             (error as? TimetableTimesError ?? .unavailable).localizedDescription
         message = warning + description
     }

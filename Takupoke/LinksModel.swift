@@ -173,12 +173,9 @@ final class LinksModel: ObservableObject {
         var request = URLRequest(url: endpoint)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, rawResponse) = try await network.data(for: request)
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: network, maximum: LinksPayload.maximumBytes)
         try Task.checkCancellation()
         guard operation == generation else { throw CancellationError() }
-        guard let response = rawResponse as? HTTPURLResponse,
-              response.expectedContentLength <= LinksPayload.maximumBytes,
-              data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
         if response.statusCode == 401 || response.statusCode == 403 { throw MappingError.authentication }
         guard response.statusCode == 200 else { throw LinksError.unavailable }
         guard let receivedRevision = response.value(forHTTPHeaderField: "X-Links-Revision"),
@@ -199,7 +196,8 @@ final class LinksModel: ObservableObject {
         guard !(error is CancellationError) else { return }
         failed = true
         let description: String
-        if let failure = (error as? MappingError)?.authenticationFailureDescription {
+        if let failure = (error as? BoundedHTTPResponse.Failure)?.errorDescription ??
+            (error as? MappingError)?.authenticationFailureDescription {
             description = failure
         } else if case MappingError.changedDuringDownload = error {
             description = "取得中に一覧が更新されました。もう一度お試しください。"

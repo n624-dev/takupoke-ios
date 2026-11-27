@@ -176,7 +176,9 @@ final class MappingModel: ObservableObject {
 
     func report(_ error: Error) {
         guard !(error is CancellationError) else { return }
-        reportFailure((error as? MappingError ?? .unavailable).localizedDescription)
+        let description = (error as? BoundedHTTPResponse.Failure)?.errorDescription ??
+            (error as? MappingError ?? .unavailable).localizedDescription
+        reportFailure(description)
     }
 
     private func reportFailure(_ description: String) {

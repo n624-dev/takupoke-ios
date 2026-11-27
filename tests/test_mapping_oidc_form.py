@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from urllib.parse import parse_qs
+from support_swift_http import LINUX_HTTP_FIXTURE
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,13 +96,14 @@ final class Transport: URLProtocol, @unchecked Sendable {
         catch is CancellationError {}
     }
 }
-''' + errors
+''' + errors + LINUX_HTTP_FIXTURE
         with tempfile.TemporaryDirectory(prefix="takupoke-oauth-result-") as scratch:
             root = Path(scratch)
             script = root / "Fixture.swift"
             probe = root / "probe"
             script.write_text(program, encoding="utf-8")
-            subprocess.run([compiler, "-parse-as-library", str(script), "-o", str(probe)], check=True, timeout=60)
+            subprocess.run([compiler, "-parse-as-library", str(ROOT / "Takupoke/BoundedHTTPResponse.swift"), str(script),
+                            "-o", str(probe)], check=True, timeout=60)
             subprocess.run([str(probe)], check=True, timeout=15)
 
     def test_exchange_preserves_opaque_code_in_form_body(self):

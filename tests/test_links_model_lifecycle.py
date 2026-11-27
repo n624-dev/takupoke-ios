@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from support_swift_http import LINUX_HTTP_FIXTURE
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -203,12 +204,13 @@ final class LinkDownloadTransport: URLProtocol, @unchecked Sendable {
             root = Path(scratch)
             models = (ROOT / "Takupoke/MappingModels.swift").read_text(encoding="utf-8")
             revision_models = models[models.index("enum MappingRevisionResult:"):models.index("struct MappingRule:")]
-            (root / "Host.swift").write_text(host + "\n" + revision_models, encoding="utf-8")
+            (root / "Host.swift").write_text(host + "\n" + revision_models + LINUX_HTTP_FIXTURE, encoding="utf-8")
             model = (ROOT / "Takupoke/LinksModel.swift").read_text(encoding="utf-8")
             model = model.replace("import SwiftUI", "#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif")
             (root / "LinksModel.swift").write_text(model, encoding="utf-8")
             subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", "-module-cache-path", str(root / "modules"),
                             str(ROOT / "Takupoke/LinksAPI.swift"), str(ROOT / "Takupoke/LinksStore.swift"), str(ROOT / "Takupoke/LinkSearch.swift"),
-                            str(root / "LinksModel.swift"), str(root / "Host.swift"), "-o", str(root / "probe")],
+                            str(ROOT / "Takupoke/BoundedHTTPResponse.swift"), str(root / "LinksModel.swift"),
+                            str(root / "Host.swift"), "-o", str(root / "probe")],
                            check=True, timeout=60)
             subprocess.run([str(root / "probe"), str(root / "data")], check=True, timeout=15)

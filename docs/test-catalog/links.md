@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`6afc3031828a132373208b007096052c8728b1ca8ffc142af79bea243f4f92a7`
+`23d309afbfe5284b0266b80af517454e189b61fe5ac12423b9e774ffd097707c`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -12,11 +12,20 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 
 ## 変更時に確認するソース
 
+- [Takupoke/BoundedHTTPResponse.swift](../../Takupoke/BoundedHTTPResponse.swift)
 - [Takupoke/LinkSearch.swift](../../Takupoke/LinkSearch.swift)
 - [Takupoke/LinksAPI.swift](../../Takupoke/LinksAPI.swift)
 - [Takupoke/LinksModel.swift](../../Takupoke/LinksModel.swift)
 - [Takupoke/LinksStore.swift](../../Takupoke/LinksStore.swift)
 - [Takupoke/LinksView.swift](../../Takupoke/LinksView.swift)
+- [tests/support_swift_http.py](../../tests/support_swift_http.py)
+
+## [tests/BoundedHTTPResponseTests.swift](../../tests/BoundedHTTPResponseTests.swift)
+
+- `testRejectsExcessiveDeclaredLengthBeforeReadingAnyBytes`
+- `testUnknownAndUnderstatedLengthsBothStopAtFirstExcessByte`
+- `testExactLimitAndEmptyRevisionResponsesRemainUsable`
+- `testCancelledReaderDoesNotConsumeAnyPartOfTheResponse`
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
@@ -29,6 +38,8 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 - `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
 - `testPreparedSearchPreservesRankingOrderAndCurrentVisibilityAcrossQueries`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
+- `testMappingIDTokenChecksClaimsClockAndRealSignatureSeparately`
+- `testMappingAccessTokenCacheKeepsScopeAndExpirySeparate`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`
 - `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`
 - `testRecommendationsRespectVisibilityAndAstroOrdering`

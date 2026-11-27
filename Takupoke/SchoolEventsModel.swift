@@ -485,7 +485,8 @@ final class SchoolEventsModel: ObservableObject {
             return bodySucceeded
         } catch {
             guard !Task.isCancelled, canAccessData(), let latest = states[year] else { return false }
-            recordSourceFailure(latest, message: "元PDFの状態を確認できません。後で自動確認します。保存済みの結果を表示しています。")
+            let information = (error as? BoundedHTTPResponse.Failure)?.localizedDescription ?? "元PDFの状態を確認できません。"
+            recordSourceFailure(latest, message: information + "後で自動確認します。保存済みの結果を表示しています。")
             return false
         }
     }
@@ -542,10 +543,9 @@ final class SchoolEventsModel: ObservableObject {
         var request = URLRequest(url: components.url!)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: session, maximum: 16_384)
         try Task.checkCancellation()
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200,
-              response.expectedContentLength <= 16_384 else { throw SchoolEventsError.unavailable }
+        guard response.statusCode == 200 else { throw SchoolEventsError.unavailable }
         return try SchoolEventsSourceStatus.decode(data, year: year)
     }
 
@@ -564,7 +564,8 @@ final class SchoolEventsModel: ObservableObject {
             if var state = states[year] { state.body.fail(at: now()); record(state) }
             if manualYear == year || manual {
                 failed = true
-                message = (error as? SchoolEventsError)?.localizedDescription ?? SchoolEventsError.unavailable.localizedDescription
+                message = (error as? BoundedHTTPResponse.Failure)?.localizedDescription ??
+                    (error as? SchoolEventsError)?.localizedDescription ?? SchoolEventsError.unavailable.localizedDescription
             }
             return false
         }
@@ -610,10 +611,9 @@ final class SchoolEventsModel: ObservableObject {
         let stored = saved[year].flatMap { $0.payload.format == preferredFormat ? $0 : nil }
         let sentETag = stored?.apiETag
         if let sentETag { request.setValue(sentETag, forHTTPHeaderField: "If-None-Match") }
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: session, maximum: 1_000_000)
         try Task.checkCancellation()
         guard canAccessData(), let store else { throw SchoolEventsError.unavailable }
-        guard let response = response as? HTTPURLResponse else { throw SchoolEventsError.unavailable }
         let receivedETag = response.value(forHTTPHeaderField: "ETag")
         let date = now()
         if try SchoolEventsResponse.isNotModified(status: response.statusCode, data: data,
@@ -627,9 +627,7 @@ final class SchoolEventsModel: ObservableObject {
             return false
         }
         if response.statusCode == 404 { throw SchoolEventsError.unsupportedYear }
-        guard response.statusCode == 200,
-              response.expectedContentLength <= 1_000_000,
-              data.count <= 1_000_000 else { throw SchoolEventsError.unavailable }
+        guard response.statusCode == 200 else { throw SchoolEventsError.unavailable }
         guard receivedETag == nil || SchoolEventsResponse.validETag(receivedETag!) else {
             throw SchoolEventsError.invalidResponse
         }
