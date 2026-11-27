@@ -11,6 +11,7 @@ import tempfile
 
 DEVICE_ID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", re.IGNORECASE | re.ASCII)
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
+MAX_IMAGE_EDGE = 1024
 PNG_START = b"\x89PNG\r\n\x1a\n"
 PNG_END = b"\0\0\0\0IEND\xaeB`\x82"
 
@@ -22,8 +23,19 @@ def read_image(path):
         return stream.read(MAX_IMAGE_BYTES + 1)
 
 
-def valid_png(data):
-    return len(data) <= MAX_IMAGE_BYTES and data.startswith(PNG_START) and data.endswith(PNG_END)
+def png_problem(data):
+    if len(data) > MAX_IMAGE_BYTES:
+        return "too-large"
+    if (len(data) < 45 or not data.startswith(PNG_START + b"\0\0\0\x0dIHDR")
+            or not data.endswith(PNG_END)):
+        return "invalid-png"
+    width = int.from_bytes(data[16:20], "big")
+    height = int.from_bytes(data[20:24], "big")
+    if min(width, height) == 0:
+        return "invalid-png"
+    if max(width, height) > MAX_IMAGE_EDGE:
+        return "dimensions"
+    return None
 
 
 def has_native_image(log):
@@ -52,7 +64,7 @@ def has_native_image(log):
                         data = base64.b64decode("".join(chunks), validate=True)
                     except binascii.Error:
                         return False
-                    if len(data) == int(expected[1]) and valid_png(data) and hashlib.sha256(data).hexdigest() == expected[0]:
+                    if len(data) == int(expected[1]) and png_problem(data) is None and hashlib.sha256(data).hexdigest() == expected[0]:
                         return True
                 expected = None
     return False
@@ -73,11 +85,10 @@ def capture(simulator, scratch):
             if not data:
                 print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN missing-image", flush=True)
                 return
-            if not valid_png(data):
-                reason = "too-large" if len(data) > MAX_IMAGE_BYTES else "invalid-png"
+            if reason := png_problem(data):
                 print(f"TAKUPOKE_SIMULATOR_FAILURE_SCREEN normalize reason={reason}", flush=True)
                 normalized = path.with_name("bounded.png")
-                conversion = subprocess.run(["sips", "-s", "format", "png", "-Z", "1024", str(path),
+                conversion = subprocess.run(["sips", "-s", "format", "png", "-Z", str(MAX_IMAGE_EDGE), str(path),
                                              "--out", str(normalized)], stdout=subprocess.DEVNULL,
                                             stderr=subprocess.DEVNULL, timeout=5)
                 data = read_image(normalized) if conversion.returncode == 0 else b""
@@ -87,7 +98,7 @@ def capture(simulator, scratch):
     except OSError:
         print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN unavailable", flush=True)
         return
-    if not valid_png(data):
+    if png_problem(data) is not None:
         print("TAKUPOKE_SIMULATOR_FAILURE_SCREEN invalid-or-too-large", flush=True)
         return
 

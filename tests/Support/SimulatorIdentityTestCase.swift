@@ -58,11 +58,13 @@ class SimulatorIdentityTestCase: XCTestCase {
         let screenshot = XCUIScreen.main.screenshot().image
         let size = screenshot.size
         guard size.width > 0, size.height > 0 else { return }
-        let scale = 1024 / max(size.width, size.height)
+        let limit: CGFloat = 1024
+        let scale = min(1, limit / max(size.width, size.height))
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
-        let bounds = CGRect(x: 0, y: 0, width: (size.width * scale).rounded(.up), height: (size.height * scale).rounded(.up))
+        let bounds = CGRect(x: 0, y: 0, width: min(limit, (size.width * scale).rounded(.up)),
+                            height: min(limit, (size.height * scale).rounded(.up)))
         let renderer = UIGraphicsImageRenderer(bounds: bounds, format: format)
         let image = renderer.pngData { _ in screenshot.draw(in: bounds) }
         guard !image.isEmpty, image.count <= 2 * 1024 * 1024 else { return }

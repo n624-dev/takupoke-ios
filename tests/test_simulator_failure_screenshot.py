@@ -5,11 +5,13 @@ import io
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import zlib
 from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -145,22 +147,34 @@ capture_failed_simulator_screen 143 "$1" "$2"
                     self.assertEqual(list(Path(scratch).iterdir()), [])
 
     def test_normalizes_unusable_native_output_to_a_bounded_png(self):
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+        height = screenshot.MAX_IMAGE_EDGE + 1
+        tall_image = (
+            screenshot.PNG_START + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, height, 8, 0, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"\0\0" * height)) + screenshot.PNG_END
+        )
+        self.assertLess(len(tall_image), screenshot.MAX_IMAGE_BYTES)
+
         def run(args, **kwargs):
             if args[0] == "xcrun":
-                Path(args[-1]).write_bytes(b"foreign image format")
+                Path(args[-1]).write_bytes(original)
             else:
                 self.assertEqual(args[:6], ["sips", "-s", "format", "png", "-Z", "1024"])
                 self.assertEqual(kwargs["timeout"], 5)
-                self.assertEqual(Path(args[6]).read_bytes(), b"foreign image format")
+                self.assertEqual(Path(args[6]).read_bytes(), original)
                 Path(args[-1]).write_bytes(IMAGE)
             return subprocess.CompletedProcess(args, 0)
 
-        with tempfile.TemporaryDirectory() as scratch, patch.object(screenshot.subprocess, "run", side_effect=run) as command:
-            output = io.StringIO()
-            with redirect_stdout(output):
-                screenshot.capture(DEVICE, scratch)
-            self.assertEqual(command.call_count, 2)
-            self.assertEqual(list(Path(scratch).iterdir()), [])
-        lines = output.getvalue().splitlines()
-        self.assertEqual(lines[0], "TAKUPOKE_SIMULATOR_FAILURE_SCREEN normalize reason=invalid-png")
-        self.assertEqual(base64.b64decode(lines[2].split()[-1], validate=True), IMAGE)
+        for original, reason in ((b"foreign image format", "invalid-png"), (tall_image, "dimensions")):
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as scratch, \
+                    patch.object(screenshot.subprocess, "run", side_effect=run) as command:
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    screenshot.capture(DEVICE, scratch)
+                self.assertEqual(command.call_count, 2)
+                self.assertEqual(list(Path(scratch).iterdir()), [])
+                lines = output.getvalue().splitlines()
+                self.assertEqual(lines[0], f"TAKUPOKE_SIMULATOR_FAILURE_SCREEN normalize reason={reason}")
+                self.assertEqual(base64.b64decode(lines[2].split()[-1], validate=True), IMAGE)
