@@ -26,11 +26,8 @@ extension ManualAssistanceChecks {
                 return false
             }
             XCTAssertEqual(uniqueLabel("manual-process-launch", in: observation), processBefore)
-            requirePreview()
+            requirePreview(readyToAdopt: true)
             XCTAssertTrue(recoveryList.staticTexts["原本を確認して入力した1項目を含みます。"].exists)
-            let adoption = visible(recoveryList.buttons["この資料全体の結果を使用"])
-            let verified = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: adoption)
-            XCTAssertEqual(XCTWaiter.wait(for: [verified], timeout: nativeStateTimeout), .completed)
             return true
         }) else { return }
         measuredStep("save-and-relaunch") {

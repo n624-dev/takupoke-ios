@@ -233,7 +233,7 @@ struct PDFRecoveryView: View {
         }
         Section {
             Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
-                .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
+                .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running || coordinator.previewNeedsRevalidation)
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
@@ -248,7 +248,7 @@ struct PDFRecoveryView: View {
     }
     private func manualCorrectionButton(_ target:RecoveryManualTarget,field:RecoveryField) -> some View {
         Button("\(role(target.role))を訂正") { coordinator.selectManualCorrection(target) }
-            .disabled(!useAiFeatures || coordinator.running || field.state != .present)
+            .disabled(!useAiFeatures || coordinator.running || coordinator.previewNeedsRevalidation || field.state != .present)
             .accessibilityIdentifier("recovery-select-"+target.key)
     }
     @ViewBuilder private func fieldLocation(_ field:RecoveryManualField,draft:RecoveryManualDraft) -> some View {
