@@ -1351,7 +1351,8 @@ METHOD
         case = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text(encoding="utf-8")
         recovery = case.split("func testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
         self.assertIn('notice.waitForExistence(timeout: 45)', recovery)
-        self.assertLess(recovery.index('notice.buttons["閉じる"].tap()'), recovery.index('app.staticTexts["fixture-ready"]'))
+        self.assertLess(recovery.index('notice.buttons["閉じる"].tap()'), recovery.index('notice.waitForNonExistence(timeout: 10)'))
+        self.assertLess(recovery.index('notice.waitForNonExistence(timeout: 10)'), recovery.index('app.staticTexts["fixture-ready"]'))
         self.assertIn('marker=1;old=0;prefs=1;public=1;original=1;archive=1', recovery)
         self.assertLess(recovery.index('let fingerprints'), recovery.index('app.terminate()'))
         self.assertIn('XCTAssertFalse(app.alerts["保存期間の復旧"].exists)', recovery)

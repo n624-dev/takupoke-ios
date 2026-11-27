@@ -145,6 +145,7 @@ extension ApplicationChecks {
         XCTAssertTrue(notice.waitForExistence(timeout: 45), app.debugDescription)
         XCTAssertTrue(notice.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "資料は端末に保全")).firstMatch.exists)
         notice.buttons["閉じる"].tap()
+        XCTAssertTrue(notice.waitForNonExistence(timeout: 10), "The recovery completion alert must close")
         XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout: 45), app.debugDescription)
         XCTAssertTrue(app.tabBars.buttons["ホーム"].exists)
         let proof = app.staticTexts["fixture-retention-proof"]
