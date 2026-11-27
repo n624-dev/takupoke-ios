@@ -109,10 +109,12 @@ struct Library { let state = State() }
 final class Worker { let library: Library? = Library(); func open() throws {} }
 struct Store { let sources: [SpecialScheduleKind: Source] = [:] }
 final class Control { func check() throws {}; func cancel() {} }
+struct Monitor { var blockedSources = Set<String>() }
 @MainActor final class MaterialsModel {
     var busy = false, retired = false, backgroundRefreshID: UUID?
     var fileRefreshQueue = FileRefreshQueue(), dispatches = 0
     var control: Control?, automaticChangeSchoolYear: Int? = 2032
+    var fileMonitor = Monitor()
     // This harness checks admission only. Production operations are not run by this fake dispatcher.
     func perform(success: String?, completion: @escaping (Bool) -> Void, operation: (Worker, Control) throws -> Void) {
         dispatches += 1; completion(true)
@@ -124,6 +126,7 @@ MATERIALS
     var busy = false, retired = false, backgroundRefreshID: UUID?
     var fileRefreshQueue = FileRefreshQueue(), dispatches = 0
     var control: Control?
+    var fileMonitor = Monitor()
     func perform(success: String?, completion: @escaping (Bool) -> Void, operation: (Store, Control, Bool) throws -> Void) {
         dispatches += 1; completion(true)
     }
@@ -423,7 +426,7 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
         control_source = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text()
         program = '''import Foundation
 enum MaterialKind: String { case changes }
-enum MaterialError: Error { case cancelled, unavailable, invalidState, tooLarge, invalidFile, accessExpired, bookmarkFailed, providerReadFailed }
+enum MaterialError: Error { case cancelled, unavailable, invalidState, tooLarge, invalidFile, accessExpired, bookmarkFailed, bookmarkStale, bookmarkUnresolved, providerReadFailed }
 ACQUISITION_PROBLEM
 extension FilePipeline {
 TRANSIENT
@@ -567,6 +570,7 @@ final class AcquisitionControl {
 PENDING_SELECTIONS
 final class MaterialLibrary {
     var state = MaterialLibraryState()
+    let wasPartiallyRecovered = false
     static func displayableTimetables(_ state: MaterialLibraryState) -> (state: MaterialLibraryState, rejected: Set<String>) { (state, []) }
 }
 final class MaterialWorker {
@@ -582,15 +586,19 @@ final class MaterialWorker {
     var cancellationRequested = false, lastOperationWasCancelled = false
     var fileRefreshQueue = FileRefreshQueue()
     var pendingManualRefresh = Set<MaterialKind>()
+    var pendingManualChecks = Set<MaterialKind>()
     var pendingSelections = PendingFileSelections<MaterialKind, Int>()
     let fileMonitor = Monitor()
     var message: String?, changePreview: ChangePreview? = ChangePreview()
     var changeFailureContext: (identity: String, digest: String, year: Int)?
     var generation = UUID(), state = MaterialLibraryState(), rejectedRecoveryKinds = Set<String>()
     var control: AcquisitionControl?, pdfURLs: [String: URL] = [:]
+    var analysisPDFURLs: [String: URL] = [:]
+    var wasPartiallyRecovered = false
     var timetableReadReport: String?, timetableFailure: PDFParseError?
     let worker = MaterialWorker(), queue = DispatchQueue(label: "fictional-review-worker")
     var observedAcquisitions = Set<String>()
+    nonisolated static func analysisPDFURLs(in library: MaterialLibrary, visible state: MaterialLibraryState) -> [String: URL] { [:] }
     func updateFileMonitoring(retryFailedFor acquired: Set<String>) { observedAcquisitions = acquired }
     func runPendingSelection() {}
     func runPendingFileRefresh() {}
@@ -824,6 +832,10 @@ METHOD
         program = r'''import Foundation
 enum MaterialKind: String { case timetable, changes; var title: String { rawValue } }
 struct ScopedMaterialSelection {}
+struct Monitor {
+    var blockedSources = Set<String>()
+    func isRegistering(_ id: String) -> Bool { blockedSources.contains(id) }
+}
 struct AcquisitionControl {}
 struct ChangeParseError: Error, LocalizedError {
     enum Code { case defaultYear }
@@ -844,9 +856,13 @@ QUEUE
     var retired = false, busy = false, failed = false, message: String?
     var automaticChangeSchoolYear: Int? = nil
     var pendingManualRefresh = Set<MaterialKind>()
+    var pendingManualChecks = Set<MaterialKind>()
     var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
+    var fileMonitor = Monitor()
     let worker = MaterialWorker()
     var dispatches = 0
+    func checkForUpdates(_ kind: MaterialKind) {}
+    func drainAfterCompletion() { runPendingSelection() }
     func perform(success: String?, changeYear: Int? = nil, operation: (MaterialWorker, AcquisitionControl) throws -> Void) {
         dispatches += 1; try! operation(worker, AcquisitionControl())
     }
@@ -865,12 +881,22 @@ METHODS
         // Append a final item to drain the same production queue after a busy operation.
         model.selectFile(ScopedMaterialSelection(), kind: .changes)
         precondition(model.worker.reads == [.timetable] && model.worker.pdfs == [.timetable])
+        model.drainAfterCompletion()
         model.refresh(.timetable)
         precondition(model.worker.reads == [.timetable, .timetable])
         model.automaticChangeSchoolYear = 2032
         model.refresh(.changes); model.analyzeChanges(defaultYear: nil)
         precondition(model.worker.years == [2032, 2032])
         precondition(model.dispatches == 4)
+        model.fileMonitor.blockedSources = ["changes"]
+        model.selectFile(ScopedMaterialSelection(), kind: .changes)
+        model.selectFile(ScopedMaterialSelection(), kind: .timetable)
+        precondition(model.dispatches == 5 && model.worker.reads.last == .timetable)
+        model.fileMonitor.blockedSources = []
+        model.selectFile(ScopedMaterialSelection(), kind: .timetable)
+        precondition(model.dispatches == 6 && model.worker.reads.last == .changes)
+        model.drainAfterCompletion()
+        precondition(model.dispatches == 7 && model.worker.reads.suffix(2) == [.changes, .timetable])
     }
 }
 '''.replace("METHODS", methods).replace("QUEUE", queue)

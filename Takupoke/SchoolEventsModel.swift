@@ -112,17 +112,22 @@ final class SchoolEventsModel: ObservableObject {
     }
 
     func countdownSourceState(year: Int, at date: Date) -> CountdownAvailability {
+        countdownSourceEvidence(year: year, at: date).availability
+    }
+
+    func countdownSourceEvidence(year: Int, at date: Date) -> (availability: CountdownAvailability, freshUntil: Date?) {
         guard let current = saved[year], let cached = sourceStatuses[year], cached.matches(current),
               let observation = cached.successfulResponse,
               let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= cached.receivedAt else {
-            return countdownUnconfirmedSource(year: year)
+            return (countdownUnconfirmedSource(year: year), nil)
         }
-        if observation.lastSuccessfulStatus == .source_differs { return .sourceDifference }
+        if observation.lastSuccessfulStatus == .source_differs { return (.sourceDifference, nil) }
+        let freshUntil = time.addingTimeInterval(86_400)
         guard states[year]?.targetMismatch != true, observation.lastSuccessfulStatus == .matched,
-              !cached.response.stale, time <= date, date.timeIntervalSince(time) < 86_400 else {
-            return countdownUnconfirmedSource(year: year)
+              !cached.response.stale, time <= date, date < freshUntil else {
+            return (countdownUnconfirmedSource(year: year), nil)
         }
-        return .available
+        return (.available, freshUntil)
     }
 
     private func countdownUnconfirmedSource(year: Int) -> CountdownAvailability {

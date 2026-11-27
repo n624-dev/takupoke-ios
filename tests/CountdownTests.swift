@@ -3,6 +3,22 @@ import XCTest
 @testable import TakupokeParsing
 
 final class CountdownTests: XCTestCase {
+    func testReservationPriorityUsesOnlyObservedSlotsAndExpiresPublicProofBeforeAddition() throws {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let target = CountdownNoticeTarget(id: UUID(), key: "fictional")
+        let planned = ["near", "middle", "far"].enumerated().map { index, id in
+            CountdownNotice(identifier: id, target: target, title: "架空の予定",
+                            fireAt: now.addingTimeInterval(600 + Double(index) * 600),
+                            classScope: nil, publicSourceFreshUntil: now.addingTimeInterval(1))
+        }
+        XCTAssertEqual(CountdownNotice.displacedReservations(planned, confirmed: ["middle", "far", "foreign"]), ["far"])
+        XCTAssertTrue(CountdownNotice.displacedReservations(planned, confirmed: ["near", "middle"]).isEmpty)
+        XCTAssertTrue(CountdownNotice.displacedReservations(planned, confirmed: ["foreign"]).isEmpty)
+        XCTAssertTrue(planned.allSatisfy { $0.canReserve(at: now) })
+        XCTAssertFalse(planned.contains { $0.canReserve(at: now.addingTimeInterval(1)) })
+        XCTAssertGreaterThan(planned[0].fireAt, try XCTUnwrap(planned[0].publicSourceFreshUntil))
+    }
+
     private func day(_ value: String) -> SchoolDate { SchoolDate(iso8601: value)! }
 
     private func dates(_ title: String = "架空予定", _ first: String, _ last: String? = nil) -> CountdownDates {

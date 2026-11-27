@@ -426,6 +426,7 @@ struct CountdownCard: Identifiable, Equatable {
     var evidence: String = ""
     var classScope: String?
     var examProgress: CountdownExamProgress?
+    var publicSourceFreshUntil: Date?
 
     var targetKey: String { reference?.key ?? (expiry == nil ? id.uuidString : evidence) }
     var noticeTarget: CountdownNoticeTarget { .init(id: id, key: targetKey) }
@@ -489,8 +490,13 @@ struct CountdownNotice: Equatable {
     let title: String
     let fireAt: Date
     let classScope: String?
+    var publicSourceFreshUntil: Date? = nil
     var targetID: UUID { target.id }
     var targetKey: String { target.key }
+
+    func canReserve(at now: Date) -> Bool {
+        fireAt > now && publicSourceFreshUntil.map { now < $0 } != false
+    }
 
     static func identifier(for target: CountdownNoticeTarget, isPrivate: Bool, reminder: CountdownReminder) -> String {
         let scope = isPrivate ? privatePrefix : prefix + "personal."
@@ -512,15 +518,23 @@ struct CountdownNotice: Equatable {
         let today = TimetableDaySchedule.schoolDay(at: now)
         return cards.flatMap { card -> [Self] in
             guard card.preferences.notifications, card.availability.allowsNotification, let dates = card.dates,
+                  card.publicSourceFreshUntil.map({ now < $0 }) != false,
                   dates.phase(on: today) != .finished else { return [] }
             return card.preferences.reminders.compactMap { reminder in
                 guard let fireAt = reminder.fireDate(start: dates.start), fireAt > now,
                       card.expiry.map({ fireAt < $0 && now < $0 }) != false else { return nil }
                 let target = card.noticeTarget
                 return Self(identifier: identifier(for: target, isPrivate: card.isPrivate, reminder: reminder), target: target,
-                            title: card.title, fireAt: fireAt, classScope: card.classScope)
+                            title: card.title, fireAt: fireAt, classScope: card.classScope, publicSourceFreshUntil: card.publicSourceFreshUntil)
             }
         }.sorted { ($0.fireAt, $0.identifier) < ($1.fireAt, $1.identifier) }
+    }
+
+    static func displacedReservations(_ planned: [Self], confirmed: Set<String>) -> Set<String> {
+        let eligible = Set(planned.map(\.identifier))
+        let accepted = confirmed.intersection(eligible)
+        let earliest = Set(planned.prefix(accepted.count).map(\.identifier))
+        return accepted.subtracting(earliest)
     }
 }
 

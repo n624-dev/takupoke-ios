@@ -780,6 +780,37 @@ extension SchoolEventsSourceModelTests {
         XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 3)
     }
 
+    func testCountdownChecksFreshnessWhenItPlansAFuturePublicNotice() async throws {
+        let f = try Fixture()
+        defer { f.clean() }
+        f.network.successAt = "2032-05-01T03:04:05Z"
+        let request = try XCTUnwrap(f.model.checkSource(year: 2032, force: true))
+        let succeeded = await request.value
+        XCTAssertTrue(succeeded)
+        let checked = try XCTUnwrap(f.model.sourcePresentation(year: 2032)?.lastSuccessAt)
+        let limit = checked.addingTimeInterval(86_400)
+        let beforeLimit = limit.addingTimeInterval(-1)
+        let due = try XCTUnwrap(SchoolDate(iso8601: "2032-05-16"))
+        let date = CountdownDates(title: "架空の公開行事", ranges: [.init(start: due, end: due)])
+        let reference = CountdownEventReference(year: 2032, eventID: "fictional-public-notice")
+        let preferences = CountdownPreferences(notifications: true, reminders: [.init(daysBefore: 1, hour: 20, minute: 0)])
+        let id = UUID()
+        func card(at now: Date) -> CountdownCard {
+            let evidence = f.model.countdownSourceEvidence(year: 2032, at: now)
+            return CountdownCard(id: id, title: date.title, dates: date, preferences: preferences,
+                availability: evidence.availability, reference: reference, publicSourceFreshUntil: evidence.freshUntil)
+        }
+        XCTAssertEqual(card(at: beforeLimit).availability, .available)
+        let reservation = try XCTUnwrap(CountdownNotice.planned(for: [card(at: beforeLimit)], at: beforeLimit).first)
+        XCTAssertEqual(reservation.fireAt, try XCTUnwrap(due.addingDays(-1)?.dateInJapan(hour: 20)))
+        XCTAssertGreaterThan(reservation.fireAt, limit)
+        XCTAssertTrue(reservation.canReserve(at: beforeLimit))
+        XCTAssertFalse(reservation.canReserve(at: limit))
+        XCTAssertEqual(card(at: limit).availability, .sourcePending)
+        XCTAssertTrue(CountdownNotice.planned(for: [card(at: limit)], at: limit).isEmpty)
+        XCTAssertEqual(f.network.unexpected, 0)
+    }
+
     func testCountdownDistinguishesAnActiveSourceCheckFromUnknownAndFailure() async throws {
         let f = try Fixture()
         defer { f.clean() }

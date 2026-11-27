@@ -1,7 +1,7 @@
 # カウントダウン・日付・通知・保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`637f028bc36c4462e5c2a4487c5d0c5ae06586783a5b9d8c3e4d8651a6a1659d`
+`26f4e2a25f873eb631519ea0a347e00dc1ec2cae078f9f213acdf58b431ebd4b`
 
 環境：Linux Swift／iOS 26.5・27.0シミュレータ
 
@@ -18,6 +18,7 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 
 ## [tests/CountdownTests.swift](../../tests/CountdownTests.swift)
 
+- `testReservationPriorityUsesOnlyObservedSlotsAndExpiresPublicProofBeforeAddition`
 - `testJapaneseCalendarPhaseCoversLeapDayYearBoundaryAndSplitRanges`
 - `testHomeFilteringAndProgressDoNotDependOnReservation`
 - `testNotificationDeadlineAndSourcePauseApplyOnlyToTheirOwnTargets`
@@ -64,6 +65,7 @@ TKPK_UI_RELAUNCH_PROBE=1 TKPK_UI_PROBE_CASE=countdown bash tools/test-app-ui.sh
 - `testV2MigrationUsesAnIndependentValidatorAndPreservesV1UntilValidatedSave`
 - `testBodyTimeoutBackoffAndRepeated200RespectPersistedConfirmation`
 - `testDifferencePersistsAndMismatchRecoveryOnlyChecksOneBody`
+- `testCountdownChecksFreshnessWhenItPlansAFuturePublicNotice`
 - `testCountdownDistinguishesAnActiveSourceCheckFromUnknownAndFailure`
 
 ## [tests/ui/ApplicationChecks+Events.swift](../../tests/ui/ApplicationChecks+Events.swift)

@@ -1,7 +1,7 @@
 # 学校行事API・年度別保存
 
 対応関係・宣言名・実行方法のSHA-256：
-`83bf88ccf37a05ed2e671ffa8a8eb56148f3105c3a578395e9f01c42a2fb60e4`
+`2c2dae5e0ad49b0cd18f6eb79979445fe5ef3caab90c126e0b9c123710b2ec04`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -85,4 +85,5 @@ bash tools/test-parsing.sh
 - `testV2MigrationUsesAnIndependentValidatorAndPreservesV1UntilValidatedSave`
 - `testBodyTimeoutBackoffAndRepeated200RespectPersistedConfirmation`
 - `testDifferencePersistsAndMismatchRecoveryOnlyChecksOneBody`
+- `testCountdownChecksFreshnessWhenItPlansAFuturePublicNotice`
 - `testCountdownDistinguishesAnActiveSourceCheckFromUnknownAndFailure`

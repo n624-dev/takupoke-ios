@@ -303,14 +303,15 @@ final class CountdownModel: ObservableObject {
                 return .init(id: registration.id, title: dates.title, dates: dates,
                              preferences: registration.preferences, availability: .available)
             case .school(let reference, let saved, let alias):
-                let availability: CountdownAvailability
+                let evidence: (availability: CountdownAvailability, freshUntil: Date?)
                 if indexed[reference] == nil {
-                    availability = events.saved[reference.year]?.payload.identifiedEvents == nil ? .missingYear : .missingEvent
+                    evidence = (events.saved[reference.year]?.payload.identifiedEvents == nil ? .missingYear : .missingEvent, nil)
                 } else if indexed[reference]?.dates != saved {
-                    availability = .sourcePending
-                } else { availability = events.countdownSourceState(year: reference.year, at: now) }
+                    evidence = (.sourcePending, nil)
+                } else { evidence = events.countdownSourceEvidence(year: reference.year, at: now) }
                 return .init(id: registration.id, title: alias ?? saved.title, dates: saved,
-                             preferences: registration.preferences, availability: availability, reference: reference)
+                             preferences: registration.preferences, availability: evidence.availability, reference: reference,
+                             publicSourceFreshUntil: evidence.freshUntil)
             }
         }
         let selection = classSelection()
@@ -428,12 +429,13 @@ final class CountdownModel: ObservableObject {
                 return (CountdownAutomaticCards([placeholder(automatic, availability)]), [])
             }
             let targets = candidates.map { event in
-                CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
-                    preferences: automatic.preferences, availability: events.countdownSourceState(year: event.reference.year, at: now),
+                let evidence = events.countdownSourceEvidence(year: event.reference.year, at: now)
+                return CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
+                    preferences: automatic.preferences, availability: evidence.availability,
                     reference: event.reference, examProgress: resolveProgress(key: .school(event.reference),
                         examStart: event.dates.start, goal: event.dates.start, events: nextEvents,
                         completeYears: completeYears, custom: automatic.customOrigins ?? [],
-                        unconfirmedYear: events.countdownAnnouncementCoverage))
+                        unconfirmedYear: events.countdownAnnouncementCoverage), publicSourceFreshUntil: evidence.freshUntil)
             }
             return (CountdownAutomaticCards(targets, fixedReferences: fixedReferences), candidates)
         case .selectedClass:
@@ -653,7 +655,9 @@ final class CountdownModel: ObservableObject {
             if card.availability == .loading && plan.loadingClassScope != nil {
                 statuses[target] = "資料の読み込み後に予約を確認します。"
             }
-            else if !card.availability.allowsNotification { statuses[target] = "通知は保留中です。" }
+            else if !card.availability.allowsNotification || card.publicSourceFreshUntil.map({ Date() >= $0 }) == true {
+                statuses[target] = "通知は保留中です。"
+            }
             else if !allowed { statuses[target] = "端末で通知が許可されていません。" }
             else if expected.isEmpty { statuses[target] = "これからの通知日時はありません。" }
             else {
@@ -672,62 +676,108 @@ final class CountdownModel: ObservableObject {
     }
 
     private func reserveNotifications(_ plan: NoticePlan, allowed: Bool,
-                                      startingWith known: [UNNotificationRequest]) async -> [UNNotificationRequest]? {
+                                      startingWith known: [UNNotificationRequest],
+                                      waitBeforeRetry: ((Duration) async throws -> Void)? = nil) async -> [UNNotificationRequest]? {
+        guard allowed else { return known }
         var current = known
         var remaining = plan.desired
+        var displaced = [CountdownNotice]()
+        var observedCapacity = 0
         let delays: [Duration] = [.zero,.seconds(1),.seconds(3)]
         // Read the actual pending list before retrying a rejected request. It
         // may have appeared after the error, and a newer plan takes precedence.
         for delay in delays {
             if delay != .zero {
-                do { try await Task.sleep(for:delay) } catch { return nil }
+                do {
+                    if let waitBeforeRetry { try await waitBeforeRetry(delay) }
+                    else { try await Task.sleep(for: delay) }
+                } catch { return nil }
             }
             guard !Task.isCancelled, revision == plan.revision else { return nil }
             if delay != .zero {
                 let latest = await ScheduleNotifications.readPending(from:center)
                 guard let latest, !Task.isCancelled, revision == plan.revision else { return nil }
                 current = latest
-                remaining.removeAll { notice in current.contains { matches($0,notice) } }
+                remaining = plan.desired.filter { notice in
+                    notice.canReserve(at: Date()) && !current.contains { matches($0, notice) }
+                }
                 if remaining.isEmpty { return current }
-            }
-            var rejected = Set<String>()
-            for notice in remaining where allowed {
-                guard !Task.isCancelled, revision == plan.revision else { return nil }
-                guard notice.fireAt > Date(), !current.contains(where: { matches($0,notice) }) else { continue }
-                let content = UNMutableNotificationContent()
-                content.title = notice.title; content.body = "カウントダウンを確認してください。"; content.sound = .default
-                content.userInfo = ["countdownID": notice.targetID.uuidString, "targetKey": notice.targetKey,
-                                    "fireAt": notice.fireAt.timeIntervalSince1970]
-                if let scope = notice.classScope { content.userInfo["classScope"] = scope }
-                let fields = SchoolDate.japanCalendar.dateComponents([.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: notice.fireAt)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: fields, repeats: false)
-                do {
-                    try await notificationWriter.add(identifier: notice.identifier, revision: plan.revision,
-                        responseUnconfirmed: { [weak self] in
-                            guard let self, self.notificationEnabled(for: notice.targetID) else { return }
-                            self.notificationStatuses[notice.target] = "予約結果を確認できません。iPhoneの応答を待っています。"
-                        }) {
-                        try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
+                if delay == .seconds(3) {
+                    let now = Date()
+                    let eligible = plan.desired.filter { $0.canReserve(at: now) }
+                    let confirmed = Set(eligible.filter { notice in current.contains { matches($0, notice) } }.map(\.identifier))
+                    let moved = CountdownNotice.displacedReservations(eligible, confirmed: confirmed)
+                    if !moved.isEmpty {
+                        observedCapacity = confirmed.count
+                        displaced = eligible.filter { moved.contains($0.identifier) }
+                        center.removePendingNotificationRequests(withIdentifiers: moved.sorted())
+                        current.removeAll { moved.contains($0.identifier) }
+                        let earlier = eligible.prefix(confirmed.count)
+                        remaining = earlier.filter { notice in !current.contains { matches($0, notice) } }
                     }
-                } catch { rejected.insert(notice.identifier) }
-                if revision != plan.revision && !notificationEnabled(for: notice.targetID) {
-                    removeNotices([notice.identifier])
-                    return nil
                 }
-                if Task.isCancelled {
-                    center.removePendingNotificationRequests(withIdentifiers: [notice.identifier])
-                    return nil
-                }
+            }
+            for notice in remaining where !current.contains(where: { matches($0, notice) }) {
+                guard await reserve(notice, for: plan) else { return nil }
             }
             let listed = await ScheduleNotifications.readPending(from:center)
             guard let listed, !Task.isCancelled, revision == plan.revision else { return nil }
             current = listed
-            remaining = remaining.filter { notice in
-                rejected.contains(notice.identifier) && !current.contains { matches($0,notice) }
+            if !displaced.isEmpty {
+                let count = plan.desired.filter { notice in current.contains { matches($0, notice) } }.count
+                let vacant = max(0, observedCapacity - count)
+                if vacant > 0 {
+                    for notice in displaced.prefix(vacant) {
+                        guard await reserve(notice, for: plan) else { return nil }
+                    }
+                    let supplemented = await ScheduleNotifications.readPending(from: center)
+                    guard let supplemented, !Task.isCancelled, revision == plan.revision else { return nil }
+                    current = supplemented
+                }
+            }
+            remaining = plan.desired.filter { notice in
+                notice.canReserve(at: Date()) && !current.contains { matches($0,notice) }
             }
             if remaining.isEmpty { break }
         }
         return current
+    }
+
+    private func reserve(_ notice: CountdownNotice, for plan: NoticePlan) async -> Bool {
+        guard !Task.isCancelled, revision == plan.revision else { return false }
+        guard notice.canReserve(at: Date()) else { return true }
+        let content = UNMutableNotificationContent()
+        content.title = notice.title; content.body = "カウントダウンを確認してください。"; content.sound = .default
+        content.userInfo = ["countdownID": notice.targetID.uuidString, "targetKey": notice.targetKey,
+                            "fireAt": notice.fireAt.timeIntervalSince1970]
+        if let scope = notice.classScope { content.userInfo["classScope"] = scope }
+        let fields = SchoolDate.japanCalendar.dateComponents([.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: notice.fireAt)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: fields, repeats: false)
+        do {
+            try await notificationWriter.add(identifier: notice.identifier, revision: plan.revision,
+                responseUnconfirmed: { [weak self] in
+                    guard let self, self.revision == plan.revision, self.notificationEnabled(for: notice.targetID) else { return }
+                    self.notificationStatuses[notice.target] = "予約結果を確認できません。iPhoneの応答を待っています。"
+                }) {
+                guard notice.canReserve(at: Date()) else { throw CancellationError() }
+                try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
+            }
+        } catch {
+            // The actual pending list decides what has been reserved.
+        }
+        if revision != plan.revision {
+            let stillDesired = request?.desired.contains {
+                $0.identifier == notice.identifier && $0.fireAt == notice.fireAt && $0.target == notice.target
+                    && $0.title == notice.title && $0.canReserve(at: Date())
+            } == true
+            if !stillDesired || !notificationEnabled(for: notice.targetID) { removeNotices([notice.identifier]) }
+            return false
+        }
+        if Task.isCancelled {
+            center.removePendingNotificationRequests(withIdentifiers: [notice.identifier])
+            return false
+        }
+        return true
     }
 
     private func matches(_ request: UNNotificationRequest, _ notice: CountdownNotice) -> Bool {

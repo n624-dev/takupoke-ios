@@ -383,8 +383,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             if !loaded {
                 do { baseline = try ScheduleNotificationSnapshot.load(from: file) }
                 catch ScheduleNotificationSnapshot.ReadError.invalidStructure {
-                    guard input.availability.changes != .unavailable,
-                          SpecialScheduleKind.allCases.allSatisfy({ input.availability.state(for: $0.rawValue) != .unavailable }) else {
+                    guard input.availability.changes != .unavailable ||
+                          SpecialScheduleKind.allCases.contains(where: { input.availability.state(for: $0.rawValue) != .unavailable }) else {
                         message = "現在の資料が準備できたら、通知の比較データを復旧します。"
                         return
                     }
