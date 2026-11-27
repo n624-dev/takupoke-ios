@@ -18,7 +18,7 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(ManualScrollNavigation.usable(frame),"Present keyboard must have finite positive geometry")
         return frame
     }
-    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧",observeButton:((ManualButtonObservation)->Void)?=nil)->XCUIElement {
+    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:((any XCUIElementSnapshot)->Bool)?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧",observeButton:((ManualButtonObservation)->Void)?=nil)->XCUIElement {
         let started = ProcessInfo.processInfo.systemUptime
         var attempts = 0
         defer {
@@ -90,18 +90,28 @@ extension ManualAssistanceChecks {
                 XCTFail("Known manual control must be unique: "+targetID);return e
             }
             let target=matches.first ?? e
-            // Bind current candidates after measuring the viewport, and reuse
-            // each observed frame. An absent/virtualized candidate must not send
-            // us back to an unrelated global firstMatch.frame lookup.
-            let observed=alternatives.map { query in
-                query.allElementsBoundByAccessibilityElement.map { (element:$0,frame:$0.frame) }
+            // Read candidate geometry from one List snapshot. A recycled or
+            // offscreen row must not trigger an XCTest identity lookup.
+            var alternativeFrame:CGRect?
+            if let alternatives,let snapshot=try? list.snapshot(),let nodes=snapshotNodes(in:snapshot) {
+                let candidates=nodes.filter { $0.elementType == .staticText && alternatives($0) }
+                alternativeFrame=candidates.first?.frame
+                var current:XCUIElement?
+                let visibleCandidate=manualVisibleCandidate(candidates:candidates,viewport:viewport,frame:{ $0.frame }) { candidate in
+                    guard !candidate.identifier.isEmpty,candidate.isEnabled else { return false }
+                    let matching=list.staticTexts.matching(identifier:candidate.identifier).allElementsBoundByAccessibilityElement
+                    guard matching.count==1,let element=matching.first,let bound=try? element.snapshot(),
+                          bound.elementType == .staticText,bound.identifier==candidate.identifier,bound.label==candidate.label,
+                          bound.frame==candidate.frame,bound.isEnabled,element.isHittable else { return false }
+                    current=element
+                    return true
+                }
+                if visibleCandidate != nil,let current { return current }
             }
-            if let observed,let actual=manualVisibleCandidate(candidates:observed,viewport:viewport,
-                frame:{ $0.frame },isHittable:{ $0.element.isHittable }) { return actual.element }
-            let exists=observed.map { !$0.isEmpty } ?? !matches.isEmpty
+            let exists = !matches.isEmpty
             let targetFrame:CGRect?
             var buttonSnapshot: (any XCUIElementSnapshot)?
-            if let observed { targetFrame=observed.first?.frame }
+            if alternatives != nil { targetFrame=alternativeFrame }
             else if exists, observeButton != nil {
                 guard let snapshot = try? target.snapshot() else {
                     XCTFail("Could not observe the current native Button: " + targetID);return e

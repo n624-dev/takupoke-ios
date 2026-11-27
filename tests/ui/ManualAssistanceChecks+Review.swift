@@ -54,7 +54,9 @@ extension ManualAssistanceChecks {
         for value in expected {
             let reviewed=list.staticTexts.matching(NSPredicate(
                 format:"identifier BEGINSWITH %@ AND label == %@","manual-reviewed-",value))
-            _=visible(reviewed.firstMatch,alternatives:reviewed)
+            _=visible(reviewed.firstMatch,alternatives:{
+                $0.identifier.hasPrefix("manual-reviewed-") && $0.label==value
+            })
         }
         if comparable {
             XCTAssertEqual(visible(recoveryList.staticTexts["manual-comparison-available"].firstMatch,knownID:"manual-comparison-available").label,"本文の変更: 1箇所")

@@ -112,7 +112,9 @@ extension ManualAssistanceChecks {
         // Reveal an actual other lesson before inspecting or operating its menu.
         let otherMenus = recoveryList.staticTexts.matching(NSPredicate(
             format:"identifier BEGINSWITH %@ AND identifier != %@","recovery-correction-menu-",current))
-        let next = visible(otherMenus.firstMatch,alternatives:otherMenus)
+        let next = visible(otherMenus.firstMatch,alternatives:{
+            $0.identifier.hasPrefix("recovery-correction-menu-") && $0.identifier != current
+        })
         let nextID = next.identifier
         XCTAssertTrue(nextID.hasPrefix("recovery-correction-menu-"),app.debugDescription)
         XCTAssertNotEqual(nextID,current,app.debugDescription)

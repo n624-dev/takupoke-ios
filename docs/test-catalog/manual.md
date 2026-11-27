@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`3defe564235579bd6a4ae0d71ef96d2c3d4720dcc58ad52eaa26583ffa4624fe`
+`fb706eef7ff5f5aa2a99d1f898fec5bddf94c78ab3bdcc128c71ae5fe7fc796c`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -92,6 +92,7 @@ bash tools/test-manual-ui.sh
 
 - `test_actual_navigation_state_on_offscreen_virtualized_and_keyboard_frames`
 - `test_qa_only_owner_resolution_and_existing_caps_are_preserved`
+- `test_alternative_rows_reach_native_binding_only_after_snapshot_geometry`
 
 ## [tests/test_manual_ui_diagnostics.py](../../tests/test_manual_ui_diagnostics.py)
 

@@ -3,6 +3,14 @@
 - 基点 `8d131dd` の作業差分、Swift 6.1.2 / Linux、ローカルの `test_browser_cancellation_authentication_and_transport_are_distinct`。SDK・Simulator・Actionsは未使用。中止済みのTaskをURLSessionへ渡したケースで、FoundationNetworkingの `TaskRegistry` が `didFailWithError` 中にSIGILLで停止した。先行試行は同じケースを通過しており、常時再現ではなかった。
 - `OIDC|認証ブラウザ` でN45/N46を照合した。今回は架空通信の開始と中止の競合で、N45の本番403およびN46のブラウザーのキャッシュ条件とは発生段階が異なる。製品の認証通信を開始する前に中止を検査する。テストの中止・通信失敗・拒否を判定する条件は維持する。
 
+## PR #238のiOS 27明示訂正ジョブが失敗（2026-11-27）
+
+- ソース `ed130525868688ac3a88462dbd18f91e7df82a69`、[45982834993 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45982834993/attempts/1) の [ジョブ140453704349](https://github.com/n624-dev/takupoke-ios/actions/runs/45982834993/job/140453704349)。設定はiOS 27.0／SDK 27.2。ケースは `testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。11:01:28 UTCにfailure終端。ログ取得前の段階・原因は未確定。
+- ここまでにDistributionとNative PDF・復旧が成功した。実行中の残りのジョブは維持し、失敗済みのジョブの新規ログと失敗索引を照合する。
+- 完了ログでは3項目すべての入力・個別ACK・確認画面・プレビュー復帰まで成功。次の候補を探す `ManualAssistanceChecks+Navigation.swift:97` が2回目の探索で候補1〜9すべての `frame` を照会し、候補9のIdentity Bindingで失敗した。XCTestは同じAccessibility要素の型をlegacy側で `Other`、modern側で `StaticText` と報告。923.515秒・終了65、XCTest失敗画像あり。4項目目の拒否・採用・再起動は未到達。型の食い違いが起きた内部の原因は未確定。
+- `Navigation.swift:97|Identity Binding|仮想` でN54の比較不能表示および正式43758697036の通常画面ボタン照会と、その時点のコードを照合。今回は非表示の候補にも個別にIdentity Bindingを行う配列展開が失敗した。リストの1回のsnapshotから型・識別子・画面内の枠を検査し、候補が画面内に来た時だけその1件を現在の実要素に結び付ける。同じ複数候補の探索を使う確認画面の値の照合にも適用し、画面内・一意・操作可能の条件、16回上限、実接触、拒否・保存・再起動の期待値を維持する。
+- 変更後、LinuxのSwift UI構文検査、実ジオメトリ29件、候補を結び付ける順序を含むPython 3件が成功。限定CIで同一ケースの両OS・SDK 27.2を確認する。アプリ本体の訂正と採用の経路はこの修正の対象外。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。
