@@ -567,6 +567,10 @@ precondition(editor([live.node], live: [live, Control(node: done)]).editCompleti
         self.assertNotIn('tap()',invalid)
         self.assertNotIn('press(',invalid)
         self.assertIn('manualPassiveCell(cells:cells',checks)
+        self.assertIn('if inRecovery && texts.contains(where: { $0.identifier.hasPrefix("manual-reviewed-") }) { return false }', checks)
+        review_source = (ROOT / 'Takupoke/PDFRecoveryView.swift').read_text(encoding='utf-8')
+        review = module.view(review_source).split('if let review = coordinator.manualReview', 1)[1]
+        self.assertRegex(review, r'accessibilityIdentifier\("manual-reviewed-" \+ field.id\)\s*\.fixedSize\(horizontal:false,vertical:true\)\.textSelection\(\.enabled\)')
         self.assertIn('list.cells.allElementsBoundByIndex',checks)
         self.assertIn('cell.buttons.count==0 && cell.switches.count==0',checks)
         self.assertIn('cell.textFields.count==0 && cell.textViews.count==0',checks)

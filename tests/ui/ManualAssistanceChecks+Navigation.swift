@@ -225,6 +225,9 @@ extension ManualAssistanceChecks {
                     // Capture the real descendants while proving this row is
                     // passive. Re-querying the same Cell afterward stalled AX.
                     let texts=cell.staticTexts.allElementsBoundByIndex
+                    // A review row with selectable corrected text is interactive
+                    // even though XCTest categorizes its children as StaticText.
+                    if inRecovery && texts.contains(where: { $0.identifier.hasPrefix("manual-reviewed-") }) { return false }
                     let images=texts.isEmpty ? cell.images.allElementsBoundByIndex:[]
                     guard !texts.isEmpty || !images.isEmpty,let frame=rowFrames[id] else { return false }
                     let relative=frame.offsetBy(dx:-listFrame.minX,dy:-listFrame.minY)
