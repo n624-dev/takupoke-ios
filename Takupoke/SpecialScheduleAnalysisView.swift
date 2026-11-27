@@ -7,6 +7,7 @@ struct SpecialScheduleAnalysisView: View {
     @ObservedObject var model: SpecialSchedulesModel
     let kind: SpecialScheduleKind
     @State private var sourceLease: SavedPDFLease?
+    @State private var confirmingRemoval = false
     @State private var showingRecovery = false
     @State private var copiedReport: String?
     @State private var positionsLesson: SpecialScheduleLesson?
@@ -74,6 +75,10 @@ struct SpecialScheduleAnalysisView: View {
                 Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .special(kind)) }
                     .disabled(model.busy || !model.ready)
                     .accessibilityLabel("\(kind.title)のファイルを選び直す")
+                if source != nil {
+                    Button("選択を解除", role: .destructive) { confirmingRemoval = true }
+                        .disabled(!model.canRemoveSelection(kind))
+                }
             } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let record {
                 Section {
@@ -152,6 +157,12 @@ struct SpecialScheduleAnalysisView: View {
         .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:kind == .exam ? .exam : .return) }
         .sheet(item: $sourceLease) { lease in SavedPDFView(url: lease.url, title: kind.title) }
         .onChange(of: model.ready) { ready in if !ready { sourceLease = nil } }
+        .alert("\(kind.title)の選択を解除しますか？", isPresented: $confirmingRemoval) {
+            Button("キャンセル", role: .cancel) {}
+            Button("選択を解除", role: .destructive) { model.removeSelection(kind) }
+        } message: {
+            Text("端末に保存したこの資料のPDF、解析結果、訂正内容、関連する通知が削除されます。OneDriveなどの元ファイルは残ります。")
+        }
         .background(
             MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
                 type: { $0.type }, instruction: { $0.instruction },

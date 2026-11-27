@@ -202,6 +202,23 @@ final class SpecialScheduleStore {
         selectedURL(for: kind).map { FileManager.default.fileExists(atPath: $0.path) } == true
     }
 
+    func removeSelection(_ kind: SpecialScheduleKind) throws {
+        let names = Set([sources[kind]?.storedName, records[kind]?.storedName].compactMap { $0 })
+        try queue.write { db in
+            try db.execute(sql: "DELETE FROM specialSource WHERE kind = ?", arguments: [kind.rawValue])
+            try db.execute(sql: "DELETE FROM specialSchedule WHERE kind = ?", arguments: [kind.rawValue])
+            try Self.writeAcquisitionAttempt(nil, kind: kind, db: db)
+        }
+        sources.removeValue(forKey: kind)
+        records.removeValue(forKey: kind)
+        acquisitionAttempts.removeValue(forKey: kind)
+        pipelineEvidence.removeValue(forKey: kind)
+        let retained = Set(sources.values.map(\.storedName) + records.values.map(\.storedName))
+        for name in names.subtracting(retained) {
+            try? SavedPDFLease.retire(files.appendingPathComponent(name))
+        }
+    }
+
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String,
                        byteCount: Int, digest: String, grant: SourceGrant? = nil) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,

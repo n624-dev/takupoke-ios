@@ -285,13 +285,18 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
                 } else if next.pending[kind.rawValue]?.fingerprint != digest { next.pending.removeValue(forKey: kind.rawValue) }
                 next.specialDigests[kind.rawValue] = digest
             case .absent:
-                next.pending.removeValue(forKey: kind.rawValue); next.specialDigests.removeValue(forKey: kind.rawValue)
+                next.removeSpecialSchedule(kind)
             case .unavailable: break
             }
         }
         if !changesEnabled { next.pending.removeValue(forKey: "changes") }
         if !specialsEnabled { for kind in SpecialScheduleKind.allCases { next.pending.removeValue(forKey: kind.rawValue) } }
         return next
+    }
+
+    mutating func removeSpecialSchedule(_ kind: SpecialScheduleKind) {
+        pending.removeValue(forKey: kind.rawValue)
+        specialDigests.removeValue(forKey: kind.rawValue)
     }
 
     static func acceptedChanges(in state: MaterialLibraryState) -> [ScheduleChange]? {

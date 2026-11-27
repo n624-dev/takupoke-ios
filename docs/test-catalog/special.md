@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`bf5e62771af16cd7c992ece11f18dbf4d5b4f09d41fade1825837e389d371c7e`
+`2613cef27a9bc6f67d99ca350eaafff7d4ac252144c37add065e616a20219d5a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -28,6 +28,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 
 ## [tests/SpecialScheduleTests+Persistence.swift](../../tests/SpecialScheduleTests+Persistence.swift)
 
+- `testRemovingSelectedExamRollsBackOnFailureAndKeepsReturnAcrossRestart`
 - `testScopedReturnSubsetCannotReplaceFullReturnAfterRestart`
 - `testVariableExamScopeSurvivesStoreRestartAndRejectsPhantomScope`
 - `testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources`

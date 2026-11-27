@@ -5,6 +5,52 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testRemovingSelectedExamRollsBackOnFailureAndKeepsReturnAcrossRestart() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root)
+        let exam = try SpecialScheduleParser.parse([flexibleExamPage(["2-CN"], days: [1, 2])], kind: .exam,
+                                                    digest: "fictional-exam", name: "exam.pdf")
+        let returned = try SpecialScheduleParser.parse([returnPageWithSplitCell()], kind: .examReturn,
+                                                        digest: "fictional-return", name: "return.pdf")
+        for analysis in [exam, returned] {
+            let bytes = Data("%PDF-fictional-\(analysis.kind.rawValue)".utf8)
+            let staged = store.newStagingURL()
+            try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: analysis.sourceName,
+                           byteCount: bytes.count, digest: analysis.sourceDigest)
+        }
+        let savedExam = try XCTUnwrap(store.savedURL(for: .exam))
+        let staged = store.newStagingURL(), newer = Data("%PDF-fictional-new".utf8)
+        try newer.write(to: staged)
+        try store.saveSelection(staged: staged, kind: .exam, originalName: "new.pdf",
+                                byteCount: newer.count, digest: "fictional-new")
+        let selectedExam = try XCTUnwrap(store.selectedURL(for: .exam))
+        let savedReturn = try XCTUnwrap(store.savedURL(for: .examReturn))
+
+        try store.queue.write { db in
+            try db.execute(sql: """
+                CREATE TRIGGER testAbortRemove BEFORE DELETE ON specialSchedule
+                BEGIN SELECT RAISE(ABORT, 'fictional failure'); END
+                """)
+        }
+        XCTAssertThrowsError(try store.removeSelection(.exam))
+        let unchanged = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(unchanged.selectedURL(for: .exam), selectedExam)
+        XCTAssertEqual(unchanged.savedURL(for: .exam), savedExam)
+        try store.queue.write { db in try db.execute(sql: "DROP TRIGGER testAbortRemove") }
+
+        try store.removeSelection(.exam)
+        let reopened = try SpecialScheduleStore(root: root)
+        XCTAssertNil(reopened.sources[.exam])
+        XCTAssertNil(reopened.records[.exam])
+        XCTAssertNil(reopened.acquisitionAttempts[.exam])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: savedExam.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: selectedExam.path))
+        XCTAssertEqual(reopened.savedURL(for: .examReturn), savedReturn)
+        XCTAssertEqual(reopened.records[.examReturn]?.analysis, returned)
+    }
+
     func testScopedReturnSubsetCannotReplaceFullReturnAfterRestart() throws {
         let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }

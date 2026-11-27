@@ -26,6 +26,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private var loaded = false
     private var reconcileTask: NotificationWork?
     private var disabledNotificationsAwaitingWrite = Set<String>()
+    private var lastSpecialRemoval: [String: UUID] = [:]
+    private var specialComparisonsToReset = Set<String>()
     private var pending: Input?
     private var generation = UUID()
     private var latestRevision = UUID()
@@ -141,6 +143,26 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     private func removeUpdateNotifications(_ ids: [String]) {
         center.removePendingNotificationRequests(withIdentifiers: ids)
         center.removeDeliveredNotifications(withIdentifiers: ids)
+    }
+
+    func removeSpecialSchedule(_ kind: SpecialScheduleKind) {
+        let key = kind.rawValue, identifier = "takupoke." + key
+        latestRevision = UUID()
+        pending = nil
+        lastSpecialRemoval[key] = latestRevision
+        specialComparisonsToReset.insert(key)
+        removeUpdateNotifications([identifier])
+        if openedUpdate?.kind.rawValue == key { openedUpdate = nil }
+        do {
+            let file = try storageFile()
+            var value = try baseline ?? ScheduleNotificationSnapshot.load(from: file)
+            value.removeSpecialSchedule(kind)
+            try save(value, to: file)
+            specialComparisonsToReset.remove(key)
+        } catch {
+            // Keep the removal pending if the comparison store could not be read.
+            message = "通知の更新確認を保存できませんでした。"
+        }
     }
 
     // Start the permission UI on this object's MainActor, then transport the
@@ -353,6 +375,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     private func apply(_ input: Input) async {
         let operation = generation
+        let removals = lastSpecialRemoval
         do {
             try Task.checkCancellation()
             guard UIApplication.shared.isProtectedDataAvailable, input.period == SchoolDataPeriod.current() else { return }
@@ -382,8 +405,11 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             }
             guard var next = baseline else { return }
             guard let allowed = await deliveryAllowed() else { return }
-            guard operation == generation, input.period == SchoolDataPeriod.current(),
+            guard operation == generation, removals == lastSpecialRemoval, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
+            for kind in SpecialScheduleKind.allCases where specialComparisonsToReset.contains(kind.rawValue) {
+                next.removeSpecialSchedule(kind)
+            }
             let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
                 .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
             next = try next.reconciling(changes: input.changes, specials: input.specials, availability: input.availability,
@@ -396,6 +422,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             // before yielding to the notification service. An interrupted send
             // can be retried without recomputing or losing the data difference.
             if next != baseline { try save(next, to: file) }
+            specialComparisonsToReset.removeAll()
             func enabled(_ kind: String) -> Bool { kind == "changes" ? changesEnabled : specialsEnabled }
             var failedKinds: [String] = []
             for kind in ["changes", "exam", "examReturn"] {
@@ -430,7 +457,12 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 if !alreadySent {
                     // A setting may change while this write is in the OS.
                     // Clean up this identifier before the next kind can wait.
-                    defer { if !enabled(kind) { removeUpdateNotifications([identifier]) } }
+                    let previousRemoval = lastSpecialRemoval[kind]
+                    defer {
+                        if !enabled(kind) || lastSpecialRemoval[kind] != previousRemoval {
+                            removeUpdateNotifications([identifier])
+                        }
+                    }
                     do { try await send(kind: kind, notice: notice, revision: input.revision) }
                     catch {
                         try Task.checkCancellation()
@@ -438,7 +470,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                         continue
                     }
                 }
-                guard operation == generation, input.period == SchoolDataPeriod.current(),
+                guard operation == generation, removals == lastSpecialRemoval, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
                 // Acknowledge an accepted notice even if cancellation arrived
                 // while add() was completing. Do not deliver it again on return.

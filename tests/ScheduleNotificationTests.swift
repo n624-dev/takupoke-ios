@@ -2,6 +2,21 @@ import XCTest
 @testable import TakupokeParsing
 
 final class ScheduleNotificationTests: XCTestCase {
+    func testRemovingExamResetsOnlyItsComparisonAndFirstReselectionIsQuiet() throws {
+        var snapshot = ScheduleNotificationSnapshot()
+        snapshot.specialDigests = ["exam": "exam-old", "examReturn": "return-old"]
+        snapshot.pending["exam"] = .init(fingerprint: "exam-old", count: 1)
+        snapshot.pending["examReturn"] = .init(fingerprint: "return-old", count: 1)
+        snapshot.removeSpecialSchedule(.exam)
+        let result = try snapshot.reconciling(changes: nil, specials: ["exam": "exam-new", "examReturn": "return-old"],
+            availability: .init(changes: .unavailable, specials: ["exam": .available, "examReturn": .available]),
+            today: .today(), classes: [], changesEnabled: true, specialsEnabled: true)
+        XCTAssertNil(result.pending["exam"])
+        XCTAssertEqual(result.specialDigests["exam"], "exam-new")
+        XCTAssertEqual(result.pending["examReturn"], snapshot.pending["examReturn"])
+        XCTAssertEqual(result.specialDigests["examReturn"], "return-old")
+    }
+
     private let today = SchoolDate(iso8601: "2032-10-15")!
 
     private func change(_ fingerprint: String, date: String = "2032-10-15", className: String = "3_XY",

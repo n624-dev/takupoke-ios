@@ -34,11 +34,11 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [学校行事API・年度別保存](test-catalog/events.md) | 58 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 57 | Linux Swift／iOS 26.5・27.0シミュレータ |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 108 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [試験・返却PDF](test-catalog/special.md) | 82 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [試験・返却PDF](test-catalog/special.md) | 83 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 123 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 228 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 134 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
-| [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 40 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
+| [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 41 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
 | [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 208 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 30 | Apple iOS26/27 UI＋Nativeレイアウト |
 | [シミュレーター失敗時の画面記録](test-catalog/simulator-failure-screenshot.md) | 35 | macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査 |

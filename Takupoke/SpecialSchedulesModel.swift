@@ -174,6 +174,30 @@ final class SpecialSchedulesModel: ObservableObject {
         analyze(kind: kind, selection: nil)
     }
 
+    func canRemoveSelection(_ kind: SpecialScheduleKind) -> Bool {
+        ready && !busy && !retired && sources[kind] != nil && !FilePipeline.shared.isRecovering(kind.rawValue)
+    }
+
+    func removeSelection(_ kind: SpecialScheduleKind) {
+        guard canRemoveSelection(kind), let period = ApplicationData.shared.loadedPeriod,
+              let pipelineSource = FileRefreshDiagnostics.Source(rawValue: kind.rawValue) else { return }
+        FilePipeline.shared.clearTerminalStatus(pipelineSource)
+        pendingSelections.clear(kind)
+        pendingManualRefresh.remove(kind)
+        pendingManualChecks.remove(kind)
+        fileRefreshQueue.discardPending(kind.rawValue)
+        perform(success: "\(kind.title)の選択を解除しました。", reporting: kind, completion: { [weak self] succeeded in
+            guard let self, succeeded else { return }
+            self.recoveryCaptures.removeValue(forKey: kind)
+            self.fileRefreshQueue.discardPending(kind.rawValue)
+            ApplicationData.shared.notifications.removeSpecialSchedule(kind)
+        }) { store, control, _ in
+            try control.check()
+            guard period == SchoolDataPeriod.current() else { throw FilePipeline.Failure.stale }
+            try store.removeSelection(kind)
+        }
+    }
+
     func closeForRetention() async {
         retired = true
         FilePipeline.shared.cancel([FileRefreshDiagnostics.Source.exam, .examReturn])
