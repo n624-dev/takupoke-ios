@@ -123,6 +123,16 @@ struct ChangeAnalysis: Codable {
     var records: [ScheduleChange]
     var weekdayConsent: ChangeWeekdayConsent? = nil
     var rowSkipConsent: ChangeRowSkipConsent? = nil
+    // Only a verified editor save can certify explicitly excluded source rows.
+    var excludedSourceRowCount: Int? = nil
+
+    var hasValidRecordCount: Bool {
+        if !records.isEmpty { return excludedSourceRowCount == nil && records.count <= ChangeNormalizer.maximumRecords }
+        guard let excludedSourceRowCount, (1...ChangeNormalizer.maximumRows).contains(excludedSourceRowCount),
+              let defaultYear, (1900...9998).contains(defaultYear),
+              personalSourceIdentity?.isEmpty == false, weekdayConsent == nil, rowSkipConsent == nil else { return false }
+        return true
+    }
 
     func matches(record: MaterialRecord, defaultYear: Int?) -> Bool {
         guard let defaultYear else { return false }

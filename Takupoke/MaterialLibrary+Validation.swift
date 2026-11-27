@@ -11,7 +11,7 @@ extension MaterialLibrary {
         }
         if let analysis = state.changeAnalysis {
             guard (1...ChangeAnalysis.parserVersion).contains(analysis.version),
-                  !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
+                  analysis.hasValidRecordCount else {
                 throw MaterialError.invalidState
             }
         }

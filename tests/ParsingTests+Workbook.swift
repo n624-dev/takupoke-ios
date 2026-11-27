@@ -123,6 +123,10 @@ extension ParsingTests {
             let reopened = try MaterialLibrary(root: libraryRoot)
             let accepted = try XCTUnwrap(reopened.state.changeAnalysis)
             XCTAssertTrue(accepted.records.isEmpty)
+            XCTAssertEqual(accepted.excludedSourceRowCount, 1)
+            var unproved = reopened.state
+            unproved.changeAnalysis?.excludedSourceRowCount = nil
+            XCTAssertThrowsError(try MaterialLibrary.decodeLegacyManifest(LocalMaterialDatabase.encode(unproved)))
             XCTAssertTrue(accepted.matches(record: try XCTUnwrap(reopened.state.record(for: .changes)), defaultYear: 2032))
             XCTAssertEqual(try reopened.changeEditor(year: 2032).edits, excluded)
             let headerOnly = root.appendingPathComponent("fictional-no-rows.xlsx")

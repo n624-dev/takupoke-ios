@@ -147,6 +147,12 @@ extension MaterialLibrary {
         analysis.sourceModifiedAt = record.sourceModifiedAt
         analysis.personalEdit = manual
         analysis.personalSourceIdentity = expectedIdentity
+        if records.isEmpty {
+            let originalRows = view.table.rowIDs
+            guard let rows, rows.entries.count == originalRows.count,
+                  rows.entries.allSatisfy({ $0.edit.excluded }) else { throw ChangeParseError(code: .storage) }
+            analysis.excludedSourceRowCount = originalRows.count
+        }
         try check()
         var next = state
         guard let i = next.records.firstIndex(where: { $0.kind == .changes }) else { throw ChangeParseError(code: .staleConfirmation) }
