@@ -62,7 +62,10 @@ final class ApplicationData: ObservableObject {
             }
         }
         eventsNetwork.start(queue: DispatchQueue(label: "jp.n624.takupoke.events-network"))
-        countdown.onChange = { [weak self] in self?.updateCountdown() == true }
+        countdown.onChange = { [weak self] in
+            guard let self else { return false }
+            return self.retentionFailure ? self.updatePublicCountdown() : self.updateCountdown()
+        }
         schoolEvents.$saved.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         schoolEvents.$sourcePresentationRevision.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$state.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
@@ -105,9 +108,15 @@ final class ApplicationData: ObservableObject {
 
     @discardableResult
     func updateCountdown() -> Bool {
-        guard UIApplication.shared.isProtectedDataAvailable,
-              readyForCurrentPeriod || retentionFailure && loadedPeriod == nil else { return false }
+        guard readyForCurrentPeriod, UIApplication.shared.isProtectedDataAvailable else { return false }
         countdown.update(using: self, at: homeClock.currentDate)
+        return true
+    }
+
+    @discardableResult
+    func updatePublicCountdown() -> Bool {
+        guard retentionFailure, loadedPeriod == nil, UIApplication.shared.isProtectedDataAvailable else { return false }
+        countdown.update(using: self, at: Date())
         return true
     }
 

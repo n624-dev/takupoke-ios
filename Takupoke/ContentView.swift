@@ -41,7 +41,7 @@ struct ContentView: View {
                             NavigationLink("公開の学校行事") { SchoolEventsSettingsView(model: schoolEvents) }
                             NavigationLink("カウントダウン") {
                                 CountdownManagementView(events: schoolEvents)
-                                    .task { schoolEvents.loadIfNeeded(); application.updateCountdown() }
+                                    .task { schoolEvents.loadIfNeeded(); application.updatePublicCountdown() }
                             }
                         }
                     } else { LoadingRow(title: "読み込み中⋯") }
