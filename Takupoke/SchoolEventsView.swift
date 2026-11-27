@@ -32,6 +32,10 @@ struct SchoolEventsSettingsSection: View {
                 if let saved = model.saved[year] {
                     Text("取得済み")
                         .font(.subheadline).foregroundStyle(.secondary)
+                    if !model.isAutomaticRefreshEnabled(year: year) {
+                        Text("この年度の自動確認は終了しました。必要なときは手動で更新できます。")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     NavigationLink("詳細を見る") {
                         SchoolEventsResultView(model: model, year: year, original: saved)
                     }

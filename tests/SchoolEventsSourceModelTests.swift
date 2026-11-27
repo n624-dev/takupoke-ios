@@ -179,6 +179,30 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         await f.model.checkSource(year: 2032)?.value
     }
 
+    func testNewSchoolYearStopsAutomaticChecksButKeepsSavedEventsAndManualRefresh() async throws {
+        let fixture = try Fixture()
+        defer { fixture.clean() }
+        let model = try XCTUnwrap(fixture.model)
+        let prior = try XCTUnwrap(model.saved[2032])
+        fixture.now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2033-03-31T14:59:59Z"))
+        XCTAssertTrue(model.isAutomaticRefreshEnabled(year: 2032))
+        fixture.now.addTimeInterval(1)
+        XCTAssertFalse(model.isAutomaticRefreshEnabled(year: 2032))
+        XCTAssertTrue(model.isAutomaticRefreshEnabled(year: 2033))
+        XCTAssertNil(model.checkSource(year: 2032))
+        _ = await model.refreshInBackground()
+        XCTAssertEqual(fixture.network.count(path: "/events", year: 2032), 0)
+        XCTAssertEqual(fixture.network.count(path: "/events/source-status", year: 2032), 0)
+        XCTAssertEqual(model.saved[2032], prior)
+        model.fetch(year: 2032)
+        await dataFinished(model)
+        XCTAssertEqual(fixture.network.count(path: "/events", year: 2032), 1)
+        XCTAssertEqual(fixture.network.count(path: "/events/source-status", year: 2032), 1)
+        XCTAssertEqual(model.saved[2032]?.payload, prior.payload)
+        XCTAssertNil(model.checkSource(year: 2032))
+        XCTAssertEqual(fixture.network.unexpected, 0)
+    }
+
     func testCheckingAutomaticallyBecomesMatchedWithoutFetchingEventsAgain() async throws {
         let f = try Fixture(), clock = RetryClock()
         defer { f.clean(); clock.cancel() }
