@@ -2,12 +2,15 @@ import base64
 from contextlib import redirect_stdout
 import hashlib
 import io
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -18,6 +21,51 @@ IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQV
 
 
 class SimulatorFailureScreenshotTests(unittest.TestCase):
+    def test_xctest_warning_does_not_consume_the_single_failure_capture(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the shared screenshot hook")
+        source = (ROOT / "tests/Support/SimulatorIdentityTestCase.swift").read_text(encoding="utf-8")
+        # Supply the native severity and screenshot boundaries. The real
+        # XCTest override decides whether to attempt a capture and still
+        # reports every issue to its superclass.
+        program = '''import Foundation
+struct XCTIssue { let isFailure: Bool }
+class Base {
+    var received: [Bool] = []
+    func record(_ issue: XCTIssue) { received.append(issue.isFailure) }
+}
+final class Hook: Base {
+    private static var captured = 0
+    private static var attempted = false
+    @MainActor private static func recordFailureScreenshot() {
+        if !attempted { captured += 1; attempted = true }
+    }
+    @MainActor static func run() {
+        let probe = Hook()
+        probe.record(XCTIssue(isFailure: false))
+        precondition(captured == 0)
+        probe.record(XCTIssue(isFailure: true))
+        probe.record(XCTIssue(isFailure: false))
+        probe.record(XCTIssue(isFailure: true))
+        precondition(captured == 1)
+        precondition(probe.received == [false, true, false, true])
+    }
+HOOK
+}
+@main struct Probe {
+    @MainActor static func main() { Hook.run() }
+}
+'''.replace("HOOK", block(source, "override func record(_ issue: XCTIssue)"))
+        with tempfile.TemporaryDirectory(prefix="takupoke-screenshot-issue-") as scratch:
+            root = Path(scratch)
+            swift = root / "hook.swift"
+            swift.write_text(program, encoding="utf-8")
+            binary = root / "hook"
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", str(swift), "-o", str(binary)],
+                           check=True, timeout=30)
+            subprocess.run([str(binary)], check=True, timeout=10)
+
     def test_fallback_skips_a_complete_native_capture_and_keeps_once_limit(self):
         script = r'''
 source tools/simulator-ci-trace.sh

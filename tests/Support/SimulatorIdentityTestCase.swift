@@ -45,7 +45,7 @@ class SimulatorIdentityTestCase: XCTestCase {
     @MainActor private static var attemptedFailureScreenshot = false
 
     override func record(_ issue: XCTIssue) {
-        if Thread.isMainThread {
+        if issue.isFailure && Thread.isMainThread {
             MainActor.assumeIsolated { Self.recordFailureScreenshot() }
         }
         super.record(issue)

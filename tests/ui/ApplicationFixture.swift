@@ -86,6 +86,9 @@ final class FixtureNetwork: URLProtocol {
             let installed = request.value(forHTTPHeaderField: "If-None-Match")
             let changed = ProcessInfo.processInfo.arguments.contains("--updated-revisions")
             let status = installed != nil && !changed ? 304 : 200
+            if ProcessInfo.processInfo.arguments.contains("--only-distributed-data") {
+                print("TAKUPOKE_STATUS_FIXTURE revision=\(url.path) response=\(status)")
+            }
             let etag = status == 304 ? installed! : "\"" + String(repeating: "Z", count: 43) + "\""
             let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
                                            headerFields: ["ETag": etag, "Cache-Control": "no-store"])!
@@ -400,11 +403,11 @@ struct SimulatorApplication: App {
             if ProcessInfo.processInfo.arguments.contains("--countdown-storage-corrupt") {
                 try Data("{".utf8).write(to:countdown,options:.atomic)
             }
-            if ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
-                let fixture = base.appendingPathComponent("SchoolEventsAPI")
-                if FileManager.default.fileExists(atPath: fixture.path) { try FileManager.default.removeItem(at: fixture) }
-            }
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
+        }
+        let clearedEvents = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: ProcessInfo.processInfo.arguments)
+        if ProcessInfo.processInfo.arguments.contains("--only-distributed-data") {
+            FixtureLaunchDiagnostics.record(clearedEvents ? "status-fixture-prior-cache-cleared" : "status-fixture-no-prior-cache")
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
         if ProcessInfo.processInfo.arguments.contains("--empty-fixture") { return }

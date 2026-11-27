@@ -35,6 +35,15 @@ import ZIPFoundation
 // Seed actual event files; user actions still run production fetch/decode/save.
 // The separate probe launch omits this mutation to verify persisted repair.
 enum SimulatorEventsCacheFixture {
+    static func resetForIsolatedLaunch(_ base: URL, arguments: [String]) throws -> Bool {
+        guard arguments.contains("--reset-fixture"),
+              arguments.contains("--countdown-calendar") || arguments.contains("--only-distributed-data") else { return false }
+        let directory = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: directory.path) else { return false }
+        try FileManager.default.removeItem(at: directory)
+        return true
+    }
+
     static func payload(year: Int, title: String) -> SchoolEventsPayload {
         SchoolEventsPayload(
             version: "v1", schoolYear: year, sourcePdfSha256: String(repeating: "c", count: 64),
