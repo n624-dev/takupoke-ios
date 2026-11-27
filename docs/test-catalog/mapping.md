@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`33b7049af5f420f53b00533fd2efe89155f5bf72865d3eaa12c7034c10eca3cf`
+`6451c133b5890db9eb2ab6d02e1bab92aed986ea6ed57e5c2357d05eff329e82`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -95,6 +95,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`
 - `test200304AndFailureKeepPreviousResult`
 - `testCacheReplacementOnlyAfterValidSave`
+- `testUnknownLinkColorUsesTheStandardColorAndKeepsTheExactPublishedValue`
 - `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
 - `testSearchMatchesKanaRomajiAndRanking`

@@ -229,7 +229,7 @@ final class LinksModel: ObservableObject {
     func isFavorite(_ id: String) -> Bool { preferences.favoriteIDs.contains(id) }
     func isHidden(_ id: String) -> Bool { preferences.hiddenIDs.contains(id) }
     func color(for item: LinkItem) -> String {
-        guard let color = preferences.colorOverrides[item.id], LinksPayload.colors.contains(color) else { return item.color }
+        guard let color = preferences.colorOverrides[item.id], LinksPayload.colors.contains(color) else { return item.displayColor }
         return color
     }
 

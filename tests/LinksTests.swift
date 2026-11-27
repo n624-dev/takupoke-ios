@@ -273,9 +273,9 @@ final class LinksTests: XCTestCase {
 
     private func item(id: String = "fictional-link", href: String = "https://example.invalid/path",
                       visible: Bool = true, label: String = "架空リンクA", sortOrder: Int = 1,
-                      recommended: Bool = false, recommendationOrder: Int = 0) -> LinkItem {
+                      recommended: Bool = false, recommendationOrder: Int = 0, color: String = "sky") -> LinkItem {
         LinkItem(id: id, categoryId: "fictional-category", label: label, href: href,
-                 color: "sky", visible: visible, sortOrder: sortOrder, recommended: recommended,
+                 color: color, visible: visible, sortOrder: sortOrder, recommended: recommended,
                  recommendationOrder: recommendationOrder, searchAliases: ["架空別名A"], searchTerms: "かくうりんく|fictional")
     }
 
@@ -339,6 +339,36 @@ final class LinksTests: XCTestCase {
         XCTAssertThrowsError(try store.save(SavedLinks(payload: payload([item()], version: "v2"),
                                                         apiETag: tag, checkedAt: Date())))
         XCTAssertEqual(try store.load(), original)
+    }
+
+    func testUnknownLinkColorUsesTheStandardColorAndKeepsTheExactPublishedValue() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LinksStore(root: root)
+        let original = SavedLinks(payload: payload([item()]), apiETag: tag, checkedAt: Date(timeIntervalSince1970: 1))
+        try store.save(original)
+        let etag = "\"fictional-new-edition\""
+        let checked = Date(timeIntervalSince1970: 2)
+        let rawColor = "fictional-future-color"
+        let published = payload([item(), item(id: "fictional-future", color: rawColor)])
+        let adopted = try LinksResponse.decode(status: 200, data: JSONEncoder().encode(published),
+            receivedETag: etag, saved: original, checkedAt: checked)
+        try store.save(adopted)
+        let restored = try XCTUnwrap(LinksStore(root: root).load())
+        XCTAssertEqual(restored, adopted)
+        let buttons = try XCTUnwrap(restored.payload.categories.first?.buttons)
+        XCTAssertEqual(buttons.map(\.id), ["fictional-link", "fictional-future"])
+        XCTAssertEqual(buttons.map(\.color), ["sky", rawColor])
+        XCTAssertEqual(buttons.map(\.displayColor), ["sky", "gray"])
+        let checkedAgain = try LinksResponse.decode(status: 304, data: Data(), receivedETag: etag, saved: restored)
+        XCTAssertEqual(checkedAgain.payload, published)
+
+        let invalidURL = payload([item(href: "http://example.invalid", color: rawColor)])
+        let blank = payload([item(color: " \n")])
+        for rejected in [invalidURL, blank] {
+            XCTAssertThrowsError(try store.save(SavedLinks(payload: rejected, apiETag: etag, checkedAt: checked)))
+            XCTAssertEqual(try store.load(), adopted)
+        }
     }
 
     func testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload() throws {

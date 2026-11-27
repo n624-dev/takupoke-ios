@@ -152,6 +152,7 @@ struct LinkItem: Codable, Equatable, Identifiable, Sendable {
     let searchTerms: String
 
     var url: URL? { URL(string: href) }
+    var displayColor: String { LinksPayload.colors.contains(color) ? color : "gray" }
 }
 
 struct LinkCategory: Codable, Equatable, Identifiable, Sendable {
@@ -223,7 +224,7 @@ struct LinksPayload: Codable, Equatable {
             for item in category.buttons {
                 guard Self.validID(item.id), linkIDs.insert(item.id).inserted,
                       item.categoryId == category.id, Self.validText(item.label, max: 80),
-                      Self.validURL(item.href), Self.colors.contains(item.color),
+                      Self.validURL(item.href), !item.color.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                       item.searchAliases.count <= 20,
                       item.searchAliases.allSatisfy({ Self.validText($0, max: 80) }),
                       !item.searchTerms.isEmpty, item.searchTerms.count <= 5_000 else { return false }
