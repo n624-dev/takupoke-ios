@@ -934,8 +934,8 @@ final class FileRefreshTests: XCTestCase {
         let timetable = SelectedFileSource(id: "timetable", grant: SourceGrant(bookmark: Data([2]), name: "fictional.pdf", isFolder: false))
         monitor.setForeground(true)
         monitor.update([changes, timetable])
-        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
-        while deadlines.count < 2, ContinuousClock.now < deadline { await Task.yield() }
+        let deadline = ProcessInfo.processInfo.systemUptime + 3
+        while deadlines.count < 2, ProcessInfo.processInfo.systemUptime < deadline { await Task.yield() }
         defer {
             monitor.setForeground(false)
             deadlines.values.forEach { $0.resume() }
@@ -945,7 +945,7 @@ final class FileRefreshTests: XCTestCase {
         try XCTUnwrap(deadlines.removeValue(forKey: "changes")).resume()
         available.registered(true); available.ended()
         while (monitor.registrations["changes"] != .timedOut || monitor.isRegistering("timetable")),
-              ContinuousClock.now < deadline { await Task.yield() }
+              ProcessInfo.processInfo.systemUptime < deadline { await Task.yield() }
         XCTAssertEqual(monitor.blockedSources, ["changes"])
         XCTAssertEqual(monitor.registrations["changes"], .timedOut)
         XCTAssertEqual(monitor.registrations["timetable"], .registered)
@@ -957,7 +957,7 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertEqual(monitor.registrations["changes"], .timedOut)
         XCTAssertTrue(requests.isEmpty)
         slow.ended()
-        while monitor.isRegistering("changes"), ContinuousClock.now < deadline { await Task.yield() }
+        while monitor.isRegistering("changes"), ProcessInfo.processInfo.systemUptime < deadline { await Task.yield() }
         XCTAssertTrue(monitor.blockedSources.isEmpty)
         XCTAssertEqual(monitor.timeoutStatus("changes")?.title, "監視登録が期限切れ")
         XCTAssertEqual(requests, ["changes"])
