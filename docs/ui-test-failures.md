@@ -1,6 +1,13 @@
+## #220の年度切替テストがApple環境でのみ型検査に失敗（2026-11-27）
+
+- `5e36ade`、[全体46031013029 試行1のiPhoneビルド](https://github.com/n624-dev/takupoke-ios/actions/runs/46031013029/job/140617636392)。16:39:39 UTC、`SchoolEventsSourceModelTests.swift:196` の `XCTAssertEqual` が保存済み行事の包みに `Equatable` を要求してビルドが停止した。Combineを使うテストなのでLinuxの全Swift実行には含まれない。
+- 同じ失敗を同じ実行の[ネイティブ解析テスト](https://github.com/n624-dev/takupoke-ios/actions/runs/46031013029/job/140617636510)でも確認した。
+- 保存前後をキー順を固定した永続化表現で比較する。保存日時・本文・取得版・確認日時を含む比較を維持し、Apple環境で年度境界と旧年度の手動更新を実行する。
+
 ## #219の起点日編集で、詳細画面に旧イニシャライザ呼び出しが残る（2026-11-27）
 
 - `5e36ade`、[全体46031013029 試行1のiOS 26通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/46031013029/job/140617636486)、iOS 26.5／SDK 27.2。16:35:29 UTC、`CountdownView.swift:275` で `extra argument 'target' in call`。シミュレーターを作成済みだがアプリの操作は未開始。
+- 同じ修正を含まない `f6ce0d2` の[iOS 27手動単項目限定46034424751](https://github.com/n624-dev/takupoke-ios/actions/runs/46034424751/job/140626118082)にも同じコンパイル失敗が出た。
 - 試験設定の起点を画面で再解決する変更で、一覧の呼び出しだけを更新し、試験詳細からの呼び出しに古い引数を残した。両方の呼び出しを実際のイニシャライザに対してSwiftで型検査する。
 
 ## #218の通知から時間割へ移動するコードがAppleビルドで非公開メソッドを参照（2026-11-27）

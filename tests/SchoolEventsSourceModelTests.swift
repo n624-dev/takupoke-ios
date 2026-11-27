@@ -193,7 +193,10 @@ final class SchoolEventsSourceModelTests: XCTestCase {
         _ = await model.refreshInBackground()
         XCTAssertEqual(fixture.network.count(path: "/events", year: 2032), 0)
         XCTAssertEqual(fixture.network.count(path: "/events/source-status", year: 2032), 0)
-        XCTAssertEqual(model.saved[2032], prior)
+        let preserved = try XCTUnwrap(model.saved[2032])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        XCTAssertEqual(try encoder.encode(preserved), try encoder.encode(prior))
         model.fetch(year: 2032)
         await dataFinished(model)
         XCTAssertEqual(fixture.network.count(path: "/events", year: 2032), 1)
