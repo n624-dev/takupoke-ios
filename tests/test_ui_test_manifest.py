@@ -1308,9 +1308,14 @@ METHOD
         self.assertIn("center.deliveredNotifications()", readiness)
         self.assertLess(readiness.index("await (pending,delivered)"), readiness.index("notificationServiceReady = true"))
         self.assertNotRegex(readiness, r"requestAuthorization|removePending|removeDelivered|Task\.sleep")
+        launcher = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
+        setup = launcher.split('if name.contains("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals")', 1)[1].split('override func tearDown', 1)[0]
+        self.assertLess(setup.index('launchReady(waitForReadyMarker: false)'), setup.index('launchReady()'))
+        self.assertNotIn('保存期間の管理情報を復旧', launcher)
         case = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text(encoding="utf-8")
         recovery = case.split("func testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
         self.assertIn('notice.waitForExistence(timeout: 45)', recovery)
+        self.assertLess(recovery.index('notice.buttons["閉じる"].tap()'), recovery.index('app.staticTexts["fixture-ready"]'))
         self.assertIn('marker=1;old=0;prefs=1;public=1;original=1;archive=1', recovery)
         self.assertLess(recovery.index('let fingerprints'), recovery.index('app.terminate()'))
         self.assertIn('XCTAssertFalse(app.alerts["保存期間の復旧"].exists)', recovery)

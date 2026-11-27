@@ -84,7 +84,8 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             if name.contains("testVoiceOverReadsTimetableCard") { return }
         #endif
         if name.contains("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals") {
-            launchReady(expectDataReady: false)
+            // The test first checks and dismisses the automatic recovery alert.
+            launchReady(waitForReadyMarker: false)
             return
         }
         launchReady()
@@ -125,7 +126,7 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
         print("UI_AUTOMATION_READY state=\(observedState);frame=\(observedFrame)")
         return true
     }
-    func launchReady(expectDataReady: Bool = true) {
+    func launchReady(waitForReadyMarker: Bool = true) {
         // One launch after confirmed process termination. A persistence check
         // must not overlap the previous process or be rescued by a relaunch.
         if app.state != .notRunning { app.terminate() }
@@ -140,11 +141,8 @@ final class ApplicationChecks: SimulatorIdentityTestCase {
             XCTFail("New fixture process did not enter foreground")
             return
         }
-        if expectDataReady {
+        if waitForReadyMarker {
             XCTAssertTrue(app.staticTexts["fixture-ready"].waitForExistence(timeout: 45), app.debugDescription)
-        } else {
-            XCTAssertTrue(app.buttons["保存期間の管理情報を復旧"].waitForExistence(timeout: 45), app.debugDescription)
-            XCTAssertFalse(app.tabBars.buttons["ホーム"].exists, app.debugDescription)
         }
     }
     func screen(_ title: String) {

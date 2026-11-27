@@ -1,3 +1,9 @@
+## #215の自動復旧で旧手動復旧の起動条件が残る（2026-11-27）
+
+- `5e28c3c`、[全体46035493275 試行1のiOS 27通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/46035493275/job/140632612044)、iOS 27.0／SDK 27.2。17:35:32 UTC、`ApplicationChecks.swift:146` の `testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals` が61.391秒で失敗した。
+- 失敗のPNGにホーム画面、準備完了と「保存期間の復旧」の完了ダイアログが表示され、復旧終了までは到達していた。テストの起動ヘルパーに旧仕様の「保存期間の管理情報を復旧」ボタン待ちが残り、自動復旧の確認とデータの照合まで進めなかった。
+- `testRetentionMarkerRecovers|fixture-ready|retention-recovery` で以前の起動通知ケースを照合した。自動復旧のテストだけ、起動後にテスト本体で完了ダイアログを確認して閉じた後、準備完了マーカーとホームを確認する。元データの保全、ハッシュ、保存期間の正規化と再起動後にダイアログが再発しない検査を維持する。通常ケースは起動時の準備完了マーカーを引き続き待つ。
+
 ## PR #238のiOS 26明示選択で比較不能欄へ進めない（2026-11-27）
 
 - `5e28c3c`、[全体46035493275 試行1のiOS 26明示選択](https://github.com/n624-dev/takupoke-ios/actions/runs/46035493275/job/140632612269)、iOS 26.5／SDK 27.2。明示選択した科目の訂正・確認、送信の実接触、レビュー成立と入力済み科目の表示まで成功。
