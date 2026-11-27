@@ -29,14 +29,19 @@ extension ManualAssistanceChecks {
     func openReviewPreview() {
         tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")
     }
+    private func coordinatorState(ambiguous:inout Bool)->String? {
+        guard let root=try? app.snapshot(),let nodes=snapshotNodes(in:root) else { return nil }
+        let owners=nodes.filter { $0.elementType == .other && $0.identifier == "manual-observation" }
+        if owners.count>1 { ambiguous=true;return nil }
+        guard let owner=owners.first,let children=snapshotNodes(in:owner) else { return nil }
+        let states=children.filter { $0.elementType == .staticText && $0.identifier == "manual-coordinator-state" }
+        if states.count>1 { ambiguous=true;return nil }
+        return states.first?.label
+    }
     func requireReview(_ expected:[String],comparable:Bool) {
         var observedState="",ambiguousState=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.app.otherElements["manual-observation"].staticTexts.matching(identifier:"manual-coordinator-state")
-                .allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguousState=true;return true }
-            guard current.count==1 else { return false }
-            let label=current[0].label
+            guard let label=self.coordinatorState(ambiguous:&ambiguousState) else { return ambiguousState }
             observedState=label
             return label.contains("review=true") && label.contains("preview=false")
         },object:app)
@@ -121,10 +126,7 @@ extension ManualAssistanceChecks {
     func requirePreview(readyToAdopt: Bool = false) {
         var ambiguous=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.observation.staticTexts.matching(identifier:"manual-coordinator-state")
-                .allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguous=true;return true }
-            guard let state = current.first?.label else { return false }
+            guard let state=self.coordinatorState(ambiguous:&ambiguous) else { return ambiguous }
             return state.contains("preview=true") && (!readyToAdopt ||
                 (state.contains("running=false") && state.contains("revalidation=false")))
         },object:app)

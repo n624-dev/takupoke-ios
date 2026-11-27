@@ -11,6 +11,12 @@
 - `Navigation.swift:97|Identity Binding|仮想` でN54の比較不能表示および正式43758697036の通常画面ボタン照会と、その時点のコードを照合。今回は非表示の候補にも個別にIdentity Bindingを行う配列展開が失敗した。リストの1回のsnapshotから型・識別子・画面内の枠を検査し、候補が画面内に来た時だけその1件を現在の実要素に結び付ける。同じ複数候補の探索を使う確認画面の値の照合にも適用し、画面内・一意・操作可能の条件、16回上限、実接触、拒否・保存・再起動の期待値を維持する。
 - 変更後、LinuxのSwift UI構文検査、実ジオメトリ29件、候補を結び付ける順序を含むPython 3件が成功。限定CIで同一ケースの両OS・SDK 27.2を確認する。アプリ本体の訂正と採用の経路はこの修正の対象外。
 
+## PR #238のiOS 26明示訂正ジョブが確認画面の待機で失敗（2026-11-27）
+
+- 同じ `ed130525868688ac3a88462dbd18f91e7df82a69`、[45982834993 試行1のジョブ140453704352](https://github.com/n624-dev/takupoke-ios/actions/runs/45982834993/job/140453704352)。iOS 26／SDK 27.2、`testSelectedHighConfidenceFieldsRetainInputsRejectFourthAndSurviveRelaunch`。11:57:24 UTCにfailure終端、ケース357.344秒、終了65、XCTest失敗画像あり。
+- 最初の訂正を送信し、製品ログは `manual-submit-accepted` と `manual-review-ready` を記録した。失敗時の画面には入力した本文、確認画面の見出し、`review=true;preview=false` の診断が存在した。`ManualAssistanceChecks+Review.swift:45` では、スコープ付きの検索結果をさらに `StaticText` に結び付け直す `label` 取得がXCTest内部で再試行し、20秒の待機が期限切れになった。iOS 27での画面外の候補探索とは別の段階。両ケースとも後続の採用と再起動までは未到達。
+- N173/N183のスコープ規則と、既存 `requireReview` の20秒境界を照合した。状態を読むだけの確認・プレビュー待機を共通化し、同じsnapshot上の `manual-observation` 直下の実状態を型・ID・一意性とともに読む。重複、別の画面の状態、型違い、遷移途中を架空境界で検査する。20秒上限、確認画面の本文・比較・採用不可の検査、採用を求めるプレビューの再照合完了条件、実接触と保存の検査を維持する。
+
 ## #205 iOS 27の単項目訂正限定ジョブが失敗（2026-11-27）
 
 - `1bdb577e2779620aa76cccb61b420ef22dd53e27`、[限定45983942933・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/attempts/1) の [iOS 27ジョブ140454629266](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/job/140454629266)、要求iOS 27.0・SDK27.2。`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。11:02:29 UTCにfailure終端。失敗段階・原因はログ照合前で未確定。iOS 26ジョブは継続する。
@@ -31,6 +37,7 @@
 - `8d131dd` の作業差分、Swift 6.1.2／SQLite 3.53.4／Linux。11:42:47 UTC `testUnchangedPipelineCommitsOnlyAcquisitionMetadataOnTheLiveDatabase` で作業領域の変更種別がnilとなり、保存済み解析の行を読み出す従来経路を通過した。直接の確認日時保存とロールバックは成功。68件中1ケースでアサーション2件が失敗。
 - `PipelineSnapshot.open` は元の保存情報を作業領域へ写すため `persist` を呼ぶ。この初期化が解析の書込と同じフラグを立てていた。作業領域に元のsnapshotを確定した境界で変更追跡を始め、その後の解析・取得を区別する。フラグは通常保存や解析変更で初期化しない。
 - 修正後の同じ68件は失敗0。作業領域を経由した場合も実SQLiteの文を確認し、変更のない解析や授業行を読み出さず、原本・前回解析・並び順・generation検査を保つことを確認した。
+- 比較計測専用の一時テストは12:17 UTCの初回コンパイルで、既存レコードの `lastCheckedAt: Date?` を直接加算したため停止した。比較前の件数・時刻は未計測。既知の架空初期状態でも値を明示的に検証してから加算し、計測コードを製品差分から外す。
 
 ## #192・#193 統合候補の架空Provider境界4件がコンパイルできない（2026-11-27）
 

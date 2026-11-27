@@ -201,9 +201,13 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('.overlay(alignment: .topLeading) {\n                if SimulatorManualFixture.enabled',changed)
         self.assertIn('.accessibilityElement(children:.contain)\n                    .accessibilityIdentifier("manual-observation")\n                    .allowsHitTesting(false)',changed)
         checks=manual_check_source()
+        coordinator=checks.split('    private func coordinatorState(',1)[1].split('    func requireReview(',1)[0]
+        self.assertEqual(coordinator.count('app.snapshot()'),1)
+        self.assertIn('$0.elementType == .other && $0.identifier == "manual-observation"',coordinator)
+        self.assertIn('$0.elementType == .staticText && $0.identifier == "manual-coordinator-state"',coordinator)
+        self.assertNotIn('allElementsBoundByAccessibilityElement',coordinator)
+        self.assertEqual(checks.count('self.coordinatorState(ambiguous:'),2)
         scoped='.otherElements["manual-observation"].staticTexts'
-        self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-coordinator-state")'),1)
-        self.assertEqual(checks.count('self.observation.staticTexts.matching(identifier:"manual-coordinator-state")'),1)
         self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-input-state")'),1)
         self.assertNotIn('app.staticTexts["manual-input-state"]',checks)
         state=next(line for line in changed.splitlines() if 'Text("preview=' in line)
