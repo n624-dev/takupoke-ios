@@ -17,6 +17,7 @@ struct RecoveryManualReview: Identifiable {
 @MainActor
 final class PDFRecoveryCoordinator: ObservableObject {
     @Published private(set) var running = false
+    @Published private(set) var previewNeedsRevalidation = false
     @Published private(set) var status = ""
     @Published var preview: RecoveryPreview? {
         didSet {
@@ -244,7 +245,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     /// Explicit OCR-body selection from an already validated preview only.
     /// The default parser, its failure eligibility and OCR acquisition are untouched.
     func selectManualCorrection(_ target:RecoveryManualTarget) {
-        guard LocalAIFeaturePolicy.enabled, !running, let candidate = preview,
+        guard LocalAIFeaturePolicy.enabled, !running, !previewNeedsRevalidation, let candidate = preview,
               manualCorrectionTargets.contains(target), source != nil else { return }
         let selected = Set((candidate.result.humanCorrections ?? []).map(\.target)).union([target])
         guard selected.count <= RecoveryManualAssistance.maximumFields else {
@@ -325,7 +326,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     func suspendForInactivity() {
         guard hasManualWork else { cancel(); return }
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil
-        operation = UUID(); running = false
+        operation = UUID(); previewNeedsRevalidation = preview != nil; running = false
         if preview != nil {
             status = "採用前に元のPDFと資料全体の内容を確認してください。"
         } else if manualReview != nil {
@@ -337,7 +338,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
 
     func resumeAfterInactivity() {
         invalidateManualIfSourceChanged()
-        guard hasManualWork, let candidate = preview, !running else { return }
+        guard previewNeedsRevalidation, hasManualWork, let candidate = preview, !running else { return }
         let operation = UUID()
         self.operation = operation
         let control = AcquisitionControl()
@@ -357,6 +358,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 try await CancellationLinkedTask.value(of: worker)
                 try check(operation)
                 guard preview?.id == candidate.id else { throw CancellationError() }
+                previewNeedsRevalidation = false
                 running = false
                 preparationControl = nil
                 status = "採用前に元のPDFと資料全体の内容を確認してください。"
@@ -493,7 +495,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func adopt() {
-        guard LocalAIFeaturePolicy.enabled, !running, let preview else { return }
+        guard LocalAIFeaturePolicy.enabled, !running, !previewNeedsRevalidation, let preview else { return }
         running = true; failure = nil; status = "確認済みの結果を保存しています⋯"
         let operation = self.operation
         task = Task { @MainActor in
@@ -518,6 +520,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     func cancel() {
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
+        previewNeedsRevalidation = false
         previewRasters = [:]; manualInitialValues = [:]
         preview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
         status = "復旧を開始してください。"; failure = nil

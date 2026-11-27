@@ -1,3 +1,10 @@
+## #205 iOS 27の単項目訂正限定ジョブが失敗（2026-11-27）
+
+- `1bdb577e2779620aa76cccb61b420ef22dd53e27`、[限定45983942933・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/attempts/1) の [iOS 27ジョブ140454629266](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/job/140454629266)、要求iOS 27.0・SDK27.2。`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。11:02:29 UTCにfailure終端。失敗段階・原因はログ照合前で未確定。iOS 26ジョブは継続する。
+- 実行ログでは同一プロセスで編集・確認・プレビューの各背景復帰まで進んだ。採用ボタンを待つため今回追加した `visible` 呼出しがIDとラベルの両方を省略し、空IDの照会で16回を費やした（`Navigation.swift:261`、613.363秒、終了65、XCTest失敗画像あり）。採用と再起動は未到達。復帰後にプレビュー見出しと訂正1件の表示を確認してから探索に失敗した。
+- `knownID|Navigation.swift:261` でN54・N85の実コードを照合。背景復帰後のプレビュー確認は既存20秒内に再照合の終了も待ち、採用時点の実ボタンは通常と同じラベル指定の有界探索で一意性・表示枠・有効・操作可能を検査する。実採用と再起動後の保存検証を維持する。再照合中の採用拒否と変更原本の拒否は独立したLinux回帰で確認する。
+- 実行前レビューで、前景通知の直前も `running=false` になり得る点を確認した。背景時に専用の再照合待ち状態を設定し、原本再読取・処理ID・同じプレビューの照合が通った時だけ解除する。画面のボタンとコーディネーターの採用・追加訂正の両方がこの状態を検査する。回帰は前景通知前・再照合中・再照合完了後の状態を区別する。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。

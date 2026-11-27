@@ -116,13 +116,15 @@ extension ManualAssistanceChecks {
         controls.buttons["等倍"].tap();XCTAssertEqual(uniqueLabel("manual-source-scale",in:controls),scale)
         app.navigationBars["原画像の確認"].buttons["確認を終える"].tap()
     }
-    func requirePreview() {
+    func requirePreview(readyToAdopt: Bool = false) {
         var ambiguous=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             let current=self.observation.staticTexts.matching(identifier:"manual-coordinator-state")
                 .allElementsBoundByAccessibilityElement
             if current.count>1 { ambiguous=true;return true }
-            return current.count==1 && current[0].label.contains("preview=true")
+            guard let state = current.first?.label else { return false }
+            return state.contains("preview=true") && (!readyToAdopt ||
+                (state.contains("running=false") && state.contains("revalidation=false")))
         },object:app)
         let outcome=XCTWaiter.wait(for:[ready],timeout:20)
         print("TAKUPOKE-MANUAL-COORDINATOR wait-outcome=\(outcome.rawValue)")

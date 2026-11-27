@@ -19,6 +19,9 @@ extension ManualAssistanceChecks {
         return frame
     }
     func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧",observeButton:((ManualButtonObservation)->Void)?=nil)->XCUIElement {
+        guard !knownID.isEmpty || alternatives != nil || buttonLabel != nil else {
+            XCTFail("A manual navigation target needs an ID, a button label or a candidate query"); return e
+        }
         let started = ProcessInfo.processInfo.systemUptime
         var attempts = 0
         defer {

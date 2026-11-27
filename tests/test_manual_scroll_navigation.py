@@ -218,6 +218,8 @@ final class GeometryControls:XCTestCase {
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):
         source = manual_check_source()
         visible = source.split("func visible(", 1)[1].split("func tap(", 1)[0]
+        self.assertLess(visible.index("guard !knownID.isEmpty || alternatives != nil || buttonLabel != nil"),
+                        visible.index("for attempt in 0..<16"))
         self.assertIn("list.cells.containing(.any,identifier:targetID)", visible)
         self.assertIn("owners.count==1", visible)
         self.assertIn("for attempt in 0..<16", visible)

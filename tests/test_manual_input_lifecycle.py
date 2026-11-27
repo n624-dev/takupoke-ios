@@ -153,6 +153,7 @@ struct Preview {
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
  var operation=UUID(), running=true, status="", failure:String?="failure"
+ var previewNeedsRevalidation = false
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
  var previewRasters=[1:"original-raster"],manualInitialValues=["field":"prior-transcription"]
@@ -197,6 +198,7 @@ corrected.setFileMonitoring(false)
 corrected.setFileMonitoring(false)
 corrected.recovery.invalidateManualIfSourceChanged()
 precondition(previewWorker.cancelled && !corrected.recovery.running)
+precondition(corrected.recovery.previewNeedsRevalidation)
 precondition(corrected.recovery.preview?.result.humanCorrections == ["fictional-corrected-value"])
 precondition(corrected.recovery.source == "source" && corrected.recovery.previewRasters[1] == "original-raster")
 corrected.recovery.selectedSourceIsCurrent = false
@@ -251,6 +253,7 @@ enum RecoveryConversion {
     var task: Task<Void, Never>?
     var preparationControl: AcquisitionControl?
     var operation = UUID(), running = false, status = "", awaitingModel = false
+    var previewNeedsRevalidation = false
     var aiTicket = 1, selectedSourceIsCurrent = true
     var preview: Preview?
     var source: Source?
@@ -274,10 +277,14 @@ enum RecoveryConversion {
         let unchanged = Coordinator(source: source)
         let previewID = unchanged.preview?.id
         unchanged.suspendForInactivity()
+        precondition(unchanged.previewNeedsRevalidation && !unchanged.running)
         unchanged.resumeAfterInactivity()
-        precondition(unchanged.running)
+        precondition(unchanged.running && unchanged.previewNeedsRevalidation)
         await unchanged.task?.value
-        precondition(!unchanged.running && unchanged.failure == nil && unchanged.preview?.id == previewID)
+        precondition(!unchanged.running && !unchanged.previewNeedsRevalidation && unchanged.failure == nil && unchanged.preview?.id == previewID)
+        let completedOperation = unchanged.operation
+        unchanged.resumeAfterInactivity()
+        precondition(unchanged.operation == completedOperation && !unchanged.running)
 
         let changed = Coordinator(source: source)
         changed.suspendForInactivity()
