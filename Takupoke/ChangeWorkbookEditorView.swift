@@ -243,10 +243,12 @@ struct ChangeWorkbookEditorView: View {
 
     private func problemLabel(_ issue: ChangeParseError) -> String {
         let column = issue.column.flatMap { view.table.headers.indices.contains($0) ? view.table.headers[$0] : nil }
+        let competing = issue.competingColumn.flatMap { view.table.headers.indices.contains($0) ? view.table.headers[$0] : nil }
+        let headings = [column, competing].compactMap { $0 }.joined(separator: "・")
         var problem = issue
         problem.row = nil
         let detail = problem.localizedDescription
-        return column.map { $0 + "　" + detail } ?? detail
+        return headings.isEmpty ? detail : headings + "　" + detail
     }
 
     private func groupTitle(_ group: ChangeIssueGroup) -> String {

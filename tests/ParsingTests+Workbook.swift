@@ -82,7 +82,7 @@ extension ParsingTests {
             for grade in ["1", "01", "001", "００１", "1.0", "01.0", "０１．０"] {
                 let rows = [["学 年", "学科・クラス", "月日", "時限", "変更後"],
                             [grade, "CN", "2032/7/10", "1", "架空科目A"],
-                            ["1", "全", "2032/7/11", "2", "架空科目B"]]
+                            ["1", "CN", "2032/7/11", "2", "架空科目B"]]
                 let url = root.appendingPathComponent("fictional-grade-" + UUID().uuidString + ".xlsx")
                 try write(workbook(rows), to: url)
                 let changes = try ChangeNormalizer.parse(XLSXReader.read(url), defaultYear: 2032)
@@ -90,6 +90,62 @@ extension ParsingTests {
             }
             XCTAssertEqual(try ChangeNormalizer.years("01～03"), ["1", "2", "3"])
             XCTAssertEqual(try ChangeNormalizer.years("03～01"), ["3", "2", "1"])
+        }
+    }
+
+    func testAllClassesRequireAnExplicitAnswerRegardlessOfOtherChangeRows() throws {
+        try temporary { root in
+            let header = ["学 年", "学科・クラス", "月日", "時限", "変更後"]
+            let all = ["3", "全", "2032/7/11", "2", "架空科目A"]
+            let one = ["3", "CN", "2032/7/10", "1", "架空科目B"]
+            let other = ["3", "ES", "2032/7/12", "3", "架空科目C"]
+            for (index, rows) in [[header, all], [header, all, one], [header, all, one, other]].enumerated() {
+                let url = root.appendingPathComponent("fictional-all-\(index).xlsx")
+                try write(workbook(rows), to: url)
+                assertCode(.unknownAll) {
+                    _ = try ChangeNormalizer.parse(XLSXReader.read(url, defaultYear: 2032), defaultYear: 2032)
+                }
+                let book = try XLSXReader.editableWorkbook(url)
+                let before = try book.table.review(edits: [:], defaultYear: 2032)
+                XCTAssertEqual(before[2]?.map(\.code), [.unknownAll])
+                let edits = [2: ChangeRowEdit(values: [1: "CN,ES"])]
+                let accepted = try book.table.records(edits: edits, defaultYear: 2032)
+                XCTAssertEqual(accepted.filter { $0.change_date == "2032-07-11" }.map(\.class_name), ["3_CN", "3_ES"])
+            }
+        }
+    }
+
+    func testEquivalentColumnsUseWrittenValuesAndRequireReviewOnlyForDisagreement() throws {
+        try temporary { root in
+            let required = ["学 年", "学科・クラス", "月日"]
+            let date = ["3", "IT", "2032/7/10"]
+            for (number, pair) in [["", "3限"], ["3", "３限"], ["2限", "3限"]].enumerated() {
+                for reverse in [false, true] {
+                    let periodNames = reverse ? ["校時", "時限"] : ["時限", "校時"]
+                    let values = reverse ? Array(pair.reversed()) : pair
+                    let headers = required + periodNames + ["変更後", "変更後科目"]
+                    let url = root.appendingPathComponent("fictional-alias-\(number)-\(reverse).xlsx")
+                    try write(workbook([headers, date + values + ["", "架空科目"]]), to: url)
+                    let book = try XLSXReader.editableWorkbook(url)
+                    let review = try book.table.review(edits: [:], defaultYear: 2032)
+                    if number == 2 {
+                        let issue = try XCTUnwrap(review[2]?.first)
+                        XCTAssertEqual(issue.code, .conflictingColumns)
+                        XCTAssertEqual(Set([issue.column, issue.competingColumn].compactMap { $0 }), Set([3, 4]))
+                        assertCode(.conflictingColumns) {
+                            _ = try ChangeNormalizer.parse(XLSXReader.read(url, defaultYear: 2032), defaultYear: 2032)
+                        }
+                        let unwanted = reverse ? 4 : 3
+                        let rows = try book.table.records(edits: [2: .init(values: [unwanted: ""])], defaultYear: 2032)
+                        XCTAssertEqual(rows.first?.period, "3")
+                    } else {
+                        XCTAssertTrue(review.isEmpty)
+                        let loaded = try ChangeNormalizer.parse(XLSXReader.read(url, defaultYear: 2032), defaultYear: 2032)
+                        XCTAssertEqual(loaded.first?.period, "3")
+                        XCTAssertEqual(loaded.first?.after_subject, "架空科目")
+                    }
+                }
+            }
         }
     }
 

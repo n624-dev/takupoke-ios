@@ -72,7 +72,9 @@ struct ScheduleChange: Codable, Equatable {
 
     /// The affected periods of a single saved change. The display groups
     /// adjacent periods after applying the change to each individual slot.
-    var detailPeriods: [Int]? {
+    var detailPeriods: [Int]? { Self.periods(in: period) }
+
+    static func periods(in period: String) -> [Int]? {
         let value = period.precomposedStringWithCompatibilityMapping
             .replacingOccurrences(of: "〜", with: "~")
             .replacingOccurrences(of: "・", with: ",")
@@ -111,7 +113,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 14
+    static let parserVersion = 15
     var sourceModifiedAt: Date? = nil
     var personalEdit: Bool? = nil
     var personalSourceIdentity: String? = nil
@@ -272,13 +274,14 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
         case date, defaultYear, year, classes, unknownAll, empty, cancelled, storage, staleConfirmation
-        case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType
+        case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType, conflictingColumns
     }
     var code: Code
     var row: Int? = nil
     var printedWeekday: String? = nil
     var calculatedWeekday: String? = nil
     var column: Int? = nil
+    var competingColumn: Int? = nil
     var canCorrectWeekday: Bool { code == .weekdayMismatch && printedWeekday.map(ChangeNormalizer.knownWeekday) == true && calculatedWeekday != nil }
     var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch || code == .weekdayOnly }
     var errorDescription: String? {
@@ -301,7 +304,8 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .defaultYear: detail = "西暦1900〜9998の学校年度を入力してください。"
         case .year: detail = "学年の指定を読み取れません。"
         case .classes: detail = "クラスの指定を読み取れません。"
-        case .unknownAll: detail = "「全」の対象クラスをファイル内の記載から確定できません。"
+        case .unknownAll: detail = "「全」の対象クラスを確認し、この行に入力してください。"
+        case .conflictingColumns: detail = "同じ項目の列に異なる値があります。元の記載を確認し、使う値を入力してください。"
         case .empty: detail = "時間割変更の行がありません。空の結果では前回の解析結果を置き換えません。"
         case .cancelled: detail = "解析を中止しました。"
         case .staleConfirmation: detail = "資料・補完年度・確認内容が変わりました。現在の資料を解析して、内容を確認し直してください。"

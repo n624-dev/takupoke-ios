@@ -1,7 +1,7 @@
 # 時間割変更・曜日・行除外・原文保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`8c83db5e43510410995aeffea1501633a0912f79b802e8121648f52728977584`
+`6e4e70f39890e0ce1ab422fc05be3e276415918743cd0d32c8ba040a897b9f3a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -109,6 +109,8 @@ bash tools/test-parsing.sh
 - `testFormulaRangeCannotSupplyUnverifiedChangeCells`
 - `testFormulaRangeStartingBeforeHeaderStillMarksAffectedTableCells`
 - `testLeadingZeroGradesFromWorkbookProduceSelectableCanonicalClasses`
+- `testAllClassesRequireAnExplicitAnswerRegardlessOfOtherChangeRows`
+- `testEquivalentColumnsUseWrittenValuesAndRequireReviewOnlyForDisagreement`
 - `testOnlyExplicitWholeWorkbookExclusionCanBeSavedAsZeroChanges`
 - `testTypedDateCellsUseTheirWrittenCalendarDateAndBomIsAccepted`
 - `testUnsupportedAndMalformedWorkbooks`
