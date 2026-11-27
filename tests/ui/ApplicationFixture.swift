@@ -758,25 +758,12 @@ final class SimulatorRetentionObservation:ObservableObject {
 
 struct SimulatorRetentionProofView:View {
     @ObservedObject private var observation=SimulatorRetentionObservation.shared
-    @State private var notificationServiceReady = false
     var body:some View {
         VStack {
             Text(observation.sample.proof).accessibilityIdentifier("fixture-retention-proof")
             Text(observation.sample.fingerprints).accessibilityIdentifier("fixture-retention-bytes")
             Text(String(observation.sample.closes)).accessibilityIdentifier("fixture-retention-closes")
-            Text(notificationServiceReady ? "通知サービス応答確認済み" : "通知サービス応答待ち")
-                .accessibilityIdentifier("fixture-retention-notice-service")
         }.font(.system(size:1)).allowsHitTesting(false)
-        .task {
-            let center = UNUserNotificationCenter.current()
-            FixtureCITrace.mark("retention-readiness-start")
-            async let pending = center.pendingNotificationRequests()
-            async let delivered = center.deliveredNotifications()
-            _ = await (pending,delivered)
-            guard !Task.isCancelled else { return }
-            notificationServiceReady = true
-            FixtureCITrace.mark("retention-readiness-complete")
-        }
     }
 }
 

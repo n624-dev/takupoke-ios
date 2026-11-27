@@ -1340,10 +1340,9 @@ METHOD
         self.assertEqual(generated, notifications)
         fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         readiness = fixture.split("struct SimulatorRetentionProofView:", 1)[1].split("private final class FixtureYearInputObservation", 1)[0]
-        self.assertIn("center.pendingNotificationRequests()", readiness)
-        self.assertIn("center.deliveredNotifications()", readiness)
-        self.assertLess(readiness.index("await (pending,delivered)"), readiness.index("notificationServiceReady = true"))
-        self.assertNotRegex(readiness, r"requestAuthorization|removePending|removeDelivered|Task\.sleep")
+        self.assertIn('accessibilityIdentifier("fixture-retention-proof")', readiness)
+        self.assertIn('accessibilityIdentifier("fixture-retention-bytes")', readiness)
+        self.assertNotRegex(readiness, r"UNUserNotificationCenter|pendingNotificationRequests|deliveredNotifications|requestAuthorization|removePending|removeDelivered|Task\.sleep")
         launcher = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
         setup = launcher.split('if name.contains("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals")', 1)[1].split('override func tearDown', 1)[0]
         self.assertLess(setup.index('launchReady(waitForReadyMarker: false)'), setup.index('launchReady()'))
