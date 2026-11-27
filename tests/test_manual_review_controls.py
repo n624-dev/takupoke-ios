@@ -10,6 +10,7 @@ class ManualReviewControlTests(unittest.TestCase):
         source=(ROOT/'tests/ui/ManualAssistanceChecks+Review.swift').read_text()
         selector=source.split('    private func coordinatorState(',1)[1].split('    func requireReview(',1)[0]
         body='        var observedState='+source.split('        var observedState=',1)[1].split('        XCTAssertFalse(ambiguousState,',1)[0]
+        preview=source.split('    func requirePreview(revalidatedAfter: Int? = nil) {',1)[1].split('        print("TAKUPOKE-MANUAL-COORDINATOR',1)[0]
         harness='''import Foundation
 enum ElementType { case other, staticText, button }
 struct Node {
@@ -48,6 +49,11 @@ BODY
         precondition(app.snapshots==1)
         return (outcome == .completed && !ambiguousState,observedState)
     }
+    func preview(revalidatedAfter:Int?) -> Bool {
+PREVIEW
+        precondition(app.snapshots==1)
+        return outcome == .completed && !ambiguous
+    }
 }
 let valid="review=true;preview=false;running=false"
 func state(_ label:String,_ type:ElementType = .staticText)->Node {
@@ -66,7 +72,15 @@ for nodes in [[], [unrelated], [owner([state("review=false;preview=false")])],
               [owner([state(valid),state(valid)])], [correct,correct]] {
     precondition(!Checks(nodes).run().0)
 }
-'''.replace('SELECTOR','    private func coordinatorState('+selector).replace('BODY',body)
+func preview(_ fields:String) -> Checks { Checks([owner([state("preview=true;"+fields)])]) }
+precondition(preview("running=false;revalidation=false;revalidations=4").preview(revalidatedAfter:nil))
+precondition(preview("running=false;revalidation=false;revalidations=5").preview(revalidatedAfter:4))
+for fields in ["running=false;revalidation=false;revalidations=4", "running=false;revalidation=false;revalidations=6",
+               "running=true;revalidation=false;revalidations=5", "running=false;revalidation=true;revalidations=5",
+               "running=false;revalidation=false"] {
+    precondition(!preview(fields).preview(revalidatedAfter:4))
+}
+'''.replace('SELECTOR','    private func coordinatorState('+selector).replace('BODY',body).replace('PREVIEW',preview)
         with tempfile.TemporaryDirectory(prefix='manual-review-state-') as scratch:
             path=Path(scratch);(path/'main.swift').write_text(harness)
             subprocess.run([compiler,'-swift-version','5','-module-cache-path',str(path/'modules'),

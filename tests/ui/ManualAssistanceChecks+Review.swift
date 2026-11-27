@@ -123,12 +123,26 @@ extension ManualAssistanceChecks {
         controls.buttons["等倍"].tap();XCTAssertEqual(uniqueLabel("manual-source-scale",in:controls),scale)
         app.navigationBars["原画像の確認"].buttons["確認を終える"].tap()
     }
-    func requirePreview(readyToAdopt: Bool = false) {
+    func observedPreviewRevalidations() -> Int? {
+        var ambiguous = false
+        let prefix = "revalidations="
+        let values = coordinatorState(ambiguous: &ambiguous)?.split(separator: ";").filter { $0.hasPrefix(prefix) }
+        guard !ambiguous, let values, values.count == 1, let value = values.first,
+              let count = Int(value.dropFirst(prefix.count)), count >= 0 else {
+            XCTFail("Expected one preview revalidation counter for the current process"); return nil
+        }
+        return count
+    }
+
+    func requirePreview(revalidatedAfter: Int? = nil) {
         var ambiguous=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             guard let state=self.coordinatorState(ambiguous:&ambiguous) else { return ambiguous }
-            return state.contains("preview=true") && (!readyToAdopt ||
-                (state.contains("running=false") && state.contains("revalidation=false")))
+            let fields = state.split(separator: ";")
+            guard fields.contains("preview=true") else { return false }
+            guard let before = revalidatedAfter else { return true }
+            return fields.contains("running=false") && fields.contains("revalidation=false") &&
+                fields.contains { $0 == "revalidations=\(before + 1)" }
         },object:app)
         let outcome=XCTWaiter.wait(for:[ready],timeout:20)
         print("TAKUPOKE-MANUAL-COORDINATOR wait-outcome=\(outcome.rawValue)")

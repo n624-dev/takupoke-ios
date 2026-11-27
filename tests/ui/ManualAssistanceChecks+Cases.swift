@@ -19,6 +19,7 @@ extension ManualAssistanceChecks {
         measuredStep("reedit-and-review") { reeditAndReviewCorrection(key,input,value) }
         openReviewPreview(); requirePreview()
         guard measuredStep("preview-background", {
+            guard let revalidations = observedPreviewRevalidations() else { return false }
             guard enterBackground() else { return false }
             app.activate()
             guard app.wait(for: .runningForeground, timeout: 10) else {
@@ -26,7 +27,7 @@ extension ManualAssistanceChecks {
                 return false
             }
             XCTAssertEqual(uniqueLabel("manual-process-launch", in: observation), processBefore)
-            requirePreview(readyToAdopt: true)
+            requirePreview(revalidatedAfter: revalidations)
             XCTAssertTrue(recoveryList.staticTexts["原本を確認して入力した1項目を含みます。"].exists)
             return true
         }) else { return }

@@ -152,8 +152,9 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('acknowledged == Set(draft.fields.map',changed)
         self.assertIn('selectedSourceIsCurrent',changed)
         self.assertIn('ApplicationData.shared.materials.adoptRecovery(preview)',changed)
-        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),4)
-        self.assertEqual(changed.count('            cancel(); failure = nil; running = true'),1)
+        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),5)
+        self.assertEqual(changed.count('            cancel(); running = true'),1)
+        self.assertIn('func cancel() {\n        manualQAInputRejected = false',changed)
         submit=changed.split('func submitManual(',1)[1].split('func selectManualCorrection(',1)[0]
         self.assertLess(submit.index('manual-submit-rejected'),submit.index('manual-submit-accepted'))
         self.assertLess(submit.index('manual-submit-accepted'),submit.index('running = true'))
@@ -214,6 +215,22 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('review=\\(coordinator.manualReview != nil)',state)
         self.assertIn('preview=\\(coordinator.preview != nil)',state)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-coordinator-state")'),1)
+
+    def test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks(self):
+        source = (ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
+        generated = module.coordinator(source)
+        self.assertNotIn('manualQAPreviewRevalidations', source)
+        self.assertIn('running = false; manualQAInputRejected = true', generated)
+        self.assertNotIn('running = false; failure = "架空資料', generated)
+        resume = generated.split('    func resumeAfterInactivity()', 1)[1].split('    func invalidateManualIfSourceChanged()', 1)[0]
+        before = 'guard preview?.id == candidate.id else { throw CancellationError() }'
+        self.assertLess(resume.index('try RecoveryConversion.verifyFile('), resume.index(before))
+        self.assertLess(resume.index(before), resume.index('manualQAPreviewRevalidations += 1'))
+        self.assertEqual(generated.count('manualQAPreviewRevalidations += 1'), 1)
+        checks = manual_check_source()
+        case = checks.split('measuredStep("preview-background"', 1)[1].split('measuredStep("save-and-relaunch"', 1)[0]
+        self.assertLess(case.index('observedPreviewRevalidations()'), case.index('enterBackground()'))
+        self.assertIn('requirePreview(revalidatedAfter: revalidations)', case)
 
     def test_manual_submit_sends_one_contact_to_the_observed_button(self):
         source = manual_check_source()
