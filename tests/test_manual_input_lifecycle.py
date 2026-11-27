@@ -142,14 +142,25 @@ final class Work { var cancelled=false; func cancel() { cancelled=true } }
 final class Monitor { var enabled=false; func setFileMonitoring(_ value:Bool) { enabled=value }; func setSourceChecksActive(_ value:Bool) { enabled=value } }
 final class Clock { var running=true; func start() { running=true }; func pause() { running=false } }
 final class LocalRecoveryModelManager { static let shared=LocalRecoveryModelManager(); var cancelled=false; func cancel() { cancelled=true } }
+enum LocalAIFeaturePolicy {
+ static var valid = true
+ static func check(_ ticket: Int) throws { if !valid { throw CancellationError() } }
+}
+struct Preview {
+ struct Result { let humanCorrections: [String]? }
+ let result: Result
+}
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
  var operation=UUID(), running=true, status="", failure:String?="failure"
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
  var previewRasters=[1:"original-raster"],manualInitialValues=["field":"prior-transcription"]
- var preview:String?="preview", pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", awaitingModel=true
-''' + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func cancel()") + '''
+ var preview:Preview? = Preview(result: .init(humanCorrections: nil))
+ var pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", awaitingModel=true
+ var selectedSourceIsCurrent = true
+ var aiTicket = 1
+''' + block(coordinator, "    private var hasManualWork: Bool") + "\n" + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func invalidateManualIfSourceChanged()") + "\n" + block(coordinator, "    func cancel()") + '''
 }
 final class Application {
  let recovery=Coordinator(), materials=Monitor(), specialSchedules=Monitor(), schoolEvents=Monitor(); var ready=true
@@ -177,6 +188,24 @@ precondition(app.recovery.previewRasters.isEmpty && app.recovery.manualInitialVa
 let other=Application(); other.recovery.cancel() // Retention/user cancellation still destroys private draft.
 precondition(other.recovery.manualDraft == nil && other.recovery.manualImages.isEmpty && other.recovery.manualReview == nil && other.recovery.manualContextImages.isEmpty)
 precondition(other.recovery.previewRasters.isEmpty && other.recovery.manualInitialValues.isEmpty)
+let corrected=Application()
+corrected.recovery.manualDraft=nil
+corrected.recovery.manualReview=nil
+corrected.recovery.preview = Preview(result: .init(humanCorrections: ["fictional-corrected-value"]))
+let previewWorker = corrected.recovery.task!
+corrected.setFileMonitoring(false)
+corrected.setFileMonitoring(false)
+corrected.recovery.invalidateManualIfSourceChanged()
+precondition(previewWorker.cancelled && !corrected.recovery.running)
+precondition(corrected.recovery.preview?.result.humanCorrections == ["fictional-corrected-value"])
+precondition(corrected.recovery.source == "source" && corrected.recovery.previewRasters[1] == "original-raster")
+corrected.recovery.selectedSourceIsCurrent = false
+corrected.recovery.invalidateManualIfSourceChanged()
+precondition(corrected.recovery.preview == nil && corrected.recovery.source == nil)
+let disabled = Application()
+LocalAIFeaturePolicy.valid = false
+disabled.recovery.invalidateManualIfSourceChanged()
+precondition(disabled.recovery.manualDraft == nil && disabled.recovery.source == nil)
 print("Verified actual background preservation and heavy-work/cancel transitions.")
 '''
         # All scratch belongs to this invocation, including its generated executable.
@@ -186,6 +215,87 @@ print("Verified actual background preservation and heavy-work/cancel transitions
             subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(path / "modules"),
                             str(path / "main.swift"), "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
+
+    def test_actual_preview_resume_checks_in_place_file_changes_before_adoption(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift compiler unavailable; native CI compiles the same methods")
+        coordinator = (ROOT / "Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
+        linked = (ROOT / "Takupoke/CancellationLinkedTask.swift").read_text(encoding="utf-8")
+        methods = "\n".join(block(coordinator, start) for start in (
+            "    private var hasManualWork:", "    func suspendForInactivity()", "    func resumeAfterInactivity()",
+            "    func invalidateManualIfSourceChanged()", "    func cancel()",
+        ))
+        source = linked + r'''
+struct Source: Sendable { let url: URL; let bytes: Data }
+struct Preview: Sendable {
+    struct Result: Sendable { let humanCorrections: [String]? }
+    let source: Source
+    let result = Result(humanCorrections: ["fictional-correction"])
+    let id = UUID()
+}
+enum LocalAIFeaturePolicy { static func check(_ ticket: Int) throws {} }
+final class AcquisitionControl: Sendable {
+    func check() throws {}
+    func cancel() {}
+}
+enum RecoveryConversion {
+    enum Failure: Error { case changed }
+    static func verifyFile(_ source: Source, check: () throws -> Void) throws {
+        try check()
+        guard try Data(contentsOf: source.url) == source.bytes else { throw Failure.changed }
+        try check()
+    }
+}
+@MainActor final class Coordinator {
+    var task: Task<Void, Never>?
+    var preparationControl: AcquisitionControl?
+    var operation = UUID(), running = false, status = "", awaitingModel = false
+    var aiTicket = 1, selectedSourceIsCurrent = true
+    var preview: Preview?
+    var source: Source?
+    var manualDraft: String?, manualReview: String?, pendingDocument: String?, pendingPages: String?, failure: String?
+    var previewRasters = [1: "fictional-raster"]
+    var manualImages = [String: String](), manualContextImages = [String: String](), manualInitialValues = [String: String]()
+    init(source: Source) { self.source = source; preview = Preview(source: source) }
+    func check(_ id: UUID) throws {
+        try Task.checkCancellation()
+        guard operation == id, selectedSourceIsCurrent else { throw CancellationError() }
+    }
+''' + methods + r'''
+}
+@main struct Probe {
+    @MainActor static func main() async throws {
+        let url = URL(fileURLWithPath: CommandLine.arguments[1])
+        let bytes = Data("fictional-original".utf8)
+        try bytes.write(to: url)
+        let source = Source(url: url, bytes: bytes)
+
+        let unchanged = Coordinator(source: source)
+        let previewID = unchanged.preview?.id
+        unchanged.suspendForInactivity()
+        unchanged.resumeAfterInactivity()
+        precondition(unchanged.running)
+        await unchanged.task?.value
+        precondition(!unchanged.running && unchanged.failure == nil && unchanged.preview?.id == previewID)
+
+        let changed = Coordinator(source: source)
+        changed.suspendForInactivity()
+        try Data("fictional-modified".utf8).write(to: url, options: .atomic)
+        precondition(changed.selectedSourceIsCurrent)
+        changed.resumeAfterInactivity()
+        await changed.task?.value
+        precondition(changed.selectedSourceIsCurrent && !changed.running)
+        precondition(changed.preview == nil && changed.source == nil && changed.failure != nil)
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="manual-preview-resume-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(source, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", "-module-cache-path", str(path / "modules"),
+                            str(path / "probe.swift"), "-o", str(path / "probe")], check=True, timeout=60)
+            subprocess.run([str(path / "probe"), str(path / "fictional.pdf")], check=True, timeout=15)
 
     def test_actual_field_callbacks_reject_replaced_missing_and_reviewed_drafts(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")

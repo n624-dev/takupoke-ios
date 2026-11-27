@@ -318,14 +318,63 @@ final class PDFRecoveryCoordinator: ObservableObject {
             }
         }
     }
+    private var hasManualWork: Bool {
+        manualDraft != nil || preview?.result.humanCorrections?.isEmpty == false
+    }
+
     func suspendForInactivity() {
-        guard manualDraft != nil else { cancel(); return }
+        guard hasManualWork else { cancel(); return }
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil
         operation = UUID(); running = false
-        status = "原本と照合して、確認が必要な項目を入力してください。"
+        if preview != nil {
+            status = "採用前に元のPDFと資料全体の内容を確認してください。"
+        } else if manualReview != nil {
+            status = "訂正箇所と前回からの変更を先に確認してください。"
+        } else {
+            status = "原本と照合して、確認が必要な項目を入力してください。"
+        }
     }
+
+    func resumeAfterInactivity() {
+        invalidateManualIfSourceChanged()
+        guard hasManualWork, let candidate = preview, !running else { return }
+        let operation = UUID()
+        self.operation = operation
+        let control = AcquisitionControl()
+        preparationControl = control
+        let ticket = aiTicket
+        running = true
+        status = "元のPDFを再確認しています⋯"
+        task = Task { @MainActor in
+            do {
+                let worker = Task.detached(priority: .userInitiated) {
+                    try RecoveryConversion.verifyFile(candidate.source, check: {
+                        try control.check()
+                        try Task.checkCancellation()
+                        try LocalAIFeaturePolicy.check(ticket)
+                    })
+                }
+                try await CancellationLinkedTask.value(of: worker)
+                try check(operation)
+                guard preview?.id == candidate.id else { throw CancellationError() }
+                running = false
+                preparationControl = nil
+                status = "採用前に元のPDFと資料全体の内容を確認してください。"
+            } catch is CancellationError {
+                guard self.operation == operation else { return }
+                invalidateManualIfSourceChanged()
+                if hasManualWork { suspendForInactivity() }
+            } catch {
+                guard self.operation == operation else { return }
+                cancel()
+                failure = "元のPDFを再確認できませんでした。前回の正常結果を保持しています。"
+            }
+        }
+    }
+
     func invalidateManualIfSourceChanged() {
-        guard manualDraft != nil, !selectedSourceIsCurrent else { return }
+        guard hasManualWork else { return }
+        guard !selectedSourceIsCurrent || (try? LocalAIFeaturePolicy.check(aiTicket)) == nil else { return }
         cancel()
         failure = "資料の選択や保存状態が変わりました。元のPDFから再試行してください。前回の正常結果を保持しています。"
     }
