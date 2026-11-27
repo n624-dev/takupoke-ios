@@ -37,9 +37,9 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [試験・返却PDF](test-catalog/special.md) | 80 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 121 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 227 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 132 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
+| [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 133 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
 | [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 36 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
-| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 204 | Apple iOS26/27。LinuxはPython契約検査のみ |
+| [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 205 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 29 | Apple iOS26/27 UI＋Nativeレイアウト |
 | [シミュレーター失敗時の画面記録](test-catalog/simulator-failure-screenshot.md) | 33 | macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査 |
 | [IPA・AltStore・公開ゲート・ビルド・一時領域](test-catalog/release.md) | 96 | Linux Python／Apple iPhone SDK。AltStore導入は実機限定 |

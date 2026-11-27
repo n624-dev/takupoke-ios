@@ -19,14 +19,8 @@ def once(text, marker, replacement):
 
 
 def coordinator(text):
-    failure = '    var failure: String? { failureReason?.message }'
-    text = once(text, failure, '''    @Published private(set) var manualQAInputRejected = false
-    @Published private(set) var manualQAPreviewRevalidations = 0
-    var failure: String? {
-        manualQAInputRejected ? "架空資料の補助入力を拒否しました。前回の正常結果を保持しています。" : failureReason?.message
-    }''')
-    cancel = "    func cancel() {"
-    text = once(text, cancel, cancel + "\n        manualQAInputRejected = false")
+    fixture_failure = '    @Published private var fixtureFailure: String?'
+    text = once(text, fixture_failure, fixture_failure + '\n    @Published private(set) var manualQAPreviewRevalidations = 0')
     verified = """                guard preview?.id == candidate.id else { throw CancellationError() }
                 previewNeedsRevalidation = false
                 running = false"""
@@ -57,7 +51,7 @@ def coordinator(text):
                 } catch {
                     SimulatorManualFixture.failed(error)
                     guard self.operation == fixtureOperation else { return }
-                    running = false; manualQAInputRejected = true
+                    running = false; fixtureFailure = "架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"
                 }
             }
             return

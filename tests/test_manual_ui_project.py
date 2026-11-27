@@ -5,15 +5,20 @@ from pathlib import Path
 import unittest
 import re
 import os
+import shutil
 import subprocess
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
+from app_test_project import instrument_recovery_fixture
 from ui_test_manifest import manual_check_source
 
 spec=importlib.util.spec_from_file_location("manual_ui_project",ROOT/"tools/manual_ui_project.py")
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+
+def generated_manual_coordinator(source):
+    return module.coordinator(instrument_recovery_fixture(source))
 
 class ManualUIProjectTests(unittest.TestCase):
     def test_missing_or_duplicate_anchor_fails_closed(self):
@@ -147,14 +152,14 @@ class ManualUIProjectTests(unittest.TestCase):
 
     def test_coordinator_preserves_actual_submit_adopt_and_source_guards(self):
         original=(ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
-        changed=module.coordinator(original)
+        changed=generated_manual_coordinator(original)
         self.assertIn('try RecoveryConversion.verifyFile(source',changed)
         self.assertIn('acknowledged == Set(draft.fields.map',changed)
         self.assertIn('selectedSourceIsCurrent',changed)
         self.assertIn('ApplicationData.shared.materials.adoptRecovery(preview)',changed)
         self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),5)
-        self.assertEqual(changed.count('            cancel(); running = true'),1)
-        self.assertIn('func cancel() {\n        manualQAInputRejected = false',changed)
+        self.assertEqual(changed.count('            cancel(); running = true'),2)
+        self.assertIn('func cancel() {\n        fixtureFailure = nil',changed)
         submit=changed.split('func submitManual(',1)[1].split('func selectManualCorrection(',1)[0]
         self.assertLess(submit.index('manual-submit-rejected'),submit.index('manual-submit-accepted'))
         self.assertLess(submit.index('manual-submit-accepted'),submit.index('running = true'))
@@ -218,10 +223,9 @@ class ManualUIProjectTests(unittest.TestCase):
 
     def test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks(self):
         source = (ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
-        generated = module.coordinator(source)
+        generated = generated_manual_coordinator(source)
         self.assertNotIn('manualQAPreviewRevalidations', source)
-        self.assertIn('running = false; manualQAInputRejected = true', generated)
-        self.assertNotIn('running = false; failure = "架空資料', generated)
+        self.assertIn('running = false; fixtureFailure = "架空資料', generated)
         resume = generated.split('    func resumeAfterInactivity()', 1)[1].split('    func invalidateManualIfSourceChanged()', 1)[0]
         before = 'guard preview?.id == candidate.id else { throw CancellationError() }'
         self.assertLess(resume.index('try RecoveryConversion.verifyFile('), resume.index(before))
@@ -231,6 +235,46 @@ class ManualUIProjectTests(unittest.TestCase):
         case = checks.split('measuredStep("preview-background"', 1)[1].split('measuredStep("save-and-relaunch"', 1)[0]
         self.assertLess(case.index('observedPreviewRevalidations()'), case.index('enterBackground()'))
         self.assertIn('requirePreview(revalidatedAfter: revalidations)', case)
+
+    def test_composed_recovery_fixtures_write_only_the_generated_failure_property(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify generated failure assignments")
+        original = (ROOT / "Takupoke/PDFRecoveryCoordinator.swift").read_text()
+        general = instrument_recovery_fixture(original)
+        manual = generated_manual_coordinator(original)
+        self.assertNotIn("fixtureFailure", original)
+        for source, writers in [(general, 1), (manual, 2)]:
+            self.assertNotRegex(source, r"(?m)(?:;|^\s*)(?:self\.)?failure\s*=")
+            declaration = next(line for line in source.splitlines() if "@Published private var fixtureFailure" in line)
+            reader = next(line for line in source.splitlines() if "var failure: String?" in line)
+            clearer = source.split("    func cancel() {\n", 1)[1].splitlines()[0]
+            assignments = [line for line in source.splitlines() if "running = false; fixtureFailure = " in line]
+            self.assertEqual(len(assignments), writers)
+            methods = "\n".join(f"    func probe{index}(_ error: Error) {{\n{line}\n    }}"
+                                for index, line in enumerate(assignments))
+            stub = f"""import Foundation
+@propertyWrapper struct Published<Value> {{ var wrappedValue: Value }}
+struct RecoveryFailure {{ let message: String }}
+final class Generated {{
+    var failureReason: RecoveryFailure?
+    var running = true
+{declaration}
+{reader}
+    func cancel() {{
+{clearer}
+    }}
+{methods}
+}}
+"""
+            with tempfile.TemporaryDirectory(prefix="takupoke-recovery-generation-") as scratch:
+                path = Path(scratch)
+                (path / "GeneratedCoordinator.swift").write_text(source)
+                (path / "GeneratedAssignments.swift").write_text(stub)
+                subprocess.run([compiler, "-frontend", "-parse", str(path / "GeneratedCoordinator.swift")],
+                               check=True, timeout=30)
+                subprocess.run([compiler, "-typecheck", "-module-cache-path", str(path / "modules"),
+                                str(path / "GeneratedAssignments.swift")], check=True, timeout=30)
 
     def test_manual_submit_sends_one_contact_to_the_observed_button(self):
         source = manual_check_source()
@@ -317,7 +361,7 @@ class ManualUIProjectTests(unittest.TestCase):
             self.assertIn(expected,source)
         self.assertEqual(source.count('width:1480,height:960'),2)
         self.assertIn('trace("stage=attach")',source)
-        generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
+        generated=generated_manual_coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
         self.assertIn('SimulatorManualFixture.failed(error)',generated)
 
     def test_actual_qa_failure_stage_and_bitmap_extent_are_observable_in_accessibility_tree(self):
@@ -327,7 +371,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('accessibilityIdentifier("manual-qa-diagnostic")',source)
         self.assertIn('String(reflecting:error)',source)
         self.assertIn('raster.grayscale[y*width+x] < 200',source)
-        generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
+        generated=generated_manual_coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
         self.assertIn('SimulatorManualFixture.failed(error)',generated)
         self.assertIn('架空資料の補助入力を拒否しました。前回の正常結果を保持しています。',generated)
 

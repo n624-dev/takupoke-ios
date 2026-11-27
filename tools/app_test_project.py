@@ -398,6 +398,33 @@ def instrument_countdown_notification_draft(text):
     assert text.count(COUNTDOWN_TOGGLE) == 1, 'Countdown notification toggle insertion point missing'
     return text.replace(COUNTDOWN_TOGGLE, COUNTDOWN_TOGGLE + COUNTDOWN_TOGGLE_TRACE)
 
+def instrument_recovery_fixture(text):
+    failure = '    var failure: String? { failureReason?.message }'
+    cancel = '    func cancel() {'
+    start = '    func start(_ kind: RecoveryDocumentKind) {'
+    for marker in (failure, cancel, start):
+        assert text.count(marker) == 1, 'Recovery UI fixture insertion point missing or duplicated'
+    text = text.replace(failure, '''    @Published private var fixtureFailure: String?
+    var failure: String? { fixtureFailure ?? failureReason?.message }''')
+    text = text.replace(cancel, cancel + '\n        fixtureFailure = nil')
+    return text.replace(start, start + """
+        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
+            cancel(); running = true
+            let fixtureOperation = self.operation
+            task = Task { @MainActor in
+                do {
+                    let prepared = try await SimulatorRecoveryFixture.preview(kind)
+                    guard self.operation == fixtureOperation, !Task.isCancelled else { return }
+                    source = prepared.source; preview = prepared; running = false; status = "採用前に元のPDFと内容を確認してください。"
+                } catch {
+                    guard self.operation == fixtureOperation else { return }
+                    running = false; fixtureFailure = "架空復旧fixtureを準備できませんでした: " + String(describing: error)
+                }
+            }
+            return
+        }
+""")
+
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
     check_root = repo if check_root is None else Path(check_root)
@@ -499,25 +526,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         }
 ''')
         if path.name == 'PDFRecoveryCoordinator.swift':
-            marker = '    func start(_ kind: RecoveryDocumentKind) {'
-            assert marker in text, 'Recovery UI fixture insertion point missing'
-            text = text.replace(marker, marker + '\n' + """
-        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
-            cancel(); failure = nil; running = true
-            let fixtureOperation = self.operation
-            task = Task { @MainActor in
-                do {
-                    let prepared = try await SimulatorRecoveryFixture.preview(kind)
-                    guard self.operation == fixtureOperation, !Task.isCancelled else { return }
-                    source = prepared.source; preview = prepared; running = false; status = "採用前に元のPDFと内容を確認してください。"
-                } catch {
-                    guard self.operation == fixtureOperation else { return }
-                    running = false; failure = "架空復旧fixtureを準備できませんでした: " + String(describing: error)
-                }
-            }
-            return
-        }
-""")
+            text = instrument_recovery_fixture(text)
         if path.name == 'PDFRecoveryView.swift':
             marker = '.navigationTitle(title)'
             assert marker in text, 'Recovery preview probe insertion point missing'

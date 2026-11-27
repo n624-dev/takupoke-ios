@@ -1,3 +1,9 @@
+## 最新PR #238の手動訂正CIで二段目の架空アプリのビルドが停止（2026-11-27）
+
+- `05c4178253fa7d9ca7dbbecf389649e175af3ffd`、[45999245469 試行1のジョブ140508637695](https://github.com/n624-dev/takupoke-ios/actions/runs/45999245469/job/140508637695)。iOS 27.0／SDK 27.2、12:44:02 UTCにfailure。ビルド91.7秒。XCTest開始前に、生成された `PDFRecoveryCoordinator.swift` の91行と100行で `failure` が読取専用のため停止した。所有端末は未起動で失敗画像は取得できなかった。
+- 先に直した `tools/manual_ui_project.py` の変換に加え、実ジョブはその前に `tools/app_test_project.py` の `--recovery-preview` も挿入する。後者が旧 `failure` へ代入していた。ローカル検査は各変換を別々に読んだため、連結後の最終ソースへの影響を見逃した。両方の変換で架空エラー用の同じ書込先を使い、製品側の公開プロパティは読み取り専用を維持する。
+- 通常用と手動用それぞれの生成済みソースを検査し、手動用は実ランナーと同じ順序で両変換を適用する。架空エラーを設定する実コードと中止時の解除を型検査し、テストが旧プロパティに代入していた場合は失敗させる。
+
 ## #233 Linuxの架空認証テストで中止済みの通信が開始された（2026-11-27）
 
 - 基点 `8d131dd` の作業差分、Swift 6.1.2 / Linux、ローカルの `test_browser_cancellation_authentication_and_transport_are_distinct`。SDK・Simulator・Actionsは未使用。中止済みのTaskをURLSessionへ渡したケースで、FoundationNetworkingの `TaskRegistry` が `didFailWithError` 中にSIGILLで停止した。先行試行は同じケースを通過しており、常時再現ではなかった。

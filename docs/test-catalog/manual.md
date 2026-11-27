@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`5c29a8c21fc91d507112f97d36eb44b2ba1a24668e3bf75a4665a4dfcbe4cd69`
+`887fc218f45f8afa1d1cd57ad2c86f39d30fe826a4b721b77cc881231a252697`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -123,6 +123,7 @@ bash tools/test-manual-ui.sh
 - `test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate`
 - `test_review_readiness_measures_actual_coordinator_state`
 - `test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks`
+- `test_composed_recovery_fixtures_write_only_the_generated_failure_property`
 - `test_manual_submit_sends_one_contact_to_the_observed_button`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
