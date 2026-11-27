@@ -150,9 +150,11 @@ struct Preview {
  struct Result { let humanCorrections: [String]? }
  let result: Result
 }
+enum RecoveryFailure { case selectionChanged, originalRevalidation }
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
- var operation=UUID(), running=true, status="", failure:String?="failure"
+ var operation=UUID(), running=true, status=""
+ var failureReason:RecoveryFailure? = .originalRevalidation
  var previewNeedsRevalidation = false
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
@@ -204,6 +206,7 @@ precondition(corrected.recovery.source == "source" && corrected.recovery.preview
 corrected.recovery.selectedSourceIsCurrent = false
 corrected.recovery.invalidateManualIfSourceChanged()
 precondition(corrected.recovery.preview == nil && corrected.recovery.source == nil)
+precondition(corrected.recovery.failureReason == .selectionChanged)
 let disabled = Application()
 LocalAIFeaturePolicy.valid = false
 disabled.recovery.invalidateManualIfSourceChanged()
@@ -249,6 +252,7 @@ enum RecoveryConversion {
         try check()
     }
 }
+enum RecoveryFailure { case originalRevalidation, selectionChanged }
 @MainActor final class Coordinator {
     var task: Task<Void, Never>?
     var preparationControl: AcquisitionControl?
@@ -257,7 +261,8 @@ enum RecoveryConversion {
     var aiTicket = 1, selectedSourceIsCurrent = true
     var preview: Preview?
     var source: Source?
-    var manualDraft: String?, manualReview: String?, pendingDocument: String?, pendingPages: String?, failure: String?
+    var manualDraft: String?, manualReview: String?, pendingDocument: String?, pendingPages: String?
+    var failureReason: RecoveryFailure?
     var previewRasters = [1: "fictional-raster"]
     var manualImages = [String: String](), manualContextImages = [String: String](), manualInitialValues = [String: String]()
     init(source: Source) { self.source = source; preview = Preview(source: source) }
@@ -281,7 +286,7 @@ enum RecoveryConversion {
         unchanged.resumeAfterInactivity()
         precondition(unchanged.running && unchanged.previewNeedsRevalidation)
         await unchanged.task?.value
-        precondition(!unchanged.running && !unchanged.previewNeedsRevalidation && unchanged.failure == nil && unchanged.preview?.id == previewID)
+        precondition(!unchanged.running && !unchanged.previewNeedsRevalidation && unchanged.failureReason == nil && unchanged.preview?.id == previewID)
         let completedOperation = unchanged.operation
         unchanged.resumeAfterInactivity()
         precondition(unchanged.operation == completedOperation && !unchanged.running)
@@ -293,7 +298,7 @@ enum RecoveryConversion {
         changed.resumeAfterInactivity()
         await changed.task?.value
         precondition(changed.selectedSourceIsCurrent && !changed.running)
-        precondition(changed.preview == nil && changed.source == nil && changed.failure != nil)
+        precondition(changed.preview == nil && changed.source == nil && changed.failureReason == .originalRevalidation)
     }
 }
 '''

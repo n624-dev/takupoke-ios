@@ -389,8 +389,28 @@ extension PDFParsingTests {
         }
     }
     func testManualFourthFieldAndAnyHeaderUncertaintyAreTerminal() throws {
-        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowCount:4),os:"test"))
-        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowHeader:true),os:"test"))
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowCount:4),os:"test")) {
+            XCTAssertEqual(RecoveryFailure($0), .tooManyRequiredCorrections)
+        }
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowHeader:true),os:"test")) {
+            XCTAssertNotEqual(RecoveryFailure($0), .tooManyRequiredCorrections)
+        }
+    }
+
+    func testRecoveryFailureKeepsSafeStageAndRetryActionWithoutPrintingExternalValues() {
+        let source = PDFParseError(code: .ambiguous, stage: .gridCell)
+        XCTAssertEqual(RecoveryFailure(source), .ambiguous(.gridCell))
+        XCTAssertTrue(RecoveryFailure(source).message.contains("P08"))
+        XCTAssertFalse(RecoveryFailure(source).canRetrySameInput)
+        XCTAssertEqual(RecoveryFailure(CancellationError()), .cancelled)
+        XCTAssertEqual(RecoveryFailure(validationCodes: ["yearEvidence"], providerResult: false), .ambiguous(.yearHeading))
+        XCTAssertEqual(RecoveryFailure(validationCodes: ["validationLimit"], providerResult: false), .processingLimit)
+        XCTAssertEqual(RecoveryFailure(validationCodes: ["invalidOutput"], providerResult: true), .providerOutputRejected)
+        let unexpected = "fictional-document-content-never-shown"
+        XCTAssertFalse(RecoveryFailure(validationCodes: [unexpected], providerResult: true).message.contains(unexpected))
+        XCTAssertFalse(RecoveryFailure(validationCodes: ["invalidOutput"], providerResult: true).canRetrySameInput)
+        XCTAssertTrue(RecoveryFailure(validationCodes: ["runtimeFailure"], providerResult: true).canRetrySameInput)
+        XCTAssertTrue(RecoveryFailure.adoptionStorageFailure.canRetrySameInput)
     }
 
     func testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault() throws {

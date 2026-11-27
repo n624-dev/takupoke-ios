@@ -25,7 +25,8 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     @Published private(set) var manualCorrectionTargets = Set<RecoveryManualTarget>()
-    @Published private(set) var failure: String?
+    @Published private(set) var failureReason: RecoveryFailure?
+    var failure: String? { failureReason?.message }
     @Published private(set) var modelAction: RecoveryModelAction?
     var awaitingModel: Bool { modelAction != nil }
     @Published private(set) var manualDraft: RecoveryManualDraft?
@@ -58,7 +59,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         guard !running else { return }
         guard LocalAIFeaturePolicy.enabled else { cancel(); status = "復旧はOFFです。"; return }
         let previous = task
-        cancel(); failure = nil; preview = nil
+        cancel(); failureReason = nil; preview = nil
         let operation = UUID(); self.operation = operation; aiTicket = LocalAIFeaturePolicy.capture()
         let ticket = aiTicket
         let preparationControl = AcquisitionControl(); self.preparationControl = preparationControl
@@ -75,7 +76,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 guard self.operation == operation else { return }
                 guard let source else {
                     self.running = false
-                    self.failure = "最新の通常解析の失敗を確認できませんでした。この画面を閉じ、資料の解析画面で再解析してから復旧を開始してください。前回の正常結果を保持しています。"
+                    self.failureReason = .sourceNeedsAnalysis
                     return
                 }
                 self.source = source
@@ -117,14 +118,14 @@ final class PDFRecoveryCoordinator: ObservableObject {
             } catch {
                 guard self.operation == operation else { return }
                 self.running = false
-                self.failure = error is CancellationError ? "復旧を中止しました。前回の正常結果を保持しています。" : "資料の内容と位置を安全に確認できませんでした。前回の正常結果を保持しています。"
+                self.failureReason = RecoveryFailure(error)
             }
         }
     }
     func retryModel() {
         guard LocalAIFeaturePolicy.enabled, modelAction != .unavailable, !running, let source,
               pendingDocument != nil || pendingPages != nil else { return }
-        running = true; modelAction = nil
+        running = true; modelAction = nil; failureReason = nil
         let operation = self.operation
         let control = AcquisitionControl(); preparationControl = control
         task = Task {
@@ -152,10 +153,11 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     try RecoveryValidator.inputErrors(input.document,unresolvedCellIds:Set(input.requests.map(\.ownerCellId)),check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
                 }.value
                 try check(operation)
-                guard RecoveryConversion.matchesPeriod(input.document,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.yearHeading) }
+                guard RecoveryConversion.matchesPeriod(input.document,source.period) else { throw RecoveryFailure.differentPeriod }
+                guard inputErrors.isEmpty else { throw RecoveryFailure(validationCodes: inputErrors, providerResult: false) }
                 status = "折り返された見出しの構造を端末内で確認しています⋯"
                 guard LocalAIFeaturePolicy.enabled else {
-                    running = false; failure = "復旧はOFFです。"; return
+                    running = false; failureReason = .settingsDisabled; return
                 }
                 let providers:[any LocalRecoveryProvider] = [SystemLanguageRecoveryProvider()] + (await LocalRecoveryModelManager.shared.providers(lease:operation))
                 try check(operation)
@@ -168,7 +170,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 guard let proposals = proposed.proposals,let metadata = proposed.metadata else {
                     running = false
                     if proposed.state == .awaitingModel { modelStatus(proposed.errors) }
-                    else { failure = "資料の見出しと位置を安全に確認できませんでした。前回の正常結果を保持しています。" }
+                    else { failureReason = RecoveryFailure(validationCodes: proposed.errors, providerResult: true) }
                     return
                 }
                 var rebuilt = try await Task.detached(priority:.userInitiated) {
@@ -184,7 +186,8 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 try RecoveryValidator.inputErrors(completedDocument,check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
             }.value
             try check(operation)
-            guard RecoveryConversion.matchesPeriod(doc,source.period), inputErrors.isEmpty else { throw PDFParseError(code:.ambiguous,stage:.gridCell) }
+            guard RecoveryConversion.matchesPeriod(doc,source.period) else { throw RecoveryFailure.differentPeriod }
+            guard inputErrors.isEmpty else { throw RecoveryFailure(validationCodes: inputErrors, providerResult: false) }
             let draft = try await Task.detached(priority:.userInitiated) {
                 try RecoveryManualAssistance.prepare(completedDocument,os:"ios",check:{ try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) })
             }.value
@@ -206,13 +209,13 @@ final class PDFRecoveryCoordinator: ObservableObject {
             await run(doc,source:source,operation:operation,control:control)
         } catch {
             guard self.operation == operation else { return }
-            running = false; failure = "資料の内容と位置を安全に確認できませんでした。前回の正常結果を保持しています。"
+            running = false; failureReason = RecoveryFailure(error)
         }
     }
     func submitManual(_ values: [String:String], acknowledged:Set<String>) {
         guard !running, manualReview == nil, let draft = manualDraft, let source,
               acknowledged == Set(draft.fields.map(\.id)) else { return }
-        running = true; failure = nil; status = "原本と入力内容を確認しています⋯"
+        running = true; failureReason = nil; status = "原本と入力内容を確認しています⋯"
         let operation = self.operation, control = AcquisitionControl(); preparationControl = control
         let ticket = aiTicket
         let app = ApplicationData.shared
@@ -240,7 +243,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 guard self.operation == operation else { return }
                 manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; self.source = nil
                 previewRasters = [:]; manualInitialValues = [:]
-                running = false; failure = "原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"
+                running = false; failureReason = .manualInputUnverified
             }
         }
     }
@@ -251,9 +254,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
               manualCorrectionTargets.contains(target), source != nil else { return }
         let selected = Set((candidate.result.humanCorrections ?? []).map(\.target)).union([target])
         guard selected.count <= RecoveryManualAssistance.maximumFields else {
-            failure = nil; status = "訂正できる本文は、確認が必要な項目を含め合計3項目までです。"; return
+            failureReason = nil; status = "訂正できる本文は、確認が必要な項目を含め合計3項目までです。"; return
         }
-        running = true; failure = nil; status = "原本と訂正する本文を確認しています⋯"
+        running = true; failureReason = nil; status = "原本と訂正する本文を確認しています⋯"
         let operation = self.operation, ticket = aiTicket
         let control = AcquisitionControl(); preparationControl = control
         let retained = previewRasters
@@ -287,7 +290,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 status = "原本と照合して、選択した\(draft.fields.count)項目を確認してください。"
             } catch {
                 guard self.operation == operation else { return }
-                running = false; failure = "訂正する本文と元のPDFを確認できませんでした。前回の正常結果を保持しています。"
+                running = false; failureReason = .correctionTargetUnverified
             }
         }
     }
@@ -299,7 +302,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     func showManualPreview() {
         guard !running, let review = manualReview, let draft = manualDraft,
               draft.id == review.draftID else { return }
-        running = true; failure = nil
+        running = true; failureReason = nil
         let operation = self.operation, control = AcquisitionControl(); preparationControl = control
         let ticket = aiTicket
         task = Task { @MainActor in
@@ -317,7 +320,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
             } catch {
                 guard self.operation == operation else { return }
                 cancel()
-                failure = "原本または入力内容を確認できませんでした。前回の正常結果を保持しています。"
+                failureReason = .manualInputUnverified
             }
         }
     }
@@ -371,7 +374,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
             } catch {
                 guard self.operation == operation else { return }
                 cancel()
-                failure = "元のPDFを再確認できませんでした。前回の正常結果を保持しています。"
+                failureReason = .originalRevalidation
             }
         }
     }
@@ -380,7 +383,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         guard hasManualWork else { return }
         guard !selectedSourceIsCurrent || (try? LocalAIFeaturePolicy.check(aiTicket)) == nil else { return }
         cancel()
-        failure = "資料の選択や保存状態が変わりました。元のPDFから再試行してください。前回の正常結果を保持しています。"
+        failureReason = .selectionChanged
     }
     private var selectedSourceIsCurrent:Bool {
         guard let source, source.period == ApplicationData.shared.loadedPeriod,
@@ -465,6 +468,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         return UIImage(cgImage:image)
     }
     var modelSourceURL: URL? { awaitingModel && selectedSourceIsCurrent ? source?.url : nil }
+    var failedSourceURL: URL? { failureReason != nil && selectedSourceIsCurrent ? source?.url : nil }
 
     private func modelStatus(_ errors: [String]) {
         let manager = LocalRecoveryModelManager.shared
@@ -494,15 +498,15 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 if LocalAIFeaturePolicy.enabled { modelStatus(result.errors) }
                 else { status = "復旧はOFFです。" }
                 // A temporarily unready system model never triggers an automatic download.
-            } else { failure = "原文に基づいて結果を確認できませんでした。前回の正常結果を保持しています。" }
+            } else { failureReason = RecoveryFailure(validationCodes: result.errors, providerResult: true) }
         } catch {
             guard self.operation == operation else { return }; running = false
-            failure = "復旧を終了しました。前回の正常結果を保持しています。"
+            failureReason = RecoveryFailure(error)
         }
     }
     func adopt() {
         guard LocalAIFeaturePolicy.enabled, !running, !previewNeedsRevalidation, let preview else { return }
-        running = true; failure = nil; status = "確認済みの結果を保存しています⋯"
+        running = true; failureReason = nil; status = "確認済みの結果を保存しています⋯"
         let operation = self.operation
         task = Task { @MainActor in
             do {
@@ -511,7 +515,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 try check(operation); running = false
                 if case .retryableFailure = result {
                     status = "確認済みの復旧結果を保存できます。"
-                    failure = "復旧結果を保存できませんでした。確認済みの内容を保持しています。もう一度採用をお試しください。"
+                    failureReason = .adoptionStorageFailure
                     return
                 }
                 previewRasters = [:]; manualInitialValues = [:]
@@ -519,9 +523,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 if case .saved = result {
                     pendingDocument = nil; pendingPages = nil; status = "復旧結果を採用しました。"
                 } else {
-                    failure = "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。"
+                    failureReason = .adoptionTargetChanged
                 }
-            } catch { guard self.operation == operation else { return }; running = false; failure = "採用を中止しました。" }
+            } catch { guard self.operation == operation else { return }; running = false; failureReason = .adoptionCancelled }
         }
     }
     func cancel() {
@@ -529,7 +533,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         previewNeedsRevalidation = false
         previewRasters = [:]; manualInitialValues = [:]
         preview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; source = nil; modelAction = nil
-        status = "復旧を開始してください。"; failure = nil
+        status = "復旧を開始してください。"; failureReason = nil
     }
     private func check(_ operation: UUID) throws {
         try Task.checkCancellation(); try LocalAIFeaturePolicy.check(aiTicket)

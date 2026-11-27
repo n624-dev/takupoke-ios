@@ -147,6 +147,16 @@ struct PDFRecoveryView: View {
                         }
                     }
                     if action == .installModel { modelSection }
+                } else if !coordinator.running, let failure = coordinator.failureReason {
+                    Section {
+                        if failure.canRetrySameInput {
+                            Button("復旧を再試行", systemImage: "arrow.clockwise") { coordinator.retryModel() }
+                                .disabled(!useAiFeatures)
+                        }
+                        if coordinator.failedSourceURL != nil {
+                            Button("元のPDFを確認", systemImage: "doc.richtext") { showSource() }
+                        }
+                    }
                 } else if !coordinator.running {
                     Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent).disabled(!useAiFeatures) }
                 }
@@ -185,7 +195,8 @@ struct PDFRecoveryView: View {
         }
     }
     private func showSource() {
-        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL ?? coordinator.modelSourceURL else { return }
+        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL ??
+            coordinator.modelSourceURL ?? coordinator.failedSourceURL else { return }
         sourcePage = SourcePage(url:url)
     }
     @ViewBuilder private func previewSections(_ preview:RecoveryPreview) -> some View {

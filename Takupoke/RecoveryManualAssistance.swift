@@ -291,7 +291,8 @@ enum RecoveryManualAssistance {
         }
         try work.finish()
         guard provenAtomIds == requiredAtomIds else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
-        guard targets.count <= maximumFields, selected.isSubset(of:Set(targets.keys)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+        guard targets.count <= maximumFields else { throw RecoveryFailure.tooManyRequiredCorrections }
+        guard selected.isSubset(of:Set(targets.keys)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         return targets.values.sorted { $0.id < $1.id }
     }
 
