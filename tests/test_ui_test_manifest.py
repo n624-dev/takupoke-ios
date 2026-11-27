@@ -78,6 +78,17 @@ CALLS
         self.assertIn('XCTAssertFalse(progress.exists)', test)
         self.assertIn('contains("・自動")', test)
         self.assertIn('card.label.contains(label)', test)
+        journey = block((ROOT / "tests/ui/ApplicationChecks+Events.swift").read_text(),
+                        "func testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent()")
+        menu = block(journey, "func add(_ mode:")
+        self.assertEqual(menu.count("app.snapshot()"), 1)
+        self.assertIn('$0.elementType == .button && $0.label == mode', menu)
+        self.assertIn('choices.count > 1 { ambiguous = true; return true }', menu)
+        self.assertIn('choice.isEnabled, self.usable(choice.frame)', menu)
+        self.assertIn('root.frame.contains(choice.frame)', menu)
+        self.assertIn('timeout: 5) == .completed, !ambiguous', menu)
+        self.assertEqual(menu.count('NativeTestContacts.send('), 1)
+        self.assertLess(menu.index('NativeTestContacts.send('), menu.index('screen(destination)'))
 
     def test_notification_navigation_can_reset_timetable_details_from_its_own_file(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
