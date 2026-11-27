@@ -141,6 +141,80 @@ final class FileRefreshTests: XCTestCase {
         }
     }
 
+    func testPipelinePublishesOneLogicalResultAfterBothSourcesFinish() throws {
+        var limits = FilePipeline.Limits()
+        limits.retryDelay = 0
+        let owner = DispatchQueue(label: "fictional-request-owner")
+        let pipeline = FilePipeline(limits: limits)
+        let requestID = UUID()
+        let expected: Set<FileRefreshDiagnostics.Source> = [.timetable, .changes]
+        let finalized = expectation(description: "logical outcome is published")
+        finalized.assertForOverFulfill = true
+        let observer = NotificationCenter.default.addObserver(forName: .filePipelineChanged, object: nil, queue: nil) { change in
+            guard (change.object as? FilePipeline) === pipeline,
+                  pipeline.observation.result(for: requestID, sources: expected) != nil else { return }
+            finalized.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        owner.suspend()
+        var suspended = true
+        defer { if suspended { owner.resume() } }
+        let parseFailure = PDFParseError(code: .ambiguous)
+        XCTAssertThrowsError(try pipeline.run(source: .timetable, reason: .manual, period: .current(), cancelled: {},
+            work: { ticket in
+                if ticket.attempt == 0 { throw URLError(.networkConnectionLost) }
+                ticket.acquired(); ticket.enter(.parsing)
+                return 42
+            }, cleanup: {}, retryQueue: owner, requestID: requestID, commit: { _, ticket in
+                try ticket.beginCommit(period: .current())
+                ticket.didCommit()
+                throw parseFailure
+            }))
+        XCTAssertNil(pipeline.observation.completed[.timetable])
+        XCTAssertNil(pipeline.observation.result(for: requestID, sources: expected))
+        try pipeline.run(source: .changes, reason: .manual, period: .current(), cancelled: {}, work: { _ in 1 },
+            cleanup: {}, requestID: requestID, commit: { _, ticket in
+                try ticket.beginCommit(period: .current()); ticket.didCommit()
+            })
+        let initial = pipeline.observation
+        XCTAssertEqual(initial.result(for: requestID, sources: [.changes]), .succeeded)
+        XCTAssertNil(initial.result(for: requestID, sources: expected))
+
+        owner.resume()
+        suspended = false
+        wait(for: [finalized], timeout: 5)
+        let terminal = pipeline.observation
+        XCTAssertEqual(terminal.result(for: requestID, sources: expected), .failed(parseFailure.localizedDescription))
+        XCTAssertNil(terminal.result(for: UUID(), sources: expected))
+        var handled: [FileRefreshDiagnostics.Source: UUID] = [:]
+        XCTAssertEqual(FilePipeline.claimMonitorRegistrations(in: terminal.completed, handled: &handled), ["timetable"])
+        XCTAssertTrue(FilePipeline.claimMonitorRegistrations(in: terminal.completed, handled: &handled).isEmpty)
+    }
+
+    func testFirstRegularAcquisitionFailurePersistsWithoutAnOriginal() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let root = directory.appendingPathComponent("library")
+        let failures: [(MaterialError, AcquisitionProblem)] = [(.tooLarge, .sizeLimit), (.invalidFile, .invalidFormat),
+            (.accessExpired, .permission), (.providerReadFailed, .temporary)]
+        for kind in [MaterialKind.timetable, .changes] {
+            for (error, problem) in failures {
+                do {
+                    let live = try LocalMaterialDatabase.openLibrary(root: root)
+                    try live.recordFailure(kind, message: error.localizedDescription, problem: AcquisitionProblem(error))
+                    try live.recordFailure(kind, message: MaterialError.cancelled.localizedDescription, cancelled: true)
+                }
+                let reopened = try LocalMaterialDatabase.openLibrary(root: root)
+                XCTAssertNil(reopened.state.record(for: kind))
+                XCTAssertEqual(reopened.state.attempts[kind.rawValue]?.problem, problem)
+                let status = FileStatusPresentation.material(reopened.state, kind: kind, year: 2032)
+                XCTAssertEqual(status.updateState, .unavailable)
+                XCTAssertEqual(status.status.detail, problem.message)
+            }
+        }
+    }
+
     func testIsolatedLibraryRejectsChangedSourceAndKeepsOtherFiles() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

@@ -5,6 +5,12 @@ import Foundation
 final class FilePipeline: @unchecked Sendable {
     enum Stage: String, Codable, Sendable { case queued, access, acquiring, checkingDigest, parsing, validating, saving, succeeded, unchanged, cancelled, timedOut, failed, recovering }
     enum Reason: String, Codable, Sendable { case automatic, manual, selection, background, review }
+    enum RequestResult: Equatable, Sendable { case succeeded, cancelled, failed(String) }
+    struct Request {
+        let id: UUID
+        let sources: Set<FileRefreshDiagnostics.Source>
+        let successMessage: String?
+    }
     enum Failure: Error, Equatable, LocalizedError {
         case cancelled, timedOut, recovering, stale
         var errorDescription: String? {
@@ -33,16 +39,39 @@ final class FilePipeline: @unchecked Sendable {
         var attempt: Int
         let startedAt: Date
         var finishedAt: Date?
+        var requestFinishedAt: Date?
+        var requestResult: RequestResult?
         var checkedAt: Date?
         var acquiredThisAttempt = false
         var acquiredAt: Date?
         var parsedAt: Date?
+        var acquisitionProblem: AcquisitionProblem?
 
         var canRetryMonitorRegistration: Bool {
-            guard acquiredThisAttempt, !waitingForWorker else { return false }
+            guard acquiredThisAttempt, requestFinishedAt != nil else { return false }
             // A committed provider acquisition is usable for monitoring even
             // when the subsequently reported error is a parse failure.
             return [.succeeded, .unchanged, .failed].contains(stage)
+        }
+    }
+    struct Observation: Equatable, Sendable {
+        let statuses: [FileRefreshDiagnostics.Source: Status]
+        let activeSources: Set<FileRefreshDiagnostics.Source>
+        let completed: [FileRefreshDiagnostics.Source: Status]
+
+        func restricting(to sources: Set<FileRefreshDiagnostics.Source>) -> Observation {
+            Observation(statuses: statuses.filter { sources.contains($0.key) }, activeSources: activeSources.intersection(sources),
+                        completed: completed.filter { sources.contains($0.key) })
+        }
+
+        func result(for id: UUID, sources: Set<FileRefreshDiagnostics.Source>) -> RequestResult? {
+            let results = FileRefreshDiagnostics.Source.allCases.filter(sources.contains).compactMap { source -> RequestResult? in
+                guard let status = completed[source], status.requestID == id else { return nil }
+                return status.requestResult
+            }
+            guard !results.isEmpty, results.count == sources.count else { return nil }
+            return results.first { if case .failed = $0 { return true }; return false }
+                ?? (results.contains(.cancelled) ? .cancelled : .succeeded)
         }
     }
     final class Ticket: @unchecked Sendable {
@@ -166,6 +195,7 @@ final class FilePipeline: @unchecked Sendable {
     private var intents: [FileRefreshDiagnostics.Source: UInt64] = [:]
     private var active: [FileRefreshDiagnostics.Source: Ticket] = [:]
     private var states: [FileRefreshDiagnostics.Source: Status] = [:]
+    private var completions: [FileRefreshDiagnostics.Source: Status] = [:]
     private var backoffs: [FileRefreshDiagnostics.Source: (id: UUID, started: TimeInterval, timer: DispatchSourceTimer, cleanup: () -> Void)] = [:]
     private let now: @Sendable () -> TimeInterval
     let limits: Limits
@@ -177,16 +207,21 @@ final class FilePipeline: @unchecked Sendable {
         return Dictionary(uniqueKeysWithValues: FileRefreshDiagnostics.Source.allCases.map { ($0.rawValue, intents[$0, default: 0]) })
     }
     var activeSources: Set<FileRefreshDiagnostics.Source> { lock.lock(); defer { lock.unlock() }; return Set(active.keys) }
-    var snapshot: [FileRefreshDiagnostics.Source: Status] {
-        lock.lock(); defer { lock.unlock() }
-        expireBackoffsLocked()
-        return states
+    var snapshot: [FileRefreshDiagnostics.Source: Status] { observation.statuses }
+    var observation: Observation {
+        lock.lock()
+        let expired = expireBackoffsLocked()
+        let result = Observation(statuses: states, activeSources: Set(active.keys), completed: completions)
+        lock.unlock()
+        if expired { publishChange() }
+        return result
     }
     func cancel(_ rawSource: String) {
         if let source = FileRefreshDiagnostics.Source(rawValue: rawSource) { cancel([source]) }
     }
     func cancel(_ sources: [FileRefreshDiagnostics.Source]) {
         lock.lock()
+        var changed = false
         for source in sources {
             intents[source, default: 0] &+= 1
             guard let ticket = active[source] else { continue }
@@ -194,11 +229,20 @@ final class FilePipeline: @unchecked Sendable {
             if let pending = backoffs[source], pending.id == ticket.id {
                 pending.timer.cancel(); backoffs.removeValue(forKey: source); active.removeValue(forKey: source)
                 states[source]?.waitingForWorker = false
+                if states[source]?.id == ticket.id {
+                    states[source]?.stage = .cancelled
+                    completeLocked(source, result: .cancelled, at: Date())
+                }
                 DispatchQueue.global(qos: .utility).async(execute: pending.cleanup)
+                changed = true
             }
-            if stopped, states[source]?.id == ticket.id { states[source]?.stage = .cancelled }
+            if stopped, states[source]?.id == ticket.id, states[source]?.stage != .cancelled {
+                states[source]?.stage = .cancelled
+                changed = true
+            }
         }
         lock.unlock()
+        if changed { publishChange() }
     }
     func clearTerminalStatus(_ source: FileRefreshDiagnostics.Source) {
         lock.lock()
@@ -209,17 +253,37 @@ final class FilePipeline: @unchecked Sendable {
             if active[source]?.id == pending.id { active.removeValue(forKey: source) }
             DispatchQueue.global(qos: .utility).async(execute: pending.cleanup)
         }
-        states.removeValue(forKey: source)
+        let removedStatus = states.removeValue(forKey: source) != nil
+        let removedCompletion = completions.removeValue(forKey: source) != nil
         lock.unlock()
+        if removedStatus || removedCompletion { publishChange() }
     }
     func clearStatuses(_ sources: [FileRefreshDiagnostics.Source]) {
-        lock.lock(); for source in sources { states.removeValue(forKey: source) }; lock.unlock()
+        lock.lock()
+        var changed = false
+        for source in sources {
+            let removedStatus = states.removeValue(forKey: source) != nil
+            let removedCompletion = completions.removeValue(forKey: source) != nil
+            changed = changed || removedStatus || removedCompletion
+        }
+        lock.unlock()
+        if changed { publishChange() }
     }
     func isRecovering(_ rawSource: String) -> Bool {
         FileRefreshDiagnostics.Source(rawValue: rawSource).map { isRecovering($0) } ?? false
     }
     func isRecovering(_ source: FileRefreshDiagnostics.Source) -> Bool {
         lock.lock(); defer { lock.unlock() }; return active[source] != nil
+    }
+
+    static func claimMonitorRegistrations(in outcomes: [FileRefreshDiagnostics.Source: Status],
+                                          handled: inout [FileRefreshDiagnostics.Source: UUID]) -> Set<String> {
+        var acquired = Set<String>()
+        for (source, status) in outcomes where status.canRetryMonitorRegistration && handled[source] != status.id {
+            handled[source] = status.id
+            acquired.insert(source.rawValue)
+        }
+        return acquired
     }
     /// Called on a serial storage queue, never MainActor. Work and cleanup own
     /// only an isolated library. A stuck work item cannot occupy this queue forever.
@@ -230,6 +294,7 @@ final class FilePipeline: @unchecked Sendable {
                 commit: @escaping (T, Ticket) throws -> Void) throws {
         let cleanup = PendingCleanup(releaseWorkspace).run
         guard period == SchoolDataPeriod.current() else {
+            if let replacing { finish(source, ticket: replacing, stage: .cancelled, waiting: false, recordCompletion: false) }
             DispatchQueue.global(qos: .utility).async(execute: cleanup); throw Failure.stale
         }
         let budgetStartedAt = budgetStartedAt ?? now()
@@ -245,9 +310,9 @@ final class FilePipeline: @unchecked Sendable {
         if let replacing {
             guard active[source]?.id == replacing.id else { lock.unlock(); DispatchQueue.global(qos: .utility).async(execute: cleanup); throw Failure.stale }
             guard replacing.permitsRetry else {
-                active.removeValue(forKey: source)
-                if states[source]?.id == replacing.id { states[source]?.stage = .cancelled; states[source]?.waitingForWorker = false }
-                lock.unlock(); DispatchQueue.global(qos: .utility).async(execute: cleanup); throw Failure.cancelled
+                lock.unlock()
+                finish(source, ticket: replacing, stage: .cancelled, waiting: false, recordCompletion: false)
+                DispatchQueue.global(qos: .utility).async(execute: cleanup); throw Failure.cancelled
             }
         } else if active[source] != nil { lock.unlock(); DispatchQueue.global(qos: .utility).async(execute: cleanup); throw Failure.recovering }
         if let pending = backoffs.removeValue(forKey: source) { pending.timer.cancel() }
@@ -256,6 +321,7 @@ final class FilePipeline: @unchecked Sendable {
         states[source] = Status(id: ticket.id, requestID: ticket.requestID, reason: reason, stage: .access, waitingForWorker: false, attempt: attempt,
                                 startedAt: Date(), checkedAt: old?.checkedAt, acquiredAt: old?.acquiredAt, parsedAt: old?.parsedAt)
         lock.unlock()
+        publishChange()
         let signal = DispatchSemaphore(value: 0)
         let box = ResultBox<T>()
         var result: Result<T, Error>?
@@ -287,7 +353,10 @@ final class FilePipeline: @unchecked Sendable {
             let waiting = launched && box.take() == nil
             let transient = Self.isTransient(error, stage: ticket.stage)
             let mayRetry = transient && reason != .background && reason != .review && attempt < limits.retries && retryQueue != nil
-            finish(source, ticket: ticket, stage: terminal, waiting: waiting || mayRetry)
+            let problem = terminal == .failed && (error is MaterialError || error is URLError) ? AcquisitionProblem(error) : nil
+            let failureMessage = FileOperationOutcome.message(error)
+            finish(source, ticket: ticket, stage: terminal, waiting: waiting || mayRetry,
+                   acquisitionProblem: problem, failureMessage: failureMessage)
             // Reserve the lane throughout retry waiting. Both cleanup and commit
             // stay owned; the old provider must exit before a fresh attempt starts.
             let afterExit: @Sendable () -> Void = { [self] in
@@ -307,10 +376,10 @@ final class FilePipeline: @unchecked Sendable {
                 } else {
                     let terminal: Stage = mayRetry && ticket.permitsRetry ? .timedOut :
                         (ticket.permitsRetry ? terminal : .cancelled)
-                    finish(source, ticket: ticket, stage: terminal, waiting: false, recordCompletion: false)
+                    finish(source, ticket: ticket, stage: terminal, waiting: false,
+                           recordCompletion: false, failureMessage: failureMessage)
                     DispatchQueue.global(qos: .utility).async(execute: cleanup)
                 }
-                NotificationCenter.default.post(name: .filePipelineChanged, object: nil)
             }
             if waiting {
                 DispatchQueue.global(qos: .utility).async { signal.wait(); afterExit() }
@@ -324,16 +393,17 @@ final class FilePipeline: @unchecked Sendable {
         timer.schedule(deadline: .now() + max(0, limits.overall - (now() - started)), repeating: .milliseconds(50))
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            self.lock.lock(); self.expireBackoffsLocked(); self.lock.unlock()
+            self.lock.lock(); let expired = self.expireBackoffsLocked(); self.lock.unlock()
+            if expired { self.publishChange() }
         }
         lock.lock()
         if active[source]?.id == ticket.id, ticket.permitsRetry, now() - started + limits.retryDelay < limits.overall {
             if states[source]?.id == ticket.id { states[source]?.stage = .queued; states[source]?.waitingForWorker = false }
             backoffs[source] = (ticket.id, started, timer, cleanup)
-            lock.unlock(); timer.resume(); return true
+            lock.unlock(); timer.resume(); publishChange(); return true
         } else { lock.unlock(); timer.setEventHandler {}; timer.resume(); timer.cancel(); return false }
     }
-    private func expireBackoffsLocked() {
+    private func expireBackoffsLocked() -> Bool {
         let expired = backoffs.filter { now() - $0.value.started >= limits.overall }
         for (source, pending) in expired {
             pending.timer.cancel(); backoffs.removeValue(forKey: source)
@@ -341,11 +411,14 @@ final class FilePipeline: @unchecked Sendable {
                 active[source]?.cancel(); active.removeValue(forKey: source)
                 if states[source]?.id == pending.id {
                     states[source]?.stage = .timedOut; states[source]?.waitingForWorker = false
-                    states[source]?.finishedAt = Date()
+                    let completedAt = Date()
+                    states[source]?.finishedAt = completedAt
+                    completeLocked(source, result: .failed(Failure.timedOut.localizedDescription), at: completedAt)
                 }
             }
             DispatchQueue.global(qos: .utility).async(execute: pending.cleanup)
         }
+        return !expired.isEmpty
     }
     static func isTransient(_ error: Error, stage: Stage) -> Bool {
         if (error as? Failure) == .timedOut { return [.access, .acquiring].contains(stage) }
@@ -353,25 +426,59 @@ final class FilePipeline: @unchecked Sendable {
         return (error as? URLError).map { [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost].contains($0.code) } == true
     }
     private func update(_ source: FileRefreshDiagnostics.Source, ticket: Ticket, stage: Stage) {
-        lock.lock(); if states[source]?.id == ticket.id { states[source]?.stage = stage }; lock.unlock()
+        lock.lock()
+        let changed = states[source]?.id == ticket.id && states[source]?.stage != stage
+        if changed { states[source]?.stage = stage }
+        lock.unlock()
+        if changed { publishChange() }
     }
     private func finish(_ source: FileRefreshDiagnostics.Source, ticket: Ticket, stage: Stage, waiting: Bool,
-                        recordCompletion: Bool = true) {
+                        recordCompletion: Bool = true, acquisitionProblem: AcquisitionProblem? = nil,
+                        failureMessage: String? = nil) {
         let dates = ticket.successDates
         lock.lock()
-        if states[source]?.id == ticket.id && !(stage == .cancelled && states[source]?.stage == .timedOut && active[source]?.id != ticket.id) {
+        var changed = false
+        if states[source]?.id == ticket.id && states[source]?.requestFinishedAt == nil {
             if let date = dates.checked { states[source]?.checkedAt = date }
             states[source]?.acquiredThisAttempt = dates.acquired != nil
             if let date = dates.acquired { states[source]?.acquiredAt = date }
             if let date = dates.parsed { states[source]?.parsedAt = date }
-            states[source]?.stage = stage; states[source]?.waitingForWorker = waiting; states[source]?.finishedAt = Date()
+            if let acquisitionProblem { states[source]?.acquisitionProblem = acquisitionProblem }
+            let completedAt = Date()
+            states[source]?.stage = stage; states[source]?.waitingForWorker = waiting; states[source]?.finishedAt = completedAt
+            if !waiting {
+                let result: RequestResult
+                switch stage {
+                case .succeeded, .unchanged: result = .succeeded
+                case .cancelled: result = .cancelled
+                case .timedOut: result = .failed(Failure.timedOut.localizedDescription)
+                default: result = .failed(failureMessage ?? MaterialError.unavailable.localizedDescription)
+                }
+                completeLocked(source, result: result, at: completedAt)
+            }
+            changed = true
         }
-        if !waiting, active[source]?.id == ticket.id { active.removeValue(forKey: source) }
+        if !waiting, active[source]?.id == ticket.id {
+            active.removeValue(forKey: source)
+            if let pending = backoffs[source], pending.id == ticket.id {
+                pending.timer.cancel()
+                backoffs.removeValue(forKey: source)
+            }
+            changed = true
+        }
         lock.unlock()
         if recordCompletion {
             FileRefreshDiagnostics.shared.record(.pipelineFinished, source: source, operationID: ticket.requestID, reason: ticket.reason, stage: stage, attempt: ticket.attempt)
         }
-        NotificationCenter.default.post(name: .filePipelineChanged, object: nil)
+        if changed { publishChange() }
     }
+
+    private func completeLocked(_ source: FileRefreshDiagnostics.Source, result: RequestResult, at date: Date) {
+        states[source]?.requestFinishedAt = date
+        states[source]?.requestResult = result
+        completions[source] = states[source]
+    }
+
+    private func publishChange() { NotificationCenter.default.post(name: .filePipelineChanged, object: self) }
 }
 extension Notification.Name { static let filePipelineChanged = Notification.Name("filePipelineChanged") }

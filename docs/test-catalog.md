@@ -26,7 +26,7 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | 対象 | 宣言数 | 検証する環境 |
 |---|---:|---|
 | [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 76 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [原本取得・更新・保存・File Provider](test-catalog/material.md) | 72 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [原本取得・更新・保存・File Provider](test-catalog/material.md) | 74 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [ローカルDB・移行・半期削除](test-catalog/database.md) | 41 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [日本時間・学校年度・日付表示](test-catalog/date.md) | 9 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [リンク・検索・設定保持](test-catalog/links.md) | 20 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
@@ -34,11 +34,11 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [学校行事API・年度別保存](test-catalog/events.md) | 50 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 55 | Linux Swift／iOS 26.5・27.0シミュレータ |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 107 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [試験・返却PDF](test-catalog/special.md) | 79 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [試験・返却PDF](test-catalog/special.md) | 80 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [Strict PDF・文字・位置・罫線](test-catalog/pdf.md) | 121 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [PDF復旧・OCR・構造・Validator・端末内Provider](test-catalog/recovery.md) | 226 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [確認訂正・画像比較・入力変更・実操作](test-catalog/manual.md) | 128 | Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認 |
-| [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 34 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
+| [通知許可・実配信・設定・バックグラウンド](test-catalog/notifications.md) | 35 | Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定 |
 | [通常画面・設定・実Switch・UI fixture・登録一覧](test-catalog/app-ui.md) | 202 | Apple iOS26/27。LinuxはPython契約検査のみ |
 | [ファイル選択・再選択・背景・キャンセル](test-catalog/picker.md) | 29 | Apple iOS26/27 UI＋Nativeレイアウト |
 | [シミュレーター失敗時の画面記録](test-catalog/simulator-failure-screenshot.md) | 33 | macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査 |

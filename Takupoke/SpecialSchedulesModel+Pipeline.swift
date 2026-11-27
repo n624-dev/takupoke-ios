@@ -22,8 +22,8 @@ extension SpecialSchedulesModel {
             catch {
                 try ticket.check()
                 if FileOperationOutcome.isCancellation(error) || (FilePipeline.isTransient(error, stage: ticket.stage) && reason != .review && reason != .background && ticket.attempt < FilePipeline.shared.limits.retries) { throw error }
-                if let parse = error as? PDFParseError { try copy.recordFailure(parse, kind: kind) }
-                else { try copy.recordAcquisitionFailure(kind: kind) }
+                if let parse = error as? PDFParseError, copy.sources[kind] != nil { try? copy.recordFailure(parse, kind: kind) }
+                else { try? copy.recordAcquisitionFailure(kind: kind, error: error) }
                 failure = error
             }
             return (copy, failure, inner.acquiredProviderSources)

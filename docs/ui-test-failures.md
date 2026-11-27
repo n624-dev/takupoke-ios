@@ -6501,3 +6501,14 @@ N245追記：ハーネス同期後のPython全体352件は266.187秒・失敗0�
 ### N187-CI6 — 全体のiOS 26通常UI Aで連続週送りの4接触が揃わない
 
 - `99fa7e2`、[全体45736484307・試行1のiOS 26通常UI A](https://github.com/n624-dev/takupoke-ios/actions/runs/45736484307/job/139632621700)、SDK 27.2・iOS 26.5。2026-11-26 02:54:34 UTCに `ApplicationChecks+WeekAppearance.swift:274`、`testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating` が「4回のネイティブドラッグと最後の高さ調整」を確認できず28.005秒で失敗。同ジョブの残りのテストは進行し、全体では14件成功、公開はスキップ。XCTestで失敗時の画像が1枚記録され、129290バイトのPNGの出力を確認した。
+
+## #212 架空の試験保存先の失敗を検査するSwiftプローブの型不一致（2026-11-27）
+
+- 基点 `48a0a73` の作業差分、Swift 6.1.2 / Linux、ローカルの `test_last_special_store_failure_triggers_a_new_countdown_evaluation`。架空UIKit境界の `UIApplication` をcaseのないenumにしていたため、生成ソース30行で初期化できず、購読の再評価には未到達。
+- 架空のアプリ状態を生成できるstructへ修正する。試験資料の失敗だけを最後に通知し、製品の購読・MainActor再評価が失敗を読み取る条件を維持する。
+
+## #192 原本なしの通常資料の取得失敗がLinux回帰でinvalidState（2026-11-27）
+
+- 基点 `48a0a73` の作業差分、Swift 6.1.2／SQLite 3.53.4／Linux、Actions・Simulator未使用。11:03:28 UTCに `testFirstRegularAcquisitionFailurePersistsWithoutAnOriginal` が `invalidState` で停止。テストからは初回DB作成・失敗記録・再読込のいずれが停止したか未確定。特別資料の初回失敗の記録・再読込のケースは成功。Swift 135件中失敗1件。
+- `LocalMaterialDatabase.openLibrary` は先行所有者が保持する `LibraryLock` を `LOCK_EX` で取得できなければ `invalidState` を返す。初回テストは書き込み側を生存させたまま再読込していた。書き込み側を閉じてから再読込し、正常な排他制御と再起動時の永続化を両立する条件で再検証する。
+- 修正後の同じ135件は失敗0。初回取得失敗、選択中止、排他を解放した後の再読込、4種類の失敗理由と未取得表示まで検証した。

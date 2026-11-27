@@ -13,6 +13,87 @@ from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+class CountdownInputObservationTests(unittest.TestCase):
+    def test_last_special_store_failure_triggers_a_new_countdown_evaluation(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift is required to execute the countdown observation")
+        application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
+        subscriptions = "\n".join(
+            line for line in application.splitlines()
+            if "specialSchedules.$" in line and "checkCountdownWhenActive" in line
+        )
+        source = r'''import Foundation
+struct Token: Hashable {
+    let id = UUID()
+    func store(in tokens: inout Set<Self>) { tokens.insert(self) }
+}
+@propertyWrapper final class Published<Value: Equatable> {
+    private var value: Value
+    private var callbacks = [(Value) -> Void]()
+    init(wrappedValue: Value) { value = wrappedValue }
+    var projectedValue: Published<Value> { self }
+    var wrappedValue: Value {
+        get { value }
+        set {
+            for callback in callbacks { callback(newValue) }
+            value = newValue
+        }
+    }
+    func removeDuplicates() -> Self { self }
+    func sink(_ receive: @escaping (Value) -> Void) -> Token {
+        callbacks.append(receive); receive(value); return Token()
+    }
+}
+final class Sources {
+    @Published var ready = false
+    @Published var failed = false
+    @Published var records = 0
+    @Published var sources = 0
+}
+struct UIApplication {
+    static let shared = UIApplication()
+    enum State { case active }
+    var applicationState: State { .active }
+}
+@MainActor final class Application {
+    let specialSchedules = Sources()
+    var observations = Set<Token>()
+    var countdownUpdateScheduled = false
+    var evaluatedFailures = [Bool]()
+    func updateCountdown() { evaluatedFailures.append(specialSchedules.failed) }
+    init() {
+''' + subscriptions + '''
+    }
+''' + block(application, "    private func checkCountdownWhenActive()") + r'''
+}
+@main struct Probe {
+    @MainActor static func flush(_ app: Application) async {
+        while app.countdownUpdateScheduled { await Task.yield() }
+    }
+    @MainActor static func main() async {
+        let app = Application()
+        await flush(app)
+        precondition(app.evaluatedFailures == [false]) // Other inputs already showed a loading state.
+        app.specialSchedules.failed = true
+        await flush(app)
+        precondition(app.evaluatedFailures == [false, true]) // No other publisher or clock changed.
+        precondition(!app.specialSchedules.ready)
+        app.specialSchedules.ready = true
+        app.specialSchedules.failed = false
+        await flush(app)
+        precondition(app.evaluatedFailures == [false, true, false])
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="countdown-special-load-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(source, encoding="utf-8")
+            subprocess.run([compiler, "-parse-as-library", str(path / "probe.swift"), "-o", str(path / "probe")],
+                           check=True, timeout=60)
+            subprocess.run([str(path / "probe")], check=True, timeout=10)
+
 COUNTDOWN_EXPIRY_STATE = r'''
     struct ProgressKey { let isPrivate: Bool }
     struct Progress { let key: ProgressKey }

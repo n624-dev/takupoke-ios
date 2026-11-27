@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`ca863de170d0fe3819a3367b427bc0a2256f2847b22201920a6cac98f2984ce7`
+`12dcb4e06754d2b025b1a1e67d9960348a80e9f574c9ad3b20a720029c28d432`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -36,6 +36,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 - `testFreshStoreCollectsOrphansOnlyAfterValidMetadataAndUpgradesLegacyRecords`
 - `testIncompleteSpecialTimesDoNotReplacePreviousStoreResult`
 - `testAcquisitionFailureStatusKeepsGoodAnalysisUntilTheSameSourceIsConfirmed`
+- `testFirstAcquisitionFailuresReopenWithoutInventingASelectedPDF`
 - `testCancellingSpecialReanalysisKeepsOnlyTheSameOriginalRecoveryJob`
 - `testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis`
 - `testUnchangedSpecialPDFCheckPersistsWithoutReplacingAcquisitionOrAnalysis`

@@ -153,7 +153,8 @@ final class MaterialWorker {
             let safeError = (error as? MaterialError) ?? .unavailable
             let cancelled: Bool
             if case .cancelled = safeError { cancelled = true } else { cancelled = false }
-            try library.recordFailure(kind, message: safeError.localizedDescription, cancelled: cancelled)
+            let problem = cancelled ? nil : AcquisitionProblem(error)
+            try? library.recordFailure(kind, message: safeError.localizedDescription, cancelled: cancelled, problem: problem)
             throw safeError
         }
     }

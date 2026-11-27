@@ -45,6 +45,7 @@ struct SpecialScheduleAvailability {
     let failed: Bool
     let sources: [SpecialScheduleKind: SpecialScheduleSource]
     let records: [SpecialScheduleKind: SpecialScheduleRecord]
+    var acquisitionAttempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
 
     var loadFailed: Bool { !ready && !busy && failed }
     func state(for kind: SpecialScheduleKind) -> State {

@@ -68,6 +68,7 @@ final class ApplicationData: ObservableObject {
         materials.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$failed.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        specialSchedules.$failed.removeDuplicates().sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$records.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$sources.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         mappings.$current.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)

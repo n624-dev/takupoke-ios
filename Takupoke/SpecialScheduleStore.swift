@@ -14,6 +14,7 @@ final class SpecialScheduleStore {
     let queue: DatabaseQueue
     var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
     var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
+    var acquisitionAttempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
 
     init(root: URL, ownerQueue: DispatchQueue = DispatchQueue(label: "io.github.n624dev.takupoke.special-owner", qos: .userInitiated)) throws {
         self.ownerQueue = ownerQueue
@@ -66,10 +67,26 @@ final class SpecialScheduleStore {
                         payload BLOB NOT NULL
                     )
                     """)
-                return true
             }
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS specialAcquisitionAttempt (
+                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                    payload BLOB NOT NULL
+                )
+                """)
             return try db.tableExists("specialSource")
         }
+        acquisitionAttempts = (try? queue.read { db in
+            var attempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
+            for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialAcquisitionAttempt WHERE length(payload) <= 4096") {
+                let key: String = row["kind"]
+                let bytes: Data = row["payload"]
+                guard bytes.count <= 4096, let kind = SpecialScheduleKind(rawValue: key),
+                      let attempt = try? JSONDecoder().decode(AcquisitionAttempt.self, from: bytes) else { continue }
+                attempts[kind] = attempt
+            }
+            return attempts
+        }) ?? [:]
         records = try queue.read { db in
             var result: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
             for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialSchedule") {
@@ -202,12 +219,14 @@ final class SpecialScheduleStore {
             try queue.write { db in
                 try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
                                arguments: [kind.rawValue, payload])
+                try Self.writeAcquisitionAttempt(nil, kind: kind, db: db)
             }
         } catch {
             try? FileManager.default.removeItem(at: destination)
             throw error
         }
         sources[kind] = source
+        acquisitionAttempts[kind] = nil
         try? removeUnreferencedFiles()
     }
 
@@ -224,8 +243,10 @@ final class SpecialScheduleStore {
         try queue.write { db in
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
                            arguments: [kind.rawValue, payload])
+            try Self.writeAcquisitionAttempt(nil, kind: kind, db: db)
         }
         sources[kind] = source
+        acquisitionAttempts[kind] = nil
     }
 
     func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {
@@ -260,13 +281,28 @@ final class SpecialScheduleStore {
         try? removeUnreferencedFiles()
     }
 
-    func recordAcquisitionFailure(kind: SpecialScheduleKind) throws {
-        guard var source = sources[kind] else { throw StoreError.invalidState }
-        source.acquisitionFailure = "更新確認できませんでした。保存済みの資料と解析状態は保持しています。"
-        let payload = try JSONEncoder().encode(source)
-        try queue.write { db in
-            try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload", arguments: [kind.rawValue, payload])
+    static func writeAcquisitionAttempt(_ attempt: AcquisitionAttempt?, kind: SpecialScheduleKind, db: Database) throws {
+        if let attempt {
+            try db.execute(sql: "INSERT INTO specialAcquisitionAttempt (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
+                           arguments: [kind.rawValue, try JSONEncoder().encode(attempt)])
+        } else {
+            try db.execute(sql: "DELETE FROM specialAcquisitionAttempt WHERE kind = ?", arguments: [kind.rawValue])
         }
+    }
+
+    func recordAcquisitionFailure(kind: SpecialScheduleKind, error: Error = MaterialError.unavailable) throws {
+        let problem = AcquisitionProblem(error)
+        let attempt = AcquisitionAttempt(date: Date(), failure: problem.message, problem: problem)
+        var source = sources[kind]
+        source?.acquisitionFailure = problem.message
+        try queue.write { db in
+            try Self.writeAcquisitionAttempt(attempt, kind: kind, db: db)
+            if let source {
+                let payload = try JSONEncoder().encode(source)
+                try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload", arguments: [kind.rawValue, payload])
+            }
+        }
+        acquisitionAttempts[kind] = attempt
         sources[kind] = source
     }
 

@@ -82,11 +82,39 @@ struct AcquisitionAttempt: Codable {
     var date: Date
     var failure: String?
     var cancelled: Bool? = nil
+    var problem: AcquisitionProblem? = nil
 
     var failedToAcquire: Bool {
         guard let failure else { return false }
         // Older records stored Japanese error text without a cancellation bit.
         return !(cancelled ?? (failure == MaterialError.cancelled.errorDescription))
+    }
+}
+
+enum AcquisitionProblem: String, Codable, Sendable {
+    case sizeLimit, invalidFormat, permission, temporary, storage, unavailable
+
+    init(_ error: Error) {
+        switch error {
+        case MaterialError.tooLarge: self = .sizeLimit
+        case MaterialError.invalidFile: self = .invalidFormat
+        case MaterialError.accessExpired, MaterialError.bookmarkFailed: self = .permission
+        case MaterialError.providerReadFailed: self = .temporary
+        case MaterialError.invalidState: self = .storage
+        default:
+            self = FilePipeline.isTransient(error, stage: .acquiring) ? .temporary : .unavailable
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .sizeLimit: return MaterialError.tooLarge.localizedDescription
+        case .invalidFormat: return MaterialError.invalidFile.localizedDescription
+        case .permission: return MaterialError.accessExpired.localizedDescription
+        case .temporary: return MaterialError.providerReadFailed.localizedDescription
+        case .storage: return MaterialError.invalidState.localizedDescription
+        case .unavailable: return MaterialError.unavailable.localizedDescription
+        }
     }
 }
 

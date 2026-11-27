@@ -153,6 +153,13 @@ enum FileOperationOutcome {
         return error is CancellationError || (error as? PDFParseError)?.code == .cancelled ||
             (error as? ChangeParseError)?.code == .cancelled
     }
+
+    static func message(_ error: Error) -> String {
+        if isCancellation(error) { return MaterialError.cancelled.localizedDescription }
+        return (error as? ChangeParseError)?.localizedDescription ?? (error as? PDFParseError)?.localizedDescription
+            ?? (error as? FilePipeline.Failure)?.localizedDescription ?? (error as? MaterialError)?.localizedDescription
+            ?? MaterialError.unavailable.localizedDescription
+    }
 }
 
 struct FileStatusPresentation {
@@ -163,9 +170,9 @@ struct FileStatusPresentation {
     static func material(_ state: MaterialLibraryState, kind: MaterialKind, year: Int?,
                          recoveryRejected: Bool = false) -> Self {
         guard let record = state.record(for: kind) else {
-            if state.attempts[kind.rawValue]?.failedToAcquire == true {
+            if let attempt = state.attempts[kind.rawValue], attempt.failedToAcquire {
                 return .init(status: .init(title: "取得できませんでした", tone: .attention,
-                                          detail: state.attempts[kind.rawValue]?.failure), hasSavedAnalysis: false, updateState: .unavailable)
+                                          detail: attempt.problem?.message ?? attempt.failure), hasSavedAnalysis: false, updateState: .unavailable)
             }
             return .init(status: .init(title: "未選択", tone: .neutral), hasSavedAnalysis: false, updateState: .unused)
         }
@@ -193,9 +200,9 @@ struct FileStatusPresentation {
         if recoveryRejected {
             result = .init(title: "保存済み復旧結果を再検証できません", tone: .attention)
             updateState = .unavailable
-        } else if state.attempts[kind.rawValue]?.failedToAcquire == true {
+        } else if let attempt = state.attempts[kind.rawValue], attempt.failedToAcquire {
             result = .init(title: hasAnalysis ? "取得失敗（前回結果あり）" : "取得失敗", tone: .attention,
-                           detail: state.attempts[kind.rawValue]?.failure)
+                           detail: attempt.problem?.message ?? attempt.failure)
             updateState = hasAnalysis ? .failed : .unavailable
         } else if parseFailed {
             result = .init(title: kind == .changes && isCurrent ? "解析済み（再解析は失敗）" :
@@ -218,7 +225,13 @@ struct FileStatusPresentation {
     static func special(_ availability: SpecialScheduleAvailability, kind: SpecialScheduleKind,
                         recoveryRejected: Bool = false) -> Self {
         let saved = availability.records[kind] != nil
+        let attempt = availability.acquisitionAttempts[kind]
         guard let source = availability.sources[kind] else {
+            if let attempt, attempt.failedToAcquire {
+                return .init(status: .init(title: "取得できませんでした", tone: .attention,
+                                          detail: attempt.problem?.message ?? attempt.failure),
+                             hasSavedAnalysis: saved, updateState: saved ? .failed : .unavailable)
+            }
             return .init(status: .init(title: saved ? "前回の解析結果あり" : "未選択",
                                       tone: saved ? .attention : .neutral), hasSavedAnalysis: saved, updateState: saved ? .failed : .unused)
         }
@@ -228,7 +241,8 @@ struct FileStatusPresentation {
             result = .init(title: "保存済み復旧結果を再検証できません", tone: .attention)
             updateState = .unavailable
         } else if source.acquisitionFailure != nil {
-            result = .init(title: saved ? "更新確認失敗（前回結果あり）" : "更新確認失敗", tone: .attention)
+            result = .init(title: saved ? "更新確認失敗（前回結果あり）" : "更新確認失敗", tone: .attention,
+                           detail: attempt?.problem?.message ?? source.acquisitionFailure)
             updateState = saved ? .failed : .unavailable
         } else if source.failure?.code == .cancelled {
             result = .init(title: "解析を中止しました", tone: .neutral,
@@ -289,7 +303,7 @@ extension FilePipeline.Status {
         case .cancelled: return .init(title: "確認を中止しました", tone: .neutral)
         case .timedOut: return .init(title: "更新確認が期限切れになりました", tone: .attention, detail: "前回の正常結果は保持しています。再取得できます。")
         case .recovering: return .init(title: "旧処理の終了待ち", tone: .neutral)
-        case .failed: return .init(title: "更新を確認できませんでした", tone: .attention)
+        case .failed: return .init(title: "更新を確認できませんでした", tone: .attention, detail: acquisitionProblem?.message)
         case .succeeded, .unchanged: return .init(title: "更新確認済み", tone: .good)
         }
     }

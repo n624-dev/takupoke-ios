@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -15,7 +16,7 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var message: String?
     @Published private(set) var failed = false
     @Published private(set) var lastOperationUsedPipeline = false
-    private var messageOperationID: UUID?
+    private var pendingPipelineRequest: FilePipeline.Request?
     @Published private(set) var cancellationRequested = false
     @Published private(set) var lastOperationWasCancelled = false
     @Published private(set) var changePreview: ChangePreview?
@@ -43,25 +44,31 @@ final class MaterialsModel: ObservableObject {
     var pendingManualRefresh = Set<MaterialKind>()
     private var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
     @Published var fileRefreshQueue = FileRefreshQueue()
-    var pipelineTimer: Timer?
+    private var pipelineEvents: AnyCancellable?
+    private var pipelineObservation: FilePipeline.Observation?
+    private static let pipelineSources: Set<FileRefreshDiagnostics.Source> = [.timetable, .changes]
     var pipelineMonitorIDs: [FileRefreshDiagnostics.Source: UUID] = [:]
-    var pipelineActive = Set<FileRefreshDiagnostics.Source>()
-    var pipelineSnapshot: [FileRefreshDiagnostics.Source: FilePipeline.Status] = [:]
     func observePipeline(_ foreground: Bool) {
-        pipelineTimer?.invalidate(); pipelineTimer = nil
-        guard foreground else { return }
-        pipelineTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                let snapshot = FilePipeline.shared.snapshot
-                let active = FilePipeline.shared.activeSources
-                if snapshot != self.pipelineSnapshot || active != self.pipelineActive {
-                    self.pipelineSnapshot = snapshot; self.pipelineActive = active; self.objectWillChange.send()
-                    self.reloadPipelineProjection()
-                    self.runPendingSelection(); self.runPendingFileRefresh()
-                }
+        guard foreground else { pipelineEvents = nil; pipelineObservation = nil; return }
+        if pipelineEvents == nil {
+            pipelineEvents = NotificationCenter.default.publisher(for: .filePipelineChanged).sink { [weak self] change in
+                guard (change.object as? FilePipeline) === FilePipeline.shared else { return }
+                Task { @MainActor [weak self] in self?.applyPipelineObservation() }
             }
         }
+        applyPipelineObservation()
+    }
+
+    private func applyPipelineObservation() {
+        guard pipelineEvents != nil, !retired else { return }
+        let current = FilePipeline.shared.observation.restricting(to: Self.pipelineSources)
+        let previous = pipelineObservation
+        guard current != previous else { return }
+        pipelineObservation = current
+        objectWillChange.send()
+        if current.completed != previous?.completed { reloadPipelineProjection() }
+        runPendingSelection()
+        runPendingFileRefresh()
     }
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
         guard self?.cancellationRequested == false else { return }
@@ -69,11 +76,26 @@ final class MaterialsModel: ObservableObject {
         self?.runPendingFileRefresh()
     }
 
+    private func applyPipelineResult(_ observation: FilePipeline.Observation) {
+        guard !busy, let request = pendingPipelineRequest,
+              let result = observation.result(for: request.id, sources: request.sources) else { return }
+        pendingPipelineRequest = nil
+        switch result {
+        case .succeeded: message = request.successMessage
+        case .cancelled:
+            lastOperationWasCancelled = true
+            message = MaterialError.cancelled.localizedDescription
+        case .failed(let explanation):
+            failed = true
+            message = explanation
+        }
+    }
+
     func reloadPipelineProjection() {
         guard ready, !retired else { return }
         let capturedGeneration = generation
         queue.async {
-            let outcomes = FilePipeline.shared.snapshot.filter { ["timetable", "changes"].contains($0.key.rawValue) }
+            let outcomes = FilePipeline.shared.observation.restricting(to: [.timetable, .changes]).completed
             guard let library = self.worker.library else { return }
             let display = MaterialLibrary.displayableTimetables(library.state)
             let report = self.worker.timetableReadReport, failure = self.worker.timetableFailure
@@ -85,20 +107,11 @@ final class MaterialsModel: ObservableObject {
                 self.state = display.state; self.rejectedRecoveryKinds = display.rejected; self.pdfURLs = urls
                 self.timetableReadReport = report; self.timetableFailure = failure
 
-                let latest = FilePipeline.shared.snapshot
-                let acquired = Set<String>(outcomes.compactMap { key, value -> String? in
-                    guard value.canRetryMonitorRegistration, latest[key]?.id == value.id,
-                          self.pipelineMonitorIDs[key] != value.id else { return nil }
-                    self.pipelineMonitorIDs[key] = value.id
-                    return key.rawValue
-                })
+                let latest = FilePipeline.shared.observation
+                let currentOutcomes = outcomes.filter { latest.completed[$0.key]?.id == $0.value.id }
+                let acquired = FilePipeline.claimMonitorRegistrations(in: currentOutcomes, handled: &self.pipelineMonitorIDs)
                 self.updateFileMonitoring(retryFailedFor: acquired)
-                if !self.busy, let request = self.messageOperationID {
-                    let current = outcomes.values.filter { $0.requestID == request }
-                    if current.contains(where: { $0.attempt > 0 }), current.allSatisfy({ $0.stage == .succeeded || $0.stage == .unchanged }) {
-                        self.failed = false; self.message = nil; self.lastOperationWasCancelled = false; self.messageOperationID = nil
-                    }
-                }
+                self.applyPipelineResult(latest)
             }
         }
     }
@@ -330,7 +343,7 @@ final class MaterialsModel: ObservableObject {
             lastOperationWasCancelled = true
             failed = false
             message = MaterialError.cancelled.localizedDescription
-            messageOperationID = nil
+            pendingPipelineRequest = nil
         }
     }
 
@@ -382,7 +395,7 @@ final class MaterialsModel: ObservableObject {
         let operationGeneration = generation
         let control = AcquisitionControl(intents: FilePipeline.shared.intentSnapshot)
         self.control = control
-        messageOperationID = control.operationID
+        pendingPipelineRequest = nil
         lastOperationUsedPipeline = false
         queue.async {
             let result = Result { try operation(worker, control) }
@@ -395,6 +408,11 @@ final class MaterialsModel: ObservableObject {
             var pdfURLs: [String: URL] = [:]
             for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
             let usedPipeline = control.usedPipeline
+            let pipelineSources = control.pipelineSources
+            let outcomes = FilePipeline.shared.observation
+            let stillRunning = pipelineSources.contains {
+                outcomes.statuses[$0]?.requestID == control.operationID && outcomes.activeSources.contains($0)
+            }
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.ready = snapshot != nil
@@ -410,9 +428,20 @@ final class MaterialsModel: ObservableObject {
                     self.fileRefreshQueue.discardPending()
                     self.fileMonitor.discardPendingRefreshes()
                 }
+                let cancelled = self.cancellationRequested
                 self.cancellationRequested = false
-                self.updateFileMonitoring(retryFailedFor: control.acquiredProviderSources)
+                let latest = FilePipeline.shared.observation
+                let currentOutcomes = outcomes.restricting(to: pipelineSources).completed
+                    .filter { latest.completed[$0.key]?.id == $0.value.id && $0.value.requestID == control.operationID }
+                let committed = FilePipeline.claimMonitorRegistrations(in: currentOutcomes, handled: &self.pipelineMonitorIDs)
+                let direct = control.acquiredProviderSources.subtracting(pipelineSources.map(\.rawValue))
+                self.updateFileMonitoring(retryFailedFor: committed.union(direct))
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
+                if stillRunning, !cancelled, completion == nil {
+                    self.pendingPipelineRequest = .init(id: control.operationID, sources: pipelineSources, successMessage: success)
+                    self.applyPipelineResult(latest)
+                    return
+                }
                 switch result {
                 case .success:
                     self.message = success

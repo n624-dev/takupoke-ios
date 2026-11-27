@@ -89,10 +89,11 @@ final class MaterialLibrary {
         state = next
     }
 
-    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
-        let attempt = AcquisitionAttempt(date: Date(), failure: message, cancelled: cancelled)
-        // Cancelling a retry leaves a failed first Changes import unresolved.
-        if kind == .changes, !attempt.failedToAcquire, state.record(for:kind) == nil,
+    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil,
+                       problem: AcquisitionProblem? = nil) throws {
+        let attempt = AcquisitionAttempt(date: Date(), failure: message, cancelled: cancelled, problem: problem)
+        // Cancelling a retry leaves the previous failed first import unresolved.
+        if kind != .events, !attempt.failedToAcquire, state.record(for:kind) == nil,
            state.attempts[kind.rawValue]?.failedToAcquire == true { return }
         var next = state
         next.attempts[kind.rawValue] = attempt

@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -23,13 +24,14 @@ final class SpecialSchedulesModel: ObservableObject {
     private(set) var scheduleAnalyses = [SpecialScheduleAnalysis]()
     private(set) var scheduleGeneration = UUID()
     @Published private(set) var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
+    @Published private(set) var acquisitionAttempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
     @Published private(set) var urls: [SpecialScheduleKind: URL] = [:]
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
     @Published private(set) var lastOperationUsedPipeline = false
-    private var messageOperationID: UUID?
+    private var pendingPipelineRequest: FilePipeline.Request?
     @Published private(set) var cancellationRequested = false
     @Published private(set) var lastOperationWasCancelled = false
     private(set) var rejectedRecoveryKinds = Set<SpecialScheduleKind>()
@@ -46,25 +48,31 @@ final class SpecialSchedulesModel: ObservableObject {
     var pendingManualRefresh = Set<SpecialScheduleKind>()
     private var pendingSelections = PendingFileSelections<SpecialScheduleKind, ScopedMaterialSelection>()
     @Published var fileRefreshQueue = FileRefreshQueue()
-    var pipelineTimer: Timer?
+    private var pipelineEvents: AnyCancellable?
+    private var pipelineObservation: FilePipeline.Observation?
+    private static let pipelineSources: Set<FileRefreshDiagnostics.Source> = [.exam, .examReturn]
     var pipelineMonitorIDs: [FileRefreshDiagnostics.Source: UUID] = [:]
-    var pipelineActive = Set<FileRefreshDiagnostics.Source>()
-    var pipelineSnapshot: [FileRefreshDiagnostics.Source: FilePipeline.Status] = [:]
     func observePipeline(_ foreground: Bool) {
-        pipelineTimer?.invalidate(); pipelineTimer = nil
-        guard foreground else { return }
-        pipelineTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                let snapshot = FilePipeline.shared.snapshot
-                let active = FilePipeline.shared.activeSources
-                if snapshot != self.pipelineSnapshot || active != self.pipelineActive {
-                    self.pipelineSnapshot = snapshot; self.pipelineActive = active; self.objectWillChange.send()
-                    self.reloadPipelineProjection()
-                    self.runPendingSelection(); self.runPendingFileRefresh()
-                }
+        guard foreground else { pipelineEvents = nil; pipelineObservation = nil; return }
+        if pipelineEvents == nil {
+            pipelineEvents = NotificationCenter.default.publisher(for: .filePipelineChanged).sink { [weak self] change in
+                guard (change.object as? FilePipeline) === FilePipeline.shared else { return }
+                Task { @MainActor [weak self] in self?.applyPipelineObservation() }
             }
         }
+        applyPipelineObservation()
+    }
+
+    private func applyPipelineObservation() {
+        guard pipelineEvents != nil, !retired else { return }
+        let current = FilePipeline.shared.observation.restricting(to: Self.pipelineSources)
+        let previous = pipelineObservation
+        guard current != previous else { return }
+        pipelineObservation = current
+        objectWillChange.send()
+        if current.completed != previous?.completed { reloadPipelineProjection() }
+        runPendingSelection()
+        runPendingFileRefresh()
     }
     lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
         guard self?.cancellationRequested == false else { return }
@@ -72,12 +80,28 @@ final class SpecialSchedulesModel: ObservableObject {
         self?.runPendingFileRefresh()
     }
 
+    private func applyPipelineResult(_ observation: FilePipeline.Observation) {
+        guard !busy, let request = pendingPipelineRequest,
+              let result = observation.result(for: request.id, sources: request.sources) else { return }
+        pendingPipelineRequest = nil
+        switch result {
+        case .succeeded: message = request.successMessage
+        case .cancelled:
+            lastOperationWasCancelled = true
+            message = MaterialError.cancelled.localizedDescription
+        case .failed(let explanation):
+            failed = true
+            message = explanation
+        }
+    }
+
     func reloadPipelineProjection() {
         guard ready, !retired, let store else { return }
         let capturedGeneration = generation
         queue.async {
-            let outcomes = FilePipeline.shared.snapshot.filter { ["exam", "examReturn"].contains($0.key.rawValue) }
+            let outcomes = FilePipeline.shared.observation.restricting(to: [.exam, .examReturn]).completed
             let projection = store.displayableRecords(), sources = store.sources
+            let acquisitionAttempts = store.acquisitionAttempts
             let evidence = store.pipelineEvidence
             let urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                 store.selectedURL(for: kind).map { (kind, $0) }
@@ -86,21 +110,13 @@ final class SpecialSchedulesModel: ObservableObject {
                 guard !self.retired, self.generation == capturedGeneration else { return }
                 self.records = projection.records; self.rejectedRecoveryKinds = projection.rejected
                 self.sources = sources; self.urls = urls
+                self.acquisitionAttempts = acquisitionAttempts
 
-                let latest = FilePipeline.shared.snapshot
-                let acquired = Set<String>(outcomes.compactMap { key, value -> String? in
-                    guard value.canRetryMonitorRegistration, latest[key]?.id == value.id,
-                          self.pipelineMonitorIDs[key] != value.id else { return nil }
-                    self.pipelineMonitorIDs[key] = value.id
-                    return key.rawValue
-                })
+                let latest = FilePipeline.shared.observation
+                let currentOutcomes = outcomes.filter { latest.completed[$0.key]?.id == $0.value.id }
+                let acquired = FilePipeline.claimMonitorRegistrations(in: currentOutcomes, handled: &self.pipelineMonitorIDs)
                 self.updateFileMonitoring(retryFailedFor: acquired)
-                if !self.busy, let request = self.messageOperationID {
-                    let current = outcomes.values.filter { $0.requestID == request }
-                    if current.contains(where: { $0.attempt > 0 }), current.allSatisfy({ $0.stage == .succeeded || $0.stage == .unchanged }) {
-                        self.failed = false; self.message = nil; self.lastOperationWasCancelled = false; self.messageOperationID = nil
-                    }
-                }
+                self.applyPipelineResult(latest)
                 for kind in SpecialScheduleKind.allCases {
                     if let value = evidence[kind], value.storedName == sources[kind]?.storedName, value.digest == sources[kind]?.digest {
                         self.fullReadReports[kind] = value.report
@@ -115,7 +131,8 @@ final class SpecialSchedulesModel: ObservableObject {
     }
 
     var availability: SpecialScheduleAvailability {
-        SpecialScheduleAvailability(ready: ready, busy: busy, failed: failed, sources: sources, records: records)
+        SpecialScheduleAvailability(ready: ready, busy: busy, failed: failed, sources: sources, records: records,
+                                    acquisitionAttempts: acquisitionAttempts)
     }
 
     func loadIfNeeded() {
@@ -160,6 +177,7 @@ final class SpecialSchedulesModel: ObservableObject {
             }
         }
         store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]; returnPositionsReport = nil
+        acquisitionAttempts = [:]
         ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
@@ -194,7 +212,7 @@ final class SpecialSchedulesModel: ObservableObject {
             lastOperationWasCancelled = true
             failed = false
             message = MaterialError.cancelled.localizedDescription
-            messageOperationID = nil
+            pendingPipelineRequest = nil
         }
     }
 
@@ -238,7 +256,7 @@ final class SpecialSchedulesModel: ObservableObject {
         let operationGeneration = generation
         let control = AcquisitionControl(intents: FilePipeline.shared.intentSnapshot)
         self.control = control
-        messageOperationID = control.operationID
+        pendingPipelineRequest = nil
         lastOperationUsedPipeline = false
         let existingStore = store
         let ownerQueue = queue
@@ -258,10 +276,16 @@ final class SpecialSchedulesModel: ObservableObject {
             }
             let projection = capture.store?.displayableRecords()
             let frozenSources = capture.store?.sources ?? [:]
+            let frozenAcquisitionAttempts = capture.store?.acquisitionAttempts ?? [:]
             let frozenURLs = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                 capture.store?.selectedURL(for: kind).map { (kind, $0) }
             })
             let usedPipeline = control.usedPipeline
+            let pipelineSources = control.pipelineSources
+            let outcomes = FilePipeline.shared.observation
+            let stillRunning = pipelineSources.contains {
+                outcomes.statuses[$0]?.requestID == control.operationID && outcomes.activeSources.contains($0)
+            }
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.busy = false
@@ -271,6 +295,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     self.fileRefreshQueue.discardPending()
                     self.fileMonitor.discardPendingRefreshes()
                 }
+                let cancelled = self.cancellationRequested
                 self.cancellationRequested = false
                 self.returnPositionsReport = capture.positionsReport
                 if let kind { self.fullReadReports[kind] = capture.report }
@@ -279,6 +304,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     self.records = projection?.records ?? [:]
                     self.rejectedRecoveryKinds = projection?.rejected ?? []
                     self.sources = frozenSources
+                    self.acquisitionAttempts = frozenAcquisitionAttempts
                     self.urls = frozenURLs
                     self.ready = true
                     if let kind, let pages = capture.recoveryPages, let source = frozenSources[kind],
@@ -286,8 +312,18 @@ final class SpecialSchedulesModel: ObservableObject {
                         self.recoveryCaptures[kind] = (source.storedName, pages)
                     }
                 }
-                self.updateFileMonitoring(retryFailedFor: control.acquiredProviderSources)
+                let latest = FilePipeline.shared.observation
+                let currentOutcomes = outcomes.restricting(to: pipelineSources).completed
+                    .filter { latest.completed[$0.key]?.id == $0.value.id && $0.value.requestID == control.operationID }
+                let committed = FilePipeline.claimMonitorRegistrations(in: currentOutcomes, handled: &self.pipelineMonitorIDs)
+                let direct = control.acquiredProviderSources.subtracting(pipelineSources.map(\.rawValue))
+                self.updateFileMonitoring(retryFailedFor: committed.union(direct))
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
+                if stillRunning, !cancelled, completion == nil {
+                    self.pendingPipelineRequest = .init(id: control.operationID, sources: pipelineSources, successMessage: success)
+                    self.applyPipelineResult(latest)
+                    return
+                }
                 switch result {
                 case .success:
                     self.message = success
