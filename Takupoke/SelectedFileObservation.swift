@@ -11,10 +11,13 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
     private let resolve: () throws -> (url: URL, scope: URL?)
     private let changed: () -> Void
     private let registered: (Bool) -> Void
+    private let registrationEnded: () -> Void
     private let diagnosticSource: FileRefreshDiagnostics.Source?
 
-    init(source: SelectedFileSource, registered: @escaping (Bool) -> Void = { _ in }, changed: @escaping () -> Void) {
+    init(source: SelectedFileSource, registered: @escaping (Bool) -> Void = { _ in },
+         registrationEnded: @escaping () -> Void = {}, changed: @escaping () -> Void) {
         self.changed = changed; self.registered = registered
+        self.registrationEnded = registrationEnded
         diagnosticSource = .init(rawValue: source.id)
         resolve = {
             guard let bookmark = source.bookmark else { throw MaterialError.accessExpired }
@@ -33,16 +36,23 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
     }
 
     // Local-file injection exercises the real coordination lifecycle in host tests.
-    init(resolve: @escaping () throws -> (url: URL, scope: URL?), registered: @escaping (Bool) -> Void = { _ in }, changed: @escaping () -> Void) {
+    init(resolve: @escaping () throws -> (url: URL, scope: URL?), registered: @escaping (Bool) -> Void = { _ in },
+         registrationEnded: @escaping () -> Void = {}, changed: @escaping () -> Void) {
         self.resolve = resolve
         self.changed = changed; self.registered = registered
+        self.registrationEnded = registrationEnded
         diagnosticSource = nil
     }
 
     func start(requestInitialRefresh: Bool = true) {
         DispatchQueue.global(qos: .utility).async { [self] in
+            // Stop invalidates publication immediately. The worker is still
+            // owned until the real resolver/coordinate call has returned.
+            defer { registrationEnded() }
+            guard isActive else { return }
             do {
                 let target = try resolve()
+                guard isActive else { return }
                 if let scope = target.scope {
                     guard scope.startAccessingSecurityScopedResource() else { throw MaterialError.accessExpired }
                 }
@@ -89,6 +99,8 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
             }
         }
     }
+
+    private var isActive: Bool { lock.withLock { !stopped } }
 
     private func notifyIfActive() {
         lock.lock()

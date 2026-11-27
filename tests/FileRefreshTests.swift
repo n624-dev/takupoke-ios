@@ -685,6 +685,35 @@ final class FileRefreshTests: XCTestCase {
     }
 
 #if canImport(Darwin)
+    func testMonitorRegistrationRemainsOwnedUntilAStoppedResolverReturns() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: file) }
+        try Data("fictional PDF storage".utf8).write(to: file)
+        let started = expectation(description: "actual resolver entered")
+        let ended = expectation(description: "actual worker finished")
+        let obsolete = expectation(description: "stopped registration is never published")
+        obsolete.isInverted = true
+        let gate = DispatchSemaphore(value: 0)
+        let lock = NSLock()
+        var completed = false
+        let observation = SelectedFileObservation(resolve: {
+            started.fulfill()
+            guard gate.wait(timeout: .now() + 5) == .success else { throw MaterialError.unavailable }
+            return (file, nil)
+        }, registered: { _ in obsolete.fulfill() }, registrationEnded: {
+            lock.withLock { completed = true }
+            ended.fulfill()
+        }, changed: { obsolete.fulfill() })
+        observation.start()
+        wait(for: [started], timeout: 2)
+        observation.stop()
+        XCTAssertFalse(lock.withLock { completed })
+        gate.signal()
+        wait(for: [ended, obsolete], timeout: 1)
+        XCTAssertTrue(lock.withLock { completed })
+        XCTAssertFalse(NSFileCoordinator.filePresenters.contains { $0.presentedItemURL == file })
+    }
+
     @MainActor
     func testFailedRegistrationRetriesSameSourceWithoutInitialRefreshAndRejectsLateCallbacks() async throws {
         final class Fake: SelectedFileObserving {
