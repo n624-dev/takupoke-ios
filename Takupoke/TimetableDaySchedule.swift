@@ -340,12 +340,22 @@ extension TimetableDaySchedule {
 
     /// Missing input must not be presented as a confirmed day without lessons.
     func missingMessages(on day: SchoolDate, className: String) -> [String] {
-        let plan = sourceIndex.plan(on:day)
-        var messages: [String] = plan.weekdayOverrideWarning.map { [$0] } ?? []
+        let warning = sourceIndex.plan(on: day).weekdayOverrideWarning.map { [$0] } ?? []
+        return warning + missingDocuments(on: day, className: className).map(\.message)
+    }
+
+    enum RequiredDocument: Hashable {
+        case timetable
+        case special(SpecialScheduleKind)
+    }
+
+    func missingDocuments(on day: SchoolDate, className: String) -> [(document: RequiredDocument, message: String)] {
+        let plan = sourceIndex.plan(on: day)
+        var missing: [(document: RequiredDocument, message: String)] = []
         for kind in SpecialScheduleKind.allCases {
             let expected = kind == .exam ? plan.apiTest : plan.apiTestReturn
             if expected && !specials.contains(where: { $0.kind == kind && $0.applies(date: day.iso8601, className: className) }) {
-                messages.append("\(kind.title)：未公開または未解析です")
+                missing.append((.special(kind), "\(kind.title)：未公開または未解析です"))
             }
         }
         let hasSpecial = specials.contains { $0.applies(date: day.iso8601, className: className) }
@@ -353,13 +363,13 @@ extension TimetableDaySchedule {
             if let timetable {
                 if let range = TimetableSchedule.termRange(for: timetable) {
                     if !range.contains(day) {
-                        messages.append("今日に適用できる通常時間割がありません。")
+                        missing.append((.timetable, "今日に適用できる通常時間割がありません。"))
                     } else if !timetable.lessons.contains(where: { $0.className == className }) {
-                        messages.append("このクラスの通常時間割がありません。")
+                        missing.append((.timetable, "このクラスの通常時間割がありません。"))
                     }
-                } else { messages.append("通常時間割の学期を確認できません。再解析してください。") }
-            } else { messages.append("通常時間割の解析結果がありません。") }
+                } else { missing.append((.timetable, "通常時間割の学期を確認できません。再解析してください。")) }
+            } else { missing.append((.timetable, "通常時間割の解析結果がありません。")) }
         }
-        return messages
+        return missing
     }
 }

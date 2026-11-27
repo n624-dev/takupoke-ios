@@ -51,6 +51,42 @@ final class StatusPresentationTests: XCTestCase {
         XCTAssertEqual(StatusPresentation.summary([]).tone, .unknown)
     }
 
+    func testUsingOnlyConfirmedDataReachesGreenAndNamesAffectedData() {
+        let confirmed: [(title: String, state: DataUpdateState)] = [("リンク一覧", .confirmed), ("試験時間割", .unused)]
+        let ready = StatusPresentation.dataSummary(confirmed)
+        XCTAssertEqual(ready.title, "更新確認済み")
+        XCTAssertEqual(ready.tone, .good)
+        let pending = StatusPresentation.dataSummary(confirmed + [("名称データ", .unconfirmed)])
+        XCTAssertEqual(pending.title, "名称データの更新が未確認")
+        XCTAssertEqual(pending.tone, .unknown)
+        XCTAssertEqual(StatusPresentation.dataSummary([("試験時間割", .unused)]).title, "データを設定してください")
+        let failedFirstFetch = DataUpdateState.withoutLocalData(checking: false, failed: true)
+        XCTAssertEqual(StatusPresentation.dataSummary(confirmed + [("学校行事", failedFirstFetch)]).tone, .unavailable)
+        XCTAssertEqual(StatusPresentation.dataSummary(confirmed + [("授業時刻", .updateAvailable)]).title, "授業時刻に更新があります")
+        let waiting = StatusPresentation.dataSummary(confirmed + [("学校行事", .updateWaiting)])
+        XCTAssertEqual(waiting.title, "更新待ち")
+        XCTAssertTrue(waiting.detail?.contains("学校行事") == true)
+        XCTAssertEqual(StatusPresentation.dataSummary(confirmed + [("通常時間割", .unavailable), ("名称データ", .failed)]).tone, .unavailable)
+    }
+
+    func testSavedFileNeedsAnActualCheckAndKeepsItAcrossCancellation() {
+        let date = Date(timeIntervalSince1970: 200)
+        let name = "fictional.xlsx"
+        let digest = "fictional-digest"
+        var state = MaterialLibraryState()
+        state.records = [MaterialRecord(kind: .changes, source: .init(), originalName: name, storedName: name,
+                                        byteCount: 1, digest: digest, acquiredAt: date)]
+        state.changeAnalysis = .init(sourceDigest: digest, sourceName: name, defaultYear: 2032, parsedAt: date, records: [])
+        func updateState() -> DataUpdateState { FileStatusPresentation.material(state, kind: .changes, year: 2032).updateState }
+        XCTAssertEqual(updateState(), .unconfirmed)
+        state.records[0].lastCheckedAt = date.addingTimeInterval(60)
+        XCTAssertEqual(updateState(), .confirmed)
+        state.attempts["changes"] = .init(date: date.addingTimeInterval(120), failure: MaterialError.cancelled.localizedDescription)
+        XCTAssertEqual(updateState(), .confirmed)
+        state.attempts["changes"] = .init(date: date.addingTimeInterval(180), failure: MaterialError.accessExpired.localizedDescription)
+        XCTAssertEqual(updateState(), .failed)
+    }
+
     func testAccountAcquisitionDoesNotAssertLatestOrAuthentication() {
         let acquired = StatusPresentation.downloaded(acquired: true, updateAvailable: false, failed: false, busy: false)
         XCTAssertEqual(acquired.title, "保存済み・更新未確認")

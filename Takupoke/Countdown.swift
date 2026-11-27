@@ -371,7 +371,7 @@ struct CountdownLibrary: Codable, Equatable {
 }
 
 enum CountdownAvailability: Equatable {
-    case available, loading, missingYear, missingEvent, sourcePending, sourceDifference
+    case available, loading, missingYear, missingEvent, sourcePending, sourceChecking, sourceCheckFailed, sourceDifference
     case noClass, noExam, noDocument, notAnalysed, analysisFailed, expired, previousResult
     case changesUnavailable, changesUnconfirmed
 
@@ -381,8 +381,10 @@ enum CountdownAvailability: Equatable {
         case .loading: return "資料を確認中"
         case .missingYear: return "行事ID付きの学校行事を取得してください。"
         case .missingEvent: return "元の行事を確認できません。対象を選び直してください。"
-        case .sourcePending: return "原本の状態を確認中です。通知は保留しています。"
-        case .sourceDifference: return "原本の内容確認待ちです。保存済み日程を表示しています。"
+        case .sourcePending: return "保存済みの版は元PDFとの一致が未確認です。通知は保留しています。"
+        case .sourceChecking: return "元PDFとの一致を確認中です。通知は保留しています。"
+        case .sourceCheckFailed: return "元PDFとの一致を確認できませんでした。通知は保留しています。"
+        case .sourceDifference: return "保存済みの版と元PDFに差異があります。通知は保留しています。"
         case .noClass: return "時間割でクラスを選択してください。"
         case .noExam: return "保存済みの資料に該当する試験がありません。"
         case .noDocument: return "試験時間割は未取得です。"
@@ -396,7 +398,7 @@ enum CountdownAvailability: Equatable {
     }
     var allowsNotification: Bool { self == .available || self == .previousResult }
     var presentsDatesOnHome: Bool {
-        self == .available || self == .sourcePending || self == .sourceDifference ||
+        self == .available || self == .sourcePending || self == .sourceChecking || self == .sourceCheckFailed || self == .sourceDifference ||
             self == .previousResult || self == .changesUnconfirmed
     }
 

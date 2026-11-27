@@ -427,6 +427,10 @@ extension ApplicationChecks {
         _ = visible(entry, navigation: "設定")
         entry.tap()
         screen("ステータス")
+        let summary = app.descendants(matching: .any)["status-data-summary"]
+        let confirmed = NSPredicate(format: "label CONTAINS %@", "更新確認済み")
+        let aggregateConfirmed = XCTNSPredicateExpectation(predicate: confirmed, object: summary)
+        XCTAssertEqual(XCTWaiter.wait(for: [aggregateConfirmed], timeout: 10), .completed)
         _ = heading("配信データ")
         let links = app.buttons["status-links"]
         _ = visible(links, navigation: "ステータス")
@@ -458,7 +462,8 @@ extension ApplicationChecks {
         _ = heading("この端末")
         _ = visible(app.buttons["更新確認の記録をコピー"], navigation: "ステータス")
         back(to: "設定")
-        XCTAssertTrue(app.buttons["settings-status"].exists)
+        XCTAssertTrue(entry.exists)
+        XCTAssertTrue(confirmed.evaluate(with: entry))
     }
 
     func testEmptyDataCanBeConfigured() {
