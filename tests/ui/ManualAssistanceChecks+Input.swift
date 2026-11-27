@@ -52,7 +52,23 @@ extension ManualAssistanceChecks {
         print("TAKUPOKE-MANUAL-INPUT id=\(id);state=\(detail)")
     }
     func tapSubmit() {
-        visible(submit,knownID:"manual-submit",buttonLabel:"訂正箇所と前回からの変更を確認").tap()
+        let appFrame = app.frame
+        var observed: ManualButtonObservation?
+        _ = visible(submit, knownID: "manual-submit", buttonLabel: "訂正箇所と前回からの変更を確認") {
+            observed = $0
+        }
+        guard let observed, ManualScrollNavigation.usable(appFrame), appFrame.contains(observed.frame),
+              app.state == .runningForeground else {
+            XCTFail("The manual submit button must be visible on the active recovery screen"); return
+        }
+        let center = CGPoint(x: observed.frame.midX, y: observed.frame.midY)
+        print("TAKUPOKE-MANUAL-SUBMIT frame=\(observed.frame);viewport=\(observed.viewport);duration=0.1")
+        do {
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Manual correction submission")
+        } catch {
+            XCTFail("Native correction submission contact failed: \(error)")
+        }
     }
     func assertSubmitEnabled(_ expected:Bool) {
         let button=visible(submit,knownID:"manual-submit")

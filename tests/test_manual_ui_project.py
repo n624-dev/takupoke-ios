@@ -215,6 +215,17 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('preview=\\(coordinator.preview != nil)',state)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-coordinator-state")'),1)
 
+    def test_manual_submit_sends_one_contact_to_the_observed_button(self):
+        source = manual_check_source()
+        submit = source.split("    func tapSubmit()", 1)[1].split("    func assertSubmitEnabled", 1)[0]
+        self.assertIn('knownID: "manual-submit", buttonLabel: "訂正箇所と前回からの変更を確認"', submit)
+        self.assertIn("appFrame.contains(observed.frame)", submit)
+        self.assertIn("app.state == .runningForeground", submit)
+        self.assertIn("CGPoint(x: observed.frame.midX, y: observed.frame.midY)", submit)
+        self.assertEqual(submit.count("NativeTestContacts.send("), 1)
+        self.assertIn("start: center, end: center, duration: 0.1, pauseAfterLift: 0", submit)
+        self.assertNotIn(".tap()", submit)
+
     def test_comparable_prior_defers_actual_builder_until_qa_window_exists(self):
         fixture=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
         seed=fixture.split('    static func seed(',1)[1].split('    private static func seedInput()',1)[0]

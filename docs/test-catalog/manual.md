@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`f0123ceba7638a6d34e654cb2b37eb40070517488796b09954f2f9a3d2356eff`
+`42b8b2829df276b114ac78b6833d855595399a58ef6e1eb36a5eb15280c48c50`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -121,6 +121,7 @@ bash tools/test-manual-ui.sh
 - `test_coordinator_preserves_actual_submit_adopt_and_source_guards`
 - `test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate`
 - `test_review_readiness_measures_actual_coordinator_state`
+- `test_manual_submit_sends_one_contact_to_the_observed_button`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
 - `test_existing_app_generator_raster_anchor_matches_current_acquisition`

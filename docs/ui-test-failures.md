@@ -17,6 +17,9 @@
 - 最初の訂正を送信し、製品ログは `manual-submit-accepted` と `manual-review-ready` を記録した。失敗時の画面には入力した本文、確認画面の見出し、`review=true;preview=false` の診断が存在した。`ManualAssistanceChecks+Review.swift:45` では、スコープ付きの検索結果をさらに `StaticText` に結び付け直す `label` 取得がXCTest内部で再試行し、20秒の待機が期限切れになった。iOS 27での画面外の候補探索とは別の段階。両ケースとも後続の採用と再起動までは未到達。
 - N173/N183のスコープ規則と、既存 `requireReview` の20秒境界を照合した。状態を読むだけの確認・プレビュー待機を共通化し、同じsnapshot上の `manual-observation` 直下の実状態を型・ID・一意性とともに読む。重複、別の画面の状態、型違い、遷移途中を架空境界で検査する。20秒上限、確認画面の本文・比較・採用不可の検査、採用を求めるプレビューの再照合完了条件、実接触と保存の検査を維持する。
 
+- 後続の `aa0fdc92b9956e8ab38adbc2544224803f8adf70`、[限定45988507976 試行1のiOS 26ジョブ140470113897](https://github.com/n624-dev/takupoke-ios/actions/runs/45988507976/job/140470113897) は12:18:05 UTCにfailure終端。同じケース240.087秒、SDK 27.2、終了65。今回はXCTestが `Tap` と `Synthesize event` まで記録したが、製品の送信アクション・確認画面到達の記録はなく、失敗画面にも入力とチェック済み行、青色の送信ボタンが残っていた。前回は確認画面へ到達済みだったため、同じassertで停止していても到達段階が異なる。送信操作が届かなかった下位理由は未確定。
+- 44633231836と44734888974で実枠取得後の操作・実配送を照合した。送信ボタンは専用ID・実ラベル・可視枠・有効・操作可能を確認した同じ観測から、画面座標上の中央へ時間指定の物理接触を一回送る。座標の固定、押し直し、期限延長は行わず、確認画面へ到達することを引き続き必須とする。
+
 ## #205 iOS 27の単項目訂正限定ジョブが失敗（2026-11-27）
 
 - `1bdb577e2779620aa76cccb61b420ef22dd53e27`、[限定45983942933・試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/attempts/1) の [iOS 27ジョブ140454629266](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/job/140454629266)、要求iOS 27.0・SDK27.2。`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。11:02:29 UTCにfailure終端。失敗段階・原因はログ照合前で未確定。iOS 26ジョブは継続する。

@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`f0e30a97631892e39e177659586e9654e7282f29b30939e207d292c49af83e2f`
+`45b12b5ec39d368fd59f3841e7e2975553d97d83991a3a5279f6735c807d64b6`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -219,6 +219,7 @@ bash tools/test-app-ui.sh
 - `test_coordinator_preserves_actual_submit_adopt_and_source_guards`
 - `test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate`
 - `test_review_readiness_measures_actual_coordinator_state`
+- `test_manual_submit_sends_one_contact_to_the_observed_button`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
 - `test_existing_app_generator_raster_anchor_matches_current_acquisition`
