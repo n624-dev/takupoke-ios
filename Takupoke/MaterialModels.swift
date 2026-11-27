@@ -211,4 +211,5 @@ protocol MaterialLibraryPersistence: AnyObject {
     func save(_ state: MaterialLibraryState) throws
     func saveAcquisition(_ record: MaterialRecord, replacing previous: MaterialRecord, attempt: AcquisitionAttempt, moveToEnd: Bool) throws
     func retainedStoredNames() throws -> Set<String>
+    func storedNameForAnalysis(_ kind: MaterialKind, digest: String) throws -> String?
 }

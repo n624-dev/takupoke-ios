@@ -172,6 +172,28 @@ extension LocalMaterialDatabase {
         generation = expected + 1
     }
 
+    func storedNameForAnalysis(_ kind: MaterialKind, digest: String) throws -> String? {
+        guard let expected = generation else { throw StoreError.staleState }
+        return try queue.read { db in
+            guard try Int64.fetchOne(db, sql: "SELECT generation FROM currentLibrary WHERE id = 1") == expected else {
+                throw StoreError.staleState
+            }
+            guard let row = try Row.fetchOne(db, sql: """
+                SELECT o.record, o.digest, o.storedName FROM currentAnalysis c
+                JOIN analysis a ON a.id = c.analysisID AND a.kind = c.kind
+                JOIN original o ON o.id = a.originalID AND o.kind = a.kind
+                WHERE c.kind = ?
+                """, arguments: [kind.rawValue]), let payload: Data = row["record"] else { return nil }
+            let original = try Self.decode(MaterialRecord.self, payload)
+            guard original.kind == kind, original.digest == digest, row["digest"] as String == digest,
+                  row["storedName"] as String == original.storedName else { throw StoreError.invalidDatabase }
+            var validation = MaterialLibraryState()
+            validation.records = [original]
+            _ = try MaterialLibrary.decodeLegacyManifest(Self.encode(validation))
+            return original.storedName
+        }
+    }
+
     func retainedStoredNames() throws -> Set<String> {
         try queue.read { db in
             // Validate names before letting them influence the file collector.

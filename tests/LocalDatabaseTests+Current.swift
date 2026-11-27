@@ -4,6 +4,30 @@ import GRDB
 @testable import TakupokeParsing
 
 extension LocalDatabaseTests {
+    func testAnalysisPDFURLUsesTheOriginalActuallyReferencedByTheSavedAnalysis() throws {
+        let example = try fixture()
+        let (db, library) = try runtimeStore()
+        defer { try? db.close() }
+        try acquire(library, kind: .timetable)
+        let prior = try XCTUnwrap(library.localURL(for: .timetable))
+        XCTAssertNil(library.analysisPDFURL(for: .timetable))
+        let analysis = try XCTUnwrap(example.pdfAnalyses?["timetable"])
+        try library.savePDFAnalysis(analysis)
+        XCTAssertEqual(library.analysisPDFURL(for: .timetable), prior)
+
+        try acquire(library, kind: .timetable, suffix: "fictional-new-original")
+        try library.recordPDFFailure(PDFParseError(code: .ambiguous), kind: .timetable)
+        let latest = try XCTUnwrap(library.localURL(for: .timetable))
+        XCTAssertNotEqual(latest, prior)
+        XCTAssertEqual(library.analysisPDFURL(for: .timetable), prior)
+        let reopened = try LocalMaterialDatabase(url: runtime.appendingPathComponent("library.sqlite"))
+        defer { try? reopened.close() }
+        let restored = try MaterialLibrary(root: runtime, persistence: reopened)
+        XCTAssertEqual(restored.analysisPDFURL(for: .timetable), prior)
+        XCTAssertEqual(restored.localURL(for: .timetable), latest)
+        XCTAssertNotEqual(try Data(contentsOf: prior), try Data(contentsOf: latest))
+    }
+
     func testUnchangedAcquisitionOnlyReadsItsMetadataAndKeepsRollbackAndGenerationChecks() throws {
         let example = try fixture()
         let (db, library) = try runtimeStore()

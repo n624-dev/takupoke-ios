@@ -398,7 +398,7 @@ final class SpecialScheduleStore {
         let manager = FileManager.default
         let keep = Set(records.values.map(\.storedName) + sources.values.map(\.storedName))
         for file in try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil) where !keep.contains(file.lastPathComponent) {
-            try manager.removeItem(at: file)
+            try SavedPDFLease.retire(file)
         }
         for file in try manager.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil) {
             try manager.removeItem(at: file)

@@ -26,8 +26,8 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | 対象 | 宣言数 | 検証する環境 |
 |---|---:|---|
 | [時間割変更・曜日・行除外・原文保持](test-catalog/xlsx.md) | 78 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [原本取得・更新・保存・File Provider](test-catalog/material.md) | 77 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [ローカルDB・移行・半期削除](test-catalog/database.md) | 44 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [原本取得・更新・保存・File Provider](test-catalog/material.md) | 78 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [ローカルDB・移行・半期削除](test-catalog/database.md) | 45 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [日本時間・学校年度・日付表示](test-catalog/date.md) | 9 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [リンク・検索・設定保持](test-catalog/links.md) | 31 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [名称対応・パッケージ・認証取得](test-catalog/mapping.md) | 68 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |

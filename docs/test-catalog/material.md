@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`31c7f99a6e33ecd9661915d7e942acb51dba332ede156914eb875b1cfb119d18`
+`8ee725b4f306cc6abd8ee53c080375bf2fdb4b57bb301270f8390bce3a287789`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -13,6 +13,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 ## 変更時に確認するソース
 
 - [Takupoke/FileRefreshDiagnostics.swift](../../Takupoke/FileRefreshDiagnostics.swift)
+- [Takupoke/SavedPDFLease.swift](../../Takupoke/SavedPDFLease.swift)
 - [Takupoke/MaterialAccess.swift](../../Takupoke/MaterialAccess.swift)
 - [Takupoke/MaterialLibrary+Analysis.swift](../../Takupoke/MaterialLibrary+Analysis.swift)
 - [Takupoke/MaterialLibrary+Validation.swift](../../Takupoke/MaterialLibrary+Validation.swift)
@@ -43,6 +44,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 
 ## [tests/FileRefreshTests.swift](../../tests/FileRefreshTests.swift)
 
+- `testSavedPDFLeasesHoldExactOriginalUntilTheLastViewerCloses`
 - `testPipelineStageDeadlinesProgressOverallAndCommitFence`
 - `testUnresponsivePipelineExpiresWithoutPublishingAndOtherFilesContinue`
 - `testTransientRetriesStopAtTwoAndKeepOneCommitAndCleanup`

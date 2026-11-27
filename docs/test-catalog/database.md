@@ -1,7 +1,7 @@
 # ローカルDB・移行・半期削除
 
 対応関係・宣言名・実行方法のSHA-256：
-`bf7a8a2748686e9be4dae446b97ea554de6329576a4dc764a6be146cba7bd539`
+`900a2a06cee25d40e3c1e6755fd6e40cb60e518ebfb1d09d91a92843880697f0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -23,6 +23,7 @@ bash tools/test-parsing.sh
 
 ## [tests/LocalDatabaseTests+Current.swift](../../tests/LocalDatabaseTests+Current.swift)
 
+- `testAnalysisPDFURLUsesTheOriginalActuallyReferencedByTheSavedAnalysis`
 - `testUnchangedAcquisitionOnlyReadsItsMetadataAndKeepsRollbackAndGenerationChecks`
 - `testUnchangedPipelineCommitsOnlyAcquisitionMetadataOnTheLiveDatabase`
 - `testCancellingTimetableReanalysisKeepsTheSameOriginalRecoveryJob`

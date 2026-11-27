@@ -3,6 +3,31 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    func testSavedPDFLeasesHoldExactOriginalUntilTheLastViewerCloses() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = root.appendingPathComponent("fictional-original.pdf")
+        let replacement = root.appendingPathComponent("fictional-replacement.pdf")
+        let bytes = Data("%PDF-fictional-original".utf8)
+        try bytes.write(to: original)
+        try Data("%PDF-fictional-replacement".utf8).write(to: replacement)
+        var first = SavedPDFLease.open(original), second = SavedPDFLease.open(original)
+        XCTAssertEqual(first?.url, original.standardizedFileURL)
+        XCTAssertEqual(second?.url, original.standardizedFileURL)
+
+        try SavedPDFLease.retire(original)
+        try SavedPDFLease.retire(original) // A collector can observe the same file again.
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(first?.url)), bytes)
+        XCTAssertNil(SavedPDFLease.open(original))
+        XCTAssertNotNil(SavedPDFLease.open(replacement))
+        first = nil
+        XCTAssertTrue(FileManager.default.fileExists(atPath: original.path))
+        second = nil
+        XCTAssertFalse(FileManager.default.fileExists(atPath: original.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: replacement.path))
+    }
+
     private final class PipelineClock: @unchecked Sendable {
         let lock = NSLock()
         private var tick: TimeInterval = 0

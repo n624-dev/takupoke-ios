@@ -74,7 +74,7 @@ extension SpecialScheduleStore {
             let retired = oldNames.subtracting(Set(sources.values.map(\.storedName) + records.values.map(\.storedName)))
             let directory = files
             DispatchQueue.global(qos: .utility).async {
-                for name in retired { try? FileManager.default.removeItem(at: directory.appendingPathComponent(name)) }
+                for name in retired { try? SavedPDFLease.retire(directory.appendingPathComponent(name)) }
             }
         } catch {
             for url in imported { try? FileManager.default.removeItem(at: url) }

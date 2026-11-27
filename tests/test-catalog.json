@@ -51,6 +51,7 @@
       ],
       "sources": [
         "Takupoke/FileRefreshDiagnostics.swift",
+        "Takupoke/SavedPDFLease.swift",
         "Takupoke/MaterialAccess.swift",
         "Takupoke/MaterialLibrary+Analysis.swift",
         "Takupoke/MaterialLibrary+Validation.swift",

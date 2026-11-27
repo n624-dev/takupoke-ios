@@ -38,7 +38,7 @@ struct PDFAnalysisView: View {
     let kind: MaterialKind
     @AppStorage("pdfAnalysisSelectedClass") private var selectedClass = ""
     @AppStorage("pdfAnalysisSelectedWeekday") private var selectedWeekday = 0
-    @State private var showingSource = false
+    @State private var sourceLease: SavedPDFLease?
     @State private var showingRecovery = false
     @State private var copiedDiagnostic: String?
     @State private var fileRequest: FileSelectionRequest?
@@ -52,6 +52,9 @@ struct PDFAnalysisView: View {
             (selectedWeekday == 0 || $0.weekday == selectedWeekday) }
     }
     private let weekdays = ["すべて", "月", "火", "水", "木", "金"]
+    private var selectedPDF: URL? { model.pdfURLs[kind.rawValue] }
+    private var analysisPDF: URL? { model.analysisPDFURLs[kind.rawValue] }
+    private var separateAnalysisPDF: Bool { analysisPDF != nil && analysisPDF != selectedPDF }
 
     var body: some View {
         List {
@@ -111,8 +114,9 @@ struct PDFAnalysisView: View {
                     .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
                 Button("同じファイルを再取得") { model.refresh(kind) }
                     .disabled(model.busy || !model.ready || model.state.record(for: kind) == nil)
-                Button("保存済みのPDFを見る") { showingSource = true }
-                    .disabled(model.pdfURLs[kind.rawValue] == nil || model.busy)
+                Button(separateAnalysisPDF ? "選択中のPDFを見る" : "保存済みのPDFを見る") {
+                    sourceLease = selectedPDF.flatMap(SavedPDFLease.open)
+                }.disabled(!model.ready || selectedPDF == nil)
                 Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .material(kind)) }
                     .disabled(model.busy || !model.ready)
                     .accessibilityLabel("\(kind.title)のファイルを選び直す")
@@ -124,6 +128,11 @@ struct PDFAnalysisView: View {
                     if let term = analysis.term { LabeledContent("学期", value: term) }
                     LabeledContent("最終解析成功") { Text(analysis.parsedAt, format: JapaneseDateDisplay.timestamp) }
                     LabeledContent("件数", value: "\(analysis.lessons.count + analysis.events.count)件")
+                    if separateAnalysisPDF {
+                        Button("この解析結果の元PDFを見る") {
+                            sourceLease = analysisPDF.flatMap(SavedPDFLease.open)
+                        }.disabled(!model.ready)
+                    }
                     if analysis.version < 3 {
                         InlineWarning("旧版の解析結果には文字順の誤りが含まれる場合があります。保存済みPDFを再解析してください。")
                     } else if analysis.sourceDigest != model.state.record(for: kind)?.digest || analysis.version != PDFAnalysis.currentVersion(for: kind) {
@@ -202,9 +211,8 @@ struct PDFAnalysisView: View {
         }
         .onChange(of: model.busy) { busy in if busy { copiedDiagnostic = nil } }
         .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:.timetable) }
-        .sheet(isPresented: $showingSource) {
-            if let url = model.pdfURLs[kind.rawValue] { SavedPDFView(url: url, title: kind.title) }
-        }
+        .sheet(item: $sourceLease) { lease in SavedPDFView(url: lease.url, title: kind.title) }
+        .onChange(of: model.ready) { ready in if !ready { sourceLease = nil } }
         .background(
             MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,
                 type: { $0.type }, instruction: { $0.instruction },

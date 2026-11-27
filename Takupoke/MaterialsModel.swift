@@ -21,6 +21,7 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var lastOperationWasCancelled = false
     @Published private(set) var changePreview: ChangePreview?
     @Published private(set) var pdfURLs: [String: URL] = [:]
+    @Published private(set) var analysisPDFURLs: [String: URL] = [:]
     @Published private(set) var timetableReadReport: String?
     @Published private(set) var timetableFailure: PDFParseError?
     private var changeFailureContext: (identity: String, digest: String, year: Int)?
@@ -108,9 +109,11 @@ final class MaterialsModel: ObservableObject {
             let urls = Dictionary(uniqueKeysWithValues: [MaterialKind.timetable, .events].compactMap { kind in
                 library.localURL(for: kind).map { (kind.rawValue, $0) }
             })
+            let analysisURLs = Self.analysisPDFURLs(in: library, visible: display.state)
             DispatchQueue.main.async {
                 guard !self.retired, self.generation == capturedGeneration else { return }
                 self.state = display.state; self.rejectedRecoveryKinds = display.rejected; self.pdfURLs = urls
+                self.analysisPDFURLs = analysisURLs
                 self.timetableReadReport = report; self.timetableFailure = failure
 
                 let latest = FilePipeline.shared.observation
@@ -317,7 +320,7 @@ final class MaterialsModel: ObservableObject {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        state = MaterialLibraryState(); pdfURLs = [:]; changePreview = nil
+        state = MaterialLibraryState(); pdfURLs = [:]; analysisPDFURLs = [:]; changePreview = nil
         timetableReadReport = nil; timetableFailure = nil
         ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
@@ -419,6 +422,9 @@ final class MaterialsModel: ObservableObject {
             let timetableFailure = worker.timetableFailure
             var pdfURLs: [String: URL] = [:]
             for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
+            let analysisURLs = worker.library.flatMap { library in
+                snapshot.map { Self.analysisPDFURLs(in: library, visible: $0) }
+            } ?? [:]
             let usedPipeline = control.usedPipeline
             let pipelineSources = control.pipelineSources
             let outcomes = FilePipeline.shared.observation
@@ -431,6 +437,7 @@ final class MaterialsModel: ObservableObject {
                 if let snapshot = snapshot { self.state = snapshot }
                 self.rejectedRecoveryKinds = display?.rejected ?? []
                 self.pdfURLs = pdfURLs
+                self.analysisPDFURLs = analysisURLs
                 self.timetableReadReport = timetableReport
                 self.timetableFailure = timetableFailure
                 self.busy = false
@@ -470,6 +477,13 @@ final class MaterialsModel: ObservableObject {
                 if case .success = result { completion?(true) } else { completion?(false) }
             }
         }
+    }
+
+    nonisolated private static func analysisPDFURLs(in library: MaterialLibrary, visible state: MaterialLibraryState) -> [String: URL] {
+        Dictionary(uniqueKeysWithValues: [MaterialKind.timetable, .events].compactMap { kind in
+            guard state.pdfAnalyses?[kind.rawValue] != nil else { return nil }
+            return library.analysisPDFURL(for: kind).map { (kind.rawValue, $0) }
+        })
     }
 }
 

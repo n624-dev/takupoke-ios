@@ -207,6 +207,17 @@ final class MaterialLibrary {
         state.record(for: kind).map { files.appendingPathComponent($0.storedName) }
     }
 
+    func analysisPDFURL(for kind: MaterialKind) -> URL? {
+        guard let digest = state.pdfAnalyses?[kind.rawValue]?.sourceDigest else { return nil }
+        if let persistence {
+            guard let name = try? persistence.storedNameForAnalysis(kind, digest: digest) else { return nil }
+            let url = files.appendingPathComponent(name)
+            return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        }
+        guard state.record(for: kind)?.digest == digest else { return nil }
+        return localURL(for: kind)
+    }
+
 
     func retirePipelineFiles(_ names: Set<String>) {
         guard !names.isEmpty, let database = persistence as? LocalMaterialDatabase else { return }
@@ -215,7 +226,7 @@ final class MaterialLibrary {
             // GRDB serializes this read. Failure conservatively retains originals.
             guard let keep = try? database.retainedStoredNames() else { return }
             for name in names where !keep.contains(name) {
-                try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
+                try? SavedPDFLease.retire(directory.appendingPathComponent(name))
             }
         }
     }
@@ -228,7 +239,7 @@ final class MaterialLibrary {
         }
         for url in try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil)
             where !keep.contains(url.lastPathComponent) {
-            try manager.removeItem(at: url)
+            try SavedPDFLease.retire(url)
         }
     }
 }

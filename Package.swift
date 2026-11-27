@@ -101,7 +101,7 @@ let package = Package(
                     "ChangeAnalysis.swift",
                     "XLSXReader.swift", "ChangeWorkbookEditor.swift", "XLSXReader+Worksheet.swift",
                     "BoundedXML.swift",
-                    "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift",
+                    "MaterialLibrary.swift", "MaterialLibrary+Analysis.swift", "SavedPDFLease.swift",
                     "MaterialModels.swift", "WebPDFDownloader.swift",
                     "SelectedFileSource.swift",
                     "FileRefreshDiagnostics.swift", "MaterialFileReader.swift", "FilePipeline.swift", "PipelineWorkspace.swift", "MaterialLibrary+Pipeline.swift", "SpecialScheduleStore+Pipeline.swift",

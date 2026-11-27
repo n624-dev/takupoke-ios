@@ -26,6 +26,7 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
     @Published private(set) var acquisitionAttempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
     @Published private(set) var urls: [SpecialScheduleKind: URL] = [:]
+    @Published private(set) var analysisPDFURLs: [SpecialScheduleKind: URL] = [:]
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var message: String?
@@ -112,10 +113,12 @@ final class SpecialSchedulesModel: ObservableObject {
             let urls = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                 store.selectedURL(for: kind).map { (kind, $0) }
             })
+            let analysisURLs = Self.analysisPDFURLs(in: store, visible: projection.records)
             DispatchQueue.main.async {
                 guard !self.retired, self.generation == capturedGeneration else { return }
                 self.records = projection.records; self.rejectedRecoveryKinds = projection.rejected
                 self.sources = sources; self.urls = urls
+                self.analysisPDFURLs = analysisURLs
                 self.acquisitionAttempts = acquisitionAttempts
 
                 let latest = FilePipeline.shared.observation
@@ -184,7 +187,8 @@ final class SpecialSchedulesModel: ObservableObject {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; fullReadReports = [:]; returnPositionsReport = nil
+        store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; analysisPDFURLs = [:]
+        fullReadReports = [:]; returnPositionsReport = nil
         acquisitionAttempts = [:]
         ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
@@ -290,6 +294,9 @@ final class SpecialSchedulesModel: ObservableObject {
             let frozenURLs = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.compactMap { kind in
                 capture.store?.selectedURL(for: kind).map { (kind, $0) }
             })
+            let analysisURLs = capture.store.flatMap { store in
+                projection.map { Self.analysisPDFURLs(in: store, visible: $0.records) }
+            } ?? [:]
             let usedPipeline = control.usedPipeline
             let pipelineSources = control.pipelineSources
             let outcomes = FilePipeline.shared.observation
@@ -316,6 +323,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     self.sources = frozenSources
                     self.acquisitionAttempts = frozenAcquisitionAttempts
                     self.urls = frozenURLs
+                    self.analysisPDFURLs = analysisURLs
                     self.ready = true
                     if let kind, let pages = capture.recoveryPages, let source = frozenSources[kind],
                        capture.evidenceStoredName == source.storedName, capture.evidenceDigest == source.digest {
@@ -349,6 +357,13 @@ final class SpecialSchedulesModel: ObservableObject {
                 if case .success = result { completion?(true) } else { completion?(false) }
             }
         }
+    }
+
+    nonisolated private static func analysisPDFURLs(in store: SpecialScheduleStore,
+                                                    visible records: [SpecialScheduleKind: SpecialScheduleRecord]) -> [SpecialScheduleKind: URL] {
+        Dictionary(uniqueKeysWithValues: records.keys.compactMap { kind in
+            store.savedURL(for: kind).map { (kind, $0) }
+        })
     }
 
 }
