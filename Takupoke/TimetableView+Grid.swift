@@ -1,3 +1,4 @@
+import Observation
 import SwiftUI
 import UIKit
 import UIKit.UIGestureRecognizerSubclass
@@ -324,7 +325,7 @@ private struct WeekPagesCanvas: View {
     let pages: [WeekPage]
     let selection: TimetableWeekSelection
     let viewportWidth: CGFloat
-    @ObservedObject var motion: WeekPageMotion
+    let motion: WeekPageMotion
 
     var body: some View {
         let selection = self.selection.date
@@ -411,8 +412,8 @@ final class WeekPullProgress: ObservableObject {
     }
 }
 
-@MainActor
-private final class WeekPageMotion: NSObject, ObservableObject {
+@MainActor @Observable
+private final class WeekPageMotion: NSObject {
     struct Transition {
         let id = UUID()
         let source: SchoolDate
@@ -430,8 +431,8 @@ private final class WeekPageMotion: NSObject, ObservableObject {
             self.value = value; self.probe = probe
         }
     }
-    @Published private(set) var transition: Transition?
-    @Published private(set) var reservedHeight: CGFloat?
+    private(set) var transition: Transition?
+    private(set) var reservedHeight: CGFloat?
     let preparation = WeekPagePreparation()
     var selection: SchoolDate?
     var bounds: ClosedRange<SchoolDate>?
@@ -600,13 +601,16 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         guard let value = transition else { adjustHeight(link); return }
         let duration = reduceMotion ? 0.15 : 0.25
         let elapsed = slideClock.progress(timestamp: link.timestamp, target: link.targetTimestamp, duration: duration)
+        if elapsed == 1 {
+            // Promotion already presents the final offset and opacity. Emit one
+            // visual change for landing instead of also publishing a slide frame.
+            slideClock = WeekSlideClock()
+            settle(id: value.id)
+            return
+        }
         let progress = CGFloat(elapsed + elapsed * (1 - elapsed) / 2)
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition?.slideProgress = progress }
-        if elapsed == 1 {
-            slideClock = WeekSlideClock()
-            settle(id: value.id)
-        }
     }
     private func settle(id: UUID) {
         guard let value = transition, value.id == id else { return }
@@ -701,7 +705,9 @@ private final class WeekPageMotion: NSObject, ObservableObject {
 }
 
 private struct WeekFooterHandoff: ViewModifier {
-    @ObservedObject var motion: WeekPageMotion
+    // The footer only reads horizontal motion. Height-only frames need no new
+    // footer body evaluation for any of the prepared weeks.
+    let motion: WeekPageMotion
     let week: SchoolDate
     func body(content: Content) -> some View {
         // Only the grid was rubber-banding. Start the footer at its own
