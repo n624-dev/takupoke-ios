@@ -190,7 +190,8 @@ enum FictionalServerError: Error { case unexpected }
             self.skipTest("Swift required to execute the actual update notice settings and worker")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         methods = "\n".join(block(source, name) for name in (
-            "func setEnabled(", "func disableNotifications(", "func finishDeferredNotificationRemovals(",
+            "func setEnabled(", "func applyPreference(", "func confirmAuthorization()",
+            "func disableNotifications(", "func finishDeferredNotificationRemovals(",
             "func clearDisabledNotifications(", "func removeUpdateNotifications(", "func drainPending()"))
         declarations = "\n".join(line for line in source.splitlines()
             if "static let updateIdentifiers" in line or "static let notificationStopPending" in line)
@@ -702,6 +703,65 @@ REMOVE
     "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices(")).replace(
     "RECONCILE", block(source, "private func reconcile(_ plan:")).replace(
     "REPORT", block(source, "private func reportUnconfirmedNotices("))
+        self.run_probe(compiler, program)
+
+    def test_setup_uses_one_actual_permission_result_for_both_notification_types(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production setup permission owner")
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        methods = "\n".join(block(source, name) for name in (
+            "func enableFromSetup()", "func applyPreference(", "func confirmAuthorization()"))
+        program = r'''import Foundation
+@MainActor final class UserDefaults {
+    static let standard = UserDefaults()
+    var values = [String:Bool]()
+    func set(_ value: Bool, forKey key: String) { values[key] = value }
+    func bool(forKey key: String) -> Bool { values[key] == true }
+}
+@MainActor final class Schedule {
+    let center = Center()
+    var changesEnabled = false, specialsEnabled = false, requestingPermission = false
+    var message: String?, permissionMessage: String?
+    var lastAppliedPermissionSequence = 0, permissionReadSequence = 0
+    final class Center {
+        var requests = 0
+        var callback: CheckedContinuation<Bool, any Error>?
+    }
+    static func requestAuthorization(from center: Center) async throws -> Bool {
+        center.requests += 1
+        return try await withCheckedThrowingContinuation { center.callback = $0 }
+    }
+METHODS
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        for answer: Result<Bool,CocoaError> in [.success(true), .success(false), .failure(CocoaError(.fileReadUnknown))] {
+            UserDefaults.standard.values = [:]
+            let schedule = Schedule()
+            let first = Task { await schedule.enableFromSetup() }
+            let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+            while schedule.center.callback == nil {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            await schedule.enableFromSetup()
+            precondition(schedule.center.requests == 1 && schedule.requestingPermission)
+            precondition(!schedule.changesEnabled && !schedule.specialsEnabled && UserDefaults.standard.values.isEmpty)
+            guard let callback = schedule.center.callback else { preconditionFailure() }
+            schedule.center.callback = nil
+            callback.resume(with: answer.mapError { $0 as any Error })
+            await first.value
+            let granted = (try? answer.get()) == true
+            precondition(schedule.changesEnabled == granted && schedule.specialsEnabled == granted)
+            precondition(!schedule.requestingPermission && schedule.center.requests == 1)
+            precondition((schedule.permissionMessage == nil) == granted)
+            precondition(UserDefaults.standard.bool(forKey:"notificationsSetupCompleted"))
+            await schedule.enableFromSetup()
+            precondition(schedule.center.requests == 1)
+        }
+    }
+}
+'''.replace("METHODS", methods)
         self.run_probe(compiler, program)
 
     def test_explicit_countdown_authorization_starts_without_a_settings_read(self):

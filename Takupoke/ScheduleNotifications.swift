@@ -65,17 +65,13 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         if value {
             requestingPermission = true
             defer { requestingPermission = false }
-            do {
-                guard try await Self.requestAuthorization(from: center) else {
-                    lastAppliedPermissionSequence = permissionReadSequence
-                    permissionMessage = "iPhoneの設定で通知を許可してください。"
-                    return
-                }
-            } catch {
-                permissionMessage = "通知の許可を確認できませんでした。"
-                return
-            }
+            guard await confirmAuthorization() else { return }
         }
+        applyPreference(changes: changes, value: value)
+        if !value { await disableNotifications(changes: changes) }
+    }
+
+    private func applyPreference(changes: Bool, value: Bool) {
         if changes {
             changesEnabled = value
             UserDefaults.standard.set(value, forKey: "notifyScheduleChanges")
@@ -91,7 +87,6 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             lastAppliedPermissionSequence = permissionReadSequence
             permissionMessage = nil
         }
-        if !value { await disableNotifications(changes:changes) }
     }
 
     private func disableNotifications(changes: Bool) async {
@@ -148,10 +143,28 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func enableFromSetup() async {
-        guard !UserDefaults.standard.bool(forKey: "notificationsSetupCompleted") else { return }
-        await setEnabled(changes: true, value: true)
-        if changesEnabled { await setEnabled(changes: false, value: true) }
+        guard !requestingPermission, !UserDefaults.standard.bool(forKey: "notificationsSetupCompleted") else { return }
+        requestingPermission = true
+        defer { requestingPermission = false }
+        if await confirmAuthorization() {
+            applyPreference(changes: true, value: true)
+            applyPreference(changes: false, value: true)
+        }
         UserDefaults.standard.set(true, forKey: "notificationsSetupCompleted")
+    }
+
+    private func confirmAuthorization() async -> Bool {
+        do {
+            guard try await Self.requestAuthorization(from: center) else {
+                lastAppliedPermissionSequence = permissionReadSequence
+                permissionMessage = "iPhoneの設定で通知を許可してください。"
+                return false
+            }
+            return true
+        } catch {
+            permissionMessage = "通知の許可を確認できませんでした。"
+            return false
+        }
     }
 
     func checkPermission() async {
