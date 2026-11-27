@@ -42,6 +42,7 @@ final class MaterialsModel: ObservableObject {
     private var control: AcquisitionControl?
     private var backgroundRefreshID: UUID?
     var pendingManualRefresh = Set<MaterialKind>()
+    var pendingManualChecks = Set<MaterialKind>()
     private var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
     @Published var fileRefreshQueue = FileRefreshQueue()
     private var pipelineEvents: AnyCancellable?
@@ -70,11 +71,16 @@ final class MaterialsModel: ObservableObject {
         runPendingSelection()
         runPendingFileRefresh()
     }
-    lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+    lazy var fileMonitor = SelectedFileMonitor(registrationChanged: { [weak self] in
+        guard let self, !self.retired else { return }
+        self.objectWillChange.send()
+        self.runPendingSelection()
+        self.runPendingFileRefresh()
+    }, changed: { [weak self] id in
         guard self?.cancellationRequested == false else { return }
         self?.fileRefreshQueue.request(id)
         self?.runPendingFileRefresh()
-    }
+    })
 
     private func applyPipelineResult(_ observation: FilePipeline.Observation) {
         guard !busy, let request = pendingPipelineRequest,
@@ -130,7 +136,7 @@ final class MaterialsModel: ObservableObject {
 
     private func runPendingSelection() {
         while !retired, let selected = pendingSelections.take(busy: busy, blocked: { kind in
-            FilePipeline.shared.isRecovering(kind.rawValue)
+            FilePipeline.shared.isRecovering(kind.rawValue) || fileMonitor.isRegistering(kind.rawValue)
         }) {
             let (kind, url) = selected
             guard acceptsChangeYear(kind) else { continue }
@@ -143,14 +149,18 @@ final class MaterialsModel: ObservableObject {
             }
             return
         }
-        if !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) }) {
+        if !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) && !fileMonitor.isRegistering($0.rawValue) }) {
             pendingManualRefresh.remove(kind); refresh(kind)
+        } else if !busy, let kind = pendingManualChecks.first(where: { !fileMonitor.isRegistering($0.rawValue) }) {
+            pendingManualChecks.remove(kind); checkForUpdates(kind)
         }
     }
 
     func refresh(_ kind: MaterialKind) {
         guard !retired else { return }
-        if busy || FilePipeline.shared.isRecovering(kind.rawValue) { pendingManualRefresh.insert(kind); return }
+        if busy || FilePipeline.shared.isRecovering(kind.rawValue) || fileMonitor.isRegistering(kind.rawValue) {
+            pendingManualRefresh.insert(kind); return
+        }
         guard acceptsChangeYear(kind) else { return }
         let year = automaticChangeSchoolYear
         perform(success: "\(kind.title)を再取得して解析しました。") { worker, control in
@@ -335,6 +345,7 @@ final class MaterialsModel: ObservableObject {
         fileMonitor.discardPendingRefreshes()
         pendingSelections.clear()
         pendingManualRefresh.removeAll()
+        pendingManualChecks.removeAll()
         FilePipeline.shared.cancel([.timetable, .changes])
         control?.cancel()
         if busy {
@@ -349,6 +360,7 @@ final class MaterialsModel: ObservableObject {
 
     func refreshInBackground() async -> Bool {
         guard !fileRefreshQueue.suspended, !busy, !retired, !Task.isCancelled else { return false }
+        let blocked = fileMonitor.blockedSources
         let id = UUID()
         backgroundRefreshID = id
         let year = automaticChangeSchoolYear
@@ -363,7 +375,7 @@ final class MaterialsModel: ObservableObject {
                     try worker.open()
                     let requested = Set([MaterialKind.timetable, .changes].compactMap { kind in
                         worker.library?.state.record(for: kind)?.source.grant == nil ? nil : kind.rawValue
-                    })
+                    }).subtracting(blocked)
                     try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control, reason: .background)
                 }
             }

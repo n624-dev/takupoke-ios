@@ -57,6 +57,7 @@ extension SpecialSchedulesModel {
     }
 
     func fileStatus(_ kind: SpecialScheduleKind) -> StatusPresentation {
+        if let status = fileMonitor.timeoutStatus(kind.rawValue) { return status }
         if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue),
            let running = FilePipeline.shared.snapshot[source], running.stage != .succeeded && running.stage != .unchanged {
             return running.presentation
@@ -72,6 +73,7 @@ extension MaterialsModel {
     }
 
     func fileStatus(_ kind: MaterialKind) -> StatusPresentation {
+        if let status = fileMonitor.timeoutStatus(kind.rawValue) { return status }
         if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue),
            let running = FilePipeline.shared.snapshot[source], running.stage != .succeeded && running.stage != .unchanged {
             return running.presentation

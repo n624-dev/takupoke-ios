@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`12aebd69903ae8555f3b24c19059c7bd0a1b364400838e355ccadbb4a9531df3`
+`2fc53845e71079a84d9074d4e062169242a70bf880212039ce82539365b36b39`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -83,6 +83,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 - `testRepeatedAttributeNotificationsDoNotRestartRefresh`
 - `testReplacementAndUnsupportedVersionsStillGetHashChecked`
 - `testFailedRegistrationRetriesSameSourceWithoutInitialRefreshAndRejectsLateCallbacks`
+- `testRegistrationTimeoutKeepsOnlyItsWorkerOwnedAndDiscardsLateCallbacks`
 - `testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit`
 - `testFailedReadDoesNotAcknowledgeUnreadVersion`
 - `testCopiedVersionRemainsObservableUntilCommittedAndCannotHideNewerBytes`

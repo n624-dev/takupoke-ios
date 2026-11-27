@@ -46,6 +46,7 @@ final class SpecialSchedulesModel: ObservableObject {
     private var control: AcquisitionControl?
     private var backgroundRefreshID: UUID?
     var pendingManualRefresh = Set<SpecialScheduleKind>()
+    var pendingManualChecks = Set<SpecialScheduleKind>()
     private var pendingSelections = PendingFileSelections<SpecialScheduleKind, ScopedMaterialSelection>()
     @Published var fileRefreshQueue = FileRefreshQueue()
     private var pipelineEvents: AnyCancellable?
@@ -74,11 +75,16 @@ final class SpecialSchedulesModel: ObservableObject {
         runPendingSelection()
         runPendingFileRefresh()
     }
-    lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+    lazy var fileMonitor = SelectedFileMonitor(registrationChanged: { [weak self] in
+        guard let self, !self.retired else { return }
+        self.objectWillChange.send()
+        self.runPendingSelection()
+        self.runPendingFileRefresh()
+    }, changed: { [weak self] id in
         guard self?.cancellationRequested == false else { return }
         self?.fileRefreshQueue.request(id)
         self?.runPendingFileRefresh()
-    }
+    })
 
     private func applyPipelineResult(_ observation: FilePipeline.Observation) {
         guard !busy, let request = pendingPipelineRequest,
@@ -149,10 +155,12 @@ final class SpecialSchedulesModel: ObservableObject {
 
     private func runPendingSelection() {
         guard !retired, let selected = pendingSelections.take(busy: busy, blocked: { kind in
-            FilePipeline.shared.isRecovering(kind.rawValue)
+            FilePipeline.shared.isRecovering(kind.rawValue) || fileMonitor.isRegistering(kind.rawValue)
         }) else {
-            if !retired, !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) }) {
+            if !retired, !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) && !fileMonitor.isRegistering($0.rawValue) }) {
                 pendingManualRefresh.remove(kind); refresh(kind)
+            } else if !retired, !busy, let kind = pendingManualChecks.first(where: { !fileMonitor.isRegistering($0.rawValue) }) {
+                pendingManualChecks.remove(kind); checkForUpdates(kind)
             }
             return
         }
@@ -204,6 +212,7 @@ final class SpecialSchedulesModel: ObservableObject {
         fileMonitor.discardPendingRefreshes()
         pendingSelections.clear()
         pendingManualRefresh.removeAll()
+        pendingManualChecks.removeAll()
         FilePipeline.shared.cancel([.exam, .examReturn])
         control?.cancel()
         if busy {
@@ -218,6 +227,7 @@ final class SpecialSchedulesModel: ObservableObject {
 
     func refreshInBackground() async -> Bool {
         guard !fileRefreshQueue.suspended, !busy, !retired, !Task.isCancelled else { return false }
+        let blocked = fileMonitor.blockedSources
         let id = UUID()
         backgroundRefreshID = id
         let result = await withTaskCancellationHandler {
@@ -229,7 +239,7 @@ final class SpecialSchedulesModel: ObservableObject {
                     try control.check()
                     let requested = Set(SpecialScheduleKind.allCases.compactMap { kind in
                         store.sources[kind]?.grant == nil ? nil : kind.rawValue
-                    })
+                    }).subtracting(blocked)
                     try Self.refreshSelectedFiles(store, requested: requested, control: control, reason: .background)
                 }
             }

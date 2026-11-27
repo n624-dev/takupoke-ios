@@ -5,7 +5,7 @@ final class FileRefreshDiagnostics: @unchecked Sendable {
     enum Source: String, Codable, CaseIterable { case timetable, changes, exam, examReturn }
     enum Step: String, Codable {
         case foreground, background, observationStart, observationStop
-        case registrationComplete, registrationFailure, initialRefresh
+        case registrationComplete, registrationFailure, registrationTimedOut, initialRefresh
         case providerChange, providerMove, providerDelete
         case metadataUnavailable, metadataChanged, metadataUnchanged
         case coordinatorMatched, coordinatorUnmatched, scheduled, delivered

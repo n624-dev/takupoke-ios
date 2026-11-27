@@ -3,7 +3,7 @@ import SwiftUI
 
 extension SpecialSchedulesModel {
     func runPendingFileRefresh() {
-        let requested = fileRefreshQueue.take(ready: ready, busy: busy, blocked: Set(FilePipeline.shared.activeSources.map(\.rawValue)))
+        let requested = fileRefreshQueue.take(ready: ready, busy: busy, blocked: Set(FilePipeline.shared.activeSources.map(\.rawValue)).union(fileMonitor.blockedSources))
         guard !requested.isEmpty else { return }
         perform(success: nil) { store, control, _ in
             try Self.refreshSelectedFiles(store, requested: requested, control: control)

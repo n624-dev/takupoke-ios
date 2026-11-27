@@ -839,20 +839,20 @@ final class FileRefreshTests: XCTestCase {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        var observations: [Fake] = []; var callbacks: [(Bool) -> Void] = []
-        let monitor = SelectedFileMonitor(changed: { _ in XCTFail("Unexpected refresh") }, factory: { _, _, registered in
-            let fake = Fake(); observations.append(fake); callbacks.append(registered); return fake
+        var observations: [Fake] = []; var callbacks: [(Bool) -> Void] = []; var completed: [() -> Void] = []
+        let monitor = SelectedFileMonitor(changed: { _ in XCTFail("Unexpected refresh") }, factory: { _, _, registered, ended in
+            let fake = Fake(); observations.append(fake); callbacks.append(registered); completed.append(ended); return fake
         })
         let source = SelectedFileSource(id: "changes", grant: SourceGrant(bookmark: Data([1]), name: "fictional.xlsx", isFolder: false))
         monitor.update([source]); monitor.setForeground(true)
         XCTAssertEqual(observations.count, 1)
         monitor.update([source]); XCTAssertEqual(observations.count, 1)
-        callbacks[0](false); await drainCallbacks()
+        callbacks[0](false); completed[0](); await drainCallbacks()
         monitor.update([source]); XCTAssertEqual(observations.count, 1)
         monitor.update([source], retryFailedFor: ["timetable"]); XCTAssertEqual(observations.count, 1)
         monitor.update([source], retryFailedFor: ["changes"])
         XCTAssertEqual(observations.count, 2); XCTAssertEqual(observations[1].starts, [false])
-        callbacks[1](true); await drainCallbacks()
+        callbacks[1](true); completed[1](); await drainCallbacks()
         monitor.update([source], retryFailedFor: ["changes"]); XCTAssertEqual(observations.count, 2)
         callbacks[0](false); await drainCallbacks()
         XCTAssertEqual(monitor.registrations["changes"], .registered)
@@ -861,6 +861,64 @@ final class FileRefreshTests: XCTestCase {
         monitor.update([source], retryFailedFor: ["changes"]); XCTAssertEqual(observations.count, 2)
         monitor.setForeground(true); XCTAssertEqual(observations.count, 3)
         monitor.setForeground(false)
+    }
+
+    @MainActor
+    func testRegistrationTimeoutKeepsOnlyItsWorkerOwnedAndDiscardsLateCallbacks() async throws {
+        final class Fake: SelectedFileObserving {
+            var stops = 0
+            func start(requestInitialRefresh: Bool) {}
+            func stop() { stops += 1 }
+            func refreshCompleted() {}
+        }
+        struct Observation {
+            let worker: Fake
+            let changed: () -> Void
+            let registered: (Bool) -> Void
+            let ended: () -> Void
+        }
+        var observers: [String: [Observation]] = [:]
+        var deadlines: [String: CheckedContinuation<Void, Never>] = [:]
+        var requests: [String] = []
+        let monitor = SelectedFileMonitor(waitForRegistration: { id in
+            await withCheckedContinuation { deadlines[id] = $0 }
+        }, changed: { requests.append($0) }, factory: { source, changed, registered, ended in
+            let worker = Fake()
+            observers[source.id, default: []].append(.init(worker: worker, changed: changed, registered: registered, ended: ended))
+            return worker
+        })
+        let changes = SelectedFileSource(id: "changes", grant: SourceGrant(bookmark: Data([1]), name: "fictional.xlsx", isFolder: false))
+        let timetable = SelectedFileSource(id: "timetable", grant: SourceGrant(bookmark: Data([2]), name: "fictional.pdf", isFolder: false))
+        monitor.setForeground(true)
+        monitor.update([changes, timetable])
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while deadlines.count < 2, ContinuousClock.now < deadline { await Task.yield() }
+        defer {
+            monitor.setForeground(false)
+            deadlines.values.forEach { $0.resume() }
+        }
+        let slow = try XCTUnwrap(observers["changes"]?.first)
+        let available = try XCTUnwrap(observers["timetable"]?.first)
+        try XCTUnwrap(deadlines.removeValue(forKey: "changes")).resume()
+        available.registered(true); available.ended()
+        while (monitor.registrations["changes"] != .timedOut || monitor.isRegistering("timetable")),
+              ContinuousClock.now < deadline { await Task.yield() }
+        XCTAssertEqual(monitor.blockedSources, ["changes"])
+        XCTAssertEqual(monitor.registrations["changes"], .timedOut)
+        XCTAssertEqual(monitor.registrations["timetable"], .registered)
+        XCTAssertEqual(slow.worker.stops, 1)
+        XCTAssertEqual(monitor.timeoutStatus("changes")?.title, "監視登録が期限切れ・終了待ち")
+
+        slow.registered(true); slow.changed()
+        await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
+        XCTAssertEqual(monitor.registrations["changes"], .timedOut)
+        XCTAssertTrue(requests.isEmpty)
+        slow.ended()
+        while monitor.isRegistering("changes"), ContinuousClock.now < deadline { await Task.yield() }
+        XCTAssertTrue(monitor.blockedSources.isEmpty)
+        XCTAssertEqual(monitor.timeoutStatus("changes")?.title, "監視登録が期限切れ")
+        XCTAssertEqual(requests, ["changes"])
+        XCTAssertEqual(observers["timetable"]?.count, 1)
     }
 
     func testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit() throws {
@@ -983,7 +1041,7 @@ final class FileRefreshTests: XCTestCase {
     @MainActor
     func testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork() async throws {
         var calls: [String] = []
-        let monitor = SelectedFileMonitor { calls.append($0) }
+        let monitor = SelectedFileMonitor(changed: { calls.append($0) })
         monitor.update([SelectedFileSource(id: "exam", grant: nil)])
         monitor.setForeground(true)
         monitor.suspend()
@@ -1001,7 +1059,7 @@ final class FileRefreshTests: XCTestCase {
     @MainActor
     func testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop() async throws {
         var calls: [String] = []
-        let monitor = SelectedFileMonitor { calls.append($0) }
+        let monitor = SelectedFileMonitor(changed: { calls.append($0) })
         let source = SelectedFileSource(id: "exam", grant: nil)
         monitor.update([source])
         monitor.setForeground(true)
@@ -1020,7 +1078,7 @@ final class FileRefreshTests: XCTestCase {
     @MainActor
     func testBackgroundAndReselectionInvalidatePendingCallbacks() async throws {
         var calls: [String] = []
-        let monitor = SelectedFileMonitor { calls.append($0) }
+        let monitor = SelectedFileMonitor(changed: { calls.append($0) })
         monitor.setForeground(true)
         monitor.update([SelectedFileSource(id: "exam", grant: nil)])
         monitor.setForeground(false)
