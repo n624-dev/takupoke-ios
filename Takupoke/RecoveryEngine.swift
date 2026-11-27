@@ -156,7 +156,10 @@ enum RecoveryFailure: Error, Equatable {
     var canRetrySameInput: Bool { self == .providerRuntimeFailure || self == .adoptionStorageFailure }
 
     var canRestartRecovery: Bool {
-        self == .selectionChanged || self == .originalRevalidation || self == .cancelled
+        switch self {
+        case .selectionChanged, .originalRevalidation, .cancelled, .adoptionTargetChanged: return true
+        default: return false
+        }
     }
 
     var message: String {

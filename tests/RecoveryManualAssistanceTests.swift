@@ -414,6 +414,7 @@ extension PDFParsingTests {
         XCTAssertTrue(RecoveryFailure.originalRevalidation.canRestartRecovery)
         XCTAssertTrue(RecoveryFailure.selectionChanged.canRestartRecovery)
         XCTAssertTrue(RecoveryFailure.cancelled.canRestartRecovery)
+        XCTAssertTrue(RecoveryFailure.adoptionTargetChanged.canRestartRecovery)
         XCTAssertFalse(RecoveryFailure.processingLimit.canRestartRecovery)
     }
 
