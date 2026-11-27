@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`935898cb2390daf29377634aeea4938b6dcafc2c7fc5fb667dada6e518e9bb79`
+`0ccff720be49f4d42b5216aae1eef7d12a1adeb8c56107390ae326610301aff5`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -41,6 +41,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 
 - `test_both_countdown_edit_routes_typecheck_with_the_current_initializer`
 - `test_countdown_progress_fixture_uses_matching_confirmed_source_evidence`
+- `test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch`
 - `test_notification_navigation_can_reset_timetable_details_from_its_own_file`
 - `test_countdown_os_trace_adds_only_fixed_stage_observation`
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`

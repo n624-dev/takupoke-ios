@@ -234,12 +234,21 @@ extension ApplicationChecks {
         tapRowReviewApply(in: review)
         alert.buttons["反映する"].tap()
         let count = app.staticTexts["change-skipped-count"]
-        let status = app.descendants(matching: .any)["change-analysis-status"]
+        func requireCompletedAnalysis() {
+            var ambiguous = false
+            let completed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+                let statuses = nodes.filter { $0.identifier == "change-analysis-status" }
+                if statuses.count > 1 { ambiguous = true; return true }
+                guard let status = statuses.first else { return false }
+                return status.label.hasSuffix("解析済み") || (status.value as? String) == "解析済み"
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [completed], timeout: 15), .completed)
+            XCTAssertFalse(ambiguous, "The change analysis status must be unique")
+        }
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("103行"), count.label)
-        let initiallyParsed = expectation(for: NSPredicate(
-            format: "label ENDSWITH %@ OR value == %@", "解析済み", "解析済み"), evaluatedWith: status)
-        XCTAssertEqual(XCTWaiter.wait(for: [initiallyParsed], timeout: 15), .completed)
+        requireCompletedAnalysis()
         let ranges = app.staticTexts["change-skipped-rows"]
         XCTAssertTrue(ranges.waitForExistence(timeout:15))
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
@@ -250,9 +259,7 @@ extension ApplicationChecks {
         openChanges()
         XCTAssertTrue(count.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertTrue(count.label.contains("103行"), count.label)
-        let parsedAfterRelaunch = expectation(for: NSPredicate(
-            format: "label ENDSWITH %@ OR value == %@", "解析済み", "解析済み"), evaluatedWith: status)
-        XCTAssertEqual(XCTWaiter.wait(for: [parsedAfterRelaunch], timeout: 15), .completed)
+        requireCompletedAnalysis()
         XCTAssertTrue(ranges.waitForExistence(timeout:15))
         XCTAssertEqual(ranges.label,"除外した行：3〜4行目、200〜300行目")
         assertRetainedChangeRows(stage: "after-relaunch")

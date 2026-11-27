@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`420008b6a5592b7e9189267d63120891547761932634471625aabc540722114e`
+`3c572962243746806f5e966457482db27774a3c7296c302557226632647bf704`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -93,6 +93,7 @@ bash tools/test-app-ui.sh
 
 - `test_both_countdown_edit_routes_typecheck_with_the_current_initializer`
 - `test_countdown_progress_fixture_uses_matching_confirmed_source_evidence`
+- `test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch`
 - `test_notification_navigation_can_reset_timetable_details_from_its_own_file`
 - `test_countdown_os_trace_adds_only_fixed_stage_observation`
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`

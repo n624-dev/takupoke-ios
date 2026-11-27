@@ -90,6 +90,23 @@ CALLS
         self.assertEqual(menu.count('NativeTestContacts.send('), 1)
         self.assertLess(menu.index('NativeTestContacts.send('), menu.index('screen(destination)'))
 
+    def test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch(self):
+        source = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
+        check = block(source, "func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch()")
+        status = block(check, "func requireCompletedAnalysis()")
+        self.assertEqual(status.count("app.snapshot()"), 1)
+        self.assertIn('$0.identifier == "change-analysis-status"', status)
+        self.assertIn('statuses.count > 1 { ambiguous = true; return true }', status)
+        self.assertIn('XCTAssertFalse(ambiguous,', status)
+        self.assertIn('status.label.hasSuffix("解析済み") || (status.value as? String) == "解析済み"', status)
+        self.assertIn('timeout: 15), .completed', status)
+        before, after = check.split("launchReady()", 1)
+        for phase in (before[before.index('XCTAssertTrue(count.waitForExistence'):], after):
+            self.assertIn('requireCompletedAnalysis()', phase)
+            self.assertIn('count.label.contains("103行")', phase)
+            self.assertIn('除外した行：3〜4行目、200〜300行目', phase)
+            self.assertIn('assertRetainedChangeRows(stage:', phase)
+
     def test_notification_navigation_can_reset_timetable_details_from_its_own_file(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
