@@ -86,6 +86,10 @@ extension ManualAssistanceChecks {
         guard let list = lists.first, let bar = bars.first,
               ManualScrollNavigation.usable(list.frame), ManualScrollNavigation.usable(bar.frame),
               let children = snapshotNodes(in: list) else { return nil }
+        if let keyboard = keyboards.first, !ManualScrollNavigation.usable(keyboard.frame) {
+            XCTFail("A present keyboard must have finite positive geometry")
+            return nil
+        }
         let candidates = children.filter { $0.identifier == "manual-submit" }
         guard candidates.count <= 1 else {
             XCTFail("The visible recovery List must have a unique submit control")
@@ -98,7 +102,15 @@ extension ManualAssistanceChecks {
         let viewport = CGRect(x: list.frame.minX, y: top, width: list.frame.width, height: max(0, bottom - top))
         guard ManualScrollNavigation.usable(viewport), viewport.height > 36,
               ManualScrollNavigation.usable(root.frame), ManualScrollNavigation.usable(target.frame),
-              viewport.contains(target.frame), root.frame.contains(target.frame), submit.isHittable else { return nil }
+              viewport.contains(target.frame), root.frame.contains(target.frame) else { return nil }
+        let controls = recoveryList.buttons.matching(identifier: target.identifier).allElementsBoundByAccessibilityElement
+        guard controls.count <= 1 else {
+            XCTFail("The recovery submit Button must have one current native identity")
+            return nil
+        }
+        guard let control = controls.first, let bound = try? control.snapshot(),
+              bound.elementType == target.elementType, bound.identifier == target.identifier, bound.label == target.label,
+              bound.frame == target.frame, bound.isEnabled, control.isHittable else { return nil }
         appFrame = root.frame
         return .init(frame: target.frame, viewport: viewport, isSelected: target.isSelected)
     }

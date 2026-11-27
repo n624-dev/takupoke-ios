@@ -312,10 +312,15 @@ struct ManualScrollNavigation { static func usable(_ rect: CGRect) -> Bool { !re
 var failures = 0
 func XCTFail(_ reason: String) { failures += 1 }
 struct App { let root: Node; func snapshot() throws -> Node { root } }
-struct Control { var isHittable = true }
+struct Control { let node: Node; var isHittable = true; func snapshot() throws -> Node { node } }
+struct ControlQuery {
+    let allElementsBoundByAccessibilityElement: [Control]
+    func matching(identifier: String) -> ControlQuery { self }
+}
+struct List { let buttons: ControlQuery }
 struct Test {
     let app: App
-    var submit = Control()
+    let recoveryList: List
     func snapshotNodes(in root: Node) -> [Node]? { [root] + root.children.flatMap { snapshotNodes(in: $0) ?? [] } }
     func observed() -> ManualButtonObservation? {
         var appFrame = CGRect.null
@@ -328,23 +333,31 @@ HELPER
 let appFrame = CGRect(x: 0, y: 0, width: 393, height: 852)
 let button = Node(elementType: .button, identifier: "manual-submit", frame: .init(x: 16, y: 700, width: 360, height: 100),
                   label: "訂正箇所と前回からの変更を確認")
-func view(_ buttons: [Node], keyboard: Bool = false, hittable: Bool = true) -> Test {
+func view(_ buttons: [Node], keyboard: CGRect? = nil, hittable: Bool = true, moved: Bool = false) -> Test {
     let list = Node(elementType: .collectionView, identifier: "manual-recovery-list", frame: appFrame, children: buttons)
     let bar = Node(elementType: .navigationBar, identifier: "時間割の復旧", frame: .init(x: 0, y: 50, width: 393, height: 79))
-    let keys = Node(elementType: .keyboard, identifier: "fictional-keyboard", frame: .init(x: 0, y: 600, width: 393, height: 252))
-    return Test(app: App(root: Node(elementType: .application, identifier: "fictional", frame: appFrame,
-                                   children: keyboard ? [list, bar, keys] : [list, bar])), submit: .init(isHittable: hittable))
+    var screens = [list, bar]
+    if let keyboard { screens.append(Node(elementType: .keyboard, identifier: "fictional-keyboard", frame: keyboard)) }
+    let bound = buttons.map { button -> Control in
+        var node = button
+        if moved { node.frame = node.frame.offsetBy(dx: 0, dy: 5) }
+        return Control(node: node, isHittable: hittable)
+    }
+    return Test(app: App(root: Node(elementType: .application, identifier: "fictional", frame: appFrame, children: screens)),
+                recoveryList: List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: bound)))
 }
 precondition(view([button]).observed()?.frame == button.frame)
-precondition(view([button], keyboard: true).observed() == nil)
+precondition(view([button], keyboard: .init(x: 0, y: 600, width: 393, height: 252)).observed() == nil)
+precondition(view([button], keyboard: .init(x: 0, y: 850, width: 0, height: 0)).observed() == nil && failures == 1)
 precondition(view([button], hittable: false).observed() == nil)
+precondition(view([button], moved: true).observed() == nil)
 var disabled = button
 disabled.isEnabled = false
 precondition(view([disabled]).observed() == nil)
 disabled.isEnabled = true
 disabled.label = "架空の別操作"
 precondition(view([disabled]).observed() == nil)
-precondition(view([button, button]).observed() == nil && failures == 1)
+precondition(view([button, button]).observed() == nil && failures == 2)
 '''.replace("HELPER", helper)
         with tempfile.TemporaryDirectory(prefix="manual-submit-snapshot-") as directory:
             path = Path(directory) / "main.swift"
