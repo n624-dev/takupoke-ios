@@ -21,6 +21,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     @Published private(set) var permissionMessage: String?
 
     private let center = UNUserNotificationCenter.current()
+    private let notificationWriter = NotificationWriteOwner()
     private var baseline: ScheduleNotificationSnapshot?
     private var loaded = false
     private var reconcileTask: NotificationWork?
@@ -430,7 +431,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                     // A setting may change while this write is in the OS.
                     // Clean up this identifier before the next kind can wait.
                     defer { if !enabled(kind) { removeUpdateNotifications([identifier]) } }
-                    do { try await send(kind: kind, notice: notice) }
+                    do { try await send(kind: kind, notice: notice, revision: input.revision) }
                     catch {
                         try Task.checkCancellation()
                         failedKinds.append(kind)
@@ -462,7 +463,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         baseline = value
     }
 
-    private func send(kind: String, notice: ScheduleNotificationSnapshot.Pending) async throws {
+    private func send(kind: String, notice: ScheduleNotificationSnapshot.Pending, revision: UUID) async throws {
         try Task.checkCancellation()
         let content = UNMutableNotificationContent()
         content.title = kind == "changes" ? "時間割変更があります" :
@@ -481,7 +482,13 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         }
         content.userInfo = information
         content.sound = .default
-        try await center.add(UNNotificationRequest(identifier: "takupoke." + kind, content: content, trigger: nil))
+        let identifier = "takupoke." + kind
+        try await notificationWriter.add(identifier: identifier, revision: revision, responseUnconfirmed: { [weak self] in
+            guard let self, kind == "changes" ? self.changesEnabled : self.specialsEnabled else { return }
+            self.message = "通知の送信結果を確認できません。iPhoneの応答を待っています。"
+        }) {
+            try await center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: nil))
+        }
     }
 
     private func storageFile() throws -> URL {
@@ -495,6 +502,57 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         values.isExcludedFromBackup = true
         try directory.setResourceValues(values)
         return root.appendingPathComponent("baseline.json")
+    }
+}
+
+@MainActor
+final class NotificationWriteOwner {
+    struct Active: Equatable {
+        let identifier: String
+        let revision: UUID
+        let startedAt: ContinuousClock.Instant
+    }
+
+    struct Completion: Equatable {
+        let write: Active
+        let endedAt: ContinuousClock.Instant
+        let result: Result
+
+        enum Result { case acknowledged, failed }
+    }
+
+    enum Failure: Error { case alreadyWriting }
+
+    private let now: () -> ContinuousClock.Instant
+    private let waitForResponse: @MainActor () async throws -> Void
+    private(set) var active: Active?
+    private(set) var latestCompletion: Completion?
+
+    init(now: @escaping () -> ContinuousClock.Instant = { ContinuousClock.now },
+         waitForResponse: @escaping @MainActor () async throws -> Void = { try await Task.sleep(for: .seconds(30)) }) {
+        self.now = now
+        self.waitForResponse = waitForResponse
+    }
+
+    func add(identifier: String, revision: UUID, responseUnconfirmed: @escaping @MainActor () -> Void = {},
+             writeToCenter: () async throws -> Void) async throws {
+        try Task.checkCancellation()
+        guard active == nil else { throw Failure.alreadyWriting }
+        let write = Active(identifier: identifier, revision: revision, startedAt: now())
+        active = write
+        let timer = Task { @MainActor in
+            do { try await waitForResponse() } catch { return }
+            guard !Task.isCancelled, active == write else { return }
+            responseUnconfirmed()
+        }
+        var result = Completion.Result.failed
+        defer {
+            timer.cancel()
+            latestCompletion = Completion(write: write, endedAt: now(), result: result)
+            active = nil
+        }
+        try await writeToCenter()
+        result = .acknowledged
     }
 }
 

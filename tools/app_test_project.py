@@ -340,10 +340,10 @@ def instrument_retention_notification_reads(text):
         text = text.replace(original, observed)
     return text
 
-COUNTDOWN_NATIVE_ADD = '                    try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))'
-COUNTDOWN_OBSERVED_ADD = ('                    try await SimulatorCountdownEventsFixture.observeNativeReservation(center,\n'
-                          '                        request: UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger),\n'
-                          '                        expected: notice.fireAt)')
+COUNTDOWN_NATIVE_ADD = '                        try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))'
+COUNTDOWN_OBSERVED_ADD = ('                        try await SimulatorCountdownEventsFixture.observeNativeReservation(center,\n'
+                          '                            request: UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger),\n'
+                          '                            expected: notice.fireAt)')
 
 def instrument_countdown_notification_center(text):
     # Keep the actual permission, OS reads, and pending writes unchanged.

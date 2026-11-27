@@ -26,6 +26,7 @@ final class CountdownModel: ObservableObject {
     private var legacyProgressTarget: CountdownExamProgressKey?
     private var decidedLegacyProgressTarget = false
     private let center = UNUserNotificationCenter.current()
+    private let notificationWriter = NotificationWriteOwner()
     private var request: NoticePlan?
     private var worker: NotificationWork?
     private var applyingPlan: NoticePlan?
@@ -701,7 +702,13 @@ final class CountdownModel: ObservableObject {
                 let fields = SchoolDate.japanCalendar.dateComponents([.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: notice.fireAt)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: fields, repeats: false)
                 do {
-                    try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
+                    try await notificationWriter.add(identifier: notice.identifier, revision: plan.revision,
+                        responseUnconfirmed: { [weak self] in
+                            guard let self, self.notificationEnabled(for: notice.targetID) else { return }
+                            self.notificationStatuses[notice.target] = "予約結果を確認できません。iPhoneの応答を待っています。"
+                        }) {
+                        try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
+                    }
                 } catch { rejected.insert(notice.identifier) }
                 if revision != plan.revision && !notificationEnabled(for: notice.targetID) {
                     removeNotices([notice.identifier])

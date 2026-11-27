@@ -320,6 +320,7 @@ enum CountdownExamProgressKey: Codable, Hashable {
     var isPrivate: Bool { if case .school = self { return false }; return true }
     var valid: Bool { true }
 }
+@MainActor final class ApplicationData { static let shared = ApplicationData(); var loadedPeriod: Int? = 1 }
 struct CountdownExamProgress { let key: CountdownExamProgressKey; let goal: SchoolDate }
 struct CountdownClassProgress { var entries: [CountdownCustomProgress] = [] }
 PROGRESS
@@ -376,6 +377,11 @@ struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; le
     var library: CountdownLibrary
     var message: String?, onChange: (() -> Bool)?
     var automaticProgress: CountdownExamProgress?
+    var previewReady = true
+    func previewAutomatic(_ draft: CountdownAutomatic, using app: ApplicationData, at now: Date) -> (progress: CountdownExamProgress?, available: Bool) {
+        (previewReady && draft.enabled ? automaticProgress : nil, previewReady)
+    }
+    func classProgress(in store: Store, period: Int) -> CountdownClassProgress? { loadedClassProgress?.value }
     var loadedClassProgress: (file: UUID?, value: CountdownClassProgress)?
     var notificationCards: [CountdownNoticeTarget:CountdownCard]?
     var notificationStatuses = [CountdownNoticeTarget:String]()
@@ -433,17 +439,16 @@ METHODS
         let origin = SchoolDate(day: 10), goal = SchoolDate(day: 20)
         let firstExam = CountdownExamProgressKey.school("fictional-first")
         originEdit.automaticProgress = .init(key: firstExam, goal: goal)
-        originEdit.onChange = { false }
+        originEdit.previewReady = false
         let change = CountdownOriginEdit.change(firstExam, date: origin, useUnlinked: false)
         precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
-        originEdit.onChange = { true }
-        precondition(originEdit.save(originEdit.library.automatic, originEdit: change))
+        originEdit.previewReady = true
+        var draft = originEdit.library.automatic
+        draft.mode = "changed-mode"
+        precondition(originEdit.save(draft, originEdit: change))
+        precondition(originEdit.library.automatic.mode == "changed-mode")
         precondition(originEdit.library.automatic.customOrigins?.first?.date == origin)
-        originEdit.onChange = { [weak originEdit] in
-            precondition(originEdit?.automaticProgress?.key == firstExam)
-            originEdit?.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
-            return true
-        }
+        originEdit.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
         precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
         precondition(originEdit.library.automatic.customOrigins?.first?.key == firstExam && originEdit.store!.saves == 1)
 
@@ -469,7 +474,10 @@ METHODS
         if not compiler:
             self.skipTest("Swift required to execute the production reservation loop")
         source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        owner = block((ROOT / "Takupoke/ScheduleNotifications.swift").read_text(), "final class NotificationWriteOwner")
         program = r'''import Foundation
+@MainActor
+WRITE_OWNER
 enum SchoolDate {
     static var japanCalendar: Calendar {
         var calendar = Calendar(identifier:.gregorian)
@@ -579,6 +587,8 @@ struct Settings {
     var disabledTargets = Set<UUID>()
     var notificationStatuses = [CountdownNoticeTarget:String]()
     let center = Center()
+    let notificationWriter: NotificationWriteOwner
+    init(writer: NotificationWriteOwner? = nil) { notificationWriter = writer ?? NotificationWriteOwner() }
     func notificationEnabled(for id: UUID) -> Bool { !disabledTargets.contains(id) }
     func apply(_ desired: [CountdownNotice], allowed: Bool = true) async -> [String]? {
         let known = Array(center.requests.values)
@@ -635,6 +645,28 @@ REMOVE
             precondition(stopped == nil && stale.center.called == ["rejected"] && stale.center.reads == 1)
         }
 
+        var timeElapsed: CheckedContinuation<Void, Never>?
+        let unconfirmed = Harness(writer: NotificationWriteOwner(waitForResponse: {
+            await withCheckedContinuation { timeElapsed = $0 }
+        }))
+        unconfirmed.center.pausesAdd = true
+        let heldNotice = CountdownNotice("fictional.slow-response")
+        let unconfirmedWrite = Task { await unconfirmed.apply([heldNotice]) }
+        let responseDeadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while timeElapsed == nil || unconfirmed.center.unfinishedAdd == nil {
+            precondition(ContinuousClock.now < responseDeadline); await Task.yield()
+        }
+        timeElapsed?.resume(); timeElapsed = nil
+        while unconfirmed.notificationStatuses[heldNotice.target] == nil {
+            precondition(ContinuousClock.now < responseDeadline); await Task.yield()
+        }
+        precondition(unconfirmed.notificationStatuses[heldNotice.target]?.contains("予約結果を確認できません") == true)
+        precondition(unconfirmed.notificationWriter.active?.identifier == heldNotice.identifier)
+        precondition(unconfirmed.center.called == [heldNotice.identifier])
+        unconfirmed.center.unfinishedAdd?.resume(); unconfirmed.center.unfinishedAdd = nil
+        _ = await unconfirmedWrite.value
+        precondition(unconfirmed.notificationWriter.active == nil)
+
         for cancel in [false,true] {
             let stale = Harness()
             stale.center.pausesAdd = true
@@ -645,11 +677,24 @@ REMOVE
             while stale.center.unfinishedAdd == nil {
                 precondition(ContinuousClock.now < deadline); await Task.yield()
             }
+            let active = stale.notificationWriter.active
+            precondition(active?.identifier == personal.identifier && active?.revision == stale.revision)
+            precondition(stale.notificationWriter.latestCompletion == nil)
             stale.revision = UUID()
             if cancel { task.cancel() }
+            do {
+                try await stale.notificationWriter.add(identifier: personal.identifier, revision: stale.revision) {
+                    preconditionFailure("A competing OS write crossed the ownership boundary")
+                }
+                preconditionFailure("A competing OS write was allowed")
+            } catch NotificationWriteOwner.Failure.alreadyWriting {}
+            catch { preconditionFailure("Unexpected duplicate write failure") }
+            precondition(stale.notificationWriter.active == active && stale.notificationWriter.latestCompletion == nil)
             stale.center.unfinishedAdd?.resume(); stale.center.unfinishedAdd = nil
             let stopped = await task.value
             precondition(stopped == nil && stale.center.called == [personal.identifier])
+            precondition(stale.notificationWriter.active == nil && stale.notificationWriter.latestCompletion?.write == active)
+            precondition(stale.notificationWriter.latestCompletion?.result == .acknowledged)
             precondition((stale.center.requests[personal.identifier] == nil) == cancel)
             precondition(stale.center.removals == (cancel ? [personal.identifier] : []))
         }
@@ -699,7 +744,7 @@ REMOVE
         }
     }
 }
-'''.replace("RESERVE", block(source, "private func reserveNotifications(")).replace(
+'''.replace("WRITE_OWNER", owner).replace("RESERVE", block(source, "private func reserveNotifications(")).replace(
     "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices(")).replace(
     "RECONCILE", block(source, "private func reconcile(_ plan:")).replace(
     "REPORT", block(source, "private func reportUnconfirmedNotices("))
@@ -1324,7 +1369,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var changeScope:()->ScheduleNotificationSnapshot.ChangeScope? = { nil };var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
  func storageFile()throws->URL{root.appendingPathComponent("fictional-baseline.json")}
  func save(_ value:ScheduleNotificationSnapshot,to file:URL)throws{saves+=1;if failSave{throw CocoaError(.fileWriteNoPermission)};baseline=value}
- func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{
+ func send(kind:String,notice:ScheduleNotificationSnapshot.Pending,revision:UUID)async throws{
   attempted.append(kind)
   duringSend?(kind)
   if kind==rejected{throw CocoaError(.fileWriteUnknown)}
