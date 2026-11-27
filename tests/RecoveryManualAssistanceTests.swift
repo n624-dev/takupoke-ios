@@ -411,6 +411,10 @@ extension PDFParsingTests {
         XCTAssertFalse(RecoveryFailure(validationCodes: ["invalidOutput"], providerResult: true).canRetrySameInput)
         XCTAssertTrue(RecoveryFailure(validationCodes: ["runtimeFailure"], providerResult: true).canRetrySameInput)
         XCTAssertTrue(RecoveryFailure.adoptionStorageFailure.canRetrySameInput)
+        XCTAssertTrue(RecoveryFailure.originalRevalidation.canRestartRecovery)
+        XCTAssertTrue(RecoveryFailure.selectionChanged.canRestartRecovery)
+        XCTAssertTrue(RecoveryFailure.cancelled.canRestartRecovery)
+        XCTAssertFalse(RecoveryFailure.processingLimit.canRestartRecovery)
     }
 
     func testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault() throws {

@@ -47,6 +47,7 @@
 
 - 12:18 UTC、Swift 6.1.2／Linux、`fefecc2` の作業差分。`test_actual_background_methods_preserve_idle_draft_and_cancel_heavy_work` の架空コーディネーターが旧 `failure: String?` のままで、抽出した `invalidateManualIfSourceChanged` と `cancel` の `failureReason` を解決できなかった。同じ検証の残り5件は成功し、iOS Simulatorは未使用。
 - 同じ本番メソッドを抽出する前景復帰検査と背景停止検査の両方を、新しい型付き状態に揃える。下流の原本保持、既存入力の扱い、中止、旧処理の保護を引き続き実メソッドで検査する。
+- 実行前レビューでは、原本や対象が変わった際にコーディネーターが旧原本を解放すると、失敗専用の分岐に再開ボタンがなくなることを発見した。旧原本なしでも通常の開始経路で選択済み資料を取り直す操作を残す。処理上限や不適合の状態には同じ原本の再試行を出さない。
 
 ## #192・#193 統合候補の架空Provider境界4件がコンパイルできない（2026-11-27）
 

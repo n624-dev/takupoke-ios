@@ -147,17 +147,21 @@ struct PDFRecoveryView: View {
                         }
                     }
                     if action == .installModel { modelSection }
-                } else if !coordinator.running, let failure = coordinator.failureReason {
+                } else if !coordinator.running, let failure = coordinator.failureReason,
+                          failure.canRetrySameInput || failure.canRestartRecovery || coordinator.failedSourceURL != nil {
                     Section {
                         if failure.canRetrySameInput {
                             Button("復旧を再試行", systemImage: "arrow.clockwise") { coordinator.retryModel() }
+                                .disabled(!useAiFeatures)
+                        } else if failure.canRestartRecovery {
+                            Button("復旧を最初からやり直す", systemImage: "arrow.clockwise") { coordinator.start(kind) }
                                 .disabled(!useAiFeatures)
                         }
                         if coordinator.failedSourceURL != nil {
                             Button("元のPDFを確認", systemImage: "doc.richtext") { showSource() }
                         }
                     }
-                } else if !coordinator.running {
+                } else if !coordinator.running, coordinator.failureReason == nil {
                     Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent).disabled(!useAiFeatures) }
                 }
             }
