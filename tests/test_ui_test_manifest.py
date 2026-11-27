@@ -462,7 +462,7 @@ final class Counter: @unchecked Sendable { var value = 0 }
         self.assertEqual(controls.count("weekStart"), 1)
         self.assertEqual(controls.count("bounds.contains("), 2)
         self.assertIn("bounds: bounds, revision: revision", block(grid, "func weekGrid("))
-        self.assertIn("bounds.contains(target)", block(grid, "func weekGrid("))
+        self.assertIn("weekBounds.contains(target)", block(grid, "func weekGrid("))
         program = """import Foundation
 struct WeekPage: Equatable { let date: Int; let revision: Int }
 final class WeekPageMotion { var reservedHeight: CGFloat = 240 }
