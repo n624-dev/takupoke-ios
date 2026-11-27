@@ -195,7 +195,7 @@ private struct WeekPage: Identifiable, View, Equatable {
     let id: SchoolDate
     let revision: [String]
     let content: WeekPageContent
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.revision == rhs.revision }
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.revision == rhs.revision }
     var body: some View { content.view() }
 }
 
@@ -359,7 +359,7 @@ private struct PositionedWeekPage: View, Equatable {
     let isDisplayed: Bool
     let acceptsTouches: Bool
 
-    static func == (lhs: Self, rhs: Self) -> Bool {
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.page == rhs.page && lhs.motion === rhs.motion && lhs.horizontalOffset == rhs.horizontalOffset
             && lhs.opacity == rhs.opacity && lhs.isDisplayed == rhs.isDisplayed && lhs.acceptsTouches == rhs.acceptsTouches
     }
