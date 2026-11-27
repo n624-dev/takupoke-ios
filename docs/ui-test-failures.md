@@ -1,3 +1,18 @@
+## #122の局所対照でLinuxの既知のObservationリンク不良が再発（2026-11-27）
+
+- 13:37 UTC、作業差分、Swift 6.1.2／Linux。週送りの個別観測の対照が `libswiftObservation.so` の `swift::threading::fatal` でリンク失敗。Apple向けのビルド・実画面には未到達。同日の検査追加時に動的リンクを指定し、以前の同じ組合せで不足するシンボルを扱っていなかった。
+- `swiftObservation|threading::fatal` で#122の`1824b8b`に対する記録を照合。観測の対照は実行時のタイムゾーンへ依存しない架空日付を使い、Linuxだけ付属の静的標準ライブラリで確認する。本体の設定やAppleのランナーには適用しない。
+
+## PR #238のiOS 26通常Bで週の横移動直後に描画が止まる（2026-11-27）
+
+- `d963487`、[全体46003572284 試行1のiOS 26.5通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46003572284/job/140523988440)、SDK 27.2。ビルドと起動成功。13:29:02 UTC、先頭の `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` が `ApplicationChecks+WeekAppearance.swift:466` で停止。ケース46.926秒。復路の横到着0.215996秒から最初の着地実枠0.315344秒まで99.348ms、合格条件90ms。往路同区間83.037ms。両方向で実枠欠落、着地後の週本文再生成、計測用のグリッド診断取得、幾何の書き戻しはいずれも0。XCTestの失敗時に128091バイトの画像1枚を取得。Bの後続検査は未到達。
+- `Height adjustment must keep drawing frames|horizontal-arrival|N185-CI9` でN183-CI22、N185-CI9、正式82860ce試行1を照合。復路の最後の横移動サンプルから着地実枠までメインスレッドCPUは82.775ms増加。同期の昇格・スクロール復帰は約1ms、配置設定自体は約0.28ms。CI上の単純な待機とは区別できるが、現時点の計測ではSwiftUIのどの処理へCPU時間を使ったかは未確定。同じ90ms、実接触、両方向の実枠、後続検査を維持して調べる。
+
+## #189 PDFKitでだけコンパイルされるテストにOptionalの参照漏れを発見（2026-11-27）
+
+- `2d155ad` のApple実行前レビュー。`#if canImport(PDFKit)` 内で、版によって存在しない可能性がある `consecutiveTimes` を直接添字参照していた。Linuxのテスト対象からはこの型エラーが見えなかった。Appleの実行は開始前。
+- 版の検証に使う共通のアサーションを条件付きコンパイルの外へ移し、原本PDFKit読取は条件付きのままにする。時刻印字のある版とない版で同じアサーションを通し、個別セル・保存版・進行中判定の確認を維持する。
+
 ## #206 個別テストをファイル名で絞り込み、実行件数が0になった（2026-11-27）
 
 - 13:17 UTC、Swift 6.1.2／Linux、`d963487` を基点とした任意OCR訂正解除の作業差分。テストの変更先ファイル `RecoveryManualAssistanceTests.swift` の名前で絞り込んだが、実際は `PDFParsingTests` のextensionのため一致0件だった。対象メソッド名で実行し、件数を確認する。成功件数には含めない。
