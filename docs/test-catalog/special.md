@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`f1e5f4a6c10bfd5578db81b13a89474f21ec145615d2ffcdaccfadd4c9b7d425`
+`3726aa94668e006f7a7a0920cb28d02a9494d56d552bcdd8984ea081d1a285bd`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -65,6 +65,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 - `testSingleDayPeriodWordAndPartialSeparatorDoNotMoveTheBodyBoundary`
 - `testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields`
 - `testMatchingPeriodWordsInsideTheClassTableAreRetained`
+- `testIndependentExamCellsUseOnlyExplicitClockThroughNativePDFKit`
 - `testReturnColumnHeadingSeparationThroughNativePDFKit`
 - `testStrict239RetainsEightCellLinesAndNonFixedSeventeenClassSet`
 - `testStrict239RetainsPDFPeriodOrderAndReturnDateOrder`

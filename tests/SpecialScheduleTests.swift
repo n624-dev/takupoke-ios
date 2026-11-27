@@ -470,6 +470,38 @@ final class SpecialScheduleTests: XCTestCase {
     }
 
 #if canImport(PDFKit)
+    func testIndependentExamCellsUseOnlyExplicitClockThroughNativePDFKit() throws {
+        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-01"))
+        let between = try XCTUnwrap(ISO8601DateFormatter().date(from: "2032-04-01T10:05:00+09:00"))
+        let after = try XCTUnwrap(ISO8601DateFormatter().date(from: "2032-04-01T10:45:00+09:00"))
+        for (filename, printed) in [("independent-cell-clock-exam.pdf", true), ("independent-cell-no-clock-exam.pdf", false)] {
+            let original = URL(fileURLWithPath: path).appendingPathComponent(filename)
+            let strict = try PDFKitReader.readSpecial(original)
+            let certified = try PDFKitReader.readCertifiedSpecial(original)
+            for analysis in [
+                try SpecialScheduleParser.parse(strict, kind: .exam, digest: "independent", name: filename),
+                try SpecialScheduleParser.parseCertified(certified, kind: .exam, digest: "independent", name: filename)
+            ] {
+                let cells = analysis.lessons.filter { $0.date == day.iso8601 && $0.className == "1_1" }
+                    .sorted { $0.period < $1.period }
+                XCTAssertEqual(cells.map(\.period), [2, 3], filename)
+                XCTAssertEqual(cells.map(\.spanStart), [2, 3], filename)
+                XCTAssertEqual(cells.map(\.spanEnd), [2, 3], filename)
+                XCTAssertEqual(analysis.consecutiveTimes["2-3"], printed ? "09:20〜10:40" : nil, filename)
+                let schedule = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [analysis], includesChanges: true)
+                let block = try XCTUnwrap(schedule.blocks(on: day, className: "1_1", international: false).first)
+                XCTAssertEqual(block.startPeriod, 2, filename)
+                XCTAssertEqual(block.endPeriod, 3, filename)
+                if printed {
+                    XCTAssertEqual(schedule.cardTime(block, on: day, className: "1_1"), "09:20〜10:40", filename)
+                }
+                XCTAssertEqual(schedule.isInProgress(block, on: day, className: "1_1", now: between), printed, filename)
+                XCTAssertEqual(schedule.isInProgress(block, on: day, className: "1_1", now: after), !printed, filename)
+            }
+        }
+    }
+
     func testReturnColumnHeadingSeparationThroughNativePDFKit() throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
         for filename in ["heading-return.pdf","merged-class-heading-return.pdf"] {
