@@ -1,3 +1,8 @@
+## 限定CIでAppleのランタイム取得とXCTestの起動が別々に停止（2026-11-27）
+
+- `e108d85`、[試験カウントダウンのiOS 26.5限定46060314457](https://github.com/n624-dev/takupoke-ios/actions/runs/46060314457/job/140712706471)、SDK 27.2。20:17:05 UTC、指定build `23F77` のカタログ取得が `MobileAssetError.Download Code=47`、`tryAgainLater=true` で終了70。シミュレーターの作成、XCTest、試験発表データの確認は未到達。ソース変更なしで起こった[正式531の同エラー](https://github.com/n624-dev/takupoke-ios/actions/runs/45248143697)と照合した。同じSDK／buildで別ホストの週切替限定は準備・実操作とも完了。ランタイムと期待値を維持し、後続の実検査で確認する。
+- `2aeb398`、[週切替のiOS 27.0限定46059856436](https://github.com/n624-dev/takupoke-ios/actions/runs/46059856436/job/140711209161)、SDK 27.2。ビルド完了。20:18:11 UTC、`PickerTapChecks-Runner` が `XCTWaiter(StallHandling) handleStalledWait:` でケース実行前に停止。ケース開始0件、終了後のRuntimeは利用可、予備PNG1枚。`handleStalledWait` の[先行診断](https://github.com/n624-dev/takupoke-ios/actions/runs/37974710845)と照合。端末の準備中に停止した下位原因は未確定。画面条件・90ms・SDKを保ち、後続の実検査で確認する。[同一ソースのiOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/46059856436/job/140711209118)は実週移動と時刻・行事週の両ケースが成功し、起点から着地までの実枠間隔は最大66.872ms。
+
 ## 時間割変更を保存した後に「解析済み」の再照会が停止（2026-11-27）
 
 - `b33f6a3`、[全体46036456789のiOS 27.0 A](https://github.com/n624-dev/takupoke-ios/actions/runs/46036456789/job/140635207144)、SDK 27.2。実入力と反映確認を経て、103行を除外した表示まで進んだ。19:31:58 UTC、`ApplicationChecks+Changes.swift:242` が15秒の「解析済み」照会条件で失敗。ケース369.095秒。
