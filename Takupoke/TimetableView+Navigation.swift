@@ -71,11 +71,14 @@ extension TimetableView {
     }
 
     var weekBounds: ClosedRange<SchoolDate> {
-        TimetableSchedule.reachableWeekBounds(containing: navigationHalfAnchor,
-                                               classes: selectedClasses, timetable: timetable,
-                                               changes: changes, events: events,
-                                               includesChanges: includesChanges, specials: specials,
-                                               sourceIndex: daySchedule.sourceIndex)
+        let schedule = daySchedule
+        let key = TimetableProjectionCache.WeekBoundsKey(anchor: navigationHalfAnchor,
+            classes: selectedClasses, includesChanges: schedule.includesChanges)
+        return ApplicationData.shared.projections.reachableWeeks(for: key, index: schedule.sourceIndex) {
+            TimetableSchedule.reachableWeekBounds(containing: key.anchor, classes: key.classes,
+                timetable: schedule.timetable, changes: schedule.changes, events: schedule.events,
+                includesChanges: key.includesChanges, specials: schedule.specials, sourceIndex: schedule.sourceIndex)
+        }
     }
 
     private func pickerDate(_ day: SchoolDate) -> Date {

@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`2a570747cc5143afc337783b4d747c46bc08b5b4105450c5996744b6d1f09433`
+`81c3ef3f48831c3fcf70ad354cc16f3012d8cce9e902d7637853a003d7b3d24a`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -99,6 +99,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 - `testCommonClockCacheSeparatesDisplayScopeAndStopsAtRetentionBoundary`
 - `testAcceptedSourceIndexMatchesOriginalSelectorsAndBlocksAcrossScopes`
 - `testProjectionCacheUsesGenerationAndSuspendsBeforeRebuilding`
+- `testReachableWeekCacheUsesCurrentSourcesAndDisplayScope`
 - `testTermBoundariesAndUnknownTermNeverReuseOldLessons`
 - `testSelectableClassesIncludeAbsentKnownClasses`
 - `testOnlyFixedFirstYearPairCanBeAdded`

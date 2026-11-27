@@ -18,20 +18,40 @@ final class TimetableProjectionCache {
         let mappingRevision:String
         let timesRevision:String
     }
+    struct WeekBoundsKey: Hashable {
+        let anchor: SchoolDate
+        let classes: [String]
+        let includesChanges: Bool
+    }
     private let clocks = TimetableBoundedMemo<ClockKey,String?>(limit:512)
+    private let weekBounds = TimetableBoundedMemo<WeekBoundsKey, ClosedRange<SchoolDate>>(limit: 8)
     private let empty = TimetableSchedule.SourceIndex(timetable:nil,changes:nil,events:nil,specials:[])
     private var suspended: Bool
     init(suspended:Bool = false) { self.suspended = suspended }
     func sourceIndex(for key:Key,make:() -> TimetableSchedule.SourceIndex) -> TimetableSchedule.SourceIndex {
         guard !suspended else { return empty }
         if let stored, stored.0 == key { return stored.1 }
-        let value = make(); clocks.removeAll(); stored = (key,value); return value
+        let value = make()
+        clocks.removeAll()
+        weekBounds.removeAll()
+        stored = (key, value)
+        return value
     }
     func periodTime(for key:ClockKey,index:TimetableSchedule.SourceIndex,make:() -> String?) -> String? {
         guard !suspended, stored?.1 === index else { return nil }
         return clocks.value(for:key,make:make)
     }
-    func suspend() { stored = nil; clocks.removeAll(); suspended = true }
+    func reachableWeeks(for key: WeekBoundsKey, index: TimetableSchedule.SourceIndex,
+                        make: () -> ClosedRange<SchoolDate>) -> ClosedRange<SchoolDate> {
+        guard !suspended, stored?.1 === index else { return make() }
+        return weekBounds.value(for: key, make: make)
+    }
+    func suspend() {
+        stored = nil
+        clocks.removeAll()
+        weekBounds.removeAll()
+        suspended = true
+    }
     func resume() { suspended = false }
 }
 
