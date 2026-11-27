@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`25012a09e520bd83046a3b8d9c6ac9dc43d8ef205c5ba3028ba45f52a3e2d071`
+`8dadbabe754ac0a9ddf931dea4a9452427eb3ee18249e460cb407ada08452b9c`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -91,6 +91,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_notification_navigation_can_reset_timetable_details_from_its_own_file`
 - `test_countdown_os_trace_adds_only_fixed_stage_observation`
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`

@@ -25,6 +25,28 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_notification_navigation_can_reset_timetable_details_from_its_own_file(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the cross-file access check")
+        timetable = ROOT / "Takupoke/TimetableView.swift"
+        declaration = next(line for line in timetable.read_text().splitlines() if "func closeDetailSelections()" in line)
+        function = block(timetable.read_text(), declaration)
+        navigation = timetable.with_name("TimetableView+Navigation.swift").read_text()
+        action = block(navigation, "    func consumeUpdateRequest()")
+        call = next(line for line in action.splitlines() if "closeDetailSelections()" in line)
+        with tempfile.TemporaryDirectory(prefix="timetable-notice-access-") as directory:
+            root = Path(directory)
+            view = root / "TimetableView.swift"
+            # SwiftUI's State setters are nonmutating. The stub supplies the
+            # same property semantics independently of the view framework.
+            details = "\n".join(f"    var {name}: Int? {{ get {{ nil }} nonmutating set {{}} }}"
+                                for name in ("selectedLesson", "selectedSpecial", "selectedChange"))
+            view.write_text("struct TimetableView {\n" + details + "\n" + function + "\n}\n")
+            route = root / "TimetableView+Navigation.swift"
+            route.write_text("extension TimetableView {\n    func clearDetailsForNotification() {\n" + call + "\n    }\n}\n")
+            subprocess.run([compiler, "-typecheck", str(view), str(route)], check=True, timeout=30)
+
     def test_countdown_os_trace_adds_only_fixed_stage_observation(self):
         source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
         observed = app_test_project.instrument_countdown_notification_center(source)

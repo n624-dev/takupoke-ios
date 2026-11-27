@@ -206,7 +206,7 @@ struct TimetableView: View {
         }
     }
 
-    private func closeDetailSelections() {
+    func closeDetailSelections() {
         if selectedLesson != nil { selectedLesson = nil }
         if selectedSpecial != nil { selectedSpecial = nil }
         if selectedChange != nil { selectedChange = nil }

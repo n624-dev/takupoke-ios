@@ -1,3 +1,8 @@
+## #218の通知から時間割へ移動するコードがAppleビルドで非公開メソッドを参照（2026-11-27）
+
+- `56c0785`、[限定46032776858 試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46032776858/job/140620524464)、iOS 27.0／SDK 27.2。16:29:14 UTC、`TimetableView+Navigation.swift:58` が `closeDetailSelections` のアクセス範囲でコンパイル失敗。シミュレーターでの操作は未開始。
+- 通知から日時を開く処理と既存画面で、同じ詳細選択の解除を使えるようにする。Linuxの構文parseだけではSwiftファイル間のアクセス制御を検出できなかったため、異なるSwiftファイルから同じ宣言を呼び出す型検査を加える。
+
 ## PR #238のiOS 27手動単項目で再確認後のList照会が停止（2026-11-27）
 
 - `156b72d`、[全体46019627509 試行1のiOS 27通常手動単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/46019627509/job/140578083986)、iOS 27.0／SDK 27.2。手動入力と背景復帰、チェック解除後に送信無効となることまで成功。16:10:37 UTC、訂正の再確認を実タッチし、アプリが `manual-binding-ack` を記録した。
