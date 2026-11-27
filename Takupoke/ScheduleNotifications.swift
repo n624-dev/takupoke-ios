@@ -357,7 +357,26 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             guard UIApplication.shared.isProtectedDataAvailable, input.period == SchoolDataPeriod.current() else { return }
             let file = try storageFile()
             if !loaded {
-                baseline = try ScheduleNotificationSnapshot.load(from:file)
+                do { baseline = try ScheduleNotificationSnapshot.load(from: file) }
+                catch ScheduleNotificationSnapshot.ReadError.invalidStructure {
+                    guard input.availability.changes != .unavailable,
+                          SpecialScheduleKind.allCases.allSatisfy({ input.availability.state(for: $0.rawValue) != .unavailable }) else {
+                        message = "現在の資料が準備できたら、通知の比較データを復旧します。"
+                        return
+                    }
+                    let current = try ScheduleNotificationSnapshot().reconciling(changes: input.changes,
+                        specials: input.specials, availability: input.availability, today: .today(), classes: [],
+                        changesEnabled: false, specialsEnabled: false, changeDocument: input.changeDocument,
+                        personalEdit: input.personalEdit, scope: input.changeScope())
+                    try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current)
+                    baseline = current
+                } catch ScheduleNotificationSnapshot.ReadError.unsupportedFormat {
+                    message = "この版では通知の比較データを読み込めません。保存したデータは保持しています。"
+                    return
+                } catch {
+                    message = "通知の比較データを読み込めませんでした。次の更新確認で再試行します。"
+                    return
+                }
                 loaded = true
             }
             guard var next = baseline else { return }

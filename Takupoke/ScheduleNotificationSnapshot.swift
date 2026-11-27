@@ -64,6 +64,8 @@ struct ScheduleUpdateNotice: Equatable, Sendable {
 /// Keeping all classes as a baseline prevents class selection from becoming a
 /// false data update. Filtering is performed only when comparing snapshots.
 struct ScheduleNotificationSnapshot: Codable, Equatable {
+    enum ReadError: Error, Equatable { case malformedJSON, invalidStructure, unsupportedFormat }
+    private static let currentFormat = 1
     struct Change: Codable, Hashable {
         let date: String
         let className: String
@@ -147,31 +149,65 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     var changeVisibility: ChangeVisibility?
     var specialDigests: [String: String] = [:]
     var pending: [String: Pending] = [:]
+    var formatVersion: Int? = currentFormat
 
     static func load(from file: URL) throws -> Self {
         let original = URL(fileURLWithPath:file.path)
+        guard let bytes = try readBytes(from: original) else { return Self() }
+        do { return try decode(bytes) }
+        catch ReadError.malformedJSON {
+            let empty = Self()
+            try replace(bytes, at: original, with: empty, archivePrefix: "baseline-malformed-")
+            return empty
+        }
+    }
+
+    static func restoreKnownStructure(at file: URL, with baseline: Self) throws {
+        let original = URL(fileURLWithPath: file.path)
+        guard baseline.pending.isEmpty, let bytes = try readBytes(from: original) else { throw ReadError.invalidStructure }
+        do { _ = try decode(bytes) }
+        catch ReadError.invalidStructure {
+            try replace(bytes, at: original, with: baseline, archivePrefix: "baseline-invalid-")
+            return
+        }
+        throw CocoaError(.fileWriteFileExists)
+    }
+
+    private static func readBytes(from original: URL) throws -> Data? {
         let info: URLResourceValues
         do { info = try original.resourceValues(forKeys:[.isRegularFileKey,.isSymbolicLinkKey]) }
-        catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return Self() }
+        catch let error as CocoaError where [.fileNoSuchFile,.fileReadNoSuchFile].contains(error.code) { return nil }
         guard info.isRegularFile == true, info.isSymbolicLink != true else { throw CocoaError(.fileReadCorruptFile) }
-        let bytes = try Data(contentsOf:original)
-        do { return try JSONDecoder().decode(Self.self,from:bytes) }
-        catch let error as DecodingError {
-            // A structurally different but well-formed document might belong to
-            // a newer app. Only replace an unreadable JSON representation.
-            guard (try? JSONSerialization.jsonObject(with:bytes,options:.fragmentsAllowed)) == nil else { throw error }
-            let retained = original.deletingLastPathComponent()
-                .appendingPathComponent("baseline-malformed-\(UUID().uuidString).json")
-            try write(bytes,to:retained)
-            let empty = Self()
-            do {
-                guard try Data(contentsOf:original) == bytes else { throw CocoaError(.fileReadCorruptFile) }
-                try empty.save(to:original)
-            } catch {
-                try? FileManager.default.removeItem(at:retained)
-                throw error
-            }
-            return empty
+        return try Data(contentsOf: original)
+    }
+
+    private static func decode(_ bytes: Data) throws -> Self {
+        struct VersionEnvelope: Decodable { let formatVersion: Int? }
+        guard let json = try? JSONSerialization.jsonObject(with: bytes, options: .fragmentsAllowed) else {
+            throw ReadError.malformedJSON
+        }
+        guard let fields = json as? [String: Any] else { throw ReadError.unsupportedFormat }
+        if fields.keys.contains("formatVersion") {
+            guard let version = (try? JSONDecoder().decode(VersionEnvelope.self, from: bytes))?.formatVersion,
+                  version == currentFormat else { throw ReadError.unsupportedFormat }
+        } else {
+            let legacyKeys: Set<String> = ["changeDocument", "changes", "changeVisibility", "specialDigests", "pending"]
+            guard Set(fields.keys).isSubset(of: legacyKeys) else { throw ReadError.unsupportedFormat }
+        }
+        guard var snapshot = try? JSONDecoder().decode(Self.self, from: bytes) else { throw ReadError.invalidStructure }
+        snapshot.formatVersion = currentFormat
+        return snapshot
+    }
+
+    private static func replace(_ bytes: Data, at original: URL, with baseline: Self, archivePrefix: String) throws {
+        let retained = original.deletingLastPathComponent().appendingPathComponent(archivePrefix + UUID().uuidString + ".json")
+        try write(bytes, to: retained)
+        do {
+            guard try readBytes(from: original) == bytes else { throw CocoaError(.fileReadCorruptFile) }
+            try baseline.save(to: original)
+        } catch {
+            try? FileManager.default.removeItem(at: retained)
+            throw error
         }
     }
 

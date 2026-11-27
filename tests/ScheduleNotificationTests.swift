@@ -234,6 +234,53 @@ final class ScheduleNotificationTests: XCTestCase {
                        ["baseline.json","link.json","valid-snapshot.json"])
     }
 
+    func testKnownInvalidNotificationBaselineCanBeRebuiltWithoutReplayingCurrentData() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("baseline.json")
+        let availability = ScheduleNotificationSnapshot.Availability(changes: .available,
+            specials: ["exam": .available, "examReturn": .available])
+        let current = try ScheduleNotificationSnapshot().reconciling(changes: [change("current")],
+            specials: ["exam": "fictional-current-exam", "examReturn": "fictional-current-return"], availability: availability,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: true)
+        XCTAssertTrue(current.pending.isEmpty)
+
+        let legacy = Data("{\"specialDigests\":{},\"pending\":{}}".utf8)
+        try legacy.write(to: file)
+        XCTAssertEqual(try ScheduleNotificationSnapshot.load(from: file), ScheduleNotificationSnapshot())
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current))
+        XCTAssertEqual(try Data(contentsOf: file), legacy)
+
+        let unsupported = Data("{\"formatVersion\":2,\"specialDigests\":{},\"pending\":{}}".utf8)
+        try unsupported.write(to: file)
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from: file)) {
+            XCTAssertEqual($0 as? ScheduleNotificationSnapshot.ReadError, .unsupportedFormat)
+        }
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current))
+        XCTAssertEqual(try Data(contentsOf: file), unsupported)
+
+        let corrupt = [Data("{}".utf8), Data("{\"formatVersion\":1,\"pending\":[]}".utf8)]
+        for bytes in corrupt {
+            try bytes.write(to: file)
+            XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from: file)) {
+                XCTAssertEqual($0 as? ScheduleNotificationSnapshot.ReadError, .invalidStructure)
+            }
+            XCTAssertEqual(try Data(contentsOf: file), bytes)
+            try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current)
+            let restored = try ScheduleNotificationSnapshot.load(from: file)
+            XCTAssertEqual(restored, current)
+            XCTAssertTrue(restored.pending.isEmpty)
+            let change = try restored.reconciling(changes: [self.change("actual-update")],
+                specials: current.specialDigests, availability: availability, today: today, classes: ["3_XY"],
+                changesEnabled: true, specialsEnabled: true)
+            XCTAssertEqual(Set(change.pending.keys), ["changes"])
+        }
+        let retained = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix("baseline-invalid-") }
+        XCTAssertEqual(Set(try retained.map { try Data(contentsOf: $0) }), Set(corrupt))
+    }
+
     func testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent() throws {
         let previous: Set = [change("old")], current: Set = [change("new")]
         var baseline = ScheduleNotificationSnapshot(changes:previous)

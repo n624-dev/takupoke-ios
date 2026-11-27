@@ -1293,6 +1293,7 @@ struct UNNotificationRequest { let identifier:String; let content:Content }
 struct Content { let userInfo:[AnyHashable:Any] }
 struct UNNotification { let request:UNNotificationRequest }
 struct SchoolDate { static func today()->Self{Self()} }
+enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
 struct SchoolDataPeriod:Equatable { static func current()->Self{Self()} }
 struct ChangeNormalizer { static func canonicalClassName(_ value:String)->String{value} }
 final class UIApplication { static let shared=UIApplication();var isProtectedDataAvailable=true }
@@ -1300,11 +1301,14 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{};struct ChangeScope{}
  struct Pending:Codable,Equatable { var fingerprint="fictional";var changeTargets:[ChangeTarget]? }
  enum State {case available,unavailable}
+ enum ReadError: Error {case invalidStructure, unsupportedFormat}
  struct Availability {
   var available = Set<String>()
+  var changes: State { state(for: "changes") }
   func state(for kind:String)->State{available.contains(kind) ? .available : .unavailable}
  }
  var revision=0;var pending=[String:Pending]()
+ static func restoreKnownStructure(at file:URL,with baseline:Self)throws{}
  static func load(from file:URL)throws->Self{preconditionFailure("This permission probe starts with an already loaded baseline")}
  func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool,scope:ChangeScope?)throws->Self{var next=self;next.revision+=1;return next}
  func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>,scope:ChangeScope?)->[ChangeTarget]{targets}
