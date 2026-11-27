@@ -544,6 +544,7 @@ final class CountdownModel: ObservableObject {
         // be a personal or public reminder that must survive private expiry.
         invalidatePrivateNotificationPlan()
         guard await worker?.waitForCompletion() != false, !Task.isCancelled else { return false }
+        guard await retentionRemovals.waitForCompletion() else { return false }
         let queued = await ScheduleNotifications.readPending(from:center)
         if let queued, !Task.isCancelled {
             let pending = queued.map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
@@ -620,6 +621,8 @@ final class CountdownModel: ObservableObject {
     }
 
     private func reconcile(_ plan: NoticePlan) async {
+        guard await retentionRemovals.waitForCompletion() else { return reportUnconfirmedNotices(plan) }
+        guard revision == plan.revision else { return }
         let allowed: Bool
         if plan.cards.values.contains(where: { $0.preferences.notifications }) {
             let settings = await ScheduleNotifications.notificationSettings(from: center)
@@ -794,14 +797,28 @@ final class CountdownModel: ObservableObject {
                 $0.identifier == notice.identifier && $0.fireAt == notice.fireAt && $0.target == notice.target
                     && $0.title == notice.title && $0.canReserve(at: Date())
             } ?? (preservingDuringRetention && !Task.isCancelled)
-            if !stillDesired || !notificationEnabled(for: notice.targetID) { removeNotices([notice.identifier]) }
+            if !stillDesired || !notificationEnabled(for: notice.targetID) {
+                await undoReservation(notice.identifier, includeDelivered: true)
+            }
             return false
         }
         if Task.isCancelled {
-            center.removePendingNotificationRequests(withIdentifiers: [notice.identifier])
+            await undoReservation(notice.identifier, includeDelivered: false)
             return false
         }
         return true
+    }
+
+    private func undoReservation(_ identifier: String, includeDelivered: Bool) async {
+        // Reconciliation cancellation cannot undo the native add. Withdraw it
+        // independently, keeping the same owner if the system is slow to return.
+        let cleanup = Task { [center, retentionRemovals] in
+            await retentionRemovals.run(includeDelivered ? .all : .pending, identifiers: [identifier]) {
+                center.removePendingNotificationRequests(withIdentifiers: [identifier])
+                if includeDelivered { center.removeDeliveredNotifications(withIdentifiers: [identifier]) }
+            }
+        }
+        _ = await cleanup.value
     }
 
     private func matches(_ request: UNNotificationRequest, _ notice: CountdownNotice) -> Bool {

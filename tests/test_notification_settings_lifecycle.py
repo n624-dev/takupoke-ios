@@ -500,10 +500,12 @@ METHODS
             self.skipTest("Swift required to execute the production reservation loop")
         source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
         notice_plan = (ROOT / "Takupoke/Countdown.swift").read_text(encoding="utf-8")
-        owner = block((ROOT / "Takupoke/ScheduleNotifications.swift").read_text(), "final class NotificationWriteOwner")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text()
+        owners = "\n@MainActor\n".join(block(notifications, f"final class {name} {{") for name in (
+            "NotificationWriteOwner", "NotificationWork", "NotificationRemovalOwner"))
         program = r'''import Foundation
 @MainActor
-WRITE_OWNER
+NOTIFICATION_OWNERS
 enum SchoolDate {
     static var japanCalendar: Calendar {
         var calendar = Calendar(identifier:.gregorian)
@@ -565,11 +567,11 @@ struct Settings {
     let authorizationStatus = Status.authorized
 }
 @MainActor final class Center {
-    var requests = [String:UNNotificationRequest]()
-    var delivered = [Delivered]()
+    nonisolated(unsafe) var requests = [String:UNNotificationRequest]()
+    nonisolated(unsafe) var delivered = [Delivered]()
     var canReadDelivered = true
-    var called = [String](), removals = [String]()
-    var deliveredRemovals = [String]()
+    var called = [String]()
+    nonisolated(unsafe) var removals = [String](), deliveredRemovals = [String]()
     var failOnce = Set<String>(), failPermanently = Set<String>()
     var rejectedButAppearsLater: UNNotificationRequest?
     var withheldRead: Int?
@@ -583,10 +585,10 @@ struct Settings {
         if reads == 2, let rejectedButAppearsLater { requests[rejectedButAppearsLater.identifier] = rejectedButAppearsLater }
         return Array(requests.values)
     }
-    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+    nonisolated func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
         for id in identifiers { requests.removeValue(forKey:id); removals.append(id) }
     }
-    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+    nonisolated func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
         deliveredRemovals += identifiers
         delivered.removeAll { identifiers.contains($0.request.identifier) }
     }
@@ -624,6 +626,7 @@ struct Settings {
     var notificationStatuses = [CountdownNoticeTarget:String]()
     let center = Center()
     let notificationWriter: NotificationWriteOwner
+    let retentionRemovals = NotificationRemovalOwner()
     var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     init(writer: NotificationWriteOwner? = nil) { notificationWriter = writer ?? NotificationWriteOwner() }
     func notificationEnabled(for id: UUID) -> Bool { !disabledTargets.contains(id) }
@@ -643,7 +646,7 @@ REPORT
 RESERVE
 RESERVE_ONE
 MATCH
-REMOVE
+UNDO_RESERVATION
 RETENTION_INVALIDATE
 }
 @main struct Probe {
@@ -828,13 +831,13 @@ RETENTION_INVALIDATE
         }
     }
 }
-'''.replace("WRITE_OWNER", owner).replace("RESERVE_ONE", block(source, "private func reserve(_ notice:")).replace(
+'''.replace("NOTIFICATION_OWNERS", owners).replace("RESERVE_ONE", block(source, "private func reserve(_ notice:")).replace(
     "RETENTION_INVALIDATE", block(source, "private func invalidatePrivateNotificationPlan(").replace("private func", "func").replace(
         "invalidatePrivateNotificationPlan", "invalidateForTest")).replace(
     "CAN_RESERVE", block(notice_plan, "func canReserve(at")).replace(
     "DISPLACED", block(notice_plan, "static func displacedReservations(")).replace(
     "RESERVE", block(source, "private func reserveNotifications(")).replace(
-    "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices(")).replace(
+    "MATCH", block(source, "private func matches(")).replace("UNDO_RESERVATION", block(source, "private func undoReservation(")).replace(
     "RECONCILE", block(source, "private func reconcile(_ plan:")).replace(
     "REPORT", block(source, "private func reportUnconfirmedNotices("))
         self.run_probe(compiler, program)
@@ -1703,9 +1706,13 @@ final class Gate: @unchecked Sendable {
         cancelled.cancel()
         let cancelledResult = await cancelled.value
         precondition(!cancelledResult && gate.count == 1)
+        let blocked = await owner.waitForCompletion(timeout: .milliseconds(20))
+        precondition(!blocked && gate.count == 1, "Restoration and reservation must wait for the old removal")
         gate.release.signal()
         let settled = await owner.run(.pending, identifiers: ["a", "b"]) { gate.removal() }
         precondition(settled && gate.count == 1, "The original operation finished; no second removal is necessary")
+        let canContinue = await owner.waitForCompletion()
+        precondition(canContinue)
         let next = await owner.run(.delivered, identifiers: ["c"]) { gate.removal() }
         precondition(next && gate.count == 2)
     }

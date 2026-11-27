@@ -598,6 +598,10 @@ final class NotificationRemovalOwner {
     private let queue = DispatchQueue(label: "jp.n624.takupoke.retention-notice-removal")
     private var active: (kind: Kind, identifiers: [String], work: NotificationWork)?
 
+    func waitForCompletion(timeout: Duration = .seconds(6)) async -> Bool {
+        await active?.work.waitForCompletion(timeout: timeout) != false && !Task.isCancelled
+    }
+
     func run(_ kind: Kind, identifiers: [String], timeout: Duration = .seconds(6),
              _ remove: @escaping @Sendable () -> Void) async -> Bool {
         guard !Task.isCancelled else { return false }
