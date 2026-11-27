@@ -297,13 +297,25 @@ struct FunctionalStatusSnapshot: Decodable, Equatable {
 struct EventPublisherStatus {
     private struct Edition: Hashable { let year: Int; let format: String }
     private struct Resolution { let comparedAt: Date; let waiting: Bool }
+    struct Observation: Equatable {
+        let version: FunctionalStatusSnapshot.EventVersion
+        let observedAt: Date
+    }
     private var resolutions: [Edition: Resolution] = [:]
+    private var observations: [Edition: Observation] = [:]
 
     mutating func accept(_ snapshot: FunctionalStatusSnapshot, at now: Date) {
-        let editions = Set((snapshot.data?.events?.versions ?? []).map { Edition(year: $0.schoolYear, format: $0.format) })
+        guard let events = snapshot.data?.events else { return }
+        let editions = Set(events.versions.map { Edition(year: $0.schoolYear, format: $0.format) })
         for edition in editions {
-            guard let version = snapshot.eventVersion(year: edition.year, format: edition.format, at: now),
-                  let compared = version.sourceCheckedAt, compared <= now,
+            guard (1900...9998).contains(edition.year), SchoolEventsFormat(rawValue: edition.format) != nil,
+                  let version = snapshot.eventVersion(year: edition.year, format: edition.format, at: now) else { continue }
+            if let previous = observations[edition] {
+                guard events.checkedAt >= previous.observedAt,
+                      events.checkedAt != previous.observedAt || version.dataVersion == previous.version.dataVersion else { continue }
+            }
+            observations[edition] = .init(version: version, observedAt: events.checkedAt)
+            guard let compared = version.sourceCheckedAt, compared <= now,
                   compared >= (resolutions[edition]?.comparedAt ?? .distantPast) else { continue }
             if version.sourceState == "source_differs" { resolutions[edition] = .init(comparedAt: compared, waiting: true) }
             if version.sourceState == "matched", version.reviewState == "reviewed",
@@ -311,6 +323,10 @@ struct EventPublisherStatus {
                 resolutions[edition] = .init(comparedAt: compared, waiting: false)
             }
         }
+    }
+
+    func observation(year: Int, format: String) -> Observation? {
+        observations[.init(year: year, format: format)]
     }
 
     func isWaiting(year: Int, format: String, earlierDifference: Date? = nil) -> Bool {

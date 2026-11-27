@@ -410,28 +410,33 @@ struct SimulatorApplication: App {
         if ProcessInfo.processInfo.arguments.contains("--empty-fixture") { return }
         if !FileManager.default.fileExists(atPath: base.appendingPathComponent("fixture-seeded").path) || ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
-            defaults.set("3_IT", forKey: "timetableSelectedClasses")
+            let onlyDistributedData = ProcessInfo.processInfo.arguments.contains("--only-distributed-data")
+            if !onlyDistributedData { defaults.set("3_IT", forKey: "timetableSelectedClasses") }
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
             let staged = library.newStagingURL()
             let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0,y: 0,width: 200,height: 200))
             let raw = renderer.pdfData { context in context.beginPage(); ("架空の資料" as NSString).draw(at: CGPoint(x: 20,y: 20), withAttributes: nil) }
-            try raw.write(to: staged)
             let digest = SHA256.hash(data: raw).map { String(format: "%02x", $0) }.joined()
-            try library.commit(staged: staged, kind: .timetable, source: .init(grant: nil, childName: nil),
-                               originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            if !onlyDistributedData {
+                try raw.write(to: staged)
+                try library.commit(staged: staged, kind: .timetable, source: .init(grant: nil, childName: nil),
+                                   originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            }
             let analysis = PDFAnalysis(kind: .timetable, sourceDigest: digest, sourceName: "fictional.pdf", parsedAt: Date(),
                 schoolYear: period.schoolYear, term: period.half == 1 ? "前期" : "後期",
                 lessons: (1...5).flatMap { weekday in (1...8).map { number in
                     PDFLesson(className: "3_IT", weekday: weekday, period: number,
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])
-            try library.savePDFAnalysis(analysis)
+            if !onlyDistributedData { try library.savePDFAnalysis(analysis) }
             let monday = day.displayWeekStart
             let changeDay = monday.addingDays(3)!
             let changeStaged = library.newStagingURL()
-            try raw.write(to: changeStaged)
-            try library.commit(staged: changeStaged, kind: .changes, source: .init(grant: nil, childName: nil),
-                originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            if !onlyDistributedData {
+                try raw.write(to: changeStaged)
+                try library.commit(staged: changeStaged, kind: .changes, source: .init(grant: nil, childName: nil),
+                    originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            }
             let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_IT", period: "4,5",
                 before_subject: "", after_subject: "架空変更A", teacher: "架空教員B", room: "架空教室B", note: "補講", raw_text: "", canonical_text: "")
             var changeRecords = [change,
@@ -448,13 +453,13 @@ struct SimulatorApplication: App {
                     before_subject: "架空休講A", after_subject: "", teacher: "架空教員D", room: "架空教室D",
                     note: "休講", raw_text: "", canonical_text: ""))
             }
-            if !ProcessInfo.processInfo.arguments.contains("--normal-only") {
+            if !onlyDistributedData && !ProcessInfo.processInfo.arguments.contains("--normal-only") {
                 try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
                     parsedAt: Date(), records: changeRecords))
             }
             let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
             for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
-                if ProcessInfo.processInfo.arguments.contains("--normal-only") { continue }
+                if onlyDistributedData || ProcessInfo.processInfo.arguments.contains("--normal-only") { continue }
                 let date = monday.addingDays(offset)!.iso8601
                 let staged = specialStore.newStagingURL()
                 try raw.write(to: staged)
@@ -499,7 +504,7 @@ struct SimulatorApplication: App {
             }
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
                 sourcePdfETag: "\"fictional\"", events: eventRows)
-            if !ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
+            if !onlyDistributedData && !ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
                 try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
             }
 

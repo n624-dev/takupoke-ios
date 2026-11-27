@@ -755,4 +755,29 @@ extension SchoolEventsSourceModelTests {
         XCTAssertEqual(f.network.count(path: "/events", year: 2032), 2)
         XCTAssertEqual(f.network.count(path: "/events/source-status", year: 2032), 3)
     }
+
+    func testCountdownDistinguishesAnActiveSourceCheckFromUnknownAndFailure() async throws {
+        let f = try Fixture()
+        defer { f.clean() }
+        XCTAssertEqual(f.model.countdownSourceState(year: 2032, at: f.now), .sourcePending)
+        f.network.holdStatus = true
+        f.network.statusHTTP = 503
+        let started = expectation(description: "original PDF comparison is in flight")
+        f.network.started = started
+        let request = try XCTUnwrap(f.model.checkSource(year: 2032))
+        await fulfillment(of: [started], timeout: 3)
+        XCTAssertEqual(f.model.countdownSourceState(year: 2032, at: f.now), .sourceChecking)
+        f.network.holdStatus = false
+        f.network.release()
+        _ = await request.value
+        XCTAssertEqual(f.model.countdownSourceState(year: 2032, at: f.now), .sourceCheckFailed)
+        let restored = f.makeModel()
+        restored.loadIfNeeded()
+        defer { restored.cancel() }
+        XCTAssertEqual(restored.countdownSourceState(year: 2032, at: f.now), .sourcePending)
+        for status: CountdownAvailability in [.sourcePending, .sourceChecking, .sourceCheckFailed, .sourceDifference] {
+            XCTAssertFalse(status.allowsNotification)
+            XCTAssertTrue(status.presentsDatesOnHome)
+        }
+    }
 }

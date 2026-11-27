@@ -1,7 +1,7 @@
 # ステータス・公開監視情報・取消表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`0bea62eb2e8eb75a4e557e31dc7a35f6fad65cea48b6e25546f3ad02e5a15863`
+`54f867218cd8f3f8dd5882020971949d777da5881aa8b2a08dea88aedebe2289`
 
 環境：Linux Swift（状態判定）／Apple iOS26/27（画面・通信）
 
@@ -37,6 +37,8 @@ bash tools/test-app-ui.sh
 - `testSourceDifferenceIsPublisherUpdateWaitingEvenDuringRecheck`
 - `testCancellationIsNeutralAndKeepsTheSavedResult`
 - `testUnknownAndUnselectedDoNotBecomeFailuresOrAllNormal`
+- `testUsingOnlyConfirmedDataReachesGreenAndNamesAffectedData`
+- `testSavedFileNeedsAnActualCheckAndKeepsItAcrossCancellation`
 - `testAccountAcquisitionDoesNotAssertLatestOrAuthentication`
 - `testRevisionObservationDistinguishesUnchangedNewerAndFailedWithSavedData`
 - `testRevisionConfirmationRestoresOnlyForTheSameInstallationAndCorruptionIsIndependent`

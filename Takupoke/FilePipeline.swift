@@ -37,6 +37,13 @@ final class FilePipeline: @unchecked Sendable {
         var acquiredThisAttempt = false
         var acquiredAt: Date?
         var parsedAt: Date?
+
+        var canRetryMonitorRegistration: Bool {
+            guard acquiredThisAttempt, !waitingForWorker else { return false }
+            // A committed provider acquisition is usable for monitoring even
+            // when the subsequently reported error is a parse failure.
+            return [.succeeded, .unchanged, .failed].contains(stage)
+        }
     }
     final class Ticket: @unchecked Sendable {
         let id = UUID()

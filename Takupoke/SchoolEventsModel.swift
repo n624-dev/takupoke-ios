@@ -98,6 +98,10 @@ final class SchoolEventsModel: ObservableObject {
 
     func isChecking(year: Int) -> Bool { runningRequest(year: year) != nil }
 
+    func didFailBodyCheck(year: Int) -> Bool {
+        failedBodyYears.contains(year) || states[year]?.body.firstFailureAt != nil
+    }
+
     private func runningRequest(year: Int) -> Request? {
         guard let request = requests[year], !request.task.isCancelled else { return nil }
         return request
@@ -106,17 +110,28 @@ final class SchoolEventsModel: ObservableObject {
     func countdownSourceState(year: Int, at date: Date) -> CountdownAvailability {
         guard let current = saved[year], let cached = sourceStatuses[year], cached.matches(current),
               let observation = cached.successfulResponse,
-              let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= cached.receivedAt else { return .sourcePending }
+              let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= cached.receivedAt else {
+            return countdownUnconfirmedSource(year: year)
+        }
         if observation.lastSuccessfulStatus == .source_differs { return .sourceDifference }
         guard states[year]?.targetMismatch != true, observation.lastSuccessfulStatus == .matched,
-              !cached.response.stale, time <= date, date.timeIntervalSince(time) < 86_400 else { return .sourcePending }
+              !cached.response.stale, time <= date, date.timeIntervalSince(time) < 86_400 else {
+            return countdownUnconfirmedSource(year: year)
+        }
         return .available
+    }
+
+    private func countdownUnconfirmedSource(year: Int) -> CountdownAvailability {
+        if runningRequest(year: year)?.checksSource == true || sourcePresentation(year: year)?.evidence == .checking {
+            return .sourceChecking
+        }
+        if sourceErrors[year] != nil { return .sourceCheckFailed }
+        return .sourcePending
     }
 
     func countdownAnnouncementCoverage(year: Int) -> CountdownAnnouncementCoverage {
         if runningRequest(year: year)?.checksBody == true || (!ready && !failed) { return .checking }
-        if failedCacheYears.contains(year) || failedBodyYears.contains(year) ||
-            states[year]?.body.firstFailureAt != nil || (!ready && failed) { return .unavailable }
+        if failedCacheYears.contains(year) || didFailBodyCheck(year: year) || (!ready && failed) { return .unavailable }
         return .missing
     }
 

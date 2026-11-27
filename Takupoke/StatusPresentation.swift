@@ -1,5 +1,23 @@
 import Foundation
 
+enum DataUpdateState: Equatable {
+    case unused, unconfirmed, checking, confirmed, updateAvailable, updateWaiting, failed, unavailable
+
+    static func withoutLocalData(checking: Bool, failed: Bool) -> Self {
+        if checking { return .checking }
+        return failed ? .unavailable : .unused
+    }
+
+    static func distributed(acquired: Bool, updateAvailable: Bool, failed: Bool, busy: Bool,
+                            confirmation: DistributedRevisionConfirmation?) -> Self {
+        if !acquired { return withoutLocalData(checking: busy, failed: failed) }
+        if busy { return .checking }
+        if failed || confirmation?.outcome == .failed { return .failed }
+        if updateAvailable { return .updateAvailable }
+        return confirmation?.outcome == .unchanged ? .confirmed : .unconfirmed
+    }
+}
+
 /// Evidence shown to the user, independent of the color or screen presenting it.
 struct StatusPresentation: Equatable {
     enum Tone: Equatable { case good, checking, neutral, unknown, attention, unavailable }
@@ -46,18 +64,55 @@ struct StatusPresentation: Equatable {
 
     static func downloaded(acquired: Bool, updateAvailable: Bool, failed: Bool, busy: Bool,
                            confirmation: DistributedRevisionConfirmation? = nil) -> Self {
-        if busy { return .init(title: "確認・取得中", tone: .checking) }
-        if failed || confirmation?.outcome == .failed {
+        switch DataUpdateState.distributed(acquired: acquired, updateAvailable: updateAvailable,
+                                           failed: failed, busy: busy, confirmation: confirmation) {
+        case .checking: return .init(title: "確認・取得中", tone: .checking)
+        case .failed, .unavailable:
             return .init(title: "要確認", tone: .attention,
                          detail: acquired ? "前回取得したデータは保持しています。" : "データを取得できていません。")
+        case .unused: return .init(title: "未取得", tone: .neutral)
+        case .updateAvailable: return .init(title: "更新あり", tone: .attention)
+        case .confirmed: return .init(title: "更新確認済み", tone: .good)
+        case .unconfirmed, .updateWaiting:
+            if confirmation?.outcome == .adopted {
+                return .init(title: "取得済み", tone: .neutral, detail: "配信版を検証して保存しました。")
+            }
+            return .init(title: "保存済み・更新未確認", tone: .unknown)
         }
-        if !acquired { return .init(title: "未取得", tone: .neutral) }
-        if updateAvailable { return .init(title: "更新あり", tone: .attention) }
-        if confirmation?.outcome == .unchanged { return .init(title: "更新確認済み", tone: .good) }
-        if confirmation?.outcome == .adopted {
-            return .init(title: "取得済み", tone: .neutral, detail: "配信版を検証して保存しました。")
+    }
+
+    static func dataSummary(_ values: [(title: String, state: DataUpdateState)]) -> Self {
+        let issues = values.filter { [.unavailable, .failed, .updateAvailable, .updateWaiting].contains($0.state) }
+        let checking = values.contains { $0.state == .checking }
+        let unavailable = issues.filter { $0.state == .unavailable }
+        if let issue = unavailable.first {
+            let title = unavailable.count == 1 ? "\(issue.title)を利用できません" : "\(unavailable.count)件のデータを利用できません"
+            return .init(title: title, tone: .unavailable, detail: checking ? "他のデータの更新を確認中です。" : nil)
         }
-        return .init(title: "保存済み・更新未確認", tone: .unknown)
+        if issues.count > 1 {
+            return .init(title: "要確認 \(issues.count)件", tone: .attention,
+                         detail: checking ? "他のデータの更新を確認中です。" : nil)
+        }
+        if let issue = issues.first {
+            switch issue.state {
+            case .updateWaiting:
+                return .init(title: "更新待ち", tone: .attention, detail: "\(issue.title)は配信元の更新待ちです。")
+            case .updateAvailable:
+                return .init(title: "\(issue.title)に更新があります", tone: .attention)
+            default:
+                return .init(title: "\(issue.title)の更新を確認できません", tone: .attention)
+            }
+        }
+        if checking { return .init(title: "更新を確認中", tone: .checking) }
+        let unknown = values.filter { $0.state == .unconfirmed }
+        if let item = unknown.first {
+            let title = unknown.count == 1 ? "\(item.title)の更新が未確認" : "\(unknown.count)件のデータの更新が未確認"
+            return .init(title: title, tone: .unknown)
+        }
+        if values.contains(where: { $0.state == .confirmed }) {
+            return .init(title: "更新確認済み", tone: .good)
+        }
+        return .init(title: "データを設定してください", tone: .neutral)
     }
 
     static func schoolEvents(ready: Bool, failed: Bool, checking: Bool, cacheFailed: Bool,
@@ -103,15 +158,16 @@ enum FileOperationOutcome {
 struct FileStatusPresentation {
     let status: StatusPresentation
     let hasSavedAnalysis: Bool
+    let updateState: DataUpdateState
 
     static func material(_ state: MaterialLibraryState, kind: MaterialKind, year: Int?,
                          recoveryRejected: Bool = false) -> Self {
         guard let record = state.record(for: kind) else {
             if state.attempts[kind.rawValue]?.failedToAcquire == true {
                 return .init(status: .init(title: "取得できませんでした", tone: .attention,
-                                          detail: state.attempts[kind.rawValue]?.failure), hasSavedAnalysis: false)
+                                          detail: state.attempts[kind.rawValue]?.failure), hasSavedAnalysis: false, updateState: .unavailable)
             }
-            return .init(status: .init(title: "未選択", tone: .neutral), hasSavedAnalysis: false)
+            return .init(status: .init(title: "未選択", tone: .neutral), hasSavedAnalysis: false, updateState: .unused)
         }
         let hasAnalysis: Bool
         let isCurrent: Bool
@@ -133,23 +189,30 @@ struct FileStatusPresentation {
             parseFailed = failure != nil && !parseCancelled
         }
         let result: StatusPresentation
+        let updateState: DataUpdateState
         if recoveryRejected {
             result = .init(title: "保存済み復旧結果を再検証できません", tone: .attention)
+            updateState = .unavailable
         } else if state.attempts[kind.rawValue]?.failedToAcquire == true {
             result = .init(title: hasAnalysis ? "取得失敗（前回結果あり）" : "取得失敗", tone: .attention,
                            detail: state.attempts[kind.rawValue]?.failure)
+            updateState = hasAnalysis ? .failed : .unavailable
         } else if parseFailed {
             result = .init(title: kind == .changes && isCurrent ? "解析済み（再解析は失敗）" :
                             hasAnalysis ? "解析失敗（前回結果あり）" : "解析失敗", tone: .attention)
+            updateState = hasAnalysis ? .failed : .unavailable
         } else if state.attempts[kind.rawValue]?.wasCancelled == true || parseCancelled {
             result = .init(title: "確認・解析を中止しました", tone: .neutral,
                            detail: hasAnalysis ? "保存済みの解析結果は保持しています。" : "まだ正常な解析結果はありません。")
+            updateState = !hasAnalysis ? .unavailable : (isCurrent && record.lastCheckedAt != nil ? .confirmed : .unconfirmed)
         } else if isCurrent {
             result = .init(title: "解析済み", tone: .good)
+            updateState = record.lastCheckedAt == nil ? .unconfirmed : .confirmed
         } else {
             result = .init(title: hasAnalysis ? "未解析（前回結果あり）" : "未解析", tone: .attention)
+            updateState = hasAnalysis ? .failed : .unavailable
         }
-        return .init(status: result, hasSavedAnalysis: hasAnalysis)
+        return .init(status: result, hasSavedAnalysis: hasAnalysis, updateState: updateState)
     }
 
     static func special(_ availability: SpecialScheduleAvailability, kind: SpecialScheduleKind,
@@ -157,26 +220,35 @@ struct FileStatusPresentation {
         let saved = availability.records[kind] != nil
         guard let source = availability.sources[kind] else {
             return .init(status: .init(title: saved ? "前回の解析結果あり" : "未選択",
-                                      tone: saved ? .attention : .neutral), hasSavedAnalysis: saved)
+                                      tone: saved ? .attention : .neutral), hasSavedAnalysis: saved, updateState: saved ? .failed : .unused)
         }
         let result: StatusPresentation
+        let updateState: DataUpdateState
         if recoveryRejected {
             result = .init(title: "保存済み復旧結果を再検証できません", tone: .attention)
+            updateState = .unavailable
         } else if source.acquisitionFailure != nil {
             result = .init(title: saved ? "更新確認失敗（前回結果あり）" : "更新確認失敗", tone: .attention)
+            updateState = saved ? .failed : .unavailable
         } else if source.failure?.code == .cancelled {
             result = .init(title: "解析を中止しました", tone: .neutral,
                            detail: saved ? "保存済みの解析結果は保持しています。" : "まだ正常な解析結果はありません。")
+            updateState = !saved ? .unavailable :
+                (availability.state(for: kind) == .current && source.lastCheckedAt != nil ? .confirmed : .unconfirmed)
         } else if source.failure != nil {
             result = .init(title: saved ? "解析失敗（前回結果あり）" : "解析失敗", tone: .attention)
+            updateState = saved ? .failed : .unavailable
         } else if source.grant == nil {
             result = .init(title: "再選択が必要", tone: .attention)
+            updateState = saved ? .failed : .unavailable
         } else if availability.state(for: kind) == .current {
             result = .init(title: "解析済み", tone: .good)
+            updateState = source.lastCheckedAt == nil ? .unconfirmed : .confirmed
         } else {
             result = .init(title: saved ? "未解析（前回結果あり）" : "未解析", tone: .attention)
+            updateState = saved ? .failed : .unavailable
         }
-        return .init(status: result, hasSavedAnalysis: saved)
+        return .init(status: result, hasSavedAnalysis: saved, updateState: updateState)
     }
 }
 

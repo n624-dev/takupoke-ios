@@ -87,8 +87,9 @@ final class SpecialSchedulesModel: ObservableObject {
                 self.records = projection.records; self.rejectedRecoveryKinds = projection.rejected
                 self.sources = sources; self.urls = urls
 
+                let latest = FilePipeline.shared.snapshot
                 let acquired = Set<String>(outcomes.compactMap { key, value -> String? in
-                    guard value.acquiredThisAttempt, value.stage == .succeeded || value.stage == .unchanged,
+                    guard value.canRetryMonitorRegistration, latest[key]?.id == value.id,
                           self.pipelineMonitorIDs[key] != value.id else { return nil }
                     self.pipelineMonitorIDs[key] = value.id
                     return key.rawValue

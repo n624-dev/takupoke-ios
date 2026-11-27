@@ -103,6 +103,44 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .succeeded)
     }
 
+    func testRetryAcquiringTheOriginalButFailingToParseAllowsMonitorRecovery() throws {
+        var limits = FilePipeline.Limits()
+        limits.retryDelay = 0
+        let owner = DispatchQueue(label: "fictional-monitor-recovery-owner")
+        for source in FileRefreshDiagnostics.Source.allCases {
+            let pipeline = FilePipeline(limits: limits)
+            let cleaned = DispatchSemaphore(value: 0)
+            XCTAssertThrowsError(try pipeline.run(source: source, reason: .automatic, period: .current(),
+                cancelled: {}, work: { ticket in
+                    if ticket.attempt == 0 { throw URLError(.networkConnectionLost) }
+                    ticket.acquired()
+                    return PDFParseError(code: .ambiguous)
+                }, cleanup: { cleaned.signal() }, retryQueue: owner, commit: { parseFailure, ticket in
+                    try ticket.beginCommit(period: .current())
+                    ticket.didCommit()
+                    throw parseFailure
+                }))
+            XCTAssertEqual(cleaned.wait(timeout: .now() + 5), .success)
+            let status = try XCTUnwrap(pipeline.snapshot[source])
+            XCTAssertEqual(status.attempt, 1)
+            XCTAssertEqual(status.stage, .failed)
+            XCTAssertTrue(status.canRetryMonitorRegistration)
+
+            XCTAssertThrowsError(try pipeline.run(source: source, reason: .automatic, period: .current(),
+                cancelled: {}, work: { ticket in ticket.acquired(); return 42 }, cleanup: {},
+                commit: { _, ticket in
+                    try ticket.beginCommit(period: .current())
+                    throw MaterialError.invalidState
+                }))
+            XCTAssertEqual(pipeline.snapshot[source]?.canRetryMonitorRegistration, false)
+
+            XCTAssertThrowsError(try pipeline.run(source: source, reason: .automatic, period: .current(),
+                cancelled: {}, work: { _ in throw MaterialError.accessExpired }, cleanup: {},
+                commit: { (_: Int, _) in XCTFail("An inaccessible original cannot be committed") }))
+            XCTAssertEqual(pipeline.snapshot[source]?.canRetryMonitorRegistration, false)
+        }
+    }
+
     func testIsolatedLibraryRejectsChangedSourceAndKeepsOtherFiles() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
