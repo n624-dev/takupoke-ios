@@ -102,7 +102,9 @@ final class ApplicationData: ObservableObject {
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.countdownUpdateScheduled = false
-            if UIApplication.shared.applicationState == .active { self.updateCountdown() }
+            guard UIApplication.shared.applicationState == .active, !self.preparing else { return }
+            if self.retentionFailure { self.updatePublicCountdown() }
+            else { self.updateCountdown() }
         }
     }
 

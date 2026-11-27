@@ -15,14 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CountdownInputObservationTests(unittest.TestCase):
-    def test_last_special_store_failure_triggers_a_new_countdown_evaluation(self):
+    def test_countdown_observers_refresh_available_data_and_hold_during_cleanup(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift is required to execute the countdown observation")
         application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
         subscriptions = "\n".join(
             line for line in application.splitlines()
-            if "specialSchedules.$" in line and "checkCountdownWhenActive" in line
+            if ("specialSchedules.$" in line or "schoolEvents.$" in line) and "checkCountdownWhenActive" in line
         )
         source = r'''import Foundation
 struct Token: Hashable {
@@ -52,6 +52,10 @@ final class Sources {
     @Published var records = 0
     @Published var sources = 0
 }
+final class PublicEvents {
+    @Published var saved = 0
+    @Published var sourcePresentationRevision = 0
+}
 struct UIApplication {
     static let shared = UIApplication()
     enum State { case active }
@@ -59,10 +63,17 @@ struct UIApplication {
 }
 @MainActor final class Application {
     let specialSchedules = Sources()
+    let schoolEvents = PublicEvents()
     var observations = Set<Token>()
     var countdownUpdateScheduled = false
+    var preparing = false
+    var retentionFailure = false
     var evaluatedFailures = [Bool]()
+    var publicSnapshots = [[Int]]()
     func updateCountdown() { evaluatedFailures.append(specialSchedules.failed) }
+    func updatePublicCountdown() {
+        publicSnapshots.append([schoolEvents.saved, schoolEvents.sourcePresentationRevision])
+    }
     init() {
 ''' + subscriptions + '''
     }
@@ -84,6 +95,20 @@ struct UIApplication {
         app.specialSchedules.failed = false
         await flush(app)
         precondition(app.evaluatedFailures == [false, true, false])
+
+        app.retentionFailure = true
+        app.schoolEvents.saved = 8
+        await flush(app)
+        precondition(app.publicSnapshots == [[8, 0]], "Public event changes must refresh the recovery screen")
+        app.schoolEvents.sourcePresentationRevision = 3
+        await flush(app)
+        precondition(app.publicSnapshots == [[8, 0], [8, 3]])
+        precondition(app.evaluatedFailures == [false, true, false])
+
+        app.preparing = true
+        app.schoolEvents.sourcePresentationRevision = 4
+        await flush(app)
+        precondition(app.publicSnapshots == [[8, 0], [8, 3]], "Do not start countdown reconciliation during recovery cleanup")
     }
 }
 '''
