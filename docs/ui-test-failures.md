@@ -3,6 +3,7 @@
 - `05c4178253fa7d9ca7dbbecf389649e175af3ffd`、[45999245469 試行1のジョブ140508637695](https://github.com/n624-dev/takupoke-ios/actions/runs/45999245469/job/140508637695)。iOS 27.0／SDK 27.2、12:44:02 UTCにfailure。ビルド91.7秒。XCTest開始前に、生成された `PDFRecoveryCoordinator.swift` の91行と100行で `failure` が読取専用のため停止した。所有端末は未起動で失敗画像は取得できなかった。
 - 先に直した `tools/manual_ui_project.py` の変換に加え、実ジョブはその前に `tools/app_test_project.py` の `--recovery-preview` も挿入する。後者が旧 `failure` へ代入していた。ローカル検査は各変換を別々に読んだため、連結後の最終ソースへの影響を見逃した。両方の変換で架空エラー用の同じ書込先を使い、製品側の公開プロパティは読み取り専用を維持する。
 - 通常用と手動用それぞれの生成済みソースを検査し、手動用は実ランナーと同じ順序で両変換を適用する。架空エラーを設定する実コードと中止時の解除を型検査し、テストが旧プロパティに代入していた場合は失敗させる。
+- 同じ試行の[iOS 27 Aジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/45999245469/job/140508637727)・[Bジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/45999245469/job/140508637711)は12:47:43 UTC、[元PDF変更の手動訂正ジョブ](https://github.com/n624-dev/takupoke-ios/actions/runs/45999245469/job/140508637746)は12:49:36 UTCに同じ生成後の代入エラーで終端した。差分のコンパイル前に停止した別のUI回帰とは数えない。共有書込先の修正後、ローカルで生成器を含む20件とマニフェスト44件が成功した。
 
 ## PR #238のiPhoneビルド確認内でファイル選択の復帰照会が停止（2026-11-27）
 
