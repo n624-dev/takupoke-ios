@@ -79,10 +79,12 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
         self.assertLess(edit.index('e.typeText(value)'), edit.index('guard finishManualEditing()'))
         self.assertLess(edit.index('guard finishManualEditing()'),edit.index('self.app.keyboards.allElementsBoundByIndex.isEmpty'))
-        completion=edit.split('    private func finishManualEditing()',1)[1].split('    private func observeManualEditCompletion()',1)[0]
+        completion=edit.split('    private func finishManualEditing()',1)[1].split('    private func observeManualEditCompletion(',1)[0]
         self.assertIn('systemUptime + nativeStateTimeout', completion)
         self.assertIn('XCTWaiter.wait(for: [ready], timeout: remaining) == .completed', completion)
         self.assertIn('app.state == .runningForeground', completion)
+        self.assertIn('return ambiguous || targetFrame != nil', completion)
+        self.assertIn('!ambiguous, let targetFrame', completion)
         self.assertEqual(completion.count('NativeTestContacts.send('), 1)
         self.assertIn('start: center, end: center, duration: 0.1, pauseAfterLift: 0', completion)
         self.assertNotIn('.tap()', completion)
@@ -309,10 +311,6 @@ struct ManualButtonObservation { let frame: CGRect; let viewport: CGRect; let is
 struct ManualScrollNavigation { static func usable(_ rect: CGRect) -> Bool { !rect.isEmpty && !rect.isInfinite } }
 var failures = 0
 func XCTFail(_ reason: String) { failures += 1 }
-struct NSPredicate {
-    let label: String
-    init(format: String, _ label: String) { precondition(format == "label == %@"); self.label = label }
-}
 struct App {
     let root: Node
     var navigationBars = NavigationBars(byTitle: [:])
@@ -323,9 +321,6 @@ struct ControlQuery {
     let allElementsBoundByAccessibilityElement: [Control]
     func matching(identifier: String) -> ControlQuery {
         .init(allElementsBoundByAccessibilityElement: allElementsBoundByAccessibilityElement.filter { $0.node.identifier == identifier })
-    }
-    func matching(_ predicate: NSPredicate) -> ControlQuery {
-        .init(allElementsBoundByAccessibilityElement: allElementsBoundByAccessibilityElement.filter { $0.node.label == predicate.label })
     }
 }
 struct List { let buttons: ControlQuery }
@@ -345,7 +340,12 @@ struct Test {
         precondition(result == nil || appFrame == app.root.frame)
         return result
     }
-    func editCompletion() -> CGRect? { observeManualEditCompletion() }
+    func editCompletion(ambiguous expectedAmbiguity: Bool = false) -> CGRect? {
+        var ambiguous = false
+        let frame = observeManualEditCompletion(ambiguous: &ambiguous)
+        precondition(ambiguous == expectedAmbiguity)
+        return frame
+    }
 HELPER
 FINISH
 }
@@ -392,9 +392,9 @@ precondition(editor([done], live: [live]).editCompletion() == done.frame)
 precondition(editor([], live: [live]).editCompletion() == nil)
 precondition(editor([done], live: []).editCompletion() == nil)
 precondition(editor([done], live: [Control(node: done, isHittable: false)]).editCompletion() == nil)
-precondition(editor([done, done], live: [live]).editCompletion() == nil && failures == 3)
-precondition(editor([done], live: [live, live]).editCompletion() == nil && failures == 4)
-precondition(editor([done], live: [live], repeatedBar: true).editCompletion() == nil && failures == 5)
+precondition(editor([done, done], live: [live]).editCompletion(ambiguous: true) == nil)
+precondition(editor([done], live: [live, live]).editCompletion(ambiguous: true) == nil)
+precondition(editor([done], live: [live], repeatedBar: true).editCompletion(ambiguous: true) == nil)
 done.frame.origin.x -= 5
 precondition(editor([done], live: [live]).editCompletion() == nil)
 done.frame = live.node.frame
@@ -407,6 +407,7 @@ done.isEnabled = true
 done.label = "架空の別操作"
 precondition(editor([done], live: [live]).editCompletion() == nil)
 precondition(editor([live.node], live: [Control(node: done)]).editCompletion() == nil)
+precondition(editor([live.node], live: [live, Control(node: done)]).editCompletion(ambiguous: true) == nil)
 '''.replace("HELPER", helper).replace("FINISH", finish)
         with tempfile.TemporaryDirectory(prefix="manual-submit-snapshot-") as directory:
             path = Path(directory) / "main.swift"
