@@ -1536,7 +1536,7 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
     var settingsCallback: (@Sendable (UNNotificationSettings) -> Void)?
     var pending: (@Sendable ([UNNotificationRequest]) -> Void)?
     var delivered: (@Sendable ([UNNotification]) -> Void)?
-    var removed = [String](), removedDelivered = [String]()
+    nonisolated(unsafe) var removed = [String](), removedDelivered = [String]()
     nonisolated func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {
         Task { @MainActor in reads[0] += 1; settingsCallback = completionHandler }
     }
@@ -1554,8 +1554,8 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
             else { delivered = completionHandler }
         }
     }
-    func removePendingNotificationRequests(withIdentifiers ids: [String]) { removed += ids }
-    func removeDeliveredNotifications(withIdentifiers ids: [String]) { removedDelivered += ids }
+    nonisolated func removePendingNotificationRequests(withIdentifiers ids: [String]) { removed += ids }
+    nonisolated func removeDeliveredNotifications(withIdentifiers ids: [String]) { removedDelivered += ids }
 }
 enum ScheduleNotifications {
 BRIDGES
@@ -1563,6 +1563,7 @@ BRIDGES
 struct Card { let isPrivate: Bool }
 @MainActor final class Harness {
     let center = UNUserNotificationCenter()
+    let retentionRemovals = NotificationRemovalOwner()
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
 EXPIRY_STATE
@@ -1625,6 +1626,56 @@ EXPIRY
 '''.replace("BRIDGES", bridges).replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE).replace(
             "EXPIRY", block(model, "func expirePrivateNotices(")) + "\n@MainActor\n" + block(
             notifications, "final class NotificationWork {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationRemovalOwner {")
+        self.run_probe(compiler, program)
+
+    def test_retention_notification_removal_keeps_the_main_actor_and_preserves_ownership(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production removal owner")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        program = r'''import Foundation
+final class Gate: @unchecked Sendable {
+    let release = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var calls = 0
+    var count: Int { lock.withLock { calls } }
+    func blockedRemoval() {
+        lock.withLock { calls += 1 }
+        precondition(release.wait(timeout: .now() + 4) == .success)
+    }
+    func removal() { lock.withLock { calls += 1 } }
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        let owner = NotificationRemovalOwner(), gate = Gate()
+        let pending = Task { await owner.run(.pending, identifiers: ["b", "a"], timeout: .milliseconds(200)) {
+            gate.blockedRemoval()
+        } }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while gate.count == 0 {
+            precondition(ContinuousClock.now < deadline)
+            await Task.yield()
+        }
+        let first = await pending.value
+        precondition(!first && gate.count == 1, "The main actor can observe the deadline while iOS is still blocked")
+        let same = await owner.run(.pending, identifiers: ["a", "b"], timeout: .milliseconds(20)) { gate.removal() }
+        let different = await owner.run(.delivered, identifiers: ["c"], timeout: .milliseconds(20)) { gate.removal() }
+        precondition(!same && !different && gate.count == 1, "Recovery must not issue a second operation while one is blocked")
+        let cancelled = Task { await owner.run(.pending, identifiers: ["a", "b"]) { gate.removal() } }
+        cancelled.cancel()
+        let cancelledResult = await cancelled.value
+        precondition(!cancelledResult && gate.count == 1)
+        gate.release.signal()
+        let settled = await owner.run(.pending, identifiers: ["a", "b"]) { gate.removal() }
+        precondition(settled && gate.count == 1, "The original operation finished; no second removal is necessary")
+        let next = await owner.run(.delivered, identifiers: ["c"]) { gate.removal() }
+        precondition(next && gate.count == 2)
+    }
+}
+'''
+        for name in ("NotificationWork", "NotificationRemovalOwner"):
+            program += "\n@MainActor\n" + block(notifications, f"final class {name} {{")
         self.run_probe(compiler, program)
 
     def test_retention_does_not_wait_indefinitely_or_clean_up_before_a_notification_write_finishes(self):
@@ -1637,16 +1688,16 @@ EXPIRY
 struct Request { let identifier: String; var request: Self { self } }
 struct Card { let isPrivate: Bool }
 enum CountdownNotice { static let privatePrefix = "fictional.private." }
-@MainActor final class Center {
+final class Center: @unchecked Sendable {
     var commit: CheckedContinuation<Void, Never>?
     var saved = ["fictional.personal", "fictional.school", "unrelated"]
     var pendingReads = 0
     var removedPending = [String](), removedDelivered = [String]()
-    func write(_ identifier: String) async {
+    @MainActor func write(_ identifier: String) async {
         await withCheckedContinuation { commit = $0 }
         saved.append(identifier)
     }
-    func finishWrite() { let continuation = commit; commit = nil; continuation?.resume() }
+    @MainActor func finishWrite() { let continuation = commit; commit = nil; continuation?.resume() }
     func removePendingNotificationRequests(withIdentifiers ids: [String]) {
         removedPending += ids
         saved.removeAll { ids.contains($0) }
@@ -1656,6 +1707,7 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
 @MainActor final class ScheduleNotifications {
     static let updateIdentifiers = ["fictional.changes", "fictional.exam", "fictional.examReturn"]
     let center = Center()
+    let retentionRemovals = NotificationRemovalOwner()
     var generation = UUID()
     var pending: Int? = 1, baseline: Int? = 1
     var loaded = true
@@ -1676,6 +1728,7 @@ RESET_UPDATES
 }
 @MainActor final class Countdown {
     let center = Center()
+    let retentionRemovals = NotificationRemovalOwner()
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
 EXPIRY_STATE
@@ -1743,6 +1796,7 @@ EXPIRE
         program = program.replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE)
         program = program.replace("EXPIRE", block(countdown, "func expirePrivateNotices("))
         program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationRemovalOwner {")
         self.run_probe(compiler, program)
 
     def test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan(self):

@@ -333,9 +333,18 @@ def retention_notice_read_insertions():
                     '            }\n')
         yield original, observed
 
-def instrument_retention_notification_reads(text):
+def retention_notice_removal_insertions():
+    for operation, stage in (('removePendingNotificationRequests', 'pending'),
+                             ('removeDeliveredNotifications', 'delivered')):
+        original = f'            center.{operation}(withIdentifiers: identifiers)\n'
+        flag = 'ProcessInfo.processInfo.arguments.contains("--retention-corrupt")'
+        start = f'            if {flag} {{ FixtureCITrace.mark("retention-update-{stage}-removal-start") }}\n'
+        end = f'            if {flag} {{ FixtureCITrace.mark("retention-update-{stage}-removal-end") }}\n'
+        yield original, start + original + end
+
+def instrument_retention_notifications(text):
     # Preserve real requests and callbacks, including callbacks after a timeout.
-    for original, observed in retention_notice_read_insertions():
+    for original, observed in (*retention_notice_read_insertions(), *retention_notice_removal_insertions()):
         assert text.count(original) == 1, 'Retention notification insertion point missing'
         text = text.replace(original, observed)
     return text
@@ -450,7 +459,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':
             text = instrument_notification_permission(text)
-            text = instrument_retention_notification_reads(text)
+            text = instrument_retention_notifications(text)
         if path.name == 'CountdownModel.swift':
             text = instrument_countdown_notification_center(text)
         if path.name == 'CountdownView.swift':

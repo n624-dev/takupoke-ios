@@ -22,6 +22,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     private let center = UNUserNotificationCenter.current()
     private let notificationWriter = NotificationWriteOwner()
+    private let retentionRemovals = NotificationRemovalOwner()
     private var baseline: ScheduleNotificationSnapshot?
     private var loaded = false
     private var reconcileTask: NotificationWork?
@@ -296,9 +297,11 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     func resetForRetention() async -> Bool {
         guard await suspendForUnavailableData() else { return false }
-        center.removePendingNotificationRequests(withIdentifiers: Self.updateIdentifiers)
-        center.removeDeliveredNotifications(withIdentifiers: Self.updateIdentifiers)
-        return true
+        let identifiers = Self.updateIdentifiers
+        return await retentionRemovals.run(.all, identifiers: identifiers) { [center] in
+            center.removePendingNotificationRequests(withIdentifiers: identifiers)
+            center.removeDeliveredNotifications(withIdentifiers: identifiers)
+        }
     }
 
     func reconcile(state: MaterialLibraryState, records: [SpecialScheduleKind: SpecialScheduleRecord],
@@ -585,6 +588,40 @@ final class NotificationWriteOwner {
         }
         try await writeToCenter()
         result = .acknowledged
+    }
+}
+
+@MainActor
+final class NotificationRemovalOwner {
+    enum Kind: Equatable { case pending, delivered, all }
+
+    private let queue = DispatchQueue(label: "jp.n624.takupoke.retention-notice-removal")
+    private var active: (kind: Kind, identifiers: [String], work: NotificationWork)?
+
+    func run(_ kind: Kind, identifiers: [String], timeout: Duration = .seconds(6),
+             _ remove: @escaping @Sendable () -> Void) async -> Bool {
+        guard !Task.isCancelled else { return false }
+        let identifiers = identifiers.sorted()
+        // A synchronous system call can outlive its waiter. Keep its owner
+        // until it actually returns, including across another recovery attempt.
+        while let active {
+            guard await active.work.waitForCompletion(timeout: timeout) else { return false }
+            if self.active?.work === active.work { self.active = nil }
+            if active.kind == kind, active.identifiers == identifiers { return true }
+        }
+        guard !identifiers.isEmpty else { return true }
+        let work = NotificationWork { [queue] in
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                queue.async {
+                    remove()
+                    continuation.resume()
+                }
+            }
+        }
+        active = (kind, identifiers, work)
+        guard await work.waitForCompletion(timeout: timeout) else { return false }
+        if active?.work === work { active = nil }
+        return true
     }
 }
 

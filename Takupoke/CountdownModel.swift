@@ -26,6 +26,7 @@ final class CountdownModel: ObservableObject {
     private var legacyProgressTarget: CountdownExamProgressKey?
     private var decidedLegacyProgressTarget = false
     private let center = UNUserNotificationCenter.current()
+    private let retentionRemovals = NotificationRemovalOwner()
     private let notificationWriter = NotificationWriteOwner()
     private var request: NoticePlan?
     private var worker: NotificationWork?
@@ -546,12 +547,16 @@ final class CountdownModel: ObservableObject {
         let queued = await ScheduleNotifications.readPending(from:center)
         if let queued, !Task.isCancelled {
             let pending = queued.map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
-            center.removePendingNotificationRequests(withIdentifiers: pending)
+            guard await retentionRemovals.run(.pending, identifiers: pending, { [center] in
+                center.removePendingNotificationRequests(withIdentifiers: pending)
+            }) else { return false }
         }
         if removeDelivered {
             guard let listed = await ScheduleNotifications.readDelivered(from:center), !Task.isCancelled else { return false }
             let delivered = listed.map(\.request.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
-            center.removeDeliveredNotifications(withIdentifiers: delivered)
+            guard await retentionRemovals.run(.delivered, identifiers: delivered, { [center] in
+                center.removeDeliveredNotifications(withIdentifiers: delivered)
+            }) else { return false }
         }
         return queued != nil && !Task.isCancelled
     }

@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`c53f58d8ca7729423f1a625fa3e9c816e7c1e4bd4eb46d83a07237b47dbef076`
+`bd14227b277c643139114d73a2e29222e27aeedcee2e07c0c2199cd1f5ce4dc2`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -64,5 +64,6 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 - `test_disabled_delivery_never_reads_os_settings_and_enabled_delivery_requires_real_status`
 - `test_actual_apply_keeps_denial_storage_and_independent_delivery_results_separate`
 - `test_retention_can_retry_private_notification_cleanup_after_unknown_os_reads`
+- `test_retention_notification_removal_keeps_the_main_actor_and_preserves_ownership`
 - `test_retention_does_not_wait_indefinitely_or_clean_up_before_a_notification_write_finishes`
 - `test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan`
