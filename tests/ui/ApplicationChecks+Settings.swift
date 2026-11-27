@@ -731,8 +731,11 @@ extension ApplicationChecks {
         back(to: "時間割ファイル")
         tapSetupNext(from: "時間割ファイル")
         screen("クラス")
-        XCTAssertTrue(app.staticTexts["3 / 3"].exists, app.debugDescription)
-        tapToolbar("あとで設定", bar: "クラス")
+        XCTAssertTrue(app.staticTexts["3 / 4"].exists, app.debugDescription)
+        tapSetupNext(from: "クラス")
+        screen("通知")
+        XCTAssertTrue(app.buttons["通知をオンにする"].waitForExistence(timeout: 5))
+        tapToolbar("あとで設定", bar: "通知")
         XCTAssertTrue(app.tabBars.buttons["設定"].waitForExistence(timeout: 5))
     }
 }

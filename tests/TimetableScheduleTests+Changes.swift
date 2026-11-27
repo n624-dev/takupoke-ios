@@ -188,14 +188,16 @@ extension TimetableScheduleTests {
                            before_subject: "架空科目A", after_subject: "架空科目B",
                            teacher: "架空教員B", room: "架空教室B", note: "", raw_text: "", canonical_text: "")
         }
-        XCTAssertEqual(change("1,2").gridPeriods, [1, 2])
-        XCTAssertEqual(change("1, 2").gridPeriods, [1, 2])
-        XCTAssertEqual(change("１～２").gridPeriods, [1, 2])
-        XCTAssertEqual(change("1〜2").gridPeriods, [1, 2])
-        XCTAssertNil(change("1,3").gridPeriods)
-        XCTAssertNil(change("2,1").gridPeriods)
-        XCTAssertNil(change("8,9").gridPeriods)
-        XCTAssertNil(change("1,").gridPeriods)
+        XCTAssertEqual(change("1,2").detailPeriods, [1, 2])
+        XCTAssertEqual(change("1, 2").detailPeriods, [1, 2])
+        XCTAssertEqual(change("１～２").detailPeriods, [1, 2])
+        XCTAssertEqual(change("1〜2").detailPeriods, [1, 2])
+        XCTAssertEqual(change("1,3").detailPeriods, [1, 3])
+        XCTAssertEqual(change("2,1").detailPeriods, [2, 1])
+        XCTAssertEqual(change("１・３限").detailPeriods, [1, 3])
+        XCTAssertEqual(change("1限、3限").detailPeriods, [1, 3])
+        XCTAssertNil(change("8,9").detailPeriods)
+        XCTAssertNil(change("1,").detailPeriods)
         let analysis = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
                                       defaultYear: nil, parsedAt: Date(timeIntervalSince1970: 0), records: [change("1, 2")])
         for period in 1...2 {

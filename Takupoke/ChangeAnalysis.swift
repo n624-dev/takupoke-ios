@@ -70,18 +70,13 @@ struct ScheduleChange: Codable, Equatable {
         return value.range(of: "^[0-9]+$", options: .regularExpression) == nil ? period : "\(value)限"
     }
 
-    /// A change remains one saved row even when it covers consecutive periods.
-    /// Unsupported or nonconsecutive notation stays visible in the change list.
-    var gridPeriods: [Int]? {
-        guard let periods = detailPeriods,
-              zip(periods, periods.dropFirst()).allSatisfy({ $0.1 == $0.0 + 1 }) else { return nil }
-        return periods
-    }
-
-    /// Detailed clock ranges may be disjoint; grid merging still requires adjacency.
+    /// The affected periods of a single saved change. The display groups
+    /// adjacent periods after applying the change to each individual slot.
     var detailPeriods: [Int]? {
         let value = period.precomposedStringWithCompatibilityMapping
             .replacingOccurrences(of: "〜", with: "~")
+            .replacingOccurrences(of: "・", with: ",")
+            .replacingOccurrences(of: "、", with: ",")
             .filter { !$0.isWhitespace }
         let parts: [String]
         if value.contains(",") {
@@ -94,7 +89,11 @@ struct ScheduleChange: Codable, Equatable {
         } else {
             parts = [value]
         }
-        let periods = parts.compactMap(Int.init)
+        let periods = parts.compactMap { part -> Int? in
+            let number = ChangeNormalizer.replace(part, "(時限|限目|限)$", "")
+            guard ChangeNormalizer.matches(number, "^[0-9]+$") else { return nil }
+            return Int(number)
+        }
         guard periods.count == parts.count, !periods.isEmpty,
               periods.allSatisfy({ (1...8).contains($0) }),
               Set(periods).count == periods.count else { return nil }

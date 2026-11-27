@@ -8,7 +8,8 @@ struct SetupView: View {
     @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
     @EnvironmentObject private var notifications: ScheduleNotifications
     @State private var step = 0
-    @State private var finishing = false
+    @AppStorage("notificationsSetupCompleted") private var notificationsSetupCompleted = false
+    @State private var permissionTask: Task<Void, Never>?
     let finish: () -> Void
 
     var body: some View {
@@ -19,33 +20,49 @@ struct SetupView: View {
                 case 1:
                     MaterialsView(model: materials, specialSchedules: specialSchedules,
                                   schoolEvents: schoolEvents, mappings: mappings, setupMode: true)
-                default:
+                case 2:
                     TimetablePrimaryClassSelection(classes: TimetableSchedule.selectableClasses, value: $selectedClasses, setupMode: true)
+                default:
+                    List {
+                        Text("時間割変更や試験時間割の更新を通知します。通知の種類は設定で変更できます。")
+                    }
+                    .navigationTitle("通知")
                 }
             }
             .safeAreaInset(edge: .bottom) {
                 HStack {
-                    if step > 0 { Button("戻る") { step -= 1 }.disabled(finishing) }
+                    if step > 0 { Button("戻る") { step -= 1 }.disabled(permissionTask != nil) }
                     Spacer()
-                    Text("\(step + 1) / 3").font(.footnote).foregroundStyle(.secondary)
+                    Text("\(step + 1) / 4").font(.footnote).foregroundStyle(.secondary)
                     Spacer()
-                    Button(step == 2 ? "はじめる" : "次へ") {
-                        if step == 2 {
-                            finishing = true
-                            Task {
+                    Button(step != 3 ? "次へ" : notificationsSetupCompleted ? "はじめる" : "通知をオンにする") {
+                        if step < 3 {
+                            step += 1
+                        } else if notificationsSetupCompleted {
+                            finish()
+                        } else {
+                            permissionTask = Task {
                                 await notifications.enableFromSetup()
+                                guard !Task.isCancelled else { return }
+                                permissionTask = nil
                                 finish()
                             }
-                        } else { step += 1 }
+                        }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(finishing)
+                    .disabled(permissionTask != nil)
                 }
                 .padding()
                 .background(.bar)
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("あとで設定", action: finish).disabled(finishing) }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("あとで設定") {
+                        permissionTask?.cancel()
+                        permissionTask = nil
+                        finish()
+                    }
+                }
             }
         }
         .interactiveDismissDisabled()

@@ -240,7 +240,7 @@ final class HomeScheduleTests: XCTestCase {
             specials: [], includesChanges: true)
         var disjoint = change()
         disjoint.period = "1,3"
-        XCTAssertNil(disjoint.gridPeriods)
+        XCTAssertEqual(disjoint.detailPeriods, [1, 3])
         XCTAssertEqual(schedule.changeTimeRanges(disjoint), ["08:50〜09:35", "10:30〜11:15"])
         disjoint.period = "1,1"
         XCTAssertTrue(schedule.changeTimeRanges(disjoint).isEmpty)

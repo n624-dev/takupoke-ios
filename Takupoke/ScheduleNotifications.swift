@@ -143,10 +143,13 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func enableFromSetup() async {
-        guard !requestingPermission, !UserDefaults.standard.bool(forKey: "notificationsSetupCompleted") else { return }
+        guard !Task.isCancelled, !requestingPermission,
+              !UserDefaults.standard.bool(forKey: "notificationsSetupCompleted") else { return }
         requestingPermission = true
         defer { requestingPermission = false }
-        if await confirmAuthorization() {
+        let allowed = await confirmAuthorization()
+        guard !Task.isCancelled else { return }
+        if allowed {
             applyPreference(changes: true, value: true)
             applyPreference(changes: false, value: true)
         }

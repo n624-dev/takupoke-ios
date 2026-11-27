@@ -56,8 +56,8 @@ enum TimetableSchedule {
                 dates[text] = value; return value
             }
             for change in changes?.records ?? [] {
-                guard let day = date(change.change_date), let periods = change.gridPeriods else { continue }
-                for period in Set(periods) {
+                guard let day = date(change.change_date), let periods = change.detailPeriods else { continue }
+                for period in periods {
                     self.changes[SlotKey(day:day,period:period,name:change.displayClassName,includesChanges:true),default:[]].append(change)
                 }
             }
@@ -254,7 +254,7 @@ enum TimetableSchedule {
                     weekday: plan.weekdayOverride).filter { $0.period == period }
         let special = specialDayItems.filter { $0.lesson.period == period }
         let changes = includesChanges ? Self.changes(on: day, className: className, analysis: changes)
-            .filter { $0.gridPeriods?.contains(period) == true } : []
+            .filter { $0.detailPeriods?.contains(period) == true } : []
         return resolvedSlot(plan:plan,specialDayApplies:specialDayApplies,base:base,special:special,changes:changes)
     }
 

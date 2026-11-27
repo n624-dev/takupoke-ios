@@ -197,7 +197,7 @@ struct TimetableDaySchedule {
         guard let day = SchoolDate(iso8601: change.change_date),
               let periods = change.detailPeriods else { return [] }
         var ranges: [ClosedRange<Int>] = []
-        for period in periods {
+        for period in periods.sorted() {
             if let last = ranges.last, last.upperBound + 1 == period {
                 ranges[ranges.count - 1] = last.lowerBound...period
             } else { ranges.append(period...period) }

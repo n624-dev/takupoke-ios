@@ -51,6 +51,9 @@ extension TimetablePresentation {
                 LabeledContent("日付", value: change.displayDate)
                 LabeledContent("クラス", value: TimetableDisplayText.className(change.displayClassName))
                 LabeledContent("時限", value: change.displayPeriod)
+                if change.detailPeriods == nil {
+                    InlineWarning("対象時限を特定できないため、時間割とホームには反映していません。")
+                }
                 if times.contains(where: { $0 != nil }) {
                     ForEach(Array(times.enumerated()), id: \.offset) { _, time in
                         LabeledContent("時刻", value: time ?? "時刻未確認")

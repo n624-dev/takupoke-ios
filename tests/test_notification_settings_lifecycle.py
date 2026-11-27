@@ -759,6 +759,19 @@ METHODS
             await schedule.enableFromSetup()
             precondition(schedule.center.requests == 1)
         }
+        UserDefaults.standard.values = [:]
+        let skipped = Schedule()
+        let pending = Task { await skipped.enableFromSetup() }
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while skipped.center.callback == nil {
+            precondition(ContinuousClock.now < deadline); await Task.yield()
+        }
+        pending.cancel()
+        skipped.center.callback?.resume(returning: true)
+        skipped.center.callback = nil
+        await pending.value
+        precondition(!skipped.requestingPermission && !skipped.changesEnabled && !skipped.specialsEnabled)
+        precondition(UserDefaults.standard.values.isEmpty && skipped.center.requests == 1)
     }
 }
 '''.replace("METHODS", methods)
