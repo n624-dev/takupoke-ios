@@ -421,7 +421,8 @@ final class FilePipeline: @unchecked Sendable {
         return !expired.isEmpty
     }
     static func isTransient(_ error: Error, stage: Stage) -> Bool {
-        if (error as? Failure) == .timedOut { return [.access, .acquiring].contains(stage) }
+        guard stage == .access || stage == .acquiring else { return false }
+        if (error as? Failure) == .timedOut { return true }
         if case MaterialError.providerReadFailed = error { return true }
         return (error as? URLError).map { [.timedOut, .networkConnectionLost, .notConnectedToInternet, .cannotConnectToHost].contains($0.code) } == true
     }

@@ -1,7 +1,7 @@
 # 原本取得・更新・保存・File Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`c383161eda7e365d518773a7a89df7e0606e1f89450568078f0ab246a4973001`
+`12aebd69903ae8555f3b24c19059c7bd0a1b364400838e355ccadbb4a9531df3`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -46,6 +46,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py
 - `testPipelineStageDeadlinesProgressOverallAndCommitFence`
 - `testUnresponsivePipelineExpiresWithoutPublishingAndOtherFilesContinue`
 - `testTransientRetriesStopAtTwoAndKeepOneCommitAndCleanup`
+- `testTransportShapedFailuresAfterAcquisitionNeverStartANewAttempt`
 - `testRetryAcquiringTheOriginalButFailingToParseAllowsMonitorRecovery`
 - `testPipelinePublishesOneLogicalResultAfterBothSourcesFinish`
 - `testFirstRegularAcquisitionFailurePersistsWithoutAnOriginal`

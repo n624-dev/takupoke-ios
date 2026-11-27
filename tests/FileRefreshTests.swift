@@ -103,6 +103,35 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .succeeded)
     }
 
+    func testTransportShapedFailuresAfterAcquisitionNeverStartANewAttempt() throws {
+        let owner = DispatchQueue(label: "fictional-stage-retry-owner")
+        let errors: [Error] = [URLError(.networkConnectionLost), MaterialError.providerReadFailed]
+        var limits = FilePipeline.Limits()
+        limits.retryDelay = 0
+        for reason: FilePipeline.Reason in [.automatic, .manual] {
+            for stage: FilePipeline.Stage in [.parsing, .validating, .saving] {
+                for error in errors {
+                    let pipeline = FilePipeline(limits: limits)
+                    let cleaned = DispatchSemaphore(value: 0)
+                    XCTAssertThrowsError(try pipeline.run(source: .exam, reason: reason, period: .current(), cancelled: {},
+                        work: { ticket in
+                            if stage != .saving { ticket.enter(stage); throw error }
+                            return 42
+                        }, cleanup: { cleaned.signal() }, retryQueue: owner, commit: { _, ticket in
+                            try ticket.beginCommit(period: .current())
+                            throw error
+                        }))
+                    XCTAssertEqual(cleaned.wait(timeout: .now() + 5), .success)
+                    let status = try XCTUnwrap(pipeline.snapshot[.exam])
+                    XCTAssertEqual(status.attempt, 0, "\(reason) \(stage)")
+                    XCTAssertEqual(status.stage, .failed)
+                    XCTAssertNotNil(status.requestFinishedAt)
+                    XCTAssertFalse(pipeline.isRecovering(.exam))
+                }
+            }
+        }
+    }
+
     func testRetryAcquiringTheOriginalButFailingToParseAllowsMonitorRecovery() throws {
         var limits = FilePipeline.Limits()
         limits.retryDelay = 0
