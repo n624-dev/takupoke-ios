@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`dd8f7253ae5aca1fa77b52c8ec347ebdca2fdc182b66c897a7d148c1be9a87ea`
+`09d2b29594fb8f6bdccdc3ee0b6171a440a781c15d96efe67b5c7a6e085ce48d`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -316,3 +316,4 @@ bash tools/test-parsing.sh
 
 - `testParentCancellationReachesAnAlreadySuspendedOwnedWorkerAndWaitsForCleanup`
 - `testSuccessAndOriginalFailureKeepTheirValues`
+- `testCancellationSignalsAnUnresponsiveWorkerWithoutReleasingItsOwnership`
