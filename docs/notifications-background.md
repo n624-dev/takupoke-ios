@@ -52,3 +52,5 @@
 参照：[Appleの通知許可](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)、[SwiftUIのバックグラウンドタスク](https://developer.apple.com/videos/play/wwdc2022/10142/)、[BGAppRefreshTask](https://developer.apple.com/documentation/backgroundtasks/bgapprefreshtask)。
 
 ステータスの「この端末」では、バックグラウンド更新を最後に依頼した時刻、iPhoneが受け付けた時刻、実際に更新を始めた時刻を確認できます。実行する時刻はiPhoneが決めます。
+
+試験の自動表示を設定している途中に対象が変わった場合は、起点日だけを選び直せます。クラス別の保存済み起点日に読めない値がある場合は、読める値を引き継ぎ、該当する試験は確認できる情報から自動で起点日を計算します。

@@ -381,6 +381,31 @@ extension CountdownTests {
         XCTAssertFalse(disabled.automatic.preferences.showsProgress)
     }
 
+    func testClassProgressKeepsReadableSettingsWhenAnotherStoredDateIsDamaged() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = CountdownStore(root: root)
+        let period = SchoolDataPeriod(day: day("2032-10-05"))
+        let first = CountdownCustomProgress(key: .classDay(scope: String(repeating: "a", count: 64), day: day("2032-10-20")), date: day("2032-10-15"))
+        let second = CountdownCustomProgress(key: .classDay(scope: String(repeating: "b", count: 64), day: day("2032-10-21")), date: day("2032-10-16"))
+        let saved = try store.save(CountdownLibrary(), with: .init(period: period, entries: [first, second]))
+        let id = try XCTUnwrap(saved.classProgressFile)
+        let file = root.appendingPathComponent(SchoolDataRetention.countdownProgressDirectory).appendingPathComponent(id.uuidString + ".json")
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        var entries = try XCTUnwrap(object["entries"] as? [[String: Any]])
+        entries[1]["date"] = "fictional damaged date"
+        object["entries"] = entries
+        let damaged = try JSONSerialization.data(withJSONObject: object)
+        try damaged.write(to: file, options: .atomic)
+        let restored = try store.loadClassProgress(file: id, period: period)
+        XCTAssertEqual(restored.entries, [first])
+        XCTAssertEqual(try Data(contentsOf: file), damaged)
+        let replacement = try store.save(saved, with: .init(period: period, entries: [first]))
+        XCTAssertEqual(try store.loadClassProgress(file: replacement.classProgressFile, period: period).entries, [first])
+        store.discardUnusedClassProgress(keeping: replacement.classProgressFile)
+        XCTAssertEqual(try Data(contentsOf: file), damaged)
+    }
+
     func testCountdownClassProgressStorageCommitsAtomicallyAndExpiresWithPrivateData() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

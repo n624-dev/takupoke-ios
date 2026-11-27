@@ -162,10 +162,6 @@ final class CountdownModel: ObservableObject {
 
     @discardableResult
     func save(_ automatic: CountdownAutomatic, originEdit: CountdownOriginEdit? = nil) -> Bool {
-        if case .change = originEdit, onChange?() != true {
-            message = "現在の試験を確認できません。設定を開き直してください。"
-            return false
-        }
         var next = library
         next.automatic = automatic
         next.automatic.customOrigins = library.automatic.customOrigins
@@ -175,8 +171,9 @@ final class CountdownModel: ObservableObject {
         case nil: break
         case .discardUnlinked: next.automatic.unlinkedProgressStart = nil
         case .change(let key, let date, let useUnlinked):
-            guard automatic.mode == library.automatic.mode, let current = automaticProgress, current.key == key else {
-                message = "対象の試験が変わりました。設定を開き直してください。"
+            let app = ApplicationData.shared
+            guard let current = previewAutomatic(automatic, using: app, at: Date()).progress, current.key == key else {
+                message = "対象の試験が変わりました。起点日を選び直してください。"
                 return false
             }
             guard date.map({ $0.isValidCalendarDay && $0 < current.goal }) != false else {
@@ -185,8 +182,8 @@ final class CountdownModel: ObservableObject {
             }
             if useUnlinked { next.automatic.unlinkedProgressStart = nil }
             if key.isPrivate {
-                guard var scoped = loadedClassProgress?.value else {
-                    message = "この試験の起点日を読み込めません。設定を保存する前に再試行してください。"
+                guard let period = app.loadedPeriod, let store, var scoped = classProgress(in: store, period: period) else {
+                    message = "この試験の起点日の保存先を確認できません。しばらく待って再試行してください。"
                     return false
                 }
                 // The fallback key describes just this one day. Remove it
@@ -289,15 +286,8 @@ final class CountdownModel: ObservableObject {
         let today = TimetableDaySchedule.schoolDay(at: now)
         if today != day { day = today }
         let events = app.schoolEvents
-        let nextEvents = events.saved.keys.sorted().flatMap { year in
-            (events.saved[year]?.payload.identifiedEvents ?? []).compactMap { event in
-                CountdownDates(event).map { PublicEvent(reference: .init(year: year, eventID: event.eventId), dates: $0, tag: event.tag) }
-            }
-        }.sorted { ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) }
+        let (nextEvents, completeYears) = publishedEvents(in: events)
         if publicEvents != nextEvents { publicEvents = nextEvents }
-        let completeYears = Set(events.saved.compactMap { year, snapshot in
-            snapshot.payload.identifiedEvents == nil ? nil : year
-        })
         let indexed = Dictionary(uniqueKeysWithValues: nextEvents.map { ($0.reference, $0) })
         var updated = library
         for index in updated.registrations.indices {
@@ -322,61 +312,22 @@ final class CountdownModel: ObservableObject {
                              preferences: registration.preferences, availability: availability, reference: reference)
             }
         }
-        var schoolExams: [PublicEvent] = []
-        var automaticCards = CountdownAutomaticCards([])
-        var privateProgress: CountdownClassProgress?
         let selection = classSelection()
         let initialScope = initialClassScope
-        var loadingClassScope: String?
-        if library.automatic.enabled {
-            let automatic = library.automatic
-            switch automatic.mode {
-            case .school:
-                let candidates = nextEvents.filter { $0.tag == "テスト" && $0.dates.end >= today }.sorted {
-                    let lhs = $0.dates.phase(on: today).active, rhs = $1.dates.phase(on: today).active
-                    return lhs == rhs ? ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) : lhs
-                }
-                schoolExams = candidates
-                if candidates.isEmpty {
-                    let availability: CountdownAvailability = events.saved[today.schoolYear]?.payload.identifiedEvents == nil
-                        ? .missingYear : .noExam
-                    automaticCards = CountdownAutomaticCards([placeholder(automatic, availability)])
-                } else {
-                    let targets = candidates.map { event in
-                        CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
-                            preferences: automatic.preferences, availability: events.countdownSourceState(year: event.reference.year, at: now),
-                            reference: event.reference, examProgress: resolveProgress(key: .school(event.reference),
-                                examStart: event.dates.start, goal: event.dates.start, events: nextEvents,
-                                completeYears: completeYears, custom: automatic.customOrigins ?? [],
-                                unconfirmedYear: events.countdownAnnouncementCoverage))
-                    }
-                    automaticCards = CountdownAutomaticCards(targets, fixedReferences: Set(fixed.compactMap(\.reference)))
-                }
-            case .selectedClass:
-                if let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
-                    if let cached = loadedClassProgress, cached.file == library.classProgressFile, cached.value.period == period {
-                        privateProgress = cached.value
-                    } else {
-                        privateProgress = try? store.loadClassProgress(file: library.classProgressFile, period: period)
-                        loadedClassProgress = privateProgress.map { (library.classProgressFile, $0) }
-                    }
-                }
-                let targets = selectedClassCards(automatic, selection: selection, using: app, today: today, now: now).map { card in
-                    var card = card
-                    if let scope = card.classScope, let goal = card.dates?.start {
-                        let (key, start) = CountdownExamProgressKey.forClass(scope: scope, day: goal, events: nextEvents)
-                        card.examProgress = resolveProgress(key: key, examStart: start, goal: goal, events: nextEvents,
-                            completeYears: completeYears, custom: privateProgress?.entries ?? [],
-                            fallback: .classDay(scope: scope, day: goal), unconfirmedYear: events.countdownAnnouncementCoverage)
-                    }
-                    return card
-                }
-                automaticCards = CountdownAutomaticCards(targets)
-                if automatic.preferences.notifications, automaticCards.displayed?.availability == .loading {
-                    loadingClassScope = selection.scope
-                }
-            }
+        let automatic = library.automatic
+        var privateProgress: CountdownClassProgress?
+        if automatic.enabled, automatic.mode == .selectedClass,
+           let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
+            privateProgress = classProgress(in: store, period: period)
+            loadedClassProgress = privateProgress.map { (library.classProgressFile, $0) }
         }
+        let evaluated = evaluateAutomatic(automatic, selection: selection, using: app, today: today, now: now,
+            events: nextEvents, completeYears: completeYears, fixedReferences: Set(fixed.compactMap(\.reference)),
+            privateProgress: privateProgress)
+        let automaticCards = evaluated.cards
+        let schoolExams = evaluated.schoolExams
+        let loadingClassScope = automatic.mode == .selectedClass && automatic.preferences.notifications &&
+            automaticCards.displayed?.availability == .loading ? selection.scope : nil
         let currentExam = automaticCards.displayed
         if library.canMigrateProgress(availability: currentExam?.availability) {
             if !decidedLegacyProgressTarget {
@@ -412,11 +363,99 @@ final class CountdownModel: ObservableObject {
                           acceptsLegacyClassNotice: loadingClassScope == initialScope)
     }
 
+    private func publishedEvents(in events: SchoolEventsModel) -> ([PublicEvent], Set<Int>) {
+        let nextEvents = events.saved.keys.sorted().flatMap { year in
+            (events.saved[year]?.payload.identifiedEvents ?? []).compactMap { event in
+                CountdownDates(event).map { PublicEvent(reference: .init(year: year, eventID: event.eventId), dates: $0, tag: event.tag) }
+            }
+        }.sorted { ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) }
+        let completeYears = Set(events.saved.compactMap { year, snapshot in
+            snapshot.payload.identifiedEvents == nil ? nil : year
+        })
+        return (nextEvents, completeYears)
+    }
+
+    private func classProgress(in store: CountdownStore, period: SchoolDataPeriod) -> CountdownClassProgress? {
+        if let cached = loadedClassProgress, cached.file == library.classProgressFile, cached.value.period == period {
+            return cached.value
+        }
+        return try? store.loadClassProgress(file: library.classProgressFile, period: period)
+    }
+
+    struct AutomaticDraftPreview: Equatable {
+        let progress: CountdownExamProgress?
+        let availability: CountdownAvailability?
+        let classProgressUnavailable: Bool
+    }
+
+    func previewAutomatic(_ draft: CountdownAutomatic, using app: ApplicationData, at now: Date) -> AutomaticDraftPreview {
+        let unavailable = AutomaticDraftPreview(progress: nil, availability: nil, classProgressUnavailable: false)
+        guard draft.enabled, let store else { return unavailable }
+        let today = TimetableDaySchedule.schoolDay(at: now)
+        let (events, completeYears) = publishedEvents(in: app.schoolEvents)
+        let fixedReferences = Set(library.registrations.compactMap { item -> CountdownEventReference? in
+            guard case .school(let reference, _, _) = item.target else { return nil }
+            return reference
+        })
+        let privateProgress: CountdownClassProgress?
+        if draft.mode == .selectedClass, let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
+            privateProgress = classProgress(in: store, period: period)
+        } else { privateProgress = nil }
+        let evaluated = evaluateAutomatic(draft, selection: classSelection(), using: app, today: today, now: now,
+            events: events, completeYears: completeYears, fixedReferences: fixedReferences, privateProgress: privateProgress)
+        let card = evaluated.cards.displayed
+        let progress = card?.availability.allowsNotification == true ? card?.examProgress : nil
+        return AutomaticDraftPreview(progress: progress, availability: card?.availability,
+            classProgressUnavailable: progress?.key.isPrivate == true && privateProgress == nil)
+    }
+
+    private func evaluateAutomatic(_ automatic: CountdownAutomatic, selection: ClassSelection, using app: ApplicationData,
+                                   today: SchoolDate, now: Date, events nextEvents: [PublicEvent], completeYears: Set<Int>,
+                                   fixedReferences: Set<CountdownEventReference>,
+                                   privateProgress: CountdownClassProgress?) -> (cards: CountdownAutomaticCards, schoolExams: [PublicEvent]) {
+        guard automatic.enabled else { return (CountdownAutomaticCards([]), []) }
+        let events = app.schoolEvents
+        switch automatic.mode {
+        case .school:
+            let candidates = nextEvents.filter { $0.tag == "テスト" && $0.dates.end >= today }.sorted {
+                let lhs = $0.dates.phase(on: today).active, rhs = $1.dates.phase(on: today).active
+                return lhs == rhs ? ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) : lhs
+            }
+            guard !candidates.isEmpty else {
+                let availability: CountdownAvailability = events.saved[today.schoolYear]?.payload.identifiedEvents == nil
+                    ? .missingYear : .noExam
+                return (CountdownAutomaticCards([placeholder(automatic, availability)]), [])
+            }
+            let targets = candidates.map { event in
+                CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
+                    preferences: automatic.preferences, availability: events.countdownSourceState(year: event.reference.year, at: now),
+                    reference: event.reference, examProgress: resolveProgress(key: .school(event.reference),
+                        examStart: event.dates.start, goal: event.dates.start, events: nextEvents,
+                        completeYears: completeYears, custom: automatic.customOrigins ?? [],
+                        unconfirmedYear: events.countdownAnnouncementCoverage))
+            }
+            return (CountdownAutomaticCards(targets, fixedReferences: fixedReferences), candidates)
+        case .selectedClass:
+            let targets = selectedClassCards(automatic, selection: selection, using: app, today: today, now: now).map { card in
+                var card = card
+                if let scope = card.classScope, let goal = card.dates?.start {
+                    let (key, start) = CountdownExamProgressKey.forClass(scope: scope, day: goal, events: nextEvents)
+                    card.examProgress = resolveProgress(key: key, examStart: start, goal: goal, events: nextEvents,
+                        completeYears: completeYears, custom: privateProgress?.entries,
+                        fallback: .classDay(scope: scope, day: goal), unconfirmedYear: events.countdownAnnouncementCoverage)
+                }
+                return card
+            }
+            return (CountdownAutomaticCards(targets), [])
+        }
+    }
+
     private func resolveProgress(key: CountdownExamProgressKey, examStart: SchoolDate, goal: SchoolDate,
-                                 events: [PublicEvent], completeYears: Set<Int>, custom: [CountdownCustomProgress],
+                                 events: [PublicEvent], completeYears: Set<Int>, custom: [CountdownCustomProgress]?,
                                  fallback: CountdownExamProgressKey? = nil,
                                  unconfirmedYear: (Int) -> CountdownAnnouncementCoverage) -> CountdownExamProgress {
-        let saved = custom.first { $0.key == key } ?? custom.first { $0.key == fallback }
+        let entries = custom ?? []
+        let saved = entries.first { $0.key == key } ?? entries.first { $0.key == fallback }
         let origin = saved.map { CountdownProgressOrigin.custom($0.date) } ??
             CountdownProgressOrigin.announcement(before: examStart, events: events, completeYears: completeYears,
                                                  unconfirmedYear: unconfirmedYear)

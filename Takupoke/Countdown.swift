@@ -604,9 +604,32 @@ struct CountdownStore {
 
     func loadClassProgress(file: UUID?, period: SchoolDataPeriod) throws -> CountdownClassProgress {
         guard let file, let bytes = try storedBytes(at: privateURL(file)) else { return .init(period: period) }
-        let stored = try JSONDecoder().decode(CountdownClassProgress.self, from: bytes)
-        guard CountdownCustomProgress.valid(stored.entries, isPrivate: true) else { throw ReadError.unsafeFile }
-        return stored.period == period ? stored : .init(period: period)
+        if let stored = try? decodeClassProgress(bytes) {
+            return stored.period == period ? stored : .init(period: period)
+        }
+        guard let fields = try JSONSerialization.jsonObject(with: bytes) as? [String: Any],
+              Set(fields.keys) == ["period", "entries"], let rawPeriod = fields["period"],
+              let saved = try? JSONDecoder().decode(SchoolDataPeriod.self, from: JSONSerialization.data(withJSONObject: rawPeriod)),
+              let rows = fields["entries"] as? [Any] else { throw ReadError.corrupt }
+        guard saved == period else { return .init(period: period) }
+        let entries = rows.compactMap { row -> CountdownCustomProgress? in
+            guard JSONSerialization.isValidJSONObject(row), let bytes = try? JSONSerialization.data(withJSONObject: row),
+                  let entry = try? JSONDecoder().decode(CountdownCustomProgress.self, from: bytes),
+                  CountdownCustomProgress.valid([entry], isPrivate: true) else { return nil }
+            return entry
+        }
+        let grouped = Dictionary(grouping: entries, by: \.key)
+        var seen = Set<CountdownExamProgressKey>()
+        let readable = entries.filter { entry in
+            grouped[entry.key]?.allSatisfy { $0 == entry } == true && seen.insert(entry.key).inserted
+        }
+        return CountdownClassProgress(period: period, entries: readable)
+    }
+
+    private func decodeClassProgress(_ bytes: Data) throws -> CountdownClassProgress {
+        let value = try JSONDecoder().decode(CountdownClassProgress.self, from: bytes)
+        guard CountdownCustomProgress.valid(value.entries, isPrivate: true) else { throw ReadError.unsafeFile }
+        return value
     }
 
     func saveMigratingProgress(_ library: CountdownLibrary, to target: CountdownExamProgressKey?,
@@ -657,7 +680,12 @@ struct CountdownStore {
             if let staged { try? FileManager.default.removeItem(at: staged) }
             throw error
         }
-        if let previous = library.classProgressFile { try? FileManager.default.removeItem(at: privateURL(previous)) }
+        if let previous = library.classProgressFile {
+            let existing = privateURL(previous)
+            if let bytes = try? storedBytes(at: existing), (try? decodeClassProgress(bytes)) != nil {
+                try? FileManager.default.removeItem(at: existing)
+            }
+        }
         return next
     }
 
@@ -672,7 +700,8 @@ struct CountdownStore {
         for candidate in files where candidate.pathExtension == "json" {
             guard let id = UUID(uuidString: candidate.deletingPathExtension().lastPathComponent), id != file,
                   let info = try? candidate.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
-                  info.isRegularFile == true, info.isSymbolicLink != true else { continue }
+                  info.isRegularFile == true, info.isSymbolicLink != true,
+                  let bytes = try? storedBytes(at: candidate), (try? decodeClassProgress(bytes)) != nil else { continue }
             try? FileManager.default.removeItem(at: candidate)
         }
     }

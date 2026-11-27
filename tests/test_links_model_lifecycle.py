@@ -97,7 +97,7 @@ final class LinkDownloadTransport: URLProtocol, @unchecked Sendable {
         await model.refresh(force: true)
         check(MappingService.calls == 2 && !model.failed && model.preferencesError != nil, "forced refresh bypasses TTL and retains independent preference errors")
         let previous = LinkPreferences(favoriteIDs: ["fictional-favorite"], hiddenIDs: ["fictional-hidden"], colorOverrides: ["fictional-colored": "blue"])
-        try store.save(previous)
+        defaults.set(try JSONEncoder().encode(previous), forKey: "linkPreferences.v1")
         model.loadIfNeeded()
         check(model.preferencesReady && model.preferencesError == nil && model.preferences == previous, "ready data must still allow repaired preferences to reload")
         model.toggleFavorite("fictional-new")
