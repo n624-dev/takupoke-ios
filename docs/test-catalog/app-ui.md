@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`2ef9cfe3b59dfcb1e7835c5d58b0fc97e20598983411afed8e444e3c11a72c9a`
+`612c9c068044cecf093511c03735656ecde1fec20aad662b4377b95c7c129549`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -226,7 +226,7 @@ bash tools/test-app-ui.sh
 - `test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks`
 - `test_composed_recovery_fixtures_write_only_the_generated_failure_property`
 - `test_manual_submit_sends_one_contact_to_the_observed_button`
-- `test_manual_submit_snapshot_requires_a_unique_visible_enabled_native_button`
+- `test_manual_snapshots_require_unique_visible_enabled_native_buttons`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
 - `test_existing_app_generator_raster_anchor_matches_current_acquisition`

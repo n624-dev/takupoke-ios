@@ -1,3 +1,12 @@
+## PR #238のiOS 26手動単項目で入力後の完了Buttonの枠照会が停止（2026-11-27）
+
+- `5e28c3c`、[全体46035493275 試行1のiOS 26通常手動単項目](https://github.com/n624-dev/takupoke-ios/actions/runs/46035493275/job/140632612241)、iOS 26.5／SDK 27.2。ビルド・架空資料の復旧画面を通過。初回入力でキーボード表示と入力の反映を観測した。
+- 17:23:04 UTCに `manual-edit-done` の候補列挙を終え、バーの枠に続いて同じButtonの枠の再照会へ入った。17:24:07 UTC、`ManualAssistanceChecks+Input.swift:180` の実要素の `frame` 読み出しが照会期限に達した。ケース251.780秒、終了65。完了の物理タップ・送信は未到達。画面が消えた証拠や端末からキャンセルした記録はない。
+- `manual-edit-done|Failed to get matching snapshot|N191|U02` で既往を照合。以前のU02は表示後に操作不可、N191はキーボードと完了の両方がなかった。今回はキーボードと入力が記録され、同じ候補への追加照会で停止した。重複する枠照会を同じ画面のsnapshotへ集約し、完了ボタンの正確な型・ID・ラベル、一意性・完全包含・有効性・操作可能性と、元の期限、実接触、入力の反映を維持する。
+- 完了ログに復元可能な `TAKUPOKE_UI_IMAGE` が見つからなかった。XCTest側とrunner側の両方の撮影条件と診断を確認する。
+- 失敗後にrunnerの15秒の端末撮影を実行し、`TAKUPOKE_SIMULATOR_FAILURE_SCREEN timeout` を記録した。画像を取得できなかった状態とテストの終了65を区別する。
+- 最初のLinux対照では模擬したナビゲーションの添字がOptionalを返し、実際のXCTestインターフェースと型が異なった。未出現の要素を空の照会として扱う実インターフェースへ、対照を揃える。
+
 ## #220の年度切替テストがApple環境でのみ型検査に失敗（2026-11-27）
 
 - `5e36ade`、[全体46031013029 試行1のiPhoneビルド](https://github.com/n624-dev/takupoke-ios/actions/runs/46031013029/job/140617636392)。16:39:39 UTC、`SchoolEventsSourceModelTests.swift:196` の `XCTAssertEqual` が保存済み行事の包みに `Equatable` を要求してビルドが停止した。Combineを使うテストなのでLinuxの全Swift実行には含まれない。

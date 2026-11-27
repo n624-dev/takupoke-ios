@@ -169,24 +169,7 @@ extension ManualAssistanceChecks {
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks
         // acknowledgement on the user's behalf.
-        let navigation=app.navigationBars["時間割の復旧"]
-        let buttons=navigation.buttons.matching(identifier:"manual-edit-done")
-        var readyButton:XCUIElement?,ambiguous=false
-        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=buttons.allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguous=true;return true }
-            guard current.count==1 else { return false }
-            let done=current[0]
-            let navigationFrame=navigation.frame,doneFrame=done.frame
-            guard ManualScrollNavigation.usable(navigationFrame) && ManualScrollNavigation.usable(doneFrame)
-                  && navigationFrame.contains(doneFrame) && done.isEnabled && done.isHittable else { return false }
-            readyButton=done;return true
-        },object:app)
-        let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
-        guard !ambiguous,result == .completed,let done=readyButton else {
-            XCTFail("The native completion button must be unique, visible and operable within the original deadline: "+app.debugDescription);return
-        }
-        done.tap()
+        guard finishManualEditing() else { return }
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
             self.app.keyboards.allElementsBoundByIndex.isEmpty
         },object:app)
@@ -194,5 +177,56 @@ extension ManualAssistanceChecks {
         let completed=self.recoveryList.descendants(matching:.any).matching(identifier:"manual-value-"+id).allElementsBoundByIndex
         guard completed.count==1 else { XCTFail("Completed input must remain unique");return }
         XCTAssertEqual(completed[0].value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
+    }
+
+    private func finishManualEditing() -> Bool {
+        let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
+        var targetFrame: CGRect?
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            targetFrame = self.observeManualEditCompletion()
+            return targetFrame != nil
+        }, object: nil)
+        let remaining = deadline - ProcessInfo.processInfo.systemUptime
+        guard remaining > 0, XCTWaiter.wait(for: [ready], timeout: remaining) == .completed,
+              let targetFrame, app.state == .runningForeground,
+              ProcessInfo.processInfo.systemUptime < deadline else {
+            XCTFail("The native completion button must be unique, visible and operable within the original deadline")
+            return false
+        }
+        let center = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
+        print("TAKUPOKE-MANUAL-EDIT-DONE frame=\(targetFrame);duration=0.1")
+        do {
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Manual edit completion button")
+            return true
+        } catch {
+            XCTFail("Native edit completion contact failed: \(error)")
+            return false
+        }
+    }
+
+    private func observeManualEditCompletion() -> CGRect? {
+        let title = "時間割の復旧"
+        let identifier = "manual-edit-done"
+        let label = "完了"
+        guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root),
+              ManualScrollNavigation.usable(root.frame) else { return nil }
+        let bars = nodes.filter { $0.elementType == .navigationBar && $0.identifier == title }
+        guard bars.count <= 1 else { XCTFail("The recovery navigation bar must be unique"); return nil }
+        guard let bar = bars.first, ManualScrollNavigation.usable(bar.frame),
+              let controls = snapshotNodes(in: bar) else { return nil }
+        let candidates = controls.filter { $0.identifier == identifier }
+        guard candidates.count <= 1 else { XCTFail("The recovery completion control must be unique"); return nil }
+        guard let target = candidates.first, target.elementType == .button, target.label == label, target.isEnabled,
+              ManualScrollNavigation.usable(target.frame), bar.frame.contains(target.frame),
+              root.frame.contains(target.frame) else { return nil }
+        let live = app.navigationBars[title].buttons.matching(identifier: identifier)
+            .matching(NSPredicate(format: "label == %@", label)).allElementsBoundByAccessibilityElement
+        guard live.count <= 1 else { XCTFail("The native completion Button must be unique"); return nil }
+        guard let button = live.first, let bound = try? button.snapshot(),
+              bound.elementType == target.elementType, bound.identifier == identifier, bound.label == label,
+              bound.frame == target.frame, bound.isEnabled, button.isHittable else { return nil }
+        return target.frame
     }
 }

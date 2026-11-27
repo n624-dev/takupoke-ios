@@ -77,19 +77,15 @@ class ManualUIProjectTests(unittest.TestCase):
             self.assertNotIn(query,background)
         self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
-        self.assertIn('navigation.buttons.matching(identifier:"manual-edit-done")',edit)
-        self.assertIn('let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)',edit)
-        self.assertIn('guard !ambiguous,result == .completed,let done=readyButton',edit)
-        self.assertNotIn('buttons.firstMatch.waitForExistence',edit)
-        self.assertIn('let current=buttons.allElementsBoundByAccessibilityElement',edit)
-        self.assertIn('let done=current[0]',edit)
-        completion=edit.split('let buttons=navigation.buttons.matching',1)[1]
-        self.assertIn('guard current.count==1',completion)
-        self.assertIn('navigationFrame.contains(doneFrame) && done.isEnabled && done.isHittable',edit)
-        self.assertEqual(edit.count('done.frame'),1)
-        self.assertEqual(edit.count('done.isEnabled'),1)
-        self.assertEqual(edit.count('done.isHittable'),1)
-        self.assertEqual(edit.count('done.tap()'),1)
+        self.assertLess(edit.index('e.typeText(value)'), edit.index('guard finishManualEditing()'))
+        self.assertLess(edit.index('guard finishManualEditing()'),edit.index('self.app.keyboards.allElementsBoundByIndex.isEmpty'))
+        completion=edit.split('    private func finishManualEditing()',1)[1].split('    private func observeManualEditCompletion()',1)[0]
+        self.assertIn('systemUptime + nativeStateTimeout', completion)
+        self.assertIn('XCTWaiter.wait(for: [ready], timeout: remaining) == .completed', completion)
+        self.assertIn('app.state == .runningForeground', completion)
+        self.assertEqual(completion.count('NativeTestContacts.send('), 1)
+        self.assertIn('start: center, end: center, duration: 0.1, pauseAfterLift: 0', completion)
+        self.assertNotIn('.tap()', completion)
         view=(ROOT/'Takupoke/PDFRecoveryView.swift').read_text(encoding='utf-8')
         toolbar=view.split('            .toolbar {',1)[1].split('            .sheet(',1)[0]
         self.assertIn('if editingManualField != nil',toolbar)
@@ -288,13 +284,15 @@ final class Generated {{
         self.assertNotIn(".tap()", submit)
         self.assertEqual(submit.count("app.snapshot()"), 1)
 
-    def test_manual_submit_snapshot_requires_a_unique_visible_enabled_native_button(self):
+    def test_manual_snapshots_require_unique_visible_enabled_native_buttons(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required for the native control geometry probe")
         source = manual_check_source()
         start = "    private func observeVisibleManualSubmit("
         helper = start + source.split(start, 1)[1].split("    func assertSubmitEnabled", 1)[0]
+        finish_start = "    private func observeManualEditCompletion("
+        finish = finish_start + source.split(finish_start, 1)[1].split("\n}", 1)[0]
         program = r'''
 import Foundation
 enum Element { case application, collectionView, navigationBar, keyboard, button, other }
@@ -311,13 +309,32 @@ struct ManualButtonObservation { let frame: CGRect; let viewport: CGRect; let is
 struct ManualScrollNavigation { static func usable(_ rect: CGRect) -> Bool { !rect.isEmpty && !rect.isInfinite } }
 var failures = 0
 func XCTFail(_ reason: String) { failures += 1 }
-struct App { let root: Node; func snapshot() throws -> Node { root } }
+struct NSPredicate {
+    let label: String
+    init(format: String, _ label: String) { precondition(format == "label == %@"); self.label = label }
+}
+struct App {
+    let root: Node
+    var navigationBars = NavigationBars(byTitle: [:])
+    func snapshot() throws -> Node { root }
+}
 struct Control { let node: Node; var isHittable = true; func snapshot() throws -> Node { node } }
 struct ControlQuery {
     let allElementsBoundByAccessibilityElement: [Control]
-    func matching(identifier: String) -> ControlQuery { self }
+    func matching(identifier: String) -> ControlQuery {
+        .init(allElementsBoundByAccessibilityElement: allElementsBoundByAccessibilityElement.filter { $0.node.identifier == identifier })
+    }
+    func matching(_ predicate: NSPredicate) -> ControlQuery {
+        .init(allElementsBoundByAccessibilityElement: allElementsBoundByAccessibilityElement.filter { $0.node.label == predicate.label })
+    }
 }
 struct List { let buttons: ControlQuery }
+struct NavigationBars {
+    let byTitle: [String: List]
+    subscript(title: String) -> List {
+        byTitle[title] ?? List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: []))
+    }
+}
 struct Test {
     let app: App
     let recoveryList: List
@@ -328,7 +345,9 @@ struct Test {
         precondition(result == nil || appFrame == app.root.frame)
         return result
     }
+    func editCompletion() -> CGRect? { observeManualEditCompletion() }
 HELPER
+FINISH
 }
 let appFrame = CGRect(x: 0, y: 0, width: 393, height: 852)
 let button = Node(elementType: .button, identifier: "manual-submit", frame: .init(x: 16, y: 700, width: 360, height: 100),
@@ -358,7 +377,37 @@ disabled.isEnabled = true
 disabled.label = "架空の別操作"
 precondition(view([disabled]).observed() == nil)
 precondition(view([button, button]).observed() == nil && failures == 2)
-'''.replace("HELPER", helper)
+var done = Node(elementType: .button, identifier: "manual-edit-done",
+                frame: .init(x: 320, y: 60, width: 48, height: 44), label: "完了")
+func editor(_ candidates: [Node], live: [Control], repeatedBar: Bool = false) -> Test {
+    let title = "時間割の復旧"
+    let bar = Node(elementType: .navigationBar, identifier: title, frame: .init(x: 0, y: 50, width: 393, height: 79),
+                   children: candidates)
+    let list = List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: live))
+    let root = Node(elementType: .application, identifier: "fictional", frame: appFrame, children: repeatedBar ? [bar, bar] : [bar])
+    return Test(app: App(root: root, navigationBars: NavigationBars(byTitle: [title: list])), recoveryList: list)
+}
+let live = Control(node: done)
+precondition(editor([done], live: [live]).editCompletion() == done.frame)
+precondition(editor([], live: [live]).editCompletion() == nil)
+precondition(editor([done], live: []).editCompletion() == nil)
+precondition(editor([done], live: [Control(node: done, isHittable: false)]).editCompletion() == nil)
+precondition(editor([done, done], live: [live]).editCompletion() == nil && failures == 3)
+precondition(editor([done], live: [live, live]).editCompletion() == nil && failures == 4)
+precondition(editor([done], live: [live], repeatedBar: true).editCompletion() == nil && failures == 5)
+done.frame.origin.x -= 5
+precondition(editor([done], live: [live]).editCompletion() == nil)
+done.frame = live.node.frame
+done.frame.origin.y = 95
+precondition(editor([done], live: [live]).editCompletion() == nil)
+done.frame = live.node.frame
+done.isEnabled = false
+precondition(editor([done], live: [live]).editCompletion() == nil)
+done.isEnabled = true
+done.label = "架空の別操作"
+precondition(editor([done], live: [live]).editCompletion() == nil)
+precondition(editor([live.node], live: [Control(node: done)]).editCompletion() == nil)
+'''.replace("HELPER", helper).replace("FINISH", finish)
         with tempfile.TemporaryDirectory(prefix="manual-submit-snapshot-") as directory:
             path = Path(directory) / "main.swift"
             path.write_text(program, encoding="utf-8")
