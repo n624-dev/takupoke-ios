@@ -58,6 +58,39 @@ final class ScheduleNotificationTests: XCTestCase {
         XCTAssertEqual(replaced.pending["changes"]?.count, 1)
     }
 
+    func testUpdateNoticeSelectsNearestCurrentDateOrMatchingRememberedDate() throws {
+        let next = try XCTUnwrap(today.addingDays(2))
+        let later = try XCTUnwrap(today.addingDays(4))
+        let past = try XCTUnwrap(today.addingDays(-1))
+        let classes: Set<String> = ["2_IT", "1_ES"]
+        let digest = ScheduleUpdateNotice.digest("fictional-document")
+        let notice = try XCTUnwrap(ScheduleUpdateNotice(identifier: "takupoke.changes", revision: digest,
+            documentRevision: digest, classRevision: ScheduleUpdateNotice.selectedClassesRevision(classes),
+            days: [later.iso8601, past.iso8601, next.iso8601, next.iso8601, "invalid"]))
+        XCTAssertEqual(notice.days, [past, next, later])
+        XCTAssertEqual(notice.edition(currentRevision: digest), .same)
+        XCTAssertEqual(notice.date(today: today, upcoming: [today, later], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: true), next)
+        XCTAssertEqual(notice.date(today: today, upcoming: [past, later], edition: .replaced,
+            selectedClasses: classes, allowsRememberedDates: true), later)
+        XCTAssertNil(notice.date(today: today, upcoming: [past], edition: .same,
+            selectedClasses: ["3_IT"], allowsRememberedDates: true))
+        XCTAssertNil(notice.date(today: today, upcoming: [past], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: false))
+        XCTAssertEqual(notice.date(today: today, upcoming: [today, later], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: true, international: true), today)
+        XCTAssertEqual(notice.date(today: today, upcoming: [today, later], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: true, mappingRevision: "different-rules"), today)
+        XCTAssertNil(ScheduleUpdateNotice(identifier: "unrelated", revision: digest))
+        for (kind, id) in [(ScheduleUpdateNotice.Kind.exam, "takupoke.exam"), (.examReturn, "takupoke.examReturn")] {
+            let update = try XCTUnwrap(ScheduleUpdateNotice(identifier: id, revision: digest))
+            XCTAssertEqual(update.kind, kind)
+            XCTAssertEqual(update.edition(currentRevision: digest), .same)
+            XCTAssertEqual(update.date(today: today, upcoming: [later, next], edition: .same,
+                selectedClasses: classes, allowsRememberedDates: false), next)
+        }
+    }
+
     func testPersonalEditRebasesSameDocumentAndLaterSchoolUpdateNotifies() throws {
         let available = ScheduleNotificationSnapshot.Availability(changes: .available, specials: [:])
         let baseline = ScheduleNotificationSnapshot(changeDocument: "selection/first", changes: [change("original")])

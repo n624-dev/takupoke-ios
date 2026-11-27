@@ -11,6 +11,7 @@ struct ContentView: View {
     @EnvironmentObject private var mainColor: MainColorModel
     @State private var selectedTab: Tab = .home
     @State private var timetableTodayRequest: UUID?
+    @State private var timetableUpdateRequest: ScheduleUpdateNotice?
     @StateObject private var application = ApplicationData.shared
     private var dataReady: Bool { application.readyForCurrentPeriod }
     private var loadedPeriod: SchoolDataPeriod? { application.loadedPeriod }
@@ -85,7 +86,12 @@ struct ContentView: View {
         }
         .onChange(of: dataReady) { ready in
             if !ready { showingSetup = false }
+            else { openPendingScheduleUpdate() }
         }
+        .onChange(of: notifications.openedUpdate, initial: true) { _, _ in openPendingScheduleUpdate() }
+        .onChange(of: scenePhase) { _, _ in openPendingScheduleUpdate() }
+        .onChange(of: showingSetup) { _, _ in openPendingScheduleUpdate() }
+        .onChange(of: retentionNotice) { _, _ in openPendingScheduleUpdate() }
         .onReceive(setupReadiness) { ready in
             if ready {
                 // Published emits before the final model assignment.
@@ -105,6 +111,15 @@ struct ContentView: View {
         } message: {
             Text("保存期間が切り替わりました。ファイルの再選択とリンク一覧・名称データ・授業時刻の再取得が必要です。")
         }
+    }
+
+    private func openPendingScheduleUpdate() {
+        guard dataReady, scenePhase == .active, UIApplication.shared.isProtectedDataAvailable,
+              !retentionNotice, !showingSetup, let update = notifications.openedUpdate else { return }
+        timetableTodayRequest = nil
+        timetableUpdateRequest = update
+        selectedTab = .timetable
+        notifications.openedUpdate = nil
     }
 
     private var setupReadiness: AnyPublisher<Bool,Never> {
@@ -146,7 +161,7 @@ struct ContentView: View {
                 .tabItem { tabLabel("ホーム", symbol: "house", tab: .home, selectedSymbol: "house.fill") }.tag(Tab.home)
             LinksView(model: links)
                 .tabItem { tabLabel("一覧", symbol: "list.bullet", tab: .links) }.tag(Tab.links)
-            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest)
+            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest, updateRequest: $timetableUpdateRequest)
                 .tabItem { tabLabel("時間割", symbol: "calendar", tab: .timetable) }.tag(Tab.timetable)
             SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings)
                 .tabItem { tabLabel("設定", symbol: "gearshape", tab: .settings, selectedSymbol: "gearshape.fill") }.tag(Tab.settings)

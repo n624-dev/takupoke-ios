@@ -12,6 +12,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         var id: CountdownNoticeTarget { target }
     }
     @Published var openedCountdown: CountdownDestination?
+    @Published var openedUpdate: ScheduleUpdateNotice?
+
     @Published private(set) var changesEnabled = UserDefaults.standard.bool(forKey: "notifyScheduleChanges")
     @Published private(set) var specialsEnabled = UserDefaults.standard.bool(forKey: "notifySpecialSchedules")
     @Published private(set) var requestingPermission = false
@@ -53,6 +55,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
                                           didReceive response: UNNotificationResponse) async {
         let request = response.notification.request
+        if let update = ScheduleUpdateNotice(identifier: request.identifier,
+            revision: request.content.userInfo["revision"] as? String,
+            documentRevision: request.content.userInfo["document"] as? String,
+            classRevision: request.content.userInfo["selectedClassesVersion"] as? String,
+            days: request.content.userInfo["targetDays"] as? [String] ?? []) {
+            await MainActor.run {
+                guard self.openedUpdate != update else { return }
+                self.openedUpdate = update
+            }
+            return
+        }
         guard request.identifier.hasPrefix(CountdownNotice.prefix),
               let idValue = request.content.userInfo["countdownID"] as? String, let id = UUID(uuidString: idValue),
               let target = request.content.userInfo["targetKey"] as? String else { return }
@@ -282,7 +295,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         let scope: @MainActor () -> ScheduleNotificationSnapshot.ChangeScope? = { [rows] in
             guard let rows else { return nil }
             return .init(visibility: .init(rows: rows, mapping: mapping()),
-                         international: UserDefaults.standard.bool(forKey: "timetableInternationalStudent"))
+                         international: UserDefaults.standard.bool(forKey: "timetableInternationalStudent"),
+                         showsChanges: UserDefaults.standard.object(forKey: "timetableIncludesChanges") as? Bool ?? true)
         }
         let specials = ScheduleNotificationSnapshot.acceptedSpecialDigests(records: records, sources: sources)
         latestRevision = UUID()
@@ -436,7 +450,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             "\(kind == "exam" ? SpecialScheduleKind.exam.title : SpecialScheduleKind.examReturn.title)が更新されました"
         content.body = kind == "changes" ? "\(notice.count)件の時間割変更を確認してください。" :
             "時間割で更新内容を確認してください。"
-        content.userInfo = ["revision": notice.fingerprint]
+        var information: [String: Any] = ["revision": notice.fingerprint]
+        if kind == "changes", let targets = notice.changeTargets, let document = baseline?.changeDocument {
+            information["document"] = ScheduleUpdateNotice.digest(document)
+            let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
+                .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
+            information["selectedClassesVersion"] = ScheduleUpdateNotice.selectedClassesRevision(classes,
+                international: UserDefaults.standard.bool(forKey: "timetableInternationalStudent"),
+                mappingRevision: baseline?.changeVisibility?.mappingRevision ?? "no-mapping")
+            information["targetDays"] = Array(Set(targets.map(\.date)).sorted().prefix(366))
+        }
+        content.userInfo = information
         content.sound = .default
         try await center.add(UNNotificationRequest(identifier: "takupoke." + kind, content: content, trigger: nil))
     }

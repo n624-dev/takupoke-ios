@@ -9,7 +9,7 @@ extension TimetableView {
         // layout and scroll view; there is no image-to-view handoff on arrival.
         let revision = detailRevision + [mainColor.selection.rawValue,
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
-            String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
+            String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth)), updateFocus?.iso8601 ?? ""]
         return WeekPages(selection: weekSelection, bounds: weekBounds, revision: revision,
                          viewportWidth: gridViewportWidth, pull: weekPull, accent: weekControlColor,
                          content: { AnyView(weekPage(on: $0)) },
@@ -46,52 +46,59 @@ extension TimetableView {
         let columns = days.map(dayLayout)
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         let rowHeights = gridRowHeights(columns, days: days)
-        return VStack(spacing: 0) {
-            ScrollView(.horizontal) {
-                WeekColumnsLayout(widths: [periodColumnWidth] + columns.map(\.width), spacing: gridSpacing) {
-                    Group {
-                        if eventsOnly { Color.clear }
-                        else { Text("時限").font(periodHeadingFont) }
-                    }
-                    .frame(width: periodColumnWidth)
-                    ForEach(columns, id: \.day) { column in dayHeaderCell(column) }
-                    Group {
-                        if eventsOnly {
-                            Color.clear.frame(width: periodColumnWidth, height: gridRowHeight)
-                        } else {
-                            VStack(spacing: gridSpacing) {
-                                ForEach(1...8, id: \.self) { period in
-                                    let commonTime = commonPeriodTime(period, days: days)
-                                    VStack(spacing: 2) {
-                                        Text("\(period)").font(periodNumberFont)
-                                        if let commonTime {
-                                            Text(TimetableDisplayText.periodTime(commonTime))
-                                                .font(periodClockFont).foregroundStyle(.secondary)
-                                        }
+        let grid = ScrollView(.horizontal) {
+            WeekColumnsLayout(widths: [periodColumnWidth] + columns.map(\.width), spacing: gridSpacing) {
+                Group {
+                    if eventsOnly { Color.clear }
+                    else { Text("時限").font(periodHeadingFont) }
+                }
+                .frame(width: periodColumnWidth)
+                ForEach(columns, id: \.day) { column in dayHeaderCell(column).id("week-date-" + column.day.iso8601) }
+                Group {
+                    if eventsOnly {
+                        Color.clear.frame(width: periodColumnWidth, height: gridRowHeight)
+                    } else {
+                        VStack(spacing: gridSpacing) {
+                            ForEach(1...8, id: \.self) { period in
+                                let commonTime = commonPeriodTime(period, days: days)
+                                VStack(spacing: 2) {
+                                    Text("\(period)").font(periodNumberFont)
+                                    if let commonTime {
+                                        Text(TimetableDisplayText.periodTime(commonTime))
+                                            .font(periodClockFont).foregroundStyle(.secondary)
                                     }
-                                    .multilineTextAlignment(.center)
-                                    .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
                                 }
+                                .multilineTextAlignment(.center)
+                                .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
                             }
                         }
                     }
-                    // This probe starts at the first lesson, so the header's
-                    // final bottom is read from geometry, never fed back into layout.
-                    .background(WeekPullObserver(week: week, pull: weekPull))
-                    ForEach(columns, id: \.day) { column in
-                        if eventsOnly, let title = column.fullDayEventTitle {
-                            fullDayEventCard(title, width: column.width, height: nil)
-                        } else {
-                            dayColumn(column, days: days, rowHeights: rowHeights)
-                        }
+                }
+                // This probe starts at the first lesson, so the header's
+                // final bottom is read from geometry, never fed back into layout.
+                .background(WeekPullObserver(week: week, pull: weekPull))
+                ForEach(columns, id: \.day) { column in
+                    if eventsOnly, let title = column.fullDayEventTitle {
+                        fullDayEventCard(title, width: column.width, height: nil)
+                    } else {
+                        dayColumn(column, days: days, rowHeights: rowHeights)
                     }
                 }
-                .padding(.trailing, gridSpacing)
             }
-            .scrollBounceBehavior(.always, axes: .horizontal)
-            .fixedSize(horizontal: false, vertical: true)
-            .dynamicTypeSize(.large...)
-            .modifier(WeekGridAccessibility(label: "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"))
+            .padding(.trailing, gridSpacing)
+        }
+        .scrollBounceBehavior(.always, axes: .horizontal)
+        .fixedSize(horizontal: false, vertical: true)
+        .dynamicTypeSize(.large...)
+        .modifier(WeekGridAccessibility(label: "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"))
+        return VStack(spacing: 0) {
+            if let updateFocus, days.contains(updateFocus) {
+                ScrollViewReader { scroll in
+                    grid.onAppear { scroll.scrollTo("week-date-" + updateFocus.iso8601, anchor: .leading) }
+                }
+            } else {
+                grid
+            }
             weekEvents(on: week, embedded: true)
                 .modifier(WeekFooterHandoff(motion: weekPull.motion, week: week))
         }

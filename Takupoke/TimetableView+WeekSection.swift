@@ -11,6 +11,11 @@ extension TimetableView {
                 Text("変更込み").tag(true)
             }
             .pickerStyle(.segmented)
+            if let updateFocus {
+                LabeledContent("通知から表示した日", value: "\(updateFocus.month)月\(updateFocus.day)日")
+                    .accessibilityIdentifier("timetable-update-day")
+            }
+            if let updateMessage { Text(updateMessage).font(.caption).foregroundStyle(.secondary) }
             if let timetable, TimetableSchedule.termRange(for: timetable) == nil {
                 InlineWarning("通常時間割の学期を確認できません。元PDFを再解析してください。")
             }

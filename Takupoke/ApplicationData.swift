@@ -81,7 +81,8 @@ final class ApplicationData: ObservableObject {
             .map { _ in
                 let defaults = UserDefaults.standard
                 return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent")),
-                        defaults.string(forKey: ChangeNormalizer.schoolYearSettingKey) ?? ""]
+                        defaults.string(forKey: ChangeNormalizer.schoolYearSettingKey) ?? "",
+                        String(defaults.object(forKey: "timetableIncludesChanges") as? Bool ?? true)]
             }.removeDuplicates()
             .sink { [weak self] _ in
                 self?.checkCountdownWhenActive()

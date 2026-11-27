@@ -2,7 +2,7 @@ import Foundation
 
 /// A calendar day without a time or device time zone. Timetable applicability
 /// must be supplied explicitly; a school year or term label is not a date range.
-struct SchoolDate: Codable, Hashable, Comparable {
+struct SchoolDate: Codable, Hashable, Comparable, Sendable {
     let year: Int
     let month: Int
     let day: Int

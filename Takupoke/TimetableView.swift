@@ -9,6 +9,9 @@ struct TimetableView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
     @Binding var todayRequest: UUID?
+    @Binding var updateRequest: ScheduleUpdateNotice?
+    @State var updateFocus: SchoolDate?
+    @State var updateMessage: String?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) var gridDynamicTypeSize
     @EnvironmentObject var mainColor: MainColorModel
@@ -23,6 +26,8 @@ struct TimetableView: View {
         nonmutating set {
             guard selectedWeek.date != newValue else { return }
             selectedWeek.date = newValue
+            updateFocus = nil
+            updateMessage = nil
             closeDetailSelections()
         }
     }
@@ -144,8 +149,13 @@ struct TimetableView: View {
                 }
             }
             .navigationTitle("時間割")
-            .onAppear { refreshToday(); consumeTodayRequest() }
+            .onAppear { refreshToday(); consumeTodayRequest(); consumeUpdateRequest() }
             .onChange(of: todayRequest) { _ in consumeTodayRequest() }
+            .onChange(of: updateRequest) { _, _ in consumeUpdateRequest() }
+            .onChange(of: model.ready) { _, _ in consumeUpdateRequest() }
+            .onChange(of: model.failed) { _, _ in consumeUpdateRequest() }
+            .onChange(of: specialSchedules.ready) { _, _ in consumeUpdateRequest() }
+            .onChange(of: specialSchedules.failed) { _, _ in consumeUpdateRequest() }
             .onReceive(clock) { _ in refreshToday() }
             .task { model.loadIfNeeded() }
             .task { specialSchedules.loadIfNeeded() }

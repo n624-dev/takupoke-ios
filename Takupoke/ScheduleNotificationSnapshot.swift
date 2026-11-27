@@ -5,6 +5,61 @@ import CryptoKit
 import Crypto
 #endif
 
+struct ScheduleUpdateNotice: Equatable, Sendable {
+    enum Kind: String, CaseIterable, Sendable {
+        case changes, exam, examReturn
+        var identifier: String { "takupoke." + rawValue }
+    }
+
+    enum Edition: Equatable { case same, replaced, unavailable }
+
+    let kind: Kind
+    let revision: String?
+    let documentRevision: String?
+    let classRevision: String?
+    let days: [SchoolDate]
+
+    init?(identifier: String, revision: String?, documentRevision: String? = nil,
+          classRevision: String? = nil, days: [String] = []) {
+        guard let kind = Kind.allCases.first(where: { $0.identifier == identifier }) else { return nil }
+        self.kind = kind
+        self.revision = Self.verifiedRevision(revision)
+        self.documentRevision = Self.verifiedRevision(documentRevision)
+        self.classRevision = Self.verifiedRevision(classRevision)
+        self.days = Array(Set(days.prefix(366).compactMap(SchoolDate.init(iso8601:)))).sorted()
+    }
+
+    static func digest(_ value: String) -> String {
+        SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func selectedClassesRevision(_ classes: Set<String>, international: Bool = false,
+                                        mappingRevision: String = "no-mapping") -> String {
+        digest((classes.sorted() + [String(international), mappingRevision]).joined(separator: "|"))
+    }
+
+    func date(today: SchoolDate, upcoming: Set<SchoolDate>, edition: Edition,
+              selectedClasses: Set<String>, allowsRememberedDates: Bool, international: Bool = false,
+              mappingRevision: String = "no-mapping") -> SchoolDate? {
+        if edition == .same, allowsRememberedDates,
+           classRevision == Self.selectedClassesRevision(selectedClasses, international: international, mappingRevision: mappingRevision),
+           let date = days.first(where: { $0 >= today }) { return date }
+        return upcoming.filter { $0 >= today }.min()
+    }
+
+    func edition(currentRevision: String?) -> Edition {
+        let expected = kind == .changes ? documentRevision : revision
+        guard let expected, let current = Self.verifiedRevision(currentRevision) else { return .unavailable }
+        return expected == current ? .same : .replaced
+    }
+
+    private static func verifiedRevision(_ value: String?) -> String? {
+        guard let value, value.utf8.count == 64,
+              value.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else { return nil }
+        return value
+    }
+}
+
 /// Fingerprints contain no subject, teacher, room, file name or original text.
 /// Keeping all classes as a baseline prevents class selection from becoming a
 /// false data update. Filtering is performed only when comparing snapshots.
@@ -64,6 +119,7 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
     struct ChangeScope {
         let visibility: ChangeVisibility
         let international: Bool
+        var showsChanges = true
     }
     fileprivate struct Slot: Hashable {
         let date: String
@@ -270,6 +326,7 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
 
     private static func isVisible(_ target: ChangeTarget, visible: [String], in scope: ChangeScope?) -> Bool {
         guard let scope else { return true }
+        guard scope.showsChanges else { return false }
         guard let evidence = target.visibilityEvidence else { return !visible.isEmpty }
         if !Set(evidence.updatedRows).isDisjoint(with: visible) { return true }
         if scope.international { return evidence.removedVisibleRow }
