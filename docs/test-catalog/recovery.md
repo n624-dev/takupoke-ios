@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`6b8e4cad4f12fbe5a1ea61e06b7a2eb199a7dca27fb932ea8313ab0730e4b64a`
+`dd8f7253ae5aca1fa77b52c8ec347ebdca2fdc182b66c897a7d148c1be9a87ea`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -231,6 +231,7 @@ bash tools/test-parsing.sh
 
 ## [tests/RecoveryTests.swift](../../tests/RecoveryTests.swift)
 
+- `testRecoveryModelActionDistinguishesUnavailablePreparationAndDownload`
 - `testGroundedRulesDoNotLoadLanguageModel`
 - `testModelNotReadyWaitsWithoutDownloadingFallback`
 - `testMalformedOutputIsTerminalBeforeNextProvider`

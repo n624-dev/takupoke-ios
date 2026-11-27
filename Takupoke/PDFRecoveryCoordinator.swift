@@ -26,7 +26,8 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     @Published private(set) var manualCorrectionTargets = Set<RecoveryManualTarget>()
     @Published private(set) var failure: String?
-    @Published private(set) var awaitingModel = false
+    @Published private(set) var modelAction: RecoveryModelAction?
+    var awaitingModel: Bool { modelAction != nil }
     @Published private(set) var manualDraft: RecoveryManualDraft?
     @Published private(set) var manualImages = [String:UIImage]()
     @Published private(set) var manualContextImages = [String:RecoveryManualImage]()
@@ -57,7 +58,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         guard !running else { return }
         guard LocalAIFeaturePolicy.enabled else { cancel(); status = "復旧はOFFです。"; return }
         let previous = task
-        cancel(); failure = nil; preview = nil; awaitingModel = false
+        cancel(); failure = nil; preview = nil
         let operation = UUID(); self.operation = operation; aiTicket = LocalAIFeaturePolicy.capture()
         let ticket = aiTicket
         let preparationControl = AcquisitionControl(); self.preparationControl = preparationControl
@@ -121,8 +122,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func retryModel() {
-        guard LocalAIFeaturePolicy.enabled, !running, let source, pendingDocument != nil || pendingPages != nil else { return }
-        running = true; awaitingModel = false
+        guard LocalAIFeaturePolicy.enabled, modelAction != .unavailable, !running, let source,
+              pendingDocument != nil || pendingPages != nil else { return }
+        running = true; modelAction = nil
         let operation = self.operation
         let control = AcquisitionControl(); preparationControl = control
         task = Task {
@@ -164,8 +166,8 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 let proposed = try await withTaskCancellationHandler(operation:{ try await worker.value },onCancel:{ worker.cancel() })
                 try check(operation)
                 guard let proposals = proposed.proposals,let metadata = proposed.metadata else {
-                    running = false; awaitingModel = proposed.state == .awaitingModel
-                    if awaitingModel { modelStatus(proposed.errors) }
+                    running = false
+                    if proposed.state == .awaitingModel { modelStatus(proposed.errors) }
                     else { failure = "資料の見出しと位置を安全に確認できませんでした。前回の正常結果を保持しています。" }
                     return
                 }
@@ -462,10 +464,15 @@ final class PDFRecoveryCoordinator: ObservableObject {
             provider:provider,decode:nil,shouldInterpolate:false,intent:.defaultIntent) else { return nil }
         return UIImage(cgImage:image)
     }
-    private func modelStatus(_ errors:[String]) {
-        if errors.contains("notReady") { status = "OSのAIモデルが準備中です。準備が完了してから再試行してください。" }
-        else if errors.contains("disabled") { status = "端末の設定でApple Intelligenceを有効にしてから再確認してください。" }
-        else { status = "この端末では追加のローカルAIモデルが必要です。" }
+    var modelSourceURL: URL? { awaitingModel && selectedSourceIsCurrent ? source?.url : nil }
+
+    private func modelStatus(_ errors: [String]) {
+        let manager = LocalRecoveryModelManager.shared
+        let action = RecoveryModelAction(errors: errors,
+                                         canInstall: !manager.installableCatalog.isEmpty,
+                                         localStorageBusy: manager.busy)
+        modelAction = action
+        status = action.message
     }
     private func run(_ doc: RecoveryDocument, source: RecoverySelectedSource, operation: UUID, control:AcquisitionControl) async {
         defer { LocalRecoveryModelManager.shared.release(lease:operation) }
@@ -484,8 +491,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
             if let result = result.result {
                 preview = RecoveryPreview(document:doc,result:result,source:source); status = "採用前に元のPDFと内容を確認してください。"
             } else if result.state == .awaitingModel {
-                awaitingModel = LocalAIFeaturePolicy.enabled
-                if awaitingModel { modelStatus(result.errors) }
+                if LocalAIFeaturePolicy.enabled { modelStatus(result.errors) }
                 else { status = "復旧はOFFです。" }
                 // A temporarily unready system model never triggers an automatic download.
             } else { failure = "原文に基づいて結果を確認できませんでした。前回の正常結果を保持しています。" }
@@ -522,7 +528,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
         previewNeedsRevalidation = false
         previewRasters = [:]; manualInitialValues = [:]
-        preview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; source = nil; awaitingModel = false
+        preview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; source = nil; modelAction = nil
         status = "復旧を開始してください。"; failure = nil
     }
     private func check(_ operation: UUID) throws {

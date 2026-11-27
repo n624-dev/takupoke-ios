@@ -158,7 +158,7 @@ final class Coordinator {
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
  var previewRasters=[1:"original-raster"],manualInitialValues=["field":"prior-transcription"]
  var preview:Preview? = Preview(result: .init(humanCorrections: nil))
- var pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", awaitingModel=true
+ var pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", modelAction:String?="preparing"
  var selectedSourceIsCurrent = true
  var aiTicket = 1
 ''' + block(coordinator, "    private var hasManualWork: Bool") + "\n" + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func invalidateManualIfSourceChanged()") + "\n" + block(coordinator, "    func cancel()") + '''
@@ -252,7 +252,7 @@ enum RecoveryConversion {
 @MainActor final class Coordinator {
     var task: Task<Void, Never>?
     var preparationControl: AcquisitionControl?
-    var operation = UUID(), running = false, status = "", awaitingModel = false
+    var operation = UUID(), running = false, status = "", modelAction: String?
     var previewNeedsRevalidation = false
     var aiTicket = 1, selectedSourceIsCurrent = true
     var preview: Preview?

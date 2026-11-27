@@ -134,12 +134,19 @@ struct PDFRecoveryView: View {
                         }.buttonStyle(.glassProminent)
                             .disabled(!useAiFeatures || coordinator.running || draft.fields.contains { !(manualAcknowledged[$0.id] ?? false) || (manualValues[$0.id] ?? $0.originalText).trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || (manualValues[$0.id] ?? $0.originalText).utf16.count > RecoveryManualAssistance.maximumCorrectedUTF16 })
                     }
-                } else if coordinator.awaitingModel {
+                } else if let action = coordinator.modelAction {
                     Section("端末内AI") {
-                        Text(coordinator.status)
-                        Button("準備状況を再確認") { coordinator.retryModel() }.disabled(!useAiFeatures || models.busy)
+                        if action == .installModel {
+                            Button("復旧を続ける") { coordinator.retryModel() }
+                                .disabled(!useAiFeatures || models.busy || !models.installableCatalog.contains { models.installed[$0.runtime] == $0 })
+                        } else if action != .unavailable {
+                            Button("準備状況を再確認") { coordinator.retryModel() }.disabled(!useAiFeatures || models.busy)
+                        }
+                        if coordinator.modelSourceURL != nil {
+                            Button("元のPDFを確認", systemImage: "doc.richtext") { showSource() }
+                        }
                     }
-                    modelSection
+                    if action == .installModel { modelSection }
                 } else if !coordinator.running {
                     Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent).disabled(!useAiFeatures) }
                 }
@@ -178,7 +185,7 @@ struct PDFRecoveryView: View {
         }
     }
     private func showSource() {
-        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL else { return }
+        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL ?? coordinator.modelSourceURL else { return }
         sourcePage = SourcePage(url:url)
     }
     @ViewBuilder private func previewSections(_ preview:RecoveryPreview) -> some View {
@@ -277,7 +284,10 @@ struct RecoveryModelControls: View {
             else if let failure = models.failure { InlineWarning(failure) }
             else if let message = models.message { Text(message) }
             if models.catalog.isEmpty { Text("追加モデルは品質評価後に提供します。OSの端末内AIが利用可能な端末では追加ダウンロードは不要です。") }
-            ForEach(models.catalog,id:\.sha256) { manifest in
+            if !models.catalog.isEmpty && models.installableCatalog.isEmpty {
+                Text("この端末で取得できる追加モデルはありません。")
+            }
+            ForEach(models.installableCatalog,id:\.sha256) { manifest in
                 VStack(alignment:.leading,spacing:5) {
                     Text(manifest.modelId)
                     Text("約\(ByteCountFormatter.string(fromByteCount:manifest.size,countStyle:.file))のAIモデルをダウンロードします。学校の資料は外部へ送信されません。")
