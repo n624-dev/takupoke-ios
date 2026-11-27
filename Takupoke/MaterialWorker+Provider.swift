@@ -10,16 +10,9 @@ extension MaterialWorker {
         } catch { throw MaterialError.bookmarkFailed }
     }
 
-    func withAccess<T>(_ grant: SourceGrant, body: (URL) throws -> T) throws -> T {
-        var stale = false
-        let url: URL
-        do {
-            url = try URL(resolvingBookmarkData: grant.bookmark, options: [], relativeTo: nil,
-                          bookmarkDataIsStale: &stale)
-        } catch { throw MaterialError.accessExpired }
-        let selection = ScopedMaterialSelection(url)
-        guard !stale else { throw MaterialError.accessExpired }
-        return try selection.access(body)
+    func withAccess<T>(_ grant: SourceGrant, body: (MaterialBookmarkResolution) throws -> T) throws -> T {
+        let reference = try MaterialBookmarkResolution.resolve(grant.bookmark)
+        return try ScopedMaterialSelection(reference.url).access { _ in try body(reference) }
     }
 
     func copyProviderFile(_ url: URL, to staged: URL, kind: MaterialKind,

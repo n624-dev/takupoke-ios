@@ -21,10 +21,9 @@ final class SelectedFileObservation: SelectedFileObserving, @unchecked Sendable 
         diagnosticSource = .init(rawValue: source.id)
         resolve = {
             guard let bookmark = source.bookmark else { throw MaterialError.accessExpired }
-            var stale = false
-            let root = try URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil,
-                               bookmarkDataIsStale: &stale)
-            guard !stale else { throw MaterialError.accessExpired }
+            let reference = try MaterialBookmarkResolution.resolve(bookmark)
+            try reference.requireCurrent()
+            let root = reference.url
             var target = root
             if let child = source.childName {
                 guard !child.isEmpty, child != ".", child != "..",

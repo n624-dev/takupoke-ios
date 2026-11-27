@@ -164,7 +164,7 @@ SPECIALS
         refresh = (ROOT / "Takupoke/SpecialSchedulesModel+Startup.swift").read_text(encoding="utf-8")
         access = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text(encoding="utf-8")
         program = r'''import Foundation
-enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed }
+enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed, bookmarkStale }
 enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
 struct PDFParseError: Error { enum Code { case cancelled }; let code: Code }
 struct ChangeParseError: Error { enum Code { case cancelled }; let code: Code }
@@ -174,8 +174,30 @@ struct URL {
     init() {}
     init(resolvingBookmarkData: Data, options: [Int], relativeTo: URL?, bookmarkDataIsStale: inout Bool) throws {}
 }
-struct ScopedMaterialSelection { init(_ url: URL) {} }
-struct Grant { let bookmark = Data() }
+struct ScopedMaterialSelection {
+    let url: URL
+    init(_ url: URL) { self.url = url }
+    func access<T>(_ block: (URL) throws -> T) throws -> T { try block(url) }
+}
+struct SourceGrant { let bookmark: Data; init(bookmark: Data = Data()) { self.bookmark = bookmark } }
+typealias Grant = SourceGrant
+struct MaterialBookmarkResolution {
+    let url = URL()
+    let isStale: Bool
+    static func resolve(_ bookmark: Data) throws -> Self { Self(isStale: !bookmark.isEmpty) }
+    func renewedGrant(_ previous: SourceGrant, receivedDigest: String, savedDigest: String,
+                      readSavedDigest: () throws -> String) throws -> SourceGrant {
+        try Self.verifiesOriginal(receivedDigest: receivedDigest, savedDigest: savedDigest, readSavedDigest: readSavedDigest)
+        return SourceGrant(bookmark: Data([9]))
+    }
+VERIFIES_ORIGINAL
+}
+enum MaterialFileReader {
+    static var saved = "saved"
+    static func copy(_ url: URL, to: URL?, isWorkbook: Bool, check: () throws -> Void) throws -> (count: Int, digest: String) {
+        try check(); return (10, saved)
+    }
+}
 struct Source {
     let digest = "saved", originalName = "fictional.pdf"
     let grant: Grant?
@@ -205,17 +227,20 @@ final class SpecialScheduleStore {
     let sources: [SpecialScheduleKind: Source]
     let records = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { ($0, Saved()) })
     var failed = [SpecialScheduleKind](), confirmed = [SpecialScheduleKind](), selected = [SpecialScheduleKind](), discarded = 0, analyses = 0
-    var parseCancellations: [SpecialScheduleKind] = []
-    init(missingGrant: SpecialScheduleKind? = nil) {
+    var parseCancellations: [SpecialScheduleKind] = [], renewed = [SpecialScheduleKind]()
+    init(missingGrant: SpecialScheduleKind? = nil, staleGrant: SpecialScheduleKind? = nil) {
         sources = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map {
-            ($0, Source(grant: $0 == missingGrant ? nil : Grant()))
+            ($0, Source(grant: $0 == missingGrant ? nil : Grant(bookmark: $0 == staleGrant ? Data([1]) : Data())))
         })
     }
     func newStagingURL() -> URL { URL() }
     func discardStaging(_ url: URL) { discarded += 1 }
     func selectedURL(for kind: SpecialScheduleKind) -> URL? { URL() }
     func hasSelectedFile(_ kind: SpecialScheduleKind) -> Bool { true }
-    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String) throws { confirmed.append(kind) }
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String, renewedGrant: SourceGrant?) throws {
+        confirmed.append(kind)
+        if renewedGrant != nil { renewed.append(kind) }
+    }
     func recordAcquisitionFailure(kind: SpecialScheduleKind) throws { failed.append(kind) }
     func recordFailure(_ error: PDFParseError, kind: SpecialScheduleKind) throws {
         precondition(error.code == .cancelled)
@@ -240,7 +265,7 @@ enum SpecialSchedulesModel {
     struct Receipt { let acknowledge: () -> Void }
     static var cancelled = false, succeed = false, copied = [SpecialScheduleKind](), acknowledged = [SpecialScheduleKind]()
     static func copy(_ selection: ScopedMaterialSelection, to staged: URL, kind: SpecialScheduleKind,
-                     control: AcquisitionControl) throws -> (String, Int, String, Receipt) {
+                     control: AcquisitionControl) throws -> (name: String, count: Int, digest: String, receipt: Receipt) {
         copied.append(kind)
         if kind == .exam && !succeed {
             if cancelled { control.cancel(); try control.check() }
@@ -320,10 +345,22 @@ check(legacyStore.failed == [.exam] && legacyStore.confirmed == [.examReturn],
       "a missing bookmark must not block another authorized file or record an unperformed check")
 check(legacyStore.selected.isEmpty && legacyStore.analyses == 0 && SpecialSchedulesModel.copied == [.examReturn],
       "keep the cached selection and analysis for the legacy file")
+for saved in ["saved", "different-actual-saved"] {
+    MaterialFileReader.saved = saved
+    let store = SpecialScheduleStore(staleGrant: .exam)
+    do {
+        try SpecialSchedulesModel.refreshSelectedFiles(store, requested: ["exam", "examReturn"], control: AcquisitionControl())
+        check(saved == "saved", "a mismatched copy cannot renew the reference")
+    } catch MaterialError.bookmarkStale { check(saved != "saved", "matching input must renew automatically") }
+    catch { check(false, "unexpected stale reference error") }
+    check(store.renewed == (saved == "saved" ? [.exam] : []), "only the matching source may renew its grant")
+    check(store.confirmed.contains(.examReturn) && store.selected.isEmpty, "unrelated source must still be confirmed")
+}
 if !failures.isEmpty { print(failures.joined(separator: "\n")); exit(1) }
 '''.replace("METHOD", block(refresh, "nonisolated static func refreshSelectedFiles(")) \
    .replace("CANCELLATION", block((ROOT / "Takupoke/StatusPresentation.swift").read_text(), "enum FileOperationOutcome")) \
-   .replace("CONTROL", block(access, "final class AcquisitionControl"))
+   .replace("CONTROL", block(access, "final class AcquisitionControl")) \
+   .replace("VERIFIES_ORIGINAL", block((ROOT / "Takupoke/MaterialModels.swift").read_text(), "static func verifiesOriginal("))
         with tempfile.TemporaryDirectory(prefix="special-provider-refresh-") as scratch:
             root = Path(scratch)
             source = root / "main.swift"

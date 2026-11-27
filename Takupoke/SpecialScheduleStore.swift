@@ -230,12 +230,14 @@ final class SpecialScheduleStore {
         try? removeUnreferencedFiles()
     }
 
-    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String? = nil, checkedAt: Date = Date()) throws {
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String? = nil,
+                               checkedAt: Date = Date(), renewedGrant: SourceGrant? = nil) throws {
         guard var source = sources[kind], source.digest == digest else { throw StoreError.invalidState }
         if let originalName {
             guard !originalName.isEmpty else { throw StoreError.invalidState }
             source.originalName = originalName
         }
+        if let renewedGrant { source.grant = renewedGrant }
         source.lastCheckedAt = checkedAt
         source.lastAcquiredAt = checkedAt
         source.acquisitionFailure = nil

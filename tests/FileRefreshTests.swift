@@ -132,6 +132,24 @@ final class FileRefreshTests: XCTestCase {
         }
     }
 
+    func testStaleReferenceRequiresTheReadAndSavedOriginalDigestsToMatch() throws {
+        var reads = 0
+        try MaterialBookmarkResolution.verifiesOriginal(receivedDigest: "fictional-original", savedDigest: "fictional-original") {
+            reads += 1; return "fictional-original"
+        }
+        XCTAssertEqual(reads, 1)
+        XCTAssertThrowsError(try MaterialBookmarkResolution.verifiesOriginal(receivedDigest: "changed", savedDigest: "fictional-original") {
+            XCTFail("A different provider file must not renew the reference"); return "fictional-original"
+        }) { error in
+            guard case .bookmarkStale? = error as? MaterialError else { return XCTFail("Expected stale reference failure") }
+        }
+        XCTAssertThrowsError(try MaterialBookmarkResolution.verifiesOriginal(receivedDigest: "fictional-original", savedDigest: "fictional-original") {
+            "different-actual-stored-file"
+        }) { error in
+            guard case .bookmarkStale? = error as? MaterialError else { return XCTFail("Expected stale reference failure") }
+        }
+    }
+
     func testRetryAcquiringTheOriginalButFailingToParseAllowsMonitorRecovery() throws {
         var limits = FilePipeline.Limits()
         limits.retryDelay = 0

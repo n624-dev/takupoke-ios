@@ -24,10 +24,43 @@ struct SourceGrant: Codable {
     /// original. A matching filename or digest alone is insufficient.
     func references(_ selectedURL: URL) -> Bool {
         guard !isFolder, selectedURL.isFileURL else { return false }
+        guard let original = try? MaterialBookmarkResolution.resolve(bookmark) else { return false }
+        return original.url.standardizedFileURL == selectedURL.standardizedFileURL
+    }
+    #endif
+}
+
+struct MaterialBookmarkResolution {
+    let url: URL
+    let isStale: Bool
+
+    static func verifiesOriginal(receivedDigest: String, savedDigest: String, readSavedDigest: () throws -> String) throws {
+        guard receivedDigest == savedDigest, try readSavedDigest() == savedDigest else { throw MaterialError.bookmarkStale }
+    }
+
+    #if os(iOS) || os(macOS)
+    func renewedGrant(_ previous: SourceGrant, receivedDigest: String, savedDigest: String,
+                      readSavedDigest: () throws -> String) throws -> SourceGrant {
+        try Self.verifiesOriginal(receivedDigest: receivedDigest, savedDigest: savedDigest, readSavedDigest: readSavedDigest)
+        do {
+            return SourceGrant(bookmark: try url.bookmarkData(options: .minimalBookmark,
+                includingResourceValuesForKeys: nil, relativeTo: nil), name: previous.name, isFolder: previous.isFolder)
+        } catch { throw MaterialError.bookmarkFailed }
+    }
+    #endif
+
+    func requireCurrent() throws {
+        if isStale { throw MaterialError.bookmarkStale }
+    }
+
+    #if os(iOS) || os(macOS)
+    static func resolve(_ bookmark: Data) throws -> Self {
         var stale = false
-        guard let original = try? URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil,
-                                      bookmarkDataIsStale: &stale), original.isFileURL else { return false }
-        return original.standardizedFileURL == selectedURL.standardizedFileURL
+        guard let url = try? URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil,
+                                 bookmarkDataIsStale: &stale), url.isFileURL else {
+            throw MaterialError.bookmarkUnresolved
+        }
+        return Self(url: url, isStale: stale)
     }
     #endif
 }
@@ -92,13 +125,15 @@ struct AcquisitionAttempt: Codable {
 }
 
 enum AcquisitionProblem: String, Codable, Sendable {
-    case sizeLimit, invalidFormat, permission, temporary, storage, unavailable
+    case sizeLimit, invalidFormat, permission, staleBookmark, unresolvedBookmark, temporary, storage, unavailable
 
     init(_ error: Error) {
         switch error {
         case MaterialError.tooLarge: self = .sizeLimit
         case MaterialError.invalidFile: self = .invalidFormat
         case MaterialError.accessExpired, MaterialError.bookmarkFailed: self = .permission
+        case MaterialError.bookmarkStale: self = .staleBookmark
+        case MaterialError.bookmarkUnresolved: self = .unresolvedBookmark
         case MaterialError.providerReadFailed: self = .temporary
         case MaterialError.invalidState: self = .storage
         default:
@@ -111,6 +146,8 @@ enum AcquisitionProblem: String, Codable, Sendable {
         case .sizeLimit: return MaterialError.tooLarge.localizedDescription
         case .invalidFormat: return MaterialError.invalidFile.localizedDescription
         case .permission: return MaterialError.accessExpired.localizedDescription
+        case .staleBookmark: return MaterialError.bookmarkStale.localizedDescription
+        case .unresolvedBookmark: return MaterialError.bookmarkUnresolved.localizedDescription
         case .temporary: return MaterialError.providerReadFailed.localizedDescription
         case .storage: return MaterialError.invalidState.localizedDescription
         case .unavailable: return MaterialError.unavailable.localizedDescription
@@ -136,6 +173,7 @@ struct MaterialLibraryState: Codable {
 enum MaterialError: LocalizedError {
     case unavailable, invalidFile, tooLarge, invalidState, cancelled
     case accessExpired, bookmarkFailed, providerReadFailed, invalidWebURL, webUnavailable
+    case bookmarkStale, bookmarkUnresolved
 
     var errorDescription: String? {
         switch self {
@@ -151,6 +189,10 @@ enum MaterialError: LocalizedError {
             return "取得を中止しました。前回のファイルは保持しています。"
         case .accessExpired:
             return "ファイルへのアクセス許可を確認できません。ファイルを選び直してください。前回のファイルは保持しています。"
+        case .bookmarkStale:
+            return "保存したファイルへの参照が古くなりました。ファイルを選び直してください。前回のファイルは保持しています。"
+        case .bookmarkUnresolved:
+            return "保存したファイルの場所を確認できません。ファイルを選び直してください。前回のファイルは保持しています。"
         case .bookmarkFailed:
             return "ファイルは読み取れましたが、次回のアクセス情報を保存できませんでした。前回のファイルは保持しています。ファイルを選び直してください。"
         case .providerReadFailed:

@@ -86,7 +86,8 @@ final class MaterialWorker {
                 return try readWebPDF(url, to: staged, control: control)
             }
             guard let grant = source.grant else { throw MaterialError.invalidState }
-            return try withAccess(grant) { root in
+            return try withAccess(grant) { reference in
+                let root = reference.url
                 let target: URL
                 if grant.isFolder {
                     guard let name = source.childName, !name.isEmpty, name != ".", name != "..",
@@ -95,7 +96,17 @@ final class MaterialWorker {
                 } else { target = root }
                 guard target.pathExtension.lowercased() == kind.fileExtension else { throw MaterialError.invalidFile }
                 let result = try copyProviderFile(target, to: staged, kind: kind, control: control)
-                return .downloaded((source, target.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
+                guard reference.isStale else {
+                    return .downloaded((source, target.lastPathComponent, result.count, result.digest, result.modified, result.receipt))
+                }
+                guard let record = library?.state.record(for: kind), let saved = library?.localURL(for: kind) else {
+                    throw MaterialError.bookmarkStale
+                }
+                var renewed = source
+                renewed.grant = try reference.renewedGrant(grant, receivedDigest: result.digest, savedDigest: record.digest) {
+                    try readMaterial(saved, copyingTo: nil, kind: kind, control: control).1
+                }
+                return .downloaded((renewed, record.originalName, result.count, result.digest, result.modified, result.receipt))
             }
         }
     }
