@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`ae69b7c42717f3b7b07a6cc86024746c940a0494b43341efdd26136c22b4a985`
+`ad600b6446400c26cbd5361896c33936d18f9f27da83c93f18a4855fe8f092d1`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -101,6 +101,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - `testUnknownLinkColorUsesTheStandardColorAndKeepsTheExactPublishedValue`
 - `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
+- `testDamagedLinkPreferencesRestoreEachReadableValueAndKeepTheOriginal`
 - `testSearchMatchesKanaRomajiAndRanking`
 
 ## [tests/test_mapping_oidc_form.py](../../tests/test_mapping_oidc_form.py)

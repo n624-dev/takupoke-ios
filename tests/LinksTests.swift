@@ -415,6 +415,29 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(try store.load().colorOverrides["fictional-link"], "teal")
     }
 
+    func testDamagedLinkPreferencesRestoreEachReadableValueAndKeepTheOriginal() throws {
+        let suite = "link-partial-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = LinkPreferencesStore(defaults: defaults)
+        let key = "linkPreferences.v1"
+        let damaged = Data(#"{"favoriteIDs":["fictional-a",1],"hiddenIDs":["fictional-b"],"colorOverrides":{"fictional-c":"blue","fictional-d":false,"fictional-e":"future-color"}}"#.utf8)
+        defaults.set(damaged, forKey: key)
+        XCTAssertThrowsError(try store.save(LinkPreferences()))
+        let recovered = try XCTUnwrap(store.recoverReadableValues())
+        XCTAssertEqual(recovered.favoriteIDs, ["fictional-a"])
+        XCTAssertEqual(recovered.hiddenIDs, ["fictional-b"])
+        XCTAssertEqual(recovered.colorOverrides, ["fictional-c": "blue", "fictional-e": "future-color"])
+        XCTAssertEqual(try store.load(), recovered)
+        let archive = try XCTUnwrap(defaults.dictionaryRepresentation().keys.first { $0.hasPrefix(key + ".retained.") })
+        XCTAssertEqual(defaults.data(forKey: archive), damaged)
+        XCTAssertNil(try store.recoverReadableValues())
+        let unknown = Data(#"{"version":2,"favoriteIDs":["fictional-f"]}"#.utf8)
+        defaults.set(unknown, forKey: key)
+        XCTAssertThrowsError(try store.recoverReadableValues())
+        XCTAssertEqual(defaults.data(forKey: key), unknown)
+    }
+
     func testSearchMatchesKanaRomajiAndRanking() {
         XCTAssertEqual(LinkSearch.normalize("ｶﾀｶﾅ！"), "かたかな")
         XCTAssertEqual(LinkSearch.romaji("しゃっくり"), "shakkuri")

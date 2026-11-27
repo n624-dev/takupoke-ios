@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`4d8acdb1d41aa82d466f9b8d7433723c69d9bd9cb38ac197479194e03aaaab06`
+`78fa8a49e83fa9f96fe82bf788e66b66e06d54bd0800e37bd6580b273ff8271b`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -53,6 +53,7 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 - `testUnknownLinkColorUsesTheStandardColorAndKeepsTheExactPublishedValue`
 - `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
+- `testDamagedLinkPreferencesRestoreEachReadableValueAndKeepTheOriginal`
 - `testSearchMatchesKanaRomajiAndRanking`
 
 ## [tests/test_links_model_lifecycle.py](../../tests/test_links_model_lifecycle.py)

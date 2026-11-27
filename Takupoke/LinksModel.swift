@@ -112,6 +112,12 @@ final class LinksModel: ObservableObject {
             preferencesReady = true
             preferencesError = nil
         } catch {
+            if let recovered = try? preferencesStore.recoverReadableValues() {
+                preferences = recovered
+                preferencesReady = true
+                preferencesError = "読み取れた一覧設定を引き継ぎ、元の設定を端末に保全しました。"
+                return
+            }
             preferencesReady = false
             preferencesError = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
         }
