@@ -1,3 +1,8 @@
+## 学内資料の切替と同時に完了した公開カウントダウン通知が取り消される（2026-11-27）
+
+- `4736b82`、Linux／Swift 6.1.2。`test_countdown_retries_missing_reservations_and_prioritizes_confirmed_capacity` で実装の `reserve` を実行し、個人予定や公開行事を表す予約をOS相当の境界で止めた。学内資料の復旧と同じように予約計画を無効にした直後に予約を完了させると、公開用の通知が削除された。以前の期限テストは実予約後の判定を使っておらず、この組合せを検出できなかった。
+- `expirePrivateNotices|reserve|NotificationWriteOwner` で期限切替と遅延完了の回帰検査を比較した。学内資料の予約計画を無効にした時点で実行中だった公開用の予約だけを控え、本人が通知をオフにした場合と新しい予約計画で不要になった場合は削除する。以前の計画を続けて次の通知を予約しない。実装の予約処理で公開用・学内用・オフ・新しい計画の4条件を検査する。
+
 ## 週切替の限定CIが生成アプリの旧位置目印で停止（2026-11-27）
 
 - `f4e0ded`、[iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/46070038490/job/140744519996) と[iOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/46070038490/job/140744520091)、SDK 27.2。21:33 UTCに両方の `instrument_week_motion` が旧 `heldScroll?.isScrollEnabled = true` の挿入箇所を見つけられず終了1。SwiftUIの生成前に止まり、実描画は未到達。生成アプリが変更後の実関数を使って組み立つ検査と、通知の新しい計測も開始前に確認する。

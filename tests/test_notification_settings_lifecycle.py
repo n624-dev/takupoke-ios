@@ -525,6 +525,7 @@ struct FixtureCard {
 }
 struct CountdownNotice {
     static let prefix = "takupoke.countdown."
+    static let privatePrefix = "fictional.private."
     let identifier: String
     let title = "架空通知"
     let fireAt: Date
@@ -623,6 +624,7 @@ struct Settings {
     var notificationStatuses = [CountdownNoticeTarget:String]()
     let center = Center()
     let notificationWriter: NotificationWriteOwner
+    var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     init(writer: NotificationWriteOwner? = nil) { notificationWriter = writer ?? NotificationWriteOwner() }
     func notificationEnabled(for id: UUID) -> Bool { !disabledTargets.contains(id) }
     func apply(_ desired: [CountdownNotice], allowed: Bool = true) async -> [String]? {
@@ -642,6 +644,7 @@ RESERVE
 RESERVE_ONE
 MATCH
 REMOVE
+RETENTION_INVALIDATE
 }
 @main struct Probe {
     @MainActor static func waitForRead(_ center: Center) async {
@@ -776,6 +779,33 @@ REMOVE
             precondition((stopped.center.requests[acceptedLate.identifier] != nil) == reenabled)
         }
 
+        for (identifier, disabled, hasReplacement, wasStale, keep) in [
+            ("fictional.public", false, false, false, true),
+            ("fictional.public", true, false, false, false),
+            ("fictional.public", false, true, false, false),
+            ("fictional.public", false, false, true, false),
+            ("fictional.private.1", false, false, false, false)
+        ] {
+            let expiring = Harness()
+            expiring.center.pausesAdd = true
+            let notice = CountdownNotice(identifier)
+            let task = Task { await expiring.apply([notice, .init("must-not-be-added")]) }
+            let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+            while expiring.center.unfinishedAdd == nil {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            if wasStale { expiring.revision = UUID() }
+            expiring.invalidateForTest()
+            expiring.invalidateForTest()
+            if disabled { expiring.disabledTargets.insert(notice.targetID) }
+            if hasReplacement { expiring.request = .init(revision: expiring.revision, desired: [.init("new")]) }
+            expiring.center.unfinishedAdd?.resume(); expiring.center.unfinishedAdd = nil
+            let result = await task.value
+            precondition(result == nil && expiring.center.called == [identifier])
+            precondition((expiring.center.requests[identifier] != nil) == keep, "Keep only an enabled public reservation during retention")
+            precondition(expiring.center.removals == (keep ? [] : [identifier]))
+        }
+
         for (canReadPending, canReadDelivered) in [(true,true),(true,false),(false,true)] {
             let history = Harness()
             if !canReadPending { history.center.withheldRead = 1 }
@@ -799,6 +829,8 @@ REMOVE
     }
 }
 '''.replace("WRITE_OWNER", owner).replace("RESERVE_ONE", block(source, "private func reserve(_ notice:")).replace(
+    "RETENTION_INVALIDATE", block(source, "private func invalidatePrivateNotificationPlan(").replace("private func", "func").replace(
+        "invalidatePrivateNotificationPlan", "invalidateForTest")).replace(
     "CAN_RESERVE", block(notice_plan, "func canReserve(at")).replace(
     "DISPLACED", block(notice_plan, "static func displacedReservations(")).replace(
     "RESERVE", block(source, "private func reserveNotifications(")).replace(
@@ -1564,6 +1596,8 @@ struct Card { let isPrivate: Bool }
 @MainActor final class Harness {
     let center = UNUserNotificationCenter()
     let retentionRemovals = NotificationRemovalOwner()
+    let notificationWriter = NotificationWriteOwner()
+    var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
 EXPIRY_STATE
@@ -1578,6 +1612,7 @@ EXPIRY_STATE
         }
     }
 EXPIRY
+RETENTION_INVALIDATE
 }
 @main struct Probe {
     @MainActor static func waitUntil(_ condition: () -> Bool) async {
@@ -1624,9 +1659,11 @@ EXPIRY
     }
 }
 '''.replace("BRIDGES", bridges).replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE).replace(
-            "EXPIRY", block(model, "func expirePrivateNotices(")) + "\n@MainActor\n" + block(
+            "EXPIRY", block(model, "func expirePrivateNotices(")).replace(
+            "RETENTION_INVALIDATE", block(model, "private func invalidatePrivateNotificationPlan(")) + "\n@MainActor\n" + block(
             notifications, "final class NotificationWork {")
         program += "\n@MainActor\n" + block(notifications, "final class NotificationRemovalOwner {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationWriteOwner {")
         self.run_probe(compiler, program)
 
     def test_retention_notification_removal_keeps_the_main_actor_and_preserves_ownership(self):
@@ -1729,6 +1766,8 @@ RESET_UPDATES
 @MainActor final class Countdown {
     let center = Center()
     let retentionRemovals = NotificationRemovalOwner()
+    let notificationWriter = NotificationWriteOwner()
+    var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
 EXPIRY_STATE
@@ -1741,6 +1780,7 @@ EXPIRY_STATE
         }
     }
 EXPIRE
+RETENTION_INVALIDATE
 }
 @main struct Probe {
     @MainActor static func main() async {
@@ -1795,8 +1835,10 @@ EXPIRE
         program = program.replace("RESET_UPDATES", block(notifications, "func resetForRetention("))
         program = program.replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE)
         program = program.replace("EXPIRE", block(countdown, "func expirePrivateNotices("))
+        program = program.replace("RETENTION_INVALIDATE", block(countdown, "private func invalidatePrivateNotificationPlan("))
         program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
         program += "\n@MainActor\n" + block(notifications, "final class NotificationRemovalOwner {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationWriteOwner {")
         self.run_probe(compiler, program)
 
     def test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan(self):

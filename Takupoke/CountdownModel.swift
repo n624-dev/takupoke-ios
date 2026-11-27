@@ -28,6 +28,7 @@ final class CountdownModel: ObservableObject {
     private let center = UNUserNotificationCenter.current()
     private let retentionRemovals = NotificationRemovalOwner()
     private let notificationWriter = NotificationWriteOwner()
+    private var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     private var request: NoticePlan?
     private var worker: NotificationWork?
     private var applyingPlan: NoticePlan?
@@ -541,8 +542,7 @@ final class CountdownModel: ObservableObject {
         notificationCards = notificationCards?.filter { !$0.value.isPrivate }
         // Invalidate the old plan without cancelling an in-flight add. It may
         // be a personal or public reminder that must survive private expiry.
-        revision = UUID()
-        request = nil
+        invalidatePrivateNotificationPlan()
         guard await worker?.waitForCompletion() != false, !Task.isCancelled else { return false }
         let queued = await ScheduleNotifications.readPending(from:center)
         if let queued, !Task.isCancelled {
@@ -559,6 +559,18 @@ final class CountdownModel: ObservableObject {
             }) else { return false }
         }
         return queued != nil && !Task.isCancelled
+    }
+
+    private func invalidatePrivateNotificationPlan() {
+        let nextRevision = UUID()
+        if let active = notificationWriter.active, !active.identifier.hasPrefix(CountdownNotice.privatePrefix),
+           active.revision == revision || (retentionPreservedWrite?.write == active && retentionPreservedWrite?.invalidation == revision) {
+            retentionPreservedWrite = (active, nextRevision)
+        } else {
+            retentionPreservedWrite = nil
+        }
+        revision = nextRevision
+        request = nil
     }
 
     private func planNotifications(for cards: [CountdownCard], at now: Date,
@@ -770,11 +782,18 @@ final class CountdownModel: ObservableObject {
         } catch {
             // The actual pending list decides what has been reserved.
         }
+        let exactRetainedWrite = retentionPreservedWrite?.write == notificationWriter.latestCompletion?.write
+            && retentionPreservedWrite?.write.identifier == notice.identifier
+            && retentionPreservedWrite?.write.revision == plan.revision
+        let preservingDuringRetention = exactRetainedWrite && retentionPreservedWrite?.invalidation == revision
+        if exactRetainedWrite {
+            retentionPreservedWrite = nil
+        }
         if revision != plan.revision {
             let stillDesired = request?.desired.contains {
                 $0.identifier == notice.identifier && $0.fireAt == notice.fireAt && $0.target == notice.target
                     && $0.title == notice.title && $0.canReserve(at: Date())
-            } == true
+            } ?? (preservingDuringRetention && !Task.isCancelled)
             if !stillDesired || !notificationEnabled(for: notice.targetID) { removeNotices([notice.identifier]) }
             return false
         }
