@@ -1,3 +1,8 @@
+## 週切替の限定CIが生成アプリの旧位置目印で停止（2026-11-27）
+
+- `f4e0ded`、[iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/46070038490/job/140744519996) と[iOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/46070038490/job/140744520091)、SDK 27.2。21:33 UTCに両方の `instrument_week_motion` が旧 `heldScroll?.isScrollEnabled = true` の挿入箇所を見つけられず終了1。SwiftUIの生成前に止まり、実描画は未到達。生成アプリが変更後の実関数を使って組み立つ検査と、通知の新しい計測も開始前に確認する。
+- `instrument_week_motion|scroll-restored|生成` で以前の固定目印の検査を照合した。Linuxの `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged` で両OSと同じエラーを再現した。元スクロールを復帰する実関数を呼んだ直後に同じ計測を挿入し、組み立てたSwiftで復帰の後に記録することを検査する。製品と元のフレーム検査は同じ。
+
 ## iOS 27の週移動で最初の実枠だけ準備した間隔が崩れる（2026-11-27）
 
 - `2aeb398`、[限定46059856436の試行2、iOS 27.0](https://github.com/n624-dev/takupoke-ios/actions/runs/46059856436/job/140725550124)、SDK 27.2。21:14:04 UTC、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` の405行、37.684秒。横移動開始後の最初の実枠30.397msで既存週x=16、次週x=297.667、差281.667pt。用意したページ幅は361pt、許容は1.5pt。次の実枠48.304msではx=-91と270で差361pt、後続も同幅。着地後の最大間隔は53.402ms。時刻と行事週の別ケースは190.847秒で通過。

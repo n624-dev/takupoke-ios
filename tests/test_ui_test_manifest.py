@@ -250,6 +250,7 @@ OBSERVE
         self.assertEqual(contacts.count("try deliver(record)"), 1)
         generated_grid = app_test_project.instrument_week_motion(source)
         promotion = generated_grid.split("private func promote(", 1)[1].split("private func finishHeight(", 1)[0]
+        self.assertLess(promotion.index("releaseHeldScroll()"), promotion.index('checkpoint("scroll-restored")'))
         self.assertLess(promotion.index("transition = nil"), promotion.index("signalHeightWindow()"))
         self.assertIn("if heightAdjustment != nil", promotion)
         swift = (ROOT / "tests/ui/ApplicationChecks+WeekAppearance.swift").read_text()

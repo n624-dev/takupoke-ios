@@ -31,7 +31,7 @@ WEEK_MOTION_INSERTIONS = (
      '\n        FixtureWeekMotionRecorder.shared.checkpoint("promotion-begin")'),
     ('            arrive?(value.source, value.destination)',
      '\n            FixtureWeekMotionRecorder.shared.checkpoint("arrival-callback-returned")'),
-    ('            heldScroll?.isScrollEnabled = true\n            heldScroll = nil',
+    ('            releaseHeldScroll()',
      '\n            FixtureWeekMotionRecorder.shared.checkpoint("scroll-restored")'
      '\n            if heightAdjustment != nil { FixtureWeekSequenceRecorder.shared.signalHeightWindow() }'),
     ('    private func configure(_ weeks: [SchoolDate]) {',
