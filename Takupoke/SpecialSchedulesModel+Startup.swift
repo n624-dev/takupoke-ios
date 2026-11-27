@@ -20,6 +20,8 @@ extension SpecialSchedulesModel {
                 FileRefreshDiagnostics.shared.record(.refreshStarted, source: diagnosticSource)
                 let record = store.records[kind]
                 let saved = record.flatMap { RecoveryConversion.trustsAcquisitionCache($0.analysis,hash:source.digest) ? $0:nil }
+                let needsClockValidation = kind == .exam && source.failure == nil && saved?.digest == source.digest
+                    && saved?.analysis.consecutiveTimes == nil && saved?.analysis.recoveredExamClockEvidence == nil
                 let needsAnalysis = PDFParseAttempt.needsAnalysis(digest: source.digest, parserVersion: SpecialScheduleAnalysis.parserVersion,
                     analysisDigest: saved?.digest, analysisVersion: saved?.analysis.version, attemptDigest: source.digest,
                     failure: source.failure, attemptVersion: source.attemptParserVersion)
@@ -60,7 +62,7 @@ extension SpecialSchedulesModel {
                     }
                     // Check the provider before retrying an older local parser failure.
                     // A malformed old copy must not prevent acquiring its replacement.
-                    if changed || needsAnalysis || force {
+                    if changed || needsAnalysis || needsClockValidation || force {
                         guard let selectedURL = store.selectedURL(for: kind),
                               let selectedSource = store.sources[kind] else { throw MaterialError.unavailable }
                         control.pipelineTicket?.enter(.parsing)
@@ -74,7 +76,8 @@ extension SpecialSchedulesModel {
                                                                        check: parseCheck)
                         control.pipelineTicket?.enter(.validating)
                         try parseCheck()
-                        try store.saveAnalysis(analysis); control.pipelineTicket?.parsed()
+                        try store.acceptParsedAnalysis(analysis, selectedURL: selectedURL, check: parseCheck)
+                        control.pipelineTicket?.parsed()
                     }
                     }
                 } catch {

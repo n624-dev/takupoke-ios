@@ -72,10 +72,17 @@ enum RecoveryConversion {
             let slots = doc.cells.filter { $0.page == page }.flatMap(\.slots)
             return SpecialScheduleScope(page:page,classes:Array(Set(slots.map(\.className))).sorted(),dates:Array(Set(slots.map(\.day))).sorted())
         }
-        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted,scopes:scopes)
+        let consecutiveTimes = doc.explicitSpanTimeKeys.map { keys in
+            keys.reduce(into: [String: String]()) { result, key in
+                guard let binding = doc.clockBindings[key], let clock = doc.spanTimes[key] else { return }
+                result["\(binding.spanStart)-\(binding.spanEnd)"] = clock
+            }
+        }
+        let dedicated = doc.kind == .return && consecutiveTimes != nil ? day : nil
+        return SpecialScheduleAnalysis(kind:doc.kind == .exam ? .exam : .examReturn,sourceDigest:preview.source.digest,sourceName:preview.source.originalName,parsedAt:adopted.acceptance.acceptedAt,schoolYear:doc.schoolYear,coveredDates:doc.days.sorted(),coveredClasses:doc.classes.sorted(),periodTimes:periodTimes,lessons:remapFirstYear ? lessons.map(PDFClassAssignment.assign) : lessons,recovery:adopted,dedicatedTimeDate:dedicated,scopes:scopes,consecutiveTimes:consecutiveTimes)
     }
     static func recertifiedSpecial(_ analysis: SpecialScheduleAnalysis, hash: String) throws -> SpecialScheduleAnalysis? {
-        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash,
+        guard (4...SpecialScheduleAnalysis.parserVersion).contains(analysis.version), analysis.sourceDigest == hash, analysis.hasValidConsecutiveTimes,
               let original = analysis.recovery else { return nil }
         // Older vector recovery could bind an explicit clock to only the suffix
         // of its period list. Re-read the PDF before using a lesson with that evidence.
@@ -92,10 +99,33 @@ enum RecoveryConversion {
         guard analysis.kind == projection.kind, analysis.schoolYear == projection.schoolYear,
               analysis.coveredDates == projection.coveredDates, analysis.coveredClasses == projection.coveredClasses,
               analysis.periodTimes == projection.periodTimes, analysis.lessons == projection.lessons,
+              analysis.consecutiveTimes == projection.consecutiveTimes,
+              analysis.dedicatedTimeDate == projection.dedicatedTimeDate,
               (analysis.version < 35 && analysis.scopes == nil || analysis.scopes == projection.scopes),
               analysis.parsedAt == original.acceptance.acceptedAt else { return nil }
         var next = analysis; next.version = SpecialScheduleAnalysis.parserVersion; next.lessons = projection.lessons.map(PDFClassAssignment.assign); next.recovery = current; next.scopes = projection.scopes
+        if let evidence = next.recoveredExamClockEvidence {
+            next.recoveredExamClockEvidence = RecoveredExamClockEvidence(acceptance: current.acceptance, times: evidence.times)
+        }
         return next
+    }
+
+    static func updatingExamClocks(in accepted: SpecialScheduleAnalysis, from parsed: SpecialScheduleAnalysis) throws -> SpecialScheduleAnalysis? {
+        guard parsed.kind == .exam, parsed.recovery == nil, parsed.hasValidConsecutiveTimes,
+              let times = parsed.consecutiveTimes, let parsedScopes = parsed.scopes, parsed.validScopes,
+              var verified = try recertifiedSpecial(accepted, hash: parsed.sourceDigest),
+              let recovery = verified.recovery, verified.kind == .exam, verified.schoolYear == parsed.schoolYear,
+              verified.coveredDates == parsed.coveredDates, verified.coveredClasses == parsed.coveredClasses,
+              verified.periodTimes == parsed.periodTimes, verified.scopes?.map(normalizedScope) == parsedScopes.map(normalizedScope) else { return nil }
+        if let alreadyVerified = verified.consecutiveTimes {
+            return alreadyVerified == times ? verified : nil
+        }
+        verified.recoveredExamClockEvidence = RecoveredExamClockEvidence(acceptance: recovery.acceptance, times: times)
+        return verified
+    }
+
+    private static func normalizedScope(_ scope: SpecialScheduleScope) -> SpecialScheduleScope {
+        SpecialScheduleScope(page: scope.page, classes: scope.classes.sorted(), dates: scope.dates.sorted())
     }
     static func verifyFile(_ source: RecoverySelectedSource, currentPeriod: () -> SchoolDataPeriod = { SchoolDataPeriod.current() }, check: () throws -> Void) throws {
         guard currentPeriod() == source.period else { throw PDFParseError(code:.cancelled) }

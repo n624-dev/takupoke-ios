@@ -268,9 +268,23 @@ final class SpecialScheduleStore {
         acquisitionAttempts[kind] = nil
     }
 
-    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {
+    func acceptParsedAnalysis(_ parsed: SpecialScheduleAnalysis, selectedURL: URL, check: () throws -> Void) throws {
+        guard parsed.kind == .exam, let prior = records[.exam], prior.digest == parsed.sourceDigest,
+              RecoveryValidator.previouslyAccepted(prior.analysis.recovery, hash: prior.digest) else {
+            try saveAnalysis(parsed)
+            return
+        }
+        guard let updated = try RecoveryConversion.updatingExamClocks(in: prior.analysis, from: parsed),
+              try MaterialFileReader.copy(selectedURL, to: nil, isWorkbook: false, check: check).digest == prior.digest else {
+            throw PDFParseError(code: .ambiguous)
+        }
+        try check()
+        try saveAnalysis(updated, replacing: prior)
+    }
+
+    private func saveAnalysis(_ analysis: SpecialScheduleAnalysis, replacing prior: SpecialScheduleRecord?) throws {
         guard let source = sources[analysis.kind], analysis.sourceDigest == source.digest,
-              analysis.sourceName == source.originalName,
+              analysis.sourceName == source.originalName || analysis.sourceName == prior?.analysis.sourceName,
               analysis.version == SpecialScheduleAnalysis.parserVersion, Self.valid(analysis) else {
             throw StoreError.invalidState
         }
@@ -284,7 +298,11 @@ final class SpecialScheduleStore {
         let recordPayload = try JSONEncoder().encode(record)
         let sourcePayload = try JSONEncoder().encode(cleared)
         try queue.write { db in
-            if analysis.recovery?.previousAcceptance != nil {
+            if let prior {
+                guard let payload = try Data.fetchOne(db, sql: "SELECT payload FROM specialSchedule WHERE kind = ?", arguments: [analysis.kind.rawValue]),
+                      let old = try? JSONDecoder().decode(SpecialScheduleRecord.self, from: payload),
+                      try RecoveryValidator.fingerprint(old) == RecoveryValidator.fingerprint(prior) else { throw StoreError.invalidState }
+            } else if analysis.recovery?.previousAcceptance != nil || analysis.recoveredExamClockEvidence != nil {
                 guard let payload = try Data.fetchOne(db,sql:"SELECT payload FROM specialSchedule WHERE kind = ?",arguments:[analysis.kind.rawValue]),
                       let old = try? JSONDecoder().decode(SpecialScheduleRecord.self,from:payload),
                       let proved = try RecoveryConversion.recertifiedSpecial(old.analysis,hash:source.digest),
@@ -298,6 +316,10 @@ final class SpecialScheduleStore {
         records[analysis.kind] = record
         sources[analysis.kind] = cleared
         try? removeUnreferencedFiles()
+    }
+
+    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {
+        try saveAnalysis(analysis, replacing: nil)
     }
 
     static func writeAcquisitionAttempt(_ attempt: AcquisitionAttempt?, kind: SpecialScheduleKind, db: Database) throws {
@@ -384,7 +406,8 @@ final class SpecialScheduleStore {
         } else {
             scopeIsValid = analysis.version < 35 && analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17
         }
-        guard scopeIsValid, analysis.strictComparisonCoverage == nil || analysis.validStrictComparisonCoverage else { return false }
+        guard scopeIsValid, analysis.hasValidConsecutiveTimes,
+              analysis.strictComparisonCoverage == nil || analysis.validStrictComparisonCoverage else { return false }
         let dates = Set(analysis.coveredDates)
         let classes = Set(analysis.coveredClasses)
         guard dates.count == analysis.coveredDates.count, classes.count == analysis.coveredClasses.count else { return false }

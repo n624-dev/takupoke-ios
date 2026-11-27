@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`09d2b29594fb8f6bdccdc3ee0b6171a440a781c15d96efe67b5c7a6e085ce48d`
+`6f761f124ca75ab3adbaf8afc1978b2ac677a16d008119468c92115bf967d0b7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -121,6 +121,8 @@ bash tools/test-parsing.sh
 - `testRecoverySpecialTitleYearEvidenceCannotIgnoreASecondYear`
 - `testSpecialTitleYearMustBeUniqueAndEquivalentYearMarkersRemainValid`
 - `testExamLayoutRecoveryReusesAllRepeatedClockCharts`
+- `testExamRecoveryVerifiesExplicitClockAcrossIndependentCellsAndPages`
+- `testExamClockRecheckKeepsPreviouslyAcceptedLessonsAndRequiresMatchingPDFScope`
 - `testExamDerivedSpanOnLaterPageUsesVerifiedPrimaryEndpointChart`
 - `testReturnDerivedSpanOnLaterPageUsesApplicableNormalNote`
 - `testReturnLayoutRecoveryRequiresNormalTimeNoteAndSpanEndpoints`

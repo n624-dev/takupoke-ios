@@ -334,6 +334,62 @@ extension SpecialScheduleTests {
             doc, os: "ios", osMajor: 26, foreground: true, providers: [], rule: { _ in nil }, check: {})
         XCTAssertEqual(run.state, .awaitingConfirmation)
     }
+    func testExamRecoveryVerifiesExplicitClockAcrossIndependentCellsAndPages() async throws {
+        let times = ["8:10~8:55", "9:20~10:00", "10:15~10:55", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+        let pages = (1...6).map { examPage($0, timingOverride: times, separateContinuousExam: true) }
+        let hash = String(repeating: "c", count: 64)
+        let doc = try RecoveryDocumentBuilder.build(pages, kind: .exam, hash: hash)
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2026-04-01"))
+        let key = "\(day.iso8601):2-3"
+        XCTAssertEqual(doc.explicitSpanTimeKeys?.count, 5)
+        XCTAssertEqual(doc.spanTimes[key], "09:20〜10:40")
+        XCTAssertEqual(doc.clockReplicas[key]?.count, 5)
+        XCTAssertFalse(doc.cells.contains { $0.slots.count > 1 })
+        let run = try await RecoveryEngine.run(doc, os: "ios", osMajor: 26, foreground: true, providers: [], rule: { _ in nil }, check: {})
+        let result = try XCTUnwrap(run.result, run.errors.joined(separator: ","))
+        let source = RecoverySelectedSource(kind: .exam, url: URL(fileURLWithPath: "/fictional.pdf"), digest: hash,
+                                            originalName: "fictional.pdf", storedName: "fictional", period: SchoolDataPeriod(day: day))
+        let analysis = try RecoveryConversion.special(.init(document: doc, result: result, source: source))
+        XCTAssertEqual(analysis.consecutiveTimes, ["2-3": "09:20〜10:40"])
+        XCTAssertNotNil(try RecoveryConversion.recertifiedSpecial(analysis, hash: hash))
+        let schedule = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [analysis], includesChanges: true)
+        let block = try XCTUnwrap(schedule.blocks(on: day, className: "1_1", international: false).first { $0.startPeriod == 2 })
+        XCTAssertEqual(schedule.cardTime(block, on: day, className: "1_1"), "09:20〜10:40")
+        var incomplete = doc
+        let removed = try XCTUnwrap(incomplete.clockReplicas[key]?.removeLast())
+        let removedIDs = Set(doc.sources.filter { $0.page == removed.page }.map(\.id))
+        incomplete.clockEvidence[key]?.removeAll { removedIDs.contains($0) }
+        XCTAssertTrue(RecoveryValidator.validate(incomplete, result).errors.contains("explicitSpanBinding"))
+    }
+
+    func testExamClockRecheckKeepsPreviouslyAcceptedLessonsAndRequiresMatchingPDFScope() async throws {
+        let hash = String(repeating: "8", count: 64)
+        let times = ["8:10~8:55", "9:20~10:00", "10:15~10:55", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+        let pages = (1...6).map { examPage($0, timingOverride: times, separateContinuousExam: true) }
+        let verified = try SpecialScheduleParser.parse(pages, kind: .exam, digest: hash, name: "fictional.pdf")
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2026-04-01"))
+        let source = RecoverySelectedSource(kind: .exam, url: URL(fileURLWithPath: "/fictional.pdf"), digest: hash,
+                                            originalName: "fictional.pdf", storedName: "fictional", period: SchoolDataPeriod(day: day))
+        var ordinaryPages = pages
+        for index in ordinaryPages.indices { ordinaryPages[index].glyphs.removeAll { $0.x >= 300 && $0.y == 470 } }
+        var priorDocument = try RecoveryDocumentBuilder.build(ordinaryPages, kind: .exam, hash: hash)
+        XCTAssertEqual(priorDocument.explicitSpanTimeKeys, [])
+        priorDocument.explicitSpanTimeKeys = nil
+        let run = try await RecoveryEngine.run(priorDocument, os: "ios", osMajor: 26, foreground: true,
+                                               providers: [], rule: { _ in nil }, check: {})
+        let result = try XCTUnwrap(run.result, run.errors.joined(separator: ","))
+        let prior = try RecoveryConversion.special(.init(document: priorDocument, result: result, source: source))
+        let updated = try XCTUnwrap(RecoveryConversion.updatingExamClocks(in: prior, from: verified))
+        XCTAssertEqual(updated.lessons, prior.lessons)
+        XCTAssertEqual(updated.recovery, prior.recovery)
+        XCTAssertNil(updated.consecutiveTimes)
+        XCTAssertEqual(updated.recoveredExamClockEvidence?.times, verified.consecutiveTimes)
+        let reloaded = try JSONDecoder().decode(SpecialScheduleAnalysis.self, from: JSONEncoder().encode(updated))
+        XCTAssertEqual(try RecoveryConversion.recertifiedSpecial(reloaded, hash: hash), updated)
+        let different = try SpecialScheduleParser.parse(pages, kind: .exam, digest: String(repeating: "9", count: 64), name: "fictional.pdf")
+        XCTAssertNil(try RecoveryConversion.updatingExamClocks(in: prior, from: different))
+    }
+
     func testExamDerivedSpanOnLaterPageUsesVerifiedPrimaryEndpointChart() async throws {
         var pages = (1...6).map { examPage($0, mergedFirstTwo: $0 == 2) }
         for i in pages.indices { pages[i].glyphs.removeAll { $0.x >= 300 && $0.y == 470 } }

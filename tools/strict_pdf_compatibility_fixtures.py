@@ -116,7 +116,7 @@ def normal(path, mode):
     d.c.showPage(); d.save()
 
 
-def exam(path, mode):
+def exam(path, mode, independent_cells=False, explicit_clock=False):
     d = Drawing(path, 1400, 680, mode)
     for number in range(6):
         d.page()
@@ -137,9 +137,18 @@ def exam(path, mode):
             if row < 5:
                 d.text(f"4月{row+1}日", 16, top+35, 9)
         for col in range(len(classes)):
+            if independent_cells and number == 0 and col == 0:
+                for period in (2, 3):
+                    d.lesson(body+(period-1)*width, 118)
+                continue
             d.lesson(body+(col*6+col)*width, 118+col*64)
+        times = ["8:10~8:55", "9:20~10:00", "10:15~10:55",
+                 "11:50~12:35", "13:20~14:05", "14:20~15:05"] if independent_cells else TIMES
         for p in range(6):
-            d.text(f"{p+1}時限目{TIMES[p]}", 20, 505+p*17, 9)
+            d.text(f"{p+1}時限目{times[p]}", 20, 505+p*17, 9)
+        if explicit_clock:
+            heading = "２ ・ ３ 時限連続" if number % 2 == 0 else "2・3時限連続"
+            d.text(f"{heading}9:20~10:40", 300, 505, 9)
         d.c.showPage()
     d.save()
 
@@ -227,6 +236,8 @@ def generate(output):
     # Separate from the unchanged 36-document compatibility corpus.
     returned(output/"heading-return.pdf", 0, column_headings=True)
     returned(output/"merged-class-heading-return.pdf", 0, merged_class_header=True)
+    exam(output/"independent-cell-clock-exam.pdf", 0, independent_cells=True, explicit_clock=True)
+    exam(output/"independent-cell-no-clock-exam.pdf", 0, independent_cells=True)
 
 
 if __name__ == "__main__":

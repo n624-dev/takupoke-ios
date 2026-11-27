@@ -204,7 +204,12 @@ struct Source {
     let failure: PDFParseError? = nil
     let attemptParserVersion: Int? = SpecialScheduleAnalysis.parserVersion
 }
-struct SpecialScheduleAnalysis { static let parserVersion = 1; let version = SpecialScheduleAnalysis.parserVersion }
+struct SpecialScheduleAnalysis {
+    static let parserVersion = 1
+    let version = SpecialScheduleAnalysis.parserVersion
+    let consecutiveTimes: [String: String]? = [:]
+    let recoveredExamClockEvidence: Bool? = nil
+}
 struct Saved { let digest = "saved", analysis = SpecialScheduleAnalysis() }
 enum RecoveryConversion { static func trustsAcquisitionCache(_ value: SpecialScheduleAnalysis, hash: String) -> Bool { true } }
 enum PDFParseAttempt {
@@ -248,7 +253,9 @@ final class SpecialScheduleStore {
     }
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String, byteCount: Int,
                        digest: String, grant: Grant) throws { selected.append(kind) }
-    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws { analyses += 1 }
+    func acceptParsedAnalysis(_ parsed: SpecialScheduleAnalysis, selectedURL: URL, check: () throws -> Void) throws {
+        try check(); analyses += 1
+    }
 }
 CONTROL
 enum SpecialSchedulesModel {

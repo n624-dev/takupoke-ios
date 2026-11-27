@@ -91,7 +91,8 @@ enum PDF239SpecialScheduleParser {
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
                                        lessons: lessons.sorted { ($0.date, $0.className, $0.period, $0.page) <
                                            ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate, scopes: scopes,
-                                       strictComparisonCoverage: fullScopeProven && slotCount <= PDF239SchoolParser.maximumRecords ? true : nil)
+                                       strictComparisonCoverage: fullScopeProven && slotCount <= PDF239SchoolParser.maximumRecords ? true : nil,
+                                       consecutiveTimes: periodTimes.consecutive)
         guard analysis.validScopes else { throw PDFParseError(code:.ambiguous,stage:.duplicateClass,branch:.b427) }
         return analysis
     }

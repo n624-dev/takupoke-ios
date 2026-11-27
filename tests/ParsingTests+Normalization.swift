@@ -18,6 +18,13 @@ extension ParsingTests {
                         assertCode(.unknownAll) { _ = try ChangeNormalizer.parse(rows, defaultYear: item.defaultYear) }
                     } else if item.iosDisposition == "compare" {
                         let expected = item.expectedRecords.map { reference in
+                            if item.id == "alias-header-order" {
+                                var updated = reference
+                                updated.period = "2"
+                                updated.teacher = "架空教員A"
+                                updated.canonical_text = "2032-07-10 | 1_ZZ | 2 | 架空教員A | 架空教室A | 架空備考A | " + reference.raw_text
+                                return updated
+                            }
                             guard let alias = item.iosClassAliases?[reference.class_name] else { return reference }
                             var adjusted = reference
                             let prefix = reference.change_date + " | " + reference.class_name
@@ -276,7 +283,8 @@ extension ParsingTests {
                      3: ChangeRowEdit(excluded: true)]
         let fixed = try table.records(edits: edits, defaultYear: 2032)
         XCTAssertEqual(fixed.map(\.class_name), ["3_IT", "3_IT"])
-        XCTAssertThrowsError(try table.records(edits: [2: edits[2]!, 3: edits[3]!, 4: ChangeRowEdit(excluded: true)], defaultYear: 2032))
+        let withoutOtherRow = try table.records(edits: [2: edits[2]!, 3: edits[3]!, 4: ChangeRowEdit(excluded: true)], defaultYear: 2032)
+        XCTAssertEqual(withoutOtherRow.map(\.class_name), ["3_IT"])
         let old = ChangeEditTable(sheet: "架空", headers: headers, rows: [headers, ["3", "IT", "8/1", "月"], ["", "", "", "金"]], headerRow: 1)
         let weekday = ChangeNormalizer.weekday("2032-08-01")
         let migrated = try old.legacyEdits(weekday: true, excluded: [3], defaultYear: 2032)

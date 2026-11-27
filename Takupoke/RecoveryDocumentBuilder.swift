@@ -84,6 +84,8 @@ enum RecoveryDocumentBuilder {
         let count = kind == .exam ? 6 : 8
         var sourceNumber = 0
         var requests = [RecoveryStructureRequest]()
+        var agreedConsecutiveTimes: [String: String]?
+        var explicitSpanKeys = Set<String>()
         for (pageIndex, page) in pages.enumerated() {
             try check()
             try page.requireVisibleBounds(check:check)
@@ -484,6 +486,11 @@ enum RecoveryDocumentBuilder {
                     }
                 }
                 guard clocks.count == count else { throw PDFParseError(code:.unsupported,stage:.periodHeading) }
+                let explicitTimes = spans.mapValues { $0.0 }
+                guard agreedConsecutiveTimes == nil || agreedConsecutiveTimes == explicitTimes else {
+                    throw PDFParseError(code: .ambiguous, page: number, stage: .periodHeading)
+                }
+                agreedConsecutiveTimes = explicitTimes
                 if kind == .return {
                     let noteRows = remaining.filter { row in let t = row.map(\.text).joined(); return t.contains("通常の授業日どおりの授業時間") }
                     guard noteRows.count == 1 else { throw PDFParseError(code:.ambiguous) }
@@ -506,11 +513,27 @@ enum RecoveryDocumentBuilder {
                             if doc.clockBindings[key] == nil { doc.clockBindings[key] = b } else { doc.clockReplicas[key,default:[]].append(b) }
                         }
                     }
+                    if kind == .exam || day == pageDays.first {
+                        for (suffix, (value, clockID, template)) in spans.sorted(by: { $0.key < $1.key }) {
+                            let key = "\(day):\(suffix)"
+                            guard doc.spanTimes[key] == nil || doc.spanTimes[key] == value else {
+                                throw PDFParseError(code: .ambiguous, page: number, stage: .periodHeading)
+                            }
+                            explicitSpanKeys.insert(key)
+                            doc.spanTimes[key] = value
+                            doc.clockEvidence[key, default: []].append(clockID)
+                            if !doc.timeEvidence.contains(clockID) { doc.timeEvidence.append(clockID) }
+                            var binding = template
+                            binding.day = day
+                            if doc.clockBindings[key] == nil { doc.clockBindings[key] = binding }
+                            else { doc.clockReplicas[key, default: []].append(binding) }
+                        }
+                    }
                 }
                 let requiredSpans = doc.cells.filter { $0.page == number && $0.slots.count > 1 }
                 for cell in requiredSpans {
                     let periods = cell.slots.map(\.period).sorted(), day = cell.slots[0].day, suffix = "\(periods.first!)-\(periods.last!)", key = "\(day):\(suffix)"
-                    if spans[suffix] == nil || kind == .return && day != pageDays.first {
+                    if !explicitSpanKeys.contains(key) {
                         let first = periods.first!, last = periods.last!
                         guard let firstTime = doc.times["\(day):\(first)"], let lastTime = doc.times["\(day):\(last)"] else { throw PDFParseError(code:.ambiguous) }
                         let allIds = doc.clockEvidence["\(day):\(first)",default:[]] + doc.clockEvidence["\(day):\(last)",default:[]]
@@ -523,17 +546,9 @@ enum RecoveryDocumentBuilder {
                         doc.spanTimes[key] = firstTime.components(separatedBy:"〜").first!+"〜"+lastTime.components(separatedBy:"〜").last!
                         doc.clockEvidence[key] = ids
                         doc.clockBindings[key] = RecoveryClockBinding(page:doc.sources.first { ids.contains($0.id) }!.page,box:b,day:day,spanStart:first,spanEnd:last,dayHeaderIds:[],dayRegion:nil,periodHeaderIds:[],periodRegion:region(b,axis:.above),derivedSpan:true)
-                        continue
                     }
-                    let (value,clockId,template) = spans[suffix]!
-                    guard doc.spanTimes[key] == nil || doc.spanTimes[key] == value else { throw PDFParseError(code:.ambiguous) }
-                    doc.spanTimes[key] = value
-                    if !doc.clockEvidence[key,default:[]].contains(clockId) { doc.clockEvidence[key,default:[]].append(clockId) }
-                    if !doc.timeEvidence.contains(clockId) { doc.timeEvidence.append(clockId) }
-                    var b = template; b.day = day
-                    if doc.clockBindings[key] == nil { doc.clockBindings[key] = b }
-                    else if doc.clockBindings[key]?.page != number && !doc.clockReplicas[key,default:[]].contains(where: { $0.page == number }) { doc.clockReplicas[key,default:[]].append(b) }
                 }
+                doc.explicitSpanTimeKeys = explicitSpanKeys.sorted()
             }
             // Only text outside the independently bounded body is an annotation.
             let pageCells = doc.cells.filter { $0.page == number }

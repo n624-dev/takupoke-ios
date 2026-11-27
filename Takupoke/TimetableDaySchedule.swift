@@ -146,8 +146,13 @@ struct TimetableDaySchedule {
         return confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
     }
 
-    func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
-                          className: String) -> String? {
+    func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate, className: String) -> String? {
+        if let clock = explicitSpecialClock(block, on: day, className: className) { return clock }
+        return ordinaryCardTime(block, on: day, className: className)
+    }
+
+    private func ordinaryCardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                                  className: String) -> String? {
         if case .special(let item) = block.content {
             if block.startPeriod == block.endPeriod && item.lesson.spanStart == item.lesson.spanEnd { return item.timeRange }
             let sources = specials.filter { $0.kind == item.kind && $0.lessons.contains(item.lesson) }
@@ -261,6 +266,25 @@ extension TimetableDaySchedule {
         return subjects
     }
 
+    private func explicitSpecialClock(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                                      className: String) -> String? {
+        let periods = block.startPeriod...block.endPeriod
+        guard periods.count > 1 else { return nil }
+        let anchor: SpecialScheduleLesson?
+        switch block.content {
+        case .normal: return nil
+        case .special(let item): anchor = item.lesson
+        case .change(let change):
+            guard !change.isCancellation, hasRequiredSpecialSources(on: day, className: className) else { return nil }
+            anchor = nil
+        }
+        let sources = sourceIndex.applicableSpecials(on: day, className: className)
+        let clocks = sources.compactMap { $0.independentContinuousClock(on: day.iso8601, className: className,
+                                                                      periods: periods, matching: anchor) }
+        guard clocks.count == sources.count, Set(clocks).count == 1 else { return nil }
+        return clocks.first
+    }
+
     /// A visual merge does not prove continuous activity. Retain a source's
     /// explicit merged clock only when the entire original span is represented.
     private func activityTimes(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
@@ -312,8 +336,10 @@ extension TimetableDaySchedule {
             clocks = (block.startPeriod...block.endPeriod).map { period in
                 customTimes?.time(on: day, period: period) ?? TimetableSchedule.normalPeriodTimes[period - 1]
             }
+        } else if let explicit = explicitSpecialClock(block, on: day, className: className) {
+            clocks = [explicit]
         } else {
-            guard cardTime(block, on: day, className: className) != nil else { return [] }
+            guard ordinaryCardTime(block, on: day, className: className) != nil else { return [] }
             clocks = activityTimes(block, on: day, className: className).map { Optional($0) }
         }
         return clocks.compactMap { clock in
