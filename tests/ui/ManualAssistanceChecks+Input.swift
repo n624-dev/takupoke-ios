@@ -183,15 +183,18 @@ extension ManualAssistanceChecks {
         let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
         var targetFrame: CGRect?
         var ambiguous = false
+        var observation = "not-read"
         let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
-            targetFrame = self.observeManualEditCompletion(ambiguous: &ambiguous)
+            targetFrame = self.observeManualEditCompletion(ambiguous: &ambiguous, observation: &observation)
             return ambiguous || targetFrame != nil
         }, object: nil)
-        let remaining = deadline - ProcessInfo.processInfo.systemUptime
-        guard remaining > 0, XCTWaiter.wait(for: [ready], timeout: remaining) == .completed,
+        let remaining = max(0, deadline - ProcessInfo.processInfo.systemUptime)
+        let outcome = XCTWaiter.wait(for: [ready], timeout: remaining)
+        guard outcome == .completed,
               !ambiguous, let targetFrame, app.state == .runningForeground,
               ProcessInfo.processInfo.systemUptime < deadline else {
+            print("TAKUPOKE-MANUAL-EDIT-DONE wait=\(outcome.rawValue);ambiguous=\(ambiguous);\(observation)")
             XCTFail("The native completion button must be unique, visible and operable within the original deadline")
             return false
         }
@@ -207,23 +210,26 @@ extension ManualAssistanceChecks {
         }
     }
 
-    private func observeManualEditCompletion(ambiguous: inout Bool) -> CGRect? {
+    private func observeManualEditCompletion(ambiguous: inout Bool, observation: inout String) -> CGRect? {
         let title = "時間割の復旧"
         let identifier = "manual-edit-done"
         let label = "完了"
+        observation = "snapshot-unavailable"
         guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root),
               ManualScrollNavigation.usable(root.frame) else { return nil }
         let bars = nodes.filter { $0.elementType == .navigationBar && $0.identifier == title }
-        guard bars.count <= 1 else { ambiguous = true; return nil }
-        guard let bar = bars.first, ManualScrollNavigation.usable(bar.frame),
-              let controls = snapshotNodes(in: bar) else { return nil }
-        let candidates = controls.filter { $0.identifier == identifier }
+        let scopes = bars.compactMap { bar in snapshotNodes(in: bar).map { (bar, $0) } }
+        guard scopes.count == bars.count else { return nil }
+        let candidates = scopes.flatMap { bar, controls in
+            controls.filter { $0.elementType == .button && $0.identifier == identifier }.map { (bar: bar, button: $0) }
+        }
+        observation = "bars=\(bars.count);snapshot-buttons=\(candidates.count)"
         guard candidates.count <= 1 else { ambiguous = true; return nil }
-        guard let target = candidates.first, target.elementType == .button, target.label == label, target.isEnabled,
-              ManualScrollNavigation.usable(target.frame), bar.frame.contains(target.frame),
-              root.frame.contains(target.frame) else { return nil }
-        let live = app.navigationBars[title].buttons.matching(identifier: identifier)
-            .allElementsBoundByAccessibilityElement
+        guard let (bar, target) = candidates.first, target.label == label, target.isEnabled,
+              ManualScrollNavigation.usable(bar.frame), ManualScrollNavigation.usable(target.frame),
+              bar.frame.contains(target.frame), root.frame.contains(target.frame) else { return nil }
+        let live = app.buttons.matching(identifier: identifier).allElementsBoundByAccessibilityElement
+        observation += ";live-buttons=\(live.count)"
         guard live.count <= 1 else { ambiguous = true; return nil }
         guard let button = live.first, let bound = try? button.snapshot(),
               bound.elementType == target.elementType, bound.identifier == identifier, bound.label == label,

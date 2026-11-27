@@ -81,7 +81,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertLess(edit.index('guard finishManualEditing()'),edit.index('self.app.keyboards.allElementsBoundByIndex.isEmpty'))
         completion=edit.split('    private func finishManualEditing()',1)[1].split('    private func observeManualEditCompletion(',1)[0]
         self.assertIn('systemUptime + nativeStateTimeout', completion)
-        self.assertIn('XCTWaiter.wait(for: [ready], timeout: remaining) == .completed', completion)
+        self.assertIn('XCTWaiter.wait(for: [ready], timeout: remaining)', completion)
         self.assertIn('app.state == .runningForeground', completion)
         self.assertIn('return ambiguous || targetFrame != nil', completion)
         self.assertIn('!ambiguous, let targetFrame', completion)
@@ -313,7 +313,7 @@ var failures = 0
 func XCTFail(_ reason: String) { failures += 1 }
 struct App {
     let root: Node
-    var navigationBars = NavigationBars(byTitle: [:])
+    var buttons = ControlQuery(allElementsBoundByAccessibilityElement: [])
     func snapshot() throws -> Node { root }
 }
 struct Control { let node: Node; var isHittable = true; func snapshot() throws -> Node { node } }
@@ -324,12 +324,6 @@ struct ControlQuery {
     }
 }
 struct List { let buttons: ControlQuery }
-struct NavigationBars {
-    let byTitle: [String: List]
-    subscript(title: String) -> List {
-        byTitle[title] ?? List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: []))
-    }
-}
 struct Test {
     let app: App
     let recoveryList: List
@@ -342,7 +336,8 @@ struct Test {
     }
     func editCompletion(ambiguous expectedAmbiguity: Bool = false) -> CGRect? {
         var ambiguous = false
-        let frame = observeManualEditCompletion(ambiguous: &ambiguous)
+        var observation = ""
+        let frame = observeManualEditCompletion(ambiguous: &ambiguous, observation: &observation)
         precondition(ambiguous == expectedAmbiguity)
         return frame
     }
@@ -379,22 +374,26 @@ precondition(view([disabled]).observed() == nil)
 precondition(view([button, button]).observed() == nil && failures == 2)
 var done = Node(elementType: .button, identifier: "manual-edit-done",
                 frame: .init(x: 320, y: 60, width: 48, height: 44), label: "完了")
-func editor(_ candidates: [Node], live: [Control], repeatedBar: Bool = false) -> Test {
+func editor(_ candidates: [Node], live: [Control], extraBar: [Node]? = nil) -> Test {
     let title = "時間割の復旧"
-    let bar = Node(elementType: .navigationBar, identifier: title, frame: .init(x: 0, y: 50, width: 393, height: 79),
-                   children: candidates)
+    func bar(_ children: [Node]) -> Node {
+        Node(elementType: .navigationBar, identifier: title, frame: .init(x: 0, y: 50, width: 393, height: 79), children: children)
+    }
     let list = List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: live))
-    let root = Node(elementType: .application, identifier: "fictional", frame: appFrame, children: repeatedBar ? [bar, bar] : [bar])
-    return Test(app: App(root: root, navigationBars: NavigationBars(byTitle: [title: list])), recoveryList: list)
+    let bars = [bar(candidates)] + (extraBar.map { [bar($0)] } ?? [])
+    let root = Node(elementType: .application, identifier: "fictional", frame: appFrame, children: bars)
+    return Test(app: App(root: root, buttons: list.buttons), recoveryList: list)
 }
 let live = Control(node: done)
+let wrapper = Node(elementType: .other, identifier: "manual-edit-done", frame: done.frame, children: [done])
 precondition(editor([done], live: [live]).editCompletion() == done.frame)
+precondition(editor([wrapper], live: [live], extraBar: []).editCompletion() == done.frame)
 precondition(editor([], live: [live]).editCompletion() == nil)
 precondition(editor([done], live: []).editCompletion() == nil)
 precondition(editor([done], live: [Control(node: done, isHittable: false)]).editCompletion() == nil)
 precondition(editor([done, done], live: [live]).editCompletion(ambiguous: true) == nil)
 precondition(editor([done], live: [live, live]).editCompletion(ambiguous: true) == nil)
-precondition(editor([done], live: [live], repeatedBar: true).editCompletion(ambiguous: true) == nil)
+precondition(editor([done], live: [live], extraBar: [done]).editCompletion(ambiguous: true) == nil)
 done.frame.origin.x -= 5
 precondition(editor([done], live: [live]).editCompletion() == nil)
 done.frame = live.node.frame
