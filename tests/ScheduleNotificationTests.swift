@@ -9,6 +9,55 @@ final class ScheduleNotificationTests: XCTestCase {
         .init(date: date, className: className, period: period, fingerprint: fingerprint)
     }
 
+    func testNoticesUseVisibleChangedRowsAndRecheckBeforeSending() throws {
+        typealias Snapshot = ScheduleNotificationSnapshot
+        let rules = try JSONDecoder().decode(MappingRules.self, from: JSONSerialization.data(withJSONObject: [
+            "subjects": [["alias": "留 架空略号B", "fullName": "架空科目B", "classes": ["3_XY"], "internationalStudent": true]],
+            "teachers": [], "rooms": [], "teacherContexts": []]))
+        let mapping = SavedMapping(revision: "fictional", version: "v1", schemaVersion: 1,
+            archiveETag: "", archiveSHA256: "fictional-rules", publishedAt: "", fetchedAt: Date(), rules: rules)
+        let available = Snapshot.Availability(changes: .available, specials: [:])
+        func row(_ subject: String, period: String = "1") -> ScheduleChange {
+            .init(change_date: today.iso8601, class_name: "3_XY", period: period, before_subject: "",
+                  after_subject: subject, teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        }
+        func state(_ rows: [ScheduleChange], international: Bool, mapping: SavedMapping?) -> (Set<Snapshot.Change>, Snapshot.ChangeScope) {
+            let values = Dictionary(uniqueKeysWithValues: rows.map { (Snapshot.Change.from($0), $0) })
+            return (Set(values.keys), .init(visibility: .init(rows: values, mapping: mapping), international: international))
+        }
+        func reconcile(_ previous: Snapshot, _ rows: [ScheduleChange], international: Bool = false,
+                       using mapping: SavedMapping? = nil) throws -> Snapshot {
+            let (rows, scope) = state(rows, international: international, mapping: mapping)
+            return try previous.reconciling(changes: rows, specials: [:], availability: available, today: today,
+                classes: ["3_XY"], changesEnabled: true, specialsEnabled: false, scope: scope)
+        }
+        let ordinary = row("架空科目A")
+        let prefixed = row("留架空科目C")
+        let mapped = row("架空科目B", period: "2")
+        let unknown = row("架空科目D", period: "未確定")
+        let baseline = try reconcile(Snapshot(), [ordinary], using: mapping)
+        let hidden = try reconcile(baseline, [ordinary, prefixed, mapped, unknown], using: mapping)
+        XCTAssertNil(hidden.pending["changes"])
+        XCTAssertEqual(hidden.changes?.count, 4)
+        XCTAssertNil(try reconcile(hidden, [ordinary, prefixed, mapped, unknown], international: true, using: mapping).pending["changes"])
+        XCTAssertNil(try reconcile(hidden, [ordinary, prefixed, mapped, unknown]).pending["changes"])
+
+        let visible = try reconcile(baseline, [ordinary, prefixed, mapped, unknown], international: true, using: mapping)
+        let notice = try XCTUnwrap(visible.pending["changes"])
+        XCTAssertEqual(notice.changeTargets?.map(\.period), ["1", "2"])
+        let (current, hiddenScope) = state([ordinary, prefixed, mapped, unknown], international: false, mapping: mapping)
+        XCTAssertTrue(visible.validTargets(notice.changeTargets ?? [], in: current, today: today,
+            classes: ["3_XY"], scope: hiddenScope).isEmpty)
+        XCTAssertNil(try reconcile(visible, [ordinary, prefixed, mapped, unknown], using: mapping).pending["changes"])
+
+        let removed = try reconcile(hidden, [prefixed, mapped, unknown], using: mapping)
+        XCTAssertEqual(removed.pending["changes"]?.changeTargets?.map(\.period), ["1"])
+        let roundTrip = try JSONDecoder().decode(Snapshot.self, from: JSONEncoder().encode(removed))
+        XCTAssertEqual(roundTrip, removed)
+        let replaced = try reconcile(hidden, [row("架空科目E"), prefixed, mapped, unknown], using: mapping)
+        XCTAssertEqual(replaced.pending["changes"]?.count, 1)
+    }
+
     func testPersonalEditRebasesSameDocumentAndLaterSchoolUpdateNotifies() throws {
         let available = ScheduleNotificationSnapshot.Availability(changes: .available, specials: [:])
         let baseline = ScheduleNotificationSnapshot(changeDocument: "selection/first", changes: [change("original")])

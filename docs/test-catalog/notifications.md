@@ -1,7 +1,7 @@
 # 通知許可・実配信・設定・バックグラウンド
 
 対応関係・宣言名・実行方法のSHA-256：
-`f6673562d363accede67ec9b86e34fcca1f7cd2382e197495edcb79db7f3a52f`
+`d93251ca9d1360e67512092c6336a7fc62125e99b7063a378fab233c43692b5f`
 
 環境：Apple iOS26/27 UI＋Native。自然なバックグラウンドは実機限定
 
@@ -19,6 +19,7 @@ python3 -B -m unittest discover -s tests -p test_notification_settings_lifecycle
 
 ## [tests/ScheduleNotificationTests.swift](../../tests/ScheduleNotificationTests.swift)
 
+- `testNoticesUseVisibleChangedRowsAndRecheckBeforeSending`
 - `testPersonalEditRebasesSameDocumentAndLaterSchoolUpdateNotifies`
 - `testLegacyBaselineAdoptsDocumentOnPersonalSaveAndPreservesSchoolNotices`
 - `testFirstImportAndUnchangedContentDoNotNotify`

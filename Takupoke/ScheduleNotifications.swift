@@ -34,6 +34,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         let personalEdit: Bool
         let revision: UUID
         let changes: Set<ScheduleNotificationSnapshot.Change>?
+        let changeScope: @MainActor () -> ScheduleNotificationSnapshot.ChangeScope?
         let specials: [String: String]
         let availability: ScheduleNotificationSnapshot.Availability
         let period: SchoolDataPeriod
@@ -266,25 +267,22 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     func reconcile(state: MaterialLibraryState, records: [SpecialScheduleKind: SpecialScheduleRecord],
                    sources: [SpecialScheduleKind: SpecialScheduleSource], period: SchoolDataPeriod,
-                   materialsReady: Bool = true, specialsReady: Bool = true) async {
+                   materialsReady: Bool = true, specialsReady: Bool = true,
+                   mapping: @escaping @MainActor () -> SavedMapping? = { nil }) async {
         guard !Task.isCancelled, UIApplication.shared.isProtectedDataAvailable,
               period == SchoolDataPeriod.current() else { return }
-        var changes: Set<ScheduleNotificationSnapshot.Change>?
+        var rows: [ScheduleNotificationSnapshot.Change: ScheduleChange]?
         let year = ChangeNormalizer.effectiveSchoolYear(configured: UserDefaults.standard.string(forKey: ChangeNormalizer.schoolYearSettingKey), today: .today())
         if let source = state.record(for: .changes), state.changeAnalysis?.matches(record: source, defaultYear: year) == true,
            let accepted = ScheduleNotificationSnapshot.acceptedChanges(in: state) {
-            changes = Set(accepted.map { row in
-                let period = row.detailPeriods?.map(String.init).joined(separator: ",") ?? row.period
-                var fields = [row.change_date, row.displayClassName, period,
-                              row.before_subject, row.after_subject, row.teacher, row.room, row.note]
-                let legacy = row.note.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines)
-                let oldKind = legacy == "休講" || legacy == "補講" ? legacy : "変更"
-                if row.cardKindLabel != oldKind { fields.append(row.cardKindLabel) }
-                let data = (try? JSONEncoder().encode(fields)) ?? Data()
-                let hash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-                return ScheduleNotificationSnapshot.Change(date: row.change_date,
-                    className: row.displayClassName, period: period, fingerprint: hash)
-            })
+            rows = Dictionary(accepted.map { (ScheduleNotificationSnapshot.Change.from($0), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        }
+        let changes = rows.map { Set($0.keys) }
+        let scope: @MainActor () -> ScheduleNotificationSnapshot.ChangeScope? = { [rows] in
+            guard let rows else { return nil }
+            return .init(visibility: .init(rows: rows, mapping: mapping()),
+                         international: UserDefaults.standard.bool(forKey: "timetableInternationalStudent"))
         }
         let specials = ScheduleNotificationSnapshot.acceptedSpecialDigests(records: records, sources: sources)
         latestRevision = UUID()
@@ -292,7 +290,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             state: state, records: records, sources: sources)
         if changes == nil && availability.changes == .available { availability.changes = .unavailable }
         let document = state.record(for: .changes).map { ($0.source.selectionID ?? $0.storedName) + "/" + $0.digest }
-        pending = Input(changeDocument: document, personalEdit: state.changeAnalysis?.personalEdit == true, revision:latestRevision,changes: changes, specials: specials, availability: availability, period: period)
+        pending = Input(changeDocument: document, personalEdit: state.changeAnalysis?.personalEdit == true, revision:latestRevision,changes: changes, changeScope: scope, specials: specials, availability: availability, period: period)
         await drainPending()
     }
 
@@ -356,7 +354,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
             next = try next.reconciling(changes: input.changes, specials: input.specials, availability: input.availability,
                 today: .today(), classes: classes, changesEnabled: changesEnabled && allowed, specialsEnabled: specialsEnabled && allowed,
-                changeDocument: input.changeDocument, personalEdit: input.personalEdit)
+                changeDocument: input.changeDocument, personalEdit: input.personalEdit, scope: input.changeScope())
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
             try Task.checkCancellation()
@@ -382,7 +380,9 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 if kind == "changes" {
                     let currentClasses = Set((UserDefaults.standard.string(forKey:"timetableSelectedClasses") ?? "")
                         .split(separator:"|").map { ChangeNormalizer.canonicalClassName(String($0)) })
-                    let targets = next.validTargets(notice.changeTargets ?? [],in:input.changes ?? [],today:.today(),classes:currentClasses)
+                    guard latestRevision == input.revision else { return }
+                    let targets = next.validTargets(notice.changeTargets ?? [], in: input.changes ?? [], today: .today(),
+                                                    classes: currentClasses, scope: input.changeScope())
                     if targets.isEmpty { next.pending.removeValue(forKey:kind); try save(next,to:file); continue }
                     notice = try changeNotice(targets); next.pending[kind] = notice; try save(next,to:file)
                 }

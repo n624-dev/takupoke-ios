@@ -135,7 +135,8 @@ extension ParsingTests {
                 _ = try ChangeNormalizer.parse(XLSXReader.read(headerOnly, defaultYear: 2032), defaultYear: 2032)
             }
             let headerReview = try XLSXReader.editableWorkbook(headerOnly, layout: nil, check: {})
-            assertCode(.empty) { _ = try headerReview.table.records(edits: excluded, defaultYear: 2032) }
+            assertCode(.empty) { _ = try headerReview.table.records(edits: [:], defaultYear: 2032) }
+            assertCode(.staleConfirmation) { _ = try headerReview.table.records(edits: excluded, defaultYear: 2032) }
         }
     }
 

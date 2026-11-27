@@ -15,14 +15,55 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         let period: String
         let fingerprint: String
         fileprivate var slot: Slot { .init(date:date,className:className,period:period) }
+
+        static func from(_ row: ScheduleChange) -> Self {
+            // Keep the saved identity for notations that gained display support.
+            let newNotation = row.period.precomposedStringWithCompatibilityMapping
+                .rangeOfCharacter(from: CharacterSet(charactersIn: "・、限")) != nil
+            let period = newNotation ? row.period : row.detailPeriods?.map(String.init).joined(separator: ",") ?? row.period
+            var fields = [row.change_date, row.displayClassName, period,
+                          row.before_subject, row.after_subject, row.teacher, row.room, row.note]
+            let legacy = row.note.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines)
+            let oldKind = legacy == "休講" || legacy == "補講" ? legacy : "変更"
+            if row.cardKindLabel != oldKind { fields.append(row.cardKindLabel) }
+            let data = (try? JSONEncoder().encode(fields)) ?? Data()
+            let hash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            return Self(date: row.change_date, className: row.displayClassName, period: period, fingerprint: hash)
+        }
     }
     struct ChangeTarget: Codable, Hashable {
         let date: String
         let className: String
         let period: String
         let expectedFingerprints: [String]
+        var visibilityEvidence: VisibilityEvidence? = nil
         var key: String { [date,className,period].joined(separator: "|") }
         fileprivate var slot: Slot { .init(date:date,className:className,period:period) }
+    }
+    struct VisibilityEvidence: Codable, Hashable {
+        var updatedRows: [String] = []
+        var removedVisibleRow = false
+        var removedOrdinaryUnderRules: String? = nil
+    }
+    struct ChangeVisibility: Codable, Equatable {
+        let timetable: Set<Change>
+        let ordinary: Set<Change>
+        let mappingRevision: String
+
+        init(rows: [Change: ScheduleChange], mapping: SavedMapping?) {
+            let timetableRows = rows.filter { $0.value.detailPeriods != nil }
+            timetable = Set(timetableRows.keys)
+            ordinary = Set(timetableRows.compactMap { change, row in
+                TimetableSchedule.shouldDisplay(row, isInternationalStudent: false, matchedByRule: { subject, name, year in
+                    mapping?.rules.isInternationalStudentChangeField(subject, className: name, schoolYear: year) == true
+                }) ? change : nil
+            })
+            mappingRevision = mapping?.archiveSHA256 ?? "no-mapping"
+        }
+    }
+    struct ChangeScope {
+        let visibility: ChangeVisibility
+        let international: Bool
     }
     fileprivate struct Slot: Hashable {
         let date: String
@@ -47,6 +88,7 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
 
     var changeDocument: String? = nil
     var changes: Set<Change>?
+    var changeVisibility: ChangeVisibility?
     var specialDigests: [String: String] = [:]
     var pending: [String: Pending] = [:]
 
@@ -109,13 +151,18 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
 
     static func notice(_ targets: [ChangeTarget]) throws -> Pending {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-        let hash = SHA256.hash(data: try encoder.encode(targets)).map { String(format: "%02x", $0) }.joined()
+        let identity = targets.map { target in
+            var value = target
+            value.visibilityEvidence = nil
+            return value
+        }
+        let hash = SHA256.hash(data: try encoder.encode(identity)).map { String(format: "%02x", $0) }.joined()
         return Pending(fingerprint: hash, count: targets.count, changeTargets: targets)
     }
 
     func reconciling(changes nextChanges: Set<Change>?, specials: [String: String], availability: Availability,
                      today: SchoolDate, classes: Set<String>, changesEnabled: Bool, specialsEnabled: Bool,
-                     changeDocument: String? = nil, personalEdit: Bool = false) throws -> Self {
+                     changeDocument: String? = nil, personalEdit: Bool = false, scope: ChangeScope? = nil) throws -> Self {
         var next = self
         switch availability.changes {
         case .available:
@@ -125,15 +172,16 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
                 let rebasePersonalEdit = personalEdit && changeDocument != nil &&
                     (self.changeDocument == nil || self.changeDocument == changeDocument)
                 let targets = rebasePersonalEdit
-                    ? validTargets(pending["changes"]?.changeTargets ?? [], in: nextChanges, today: today, classes: classes)
-                    : next.pendingChangeTargets(in: nextChanges, today: today, classes: classes)
+                    ? validTargets(pending["changes"]?.changeTargets ?? [], in: nextChanges, today: today, classes: classes, scope: scope)
+                    : next.pendingChangeTargets(in: nextChanges, today: today, classes: classes, scope: scope)
                 next.changeDocument = changeDocument
                 if changesEnabled, !targets.isEmpty { next.pending["changes"] = try Self.notice(targets) }
                 else { next.pending.removeValue(forKey: "changes") }
                 next.changes = nextChanges
+                next.changeVisibility = scope?.visibility
             }
         case .absent:
-            next.pending.removeValue(forKey: "changes"); next.changes = nil; next.changeDocument = nil
+            next.pending.removeValue(forKey: "changes"); next.changes = nil; next.changeDocument = nil; next.changeVisibility = nil
         case .unavailable: break
         }
         for kind in SpecialScheduleKind.allCases {
@@ -178,25 +226,54 @@ struct ScheduleNotificationSnapshot: Codable, Equatable {
         return slots.map { $0.target(fingerprints:fingerprints[$0] ?? []) }.sorted { $0.key < $1.key }
     }
 
-    func validTargets(_ targets: [ChangeTarget], in next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
+    func validTargets(_ targets: [ChangeTarget], in next: Set<Change>, today: SchoolDate, classes: Set<String>, scope: ChangeScope? = nil) -> [ChangeTarget] {
         let eligible = targets.filter { $0.slot.isRelevant(today:today,classes:classes) }
         let fingerprints = Self.fingerprints(for:Set(eligible.map(\.slot)),in:next)
-        return eligible.filter { $0.expectedFingerprints == (fingerprints[$0.slot] ?? []) }.sorted { $0.key < $1.key }
+        let visible = scope.map { Self.visibleFingerprints(for: Set(eligible.map(\.slot)), scope: $0) }
+        return eligible.filter { target in
+            target.expectedFingerprints == (fingerprints[target.slot] ?? []) &&
+                Self.isVisible(target, visible: visible?[target.slot] ?? [], in: scope)
+        }.sorted { $0.key < $1.key }
     }
 
-    func pendingChangeTargets(in next: Set<Change>, today: SchoolDate, classes: Set<String>) -> [ChangeTarget] {
-        let pending = (pending["changes"]?.changeTargets ?? []).filter { $0.slot.isRelevant(today:today,classes:classes) }
-        let changed = changedSlots(comparedWith:next,today:today,classes:classes)
-        let fingerprints = Self.fingerprints(for:changed.union(pending.map(\.slot)),in:next)
-        var bySlot = [String:ChangeTarget]()
-        for target in pending where target.expectedFingerprints == (fingerprints[target.slot] ?? []) {
+    func pendingChangeTargets(in next: Set<Change>, today: SchoolDate, classes: Set<String>,
+                              scope: ChangeScope? = nil) -> [ChangeTarget] {
+        var bySlot = [String: ChangeTarget]()
+        for target in validTargets(pending["changes"]?.changeTargets ?? [], in: next, today: today, classes: classes, scope: scope) {
             bySlot[target.key] = target
         }
-        for slot in changed {
-            let target = slot.target(fingerprints:fingerprints[slot] ?? [])
-            bySlot[target.key] = target
+        let candidates = changeTargets(comparedWith: next, today: today, classes: classes)
+        guard let scope else {
+            for target in candidates { bySlot[target.key] = target }
+            return bySlot.values.sorted { $0.key < $1.key }
+        }
+        guard !candidates.isEmpty, let changes else { return bySlot.values.sorted { $0.key < $1.key } }
+        let slots = Set(candidates.map(\.slot))
+        let added = Self.fingerprints(for: slots, in: next.subtracting(changes))
+        let removed = changes.subtracting(next)
+        let previous = changeVisibility
+        let removedVisible = Set(removed.filter { previous?.timetable.contains($0) == true }.map(\.slot))
+        let removedOrdinary = Set(removed.filter { previous?.ordinary.contains($0) == true }.map(\.slot))
+        let visible = Self.visibleFingerprints(for: slots, scope: scope)
+        for var target in candidates {
+            target.visibilityEvidence = .init(updatedRows: added[target.slot] ?? [],
+                removedVisibleRow: removedVisible.contains(target.slot),
+                removedOrdinaryUnderRules: removedOrdinary.contains(target.slot) ? previous?.mappingRevision : nil)
+            if Self.isVisible(target, visible: visible[target.slot] ?? [], in: scope) { bySlot[target.key] = target }
         }
         return bySlot.values.sorted { $0.key < $1.key }
+    }
+
+    private static func visibleFingerprints(for slots: Set<Slot>, scope: ChangeScope) -> [Slot: [String]] {
+        fingerprints(for: slots, in: scope.international ? scope.visibility.timetable : scope.visibility.ordinary)
+    }
+
+    private static func isVisible(_ target: ChangeTarget, visible: [String], in scope: ChangeScope?) -> Bool {
+        guard let scope else { return true }
+        guard let evidence = target.visibilityEvidence else { return !visible.isEmpty }
+        if !Set(evidence.updatedRows).isDisjoint(with: visible) { return true }
+        if scope.international { return evidence.removedVisibleRow }
+        return evidence.removedOrdinaryUnderRules == scope.visibility.mappingRevision
     }
 
     private func changedSlots(comparedWith next: Set<Change>, today: SchoolDate, classes: Set<String>) -> Set<Slot> {

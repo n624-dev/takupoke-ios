@@ -71,7 +71,10 @@ final class ApplicationData: ObservableObject {
         specialSchedules.$failed.removeDuplicates().sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$records.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$sources.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
-        mappings.$current.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        mappings.$current.sink { [weak self] _ in
+            self?.checkCountdownWhenActive()
+            self?.checkNotificationsWhenActive()
+        }.store(in: &observations)
         homeClock.$epoch.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .receive(on: RunLoop.main)
@@ -80,7 +83,10 @@ final class ApplicationData: ObservableObject {
                 return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent")),
                         defaults.string(forKey: ChangeNormalizer.schoolYearSettingKey) ?? ""]
             }.removeDuplicates()
-            .sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+            .sink { [weak self] _ in
+                self?.checkCountdownWhenActive()
+                self?.checkNotificationsWhenActive()
+            }.store(in: &observations)
     }
 
     private var countdownUpdateScheduled = false
@@ -108,7 +114,8 @@ final class ApplicationData: ObservableObject {
                   let period = self.loadedPeriod else { return }
             await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
                                                 sources: self.specialSchedules.sources, period: period,
-                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
+                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready,
+                                                mapping: { self.mappings.current })
         }
     }
 
@@ -247,7 +254,8 @@ final class ApplicationData: ObservableObject {
                 self.updateCountdown()
                 async let scheduleNotices: Void = self.notifications.reconcile(state: self.materials.state,
                     records: self.specialSchedules.records, sources: self.specialSchedules.sources, period: period,
-                    materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
+                    materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready,
+                    mapping: { self.mappings.current })
                 await self.countdown.waitForNotificationReconciliation()
                 await scheduleNotices
             }

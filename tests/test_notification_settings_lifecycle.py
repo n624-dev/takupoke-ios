@@ -1297,7 +1297,7 @@ struct SchoolDataPeriod:Equatable { static func current()->Self{Self()} }
 struct ChangeNormalizer { static func canonicalClassName(_ value:String)->String{value} }
 final class UIApplication { static let shared=UIApplication();var isProtectedDataAvailable=true }
 struct ScheduleNotificationSnapshot:Codable,Equatable {
- struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{}
+ struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{};struct ChangeScope{}
  struct Pending:Codable,Equatable { var fingerprint="fictional";var changeTargets:[ChangeTarget]? }
  enum State {case available,unavailable}
  struct Availability {
@@ -1306,8 +1306,8 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  }
  var revision=0;var pending=[String:Pending]()
  static func load(from file:URL)throws->Self{preconditionFailure("This permission probe starts with an already loaded baseline")}
- func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool)throws->Self{var next=self;next.revision+=1;return next}
- func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>)->[ChangeTarget]{targets}
+ func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool,scope:ChangeScope?)throws->Self{var next=self;next.revision+=1;return next}
+ func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>,scope:ChangeScope?)->[ChangeTarget]{targets}
 }
 @MainActor final class Harness {
  var changesEnabled=true,specialsEnabled=true,message:String?,permissionMessage:String?
@@ -1317,7 +1317,7 @@ struct ScheduleNotificationSnapshot:Codable,Equatable {
  var attempted=[String](), removed=[String](), rejected:String?, duringSend:((String)->Void)?
  let root:URL
  init(_ root:URL){self.root=root}
- struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
+ struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var changeScope:()->ScheduleNotificationSnapshot.ChangeScope? = { nil };var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
  func storageFile()throws->URL{root.appendingPathComponent("fictional-baseline.json")}
  func save(_ value:ScheduleNotificationSnapshot,to file:URL)throws{saves+=1;if failSave{throw CocoaError(.fileWriteNoPermission)};baseline=value}
  func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{
@@ -1655,7 +1655,7 @@ EXPIRE
     static func recordExecution() { executions += 1 }
 }
 @MainActor final class Material {
-    let state = 0, records = 0, sources = 0, ready = true
+    let state = 0, records = 0, sources = 0, current = 0, ready = true
     let busy = false
     func setSourceChecksActive(_ active: Bool) {}
     func loadIfNeeded() {}
@@ -1672,7 +1672,7 @@ EXPIRE
     var reconcileTask: NotificationWork?
     var waiting: CheckedContinuation<Void, Never>?
     func reconcile(state: Int, records: Int, sources: Int, period: Int,
-                   materialsReady: Bool, specialsReady: Bool) async {
+                   materialsReady: Bool, specialsReady: Bool, mapping: () -> Int) async {
         pending = 1
         await drainPending()
         finished = true
