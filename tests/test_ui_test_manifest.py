@@ -592,6 +592,7 @@ enum SimulatorEventsYearFixture {
         app = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         seed = app.split("private static func seed()", 1)[1]
         self.assertLess(seed.index("SimulatorEventsCacheFixture.resetForIsolatedLaunch"), seed.index("let onlyDistributedData"))
+        self.assertIn('FixtureCITrace.mark(clearedEvents ? "status-fixture-prior-cache-cleared" : "status-fixture-no-prior-cache")', seed)
         checks = '''
 let base = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
 let cache = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
