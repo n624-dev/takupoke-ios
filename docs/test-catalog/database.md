@@ -1,7 +1,7 @@
 # ローカルDB・移行・半期削除
 
 対応関係・宣言名・実行方法のSHA-256：
-`03e231e6aa4e8d6c7f01ad8869aaf05815cc9da63397958f64c9c2440e1735df`
+`bf7a8a2748686e9be4dae446b97ea554de6329576a4dc764a6be146cba7bd539`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -66,6 +66,7 @@ bash tools/test-parsing.sh
 - `testJapanBoundariesIncludeOctoberAndAprilButNotJanuary`
 - `testDeletesOnlyOwnedPrivateDataAndCommitsPeriodAfterCleanup`
 - `testFailureDoesNotCommitNewPeriodAndRetryCompletes`
+- `testAutomaticMarkerRecoveryKeepsCurrentDataOrArchivesUnverifiedDataAndRetries`
 - `testHalfYearDeletionPreservesPreferencesPublicEventsAndExternalOriginal`
 
 ## [tests/SchoolDataRecoveryTests.swift](../../tests/SchoolDataRecoveryTests.swift)
