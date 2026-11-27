@@ -811,9 +811,9 @@ final class CountdownModel: ObservableObject {
 
     private func undoReservation(_ identifier: String, includeDelivered: Bool) async {
         // Reconciliation cancellation cannot undo the native add. Withdraw it
-        // independently, keeping the same owner if the system is slow to return.
+        // independently, letting this worker own the withdrawal until it runs.
         let cleanup = Task { [center, retentionRemovals] in
-            await retentionRemovals.run(includeDelivered ? .all : .pending, identifiers: [identifier]) {
+            await retentionRemovals.run(includeDelivered ? .all : .pending, identifiers: [identifier], timeout: nil) {
                 center.removePendingNotificationRequests(withIdentifiers: [identifier])
                 if includeDelivered { center.removeDeliveredNotifications(withIdentifiers: [identifier]) }
             }

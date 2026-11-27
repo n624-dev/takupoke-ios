@@ -602,7 +602,7 @@ final class NotificationRemovalOwner {
         await active?.work.waitForCompletion(timeout: timeout) != false && !Task.isCancelled
     }
 
-    func run(_ kind: Kind, identifiers: [String], timeout: Duration = .seconds(6),
+    func run(_ kind: Kind, identifiers: [String], timeout: Duration? = .seconds(6),
              _ remove: @escaping @Sendable () -> Void) async -> Bool {
         guard !Task.isCancelled else { return false }
         let identifiers = identifiers.sorted()

@@ -1715,6 +1715,23 @@ final class Gate: @unchecked Sendable {
         precondition(canContinue)
         let next = await owner.run(.delivered, identifiers: ["c"]) { gate.removal() }
         precondition(next && gate.count == 2)
+
+        let prior = Task { await owner.run(.pending, identifiers: ["old"], timeout: .milliseconds(200)) {
+            gate.blockedRemoval()
+        } }
+        let queuedDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while gate.count == 2 {
+            precondition(ContinuousClock.now < queuedDeadline)
+            await Task.yield()
+        }
+        let withdrawal = Task { await owner.run(.all, identifiers: ["late"], timeout: nil) { gate.removal() } }
+        let priorResult = await prior.value
+        precondition(!priorResult && gate.count == 3)
+        let stillBlocked = await owner.waitForCompletion(timeout: .milliseconds(20))
+        precondition(!stillBlocked && gate.count == 3)
+        gate.release.signal()
+        let withdrawn = await withdrawal.value
+        precondition(withdrawn && gate.count == 4, "The late withdrawal must run even after the earlier caller timed out")
     }
 }
 '''
