@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`1f4d2c2f9447f62080dfdfbcbebf7994059b5cf9766e481614ef7cdd1e34b8dc`
+`8afdcce061e7035672c76a3531a1ab787f4667c90ff71d4e8b724587c3f71cb0`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -110,6 +110,7 @@ bash tools/test-app-ui.sh
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
 - `test_network_rewrite_preserves_standard_xlsx_identifiers_only`
 - `test_service_status_fixture_changes_only_the_network_endpoint`
+- `test_status_launch_does_not_inherit_a_previous_events_fixture`
 - `test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift`
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`

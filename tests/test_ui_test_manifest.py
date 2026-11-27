@@ -584,6 +584,50 @@ enum SimulatorEventsYearFixture {
                 app_test_project.instrument_service_status_endpoint(invalid)
         self.assertEqual(len(re.findall(r'\b(?:let|var) \w+ = URLSessionConfiguration\.(?:ephemeral|default)', generated)), 1)
 
+    def test_status_launch_does_not_inherit_a_previous_events_fixture(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the real fixture storage reset")
+        source = (ROOT / "tests/ui/ApplicationFixture+Events.swift").read_text(encoding="utf-8")
+        app = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        seed = app.split("private static func seed()", 1)[1]
+        self.assertLess(seed.index("SimulatorEventsCacheFixture.resetForIsolatedLaunch"), seed.index("let onlyDistributedData"))
+        checks = '''
+let base = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+let cache = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
+let previous = cache.appendingPathComponent("events-2032.json")
+let other = base.appendingPathComponent("kept.json")
+let bytes = Data("entirely fictional".utf8)
+try bytes.write(to: other)
+let launches: [([String], Bool)] = [
+    (["--reset-fixture"], true),
+    (["--only-distributed-data"], true),
+    (["--countdown-calendar"], true),
+    (["--only-distributed-data", "--reset-fixture"], false),
+    (["--countdown-calendar", "--reset-fixture"], false),
+]
+for (arguments, keepsPublicEvents) in launches {
+    try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+    try bytes.write(to: previous)
+    let removed = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: arguments)
+    precondition(removed != keepsPublicEvents)
+    precondition(FileManager.default.fileExists(atPath: previous.path) == keepsPublicEvents)
+    let unrelated = try Data(contentsOf: other)
+    precondition(unrelated == bytes)
+}
+let absent = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: ["--only-distributed-data", "--reset-fixture"])
+precondition(!absent)
+'''
+        with tempfile.TemporaryDirectory(prefix="takupoke-status-fixture-") as scratch:
+            root = Path(scratch)
+            swift = root / "reset.swift"
+            swift.write_text("import Foundation\nenum SimulatorEventsCacheFixture {\n"
+                             + block(source, "static func resetForIsolatedLaunch(") + "\n}\n" + checks, encoding="utf-8")
+            executable = root / "reset"
+            subprocess.run([compiler, "-swift-version", "5", str(swift), "-o", str(executable)],
+                           check=True, timeout=30)
+            subprocess.run([str(executable), scratch], check=True, timeout=10)
+
     def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
         launch = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
         self.assertIn('"testSettingsAccountDataAndFileDetails": ["--ai-feature-probe", "--fixture-input-trace"]', launch)

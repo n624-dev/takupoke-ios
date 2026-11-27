@@ -1,7 +1,7 @@
 # シミュレーター失敗時の画面記録
 
 対応関係・宣言名・実行方法のSHA-256：
-`a4f92fe7acf5a53ff39137887ce9644eab081ae8b15b3dd4457f28bee3284927`
+`e82dec9beaf2378dab5094cb1404e9952a70461b28f56a03a69990cc8287c2a0`
 
 環境：macOS Simulator。Linuxは架空コマンドによる撮影・削除順とログの検査
 
@@ -15,6 +15,7 @@ python3 -B -m unittest discover -s tests -p test_simulator_failure_screenshot.py
 
 ## [tests/test_simulator_failure_screenshot.py](../../tests/test_simulator_failure_screenshot.py)
 
+- `test_xctest_warning_does_not_consume_the_single_failure_capture`
 - `test_fallback_skips_a_complete_native_capture_and_keeps_once_limit`
 - `test_signal_exit_does_not_wait_for_screenshot_before_cleanup`
 - `test_capture_exact_device_once_with_checksummed_image_and_owned_cleanup`

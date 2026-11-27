@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`da790d8280bf8f1160ad0e95d5222be1d3021968613273964b32c167c1b33b77`
+`8aa88218f5c9e391b1e72ebcf8df1bec3251d64ad839a14532dcaec8e3febf88`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -58,6 +58,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
 - `test_network_rewrite_preserves_standard_xlsx_identifiers_only`
 - `test_service_status_fixture_changes_only_the_network_endpoint`
+- `test_status_launch_does_not_inherit_a_previous_events_fixture`
 - `test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift`
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
