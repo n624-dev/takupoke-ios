@@ -1,7 +1,7 @@
 # 時間割・今日の予定・授業時刻・授業名
 
 対応関係・宣言名・実行方法のSHA-256：
-`5e7728994754a748928409c19bb9fce60a19eb445396165a747ff1a8a6c4af5b`
+`86d4a2d76a415f9cf28cc7f35dfb34027fd7456c635356c1e0a0f4395a5dc08f`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -142,6 +142,7 @@ python3 -B -m unittest discover -s tests -p test_timetable_change_names.py
 
 - `testExactSubjectSpellingResolvesContextDespiteAnotherWidthEquivalentAlias`
 - `testExplicitOrdinarySubjectIsNeverHiddenByAnOmittedInternationalPrefix`
+- `testLargeMappingKeepsOnlyRawRulesInStorageAndRebuildsForReplacedData`
 - `testConditionalTeacherUsesExactThenUniqueWidthMatchWithinItsContext`
 - `testOmittedInternationalShortSubjectStillResolvesItsConditionalTeacher`
 - `testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement`

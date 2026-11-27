@@ -4,6 +4,30 @@ import ZIPFoundation
 @testable import TakupokeParsing
 
 extension ParsingTests {
+    func testWorkbookVerificationUsesFrozenEditsAndHonorsCancellationDuringReview() throws {
+        let headers = ["学 年", "学科・クラス", "月日", "曜日", "時限", "変更内容", "科目"]
+        let rows = [headers] + (0..<1_200).map { index in
+            ["3", "IT", "2032/4/5", "月", "1", "休講", "架空科目\(index)"]
+        }
+        let table = ChangeEditTable(sheet: "架空", headers: headers, rows: rows, headerRow: 1)
+        let layout = ChangeColumnLayout(sheet: "架空", headerRow: 1, original: headers, headers: headers)
+        let review = ChangeWorkbookReview(sheets: ["架空"], table: table, layout: layout, requiresLayoutConfirmation: false)
+        let original = try ChangeWorkbookVerification.evaluate(review, edits: [:], year: 2032, check: {})
+        XCTAssertTrue(original.viable)
+        let edited = [2: ChangeRowEdit(values: [2: "架空の不正日付"])]
+        let invalid = try ChangeWorkbookVerification.evaluate(review, edits: edited, year: 2032, check: {})
+        XCTAssertFalse(invalid.viable)
+        XCTAssertNotNil(invalid.issues[2])
+        XCTAssertTrue(original.issues.isEmpty)
+        var checks = 0
+        XCTAssertThrowsError(try ChangeWorkbookVerification.evaluate(review, edits: [:], year: 2032, check: {
+            checks += 1
+            if checks >= 60 { throw CancellationError() }
+        })) { error in
+            XCTAssertTrue(error is CancellationError)
+        }
+    }
+
     func testFormulaRangeCannotSupplyUnverifiedChangeCells() throws {
         try temporary { root in
             let rows = [["学 年", "学科・クラス", "月日", "曜日", "時限", "変更内容", "科目"],

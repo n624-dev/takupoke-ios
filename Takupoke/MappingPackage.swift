@@ -84,7 +84,7 @@ enum MappingPackage {
 
     static func validate(_ rules: MappingRules, schemaVersion: Int) throws {
         guard [1, 2].contains(schemaVersion), (schemaVersion == 2 || rules.teacherContexts.isEmpty),
-              rules.subjects.count + rules.teachers.count + rules.rooms.count + rules.teacherContexts.count <= 10_000 else {
+              rules.subjects.count + rules.teachers.count + rules.rooms.count + rules.teacherContexts.count <= MappingRules.maximumRuleCount else {
             throw MappingError.invalidPackage
         }
         for (kind, group) in [("subject", rules.subjects), ("teacher", rules.teachers), ("room", rules.rooms)] {

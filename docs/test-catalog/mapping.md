@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`0923888c14c93e2603dfd91246e2da494ba83fc7d5a91335fcf74db0faa5bcb0`
+`33b7049af5f420f53b00533fd2efe89155f5bf72865d3eaa12c7034c10eca3cf`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -50,6 +50,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 
 - `testExactSubjectSpellingResolvesContextDespiteAnotherWidthEquivalentAlias`
 - `testExplicitOrdinarySubjectIsNeverHiddenByAnOmittedInternationalPrefix`
+- `testLargeMappingKeepsOnlyRawRulesInStorageAndRebuildsForReplacedData`
 - `testConditionalTeacherUsesExactThenUniqueWidthMatchWithinItsContext`
 - `testOmittedInternationalShortSubjectStillResolvesItsConditionalTeacher`
 - `testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement`

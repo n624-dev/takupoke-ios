@@ -35,6 +35,23 @@ final class MappingRulesTests: XCTestCase {
         }
     }
 
+    func testLargeMappingKeepsOnlyRawRulesInStorageAndRebuildsForReplacedData() throws {
+        let fictional = (0..<9_990).map { ordinal in
+            ["alias": "架空略号\(ordinal)", "fullName": "架空正式名称\(ordinal)"]
+        }
+        let original = try subjectRules(fictional + [["alias": "架空対象Ａ", "fullName": "架空正式対象A"]])
+        let stored = try JSONEncoder().encode(original)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: stored) as? [String: Any])
+        XCTAssertEqual(Set(object.keys), ["subjects", "teachers", "rooms", "teacherContexts"])
+        let reopened = try JSONDecoder().decode(MappingRules.self, from: stored)
+        XCTAssertEqual(reopened, original)
+        XCTAssertEqual(reopened.canonicalSubject("架空対象A", className: "3_IT"), "架空正式対象A")
+        XCTAssertEqual(reopened.canonicalSubject("架空略号9989", className: "3_IT"), "架空正式名称9989")
+        let replacement = try subjectRules([["alias": "架空対象Ａ", "fullName": "架空新正式対象B"]])
+        XCTAssertEqual(replacement.canonicalSubject("架空対象A", className: "3_IT"), "架空新正式対象B")
+        XCTAssertNil(replacement.canonicalSubject("架空略号9989", className: "3_IT"))
+    }
+
     func testConditionalTeacherUsesExactThenUniqueWidthMatchWithinItsContext() throws {
         let subject: [String: Any] = ["alias": "留 架空正式科目A", "fullName": "架空正式科目A", "classes": ["2_IT"], "internationalStudent": true]
         let context: [String: Any] = ["alias": "架空姓Ａ", "fullName": "架空正式教員A", "subject": "架空正式科目A", "className": "2_IT", "schoolYear": 2032]

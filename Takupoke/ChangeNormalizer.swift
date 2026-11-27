@@ -394,6 +394,11 @@ extension ChangeEditTable {
     func records(edits: [Int: ChangeRowEdit], defaultYear: Int, check: () throws -> Void = {}) throws -> [ScheduleChange] {
         let issues = try review(edits: edits, defaultYear: defaultYear, check: check)
         if let number = issues.keys.min(), let issue = issues[number]?.first { throw issue }
+        return try recordsAfterReview(edits: edits, defaultYear: defaultYear, check: check)
+    }
+
+    fileprivate func recordsAfterReview(edits: [Int: ChangeRowEdit], defaultYear: Int,
+                                        check: () throws -> Void) throws -> [ScheduleChange] {
         var table = Array(repeating: [String](), count: rows.count)
         table[headerRow - 1] = headers
         guard let date = headers.firstIndex(where: { ChangeNormalizer.text($0) == "月日" }) else { throw ChangeParseError(code: .headers) }
@@ -408,6 +413,51 @@ extension ChangeEditTable {
         }
         return try ChangeNormalizer.parse(table, defaultYear: defaultYear, check: check,
                                           sourceRows: rows, sourceHeaders: originalHeaders ?? headers, workbook: self, edits: edits)
+    }
+}
+
+struct ChangeWorkbookVerification {
+    var issues: [Int: [ChangeParseError]] = [:]
+    var groups: [ChangeIssueGroup] = []
+    var suggestions: ChangeIssueGroup?
+    var savedGroups: [ChangeIssueGroup] = []
+    var viable = false
+    var error: String?
+
+    static func evaluate(_ view: ChangeWorkbookReview, edits: [Int: ChangeRowEdit], year: Int,
+                         check: () throws -> Void) throws -> Self {
+        try check()
+        var result = Self(savedGroups: ChangeIssueGroup.savedGroups(edits))
+        let table = view.table
+        do {
+            result.issues = try table.review(edits: edits, defaultYear: year, check: check)
+            result.groups = ChangeIssueGroup.groups(result.issues, table: table, edits: edits,
+                                                    conflicts: view.conflicts, previous: view.previous)
+            if let weekday = table.headers.firstIndex(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
+                let rows = try table.rowIDs.filter { row in
+                    try check()
+                    let edit = edits[row] ?? ChangeRowEdit()
+                    guard !edit.excluded, !edit.deriveWeekday, edit.keepPrintedWeekday != true,
+                          table.cellIssues[row]?[weekday] == nil, !view.conflicts.contains(row) else { return false }
+                    let values = table.values(at: row, edit: edit, defaultYear: year)
+                    return ChangeNormalizer.text(values[weekday]).isEmpty &&
+                        table.normalizedDate(values, row: row, edit: edit, defaultYear: year) != nil
+                }
+                if !rows.isEmpty {
+                    result.suggestions = ChangeIssueGroup(code: .weekdayMismatch, column: weekday, rows: rows, optional: true)
+                }
+            }
+            result.viable = result.issues.isEmpty && view.conflicts.isEmpty
+            if result.viable && !view.requiresLayoutConfirmation {
+                // The same frozen input already passed review. Check only the final model here.
+                _ = try table.recordsAfterReview(edits: edits, defaultYear: year, check: check)
+            }
+        } catch {
+            try check()
+            return .init(savedGroups: result.savedGroups, error: error.localizedDescription)
+        }
+        try check()
+        return result
     }
 }
 
