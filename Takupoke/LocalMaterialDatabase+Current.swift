@@ -22,12 +22,7 @@ extension LocalMaterialDatabase {
             for record in state.records {
                 let originalID: String
                 if let old = previous.record(for: record.kind), old.storedName == record.storedName {
-                    var comparable = record
-                    comparable.source = old.source
-                    comparable.lastCheckedAt = old.lastCheckedAt
-                    comparable.lastAcquiredAt = old.lastAcquiredAt
-                    comparable.sourceModifiedAt = old.sourceModifiedAt
-                    guard try Self.encode(comparable) == Self.encode(old),
+                    guard try Self.encode(Self.recordRestoringAcquisitionMetadata(record, from: old)) == Self.encode(old),
                           let id = try String.fetchOne(db, sql: "SELECT originalID FROM currentRecord WHERE kind = ?",
                                                        arguments: [record.kind.rawValue]) else {
                         throw StoreError.invalidDatabase
@@ -122,6 +117,56 @@ extension LocalMaterialDatabase {
                 """)
             let (restored, _) = try Self.currentSnapshot(db)
             guard try Self.encode(restored) == Self.encode(state) else { throw StoreError.invalidDatabase }
+            try beforeCommit()
+        }
+        generation = expected + 1
+    }
+
+    /// Only the metadata of a confirmed existing original changes here. Every
+    /// original and analysis row is immutable; full snapshots validate their
+    /// contents on opening and when an operation changes them.
+    func saveAcquisition(_ record: MaterialRecord, replacing previous: MaterialRecord, attempt: AcquisitionAttempt, moveToEnd: Bool) throws {
+        guard let expected = generation, expected < Int64.max else { throw StoreError.staleState }
+        guard record.kind == previous.kind, attempt.failure == nil, record.lastCheckedAt == attempt.date else {
+            throw StoreError.invalidDatabase
+        }
+        let kind = record.kind.rawValue
+        let payload = try Self.encode(record)
+        var validation = MaterialLibraryState()
+        validation.records = [record]
+        validation.attempts = [kind: attempt]
+        _ = try MaterialLibrary.decodeLegacyManifest(Self.encode(validation))
+
+        try queue.write { db in
+            guard try Int64.fetchOne(db, sql: "SELECT generation FROM currentLibrary WHERE id = 1") == expected else {
+                throw StoreError.staleState
+            }
+            guard let row = try Row.fetchOne(db, sql: """
+                SELECT c.record AS currentPayload, c.kind AS currentKind, o.*, s.settings
+                FROM currentRecord c JOIN original o ON o.id = c.originalID
+                JOIN source s ON s.id = o.sourceID WHERE c.kind = ?
+                """, arguments: [kind]) else { throw StoreError.invalidDatabase }
+            let current = try Self.validatedCurrentRecord(row)
+            guard try Self.encode(current) == Self.encode(previous),
+                  try Self.encode(Self.recordRestoringAcquisitionMetadata(record, from: current)) == Self.encode(current),
+                  try Row.fetchOne(db, sql: "PRAGMA foreign_key_check(currentAnalysis)") == nil else {
+                throw StoreError.invalidDatabase
+            }
+            if moveToEnd {
+                try db.execute(sql: "UPDATE currentRecord SET record = ?, position = (SELECT max(position) + 1 FROM currentRecord) WHERE kind = ?",
+                               arguments: [payload, kind])
+            } else {
+                try db.execute(sql: "UPDATE currentRecord SET record = ? WHERE kind = ?", arguments: [payload, kind])
+            }
+            guard db.changesCount == 1 else { throw StoreError.staleState }
+            try Self.insertAttempt(db, kind: kind, operation: "acquire", date: attempt.date,
+                                   succeeded: true, payload: Self.encode(attempt))
+            let latestAttempt = db.lastInsertedRowID
+            try db.execute(sql: "DELETE FROM attempt WHERE kind = ? AND operation = 'acquire' AND id != ?",
+                           arguments: [kind, latestAttempt])
+            try db.execute(sql: "UPDATE currentLibrary SET generation = generation + 1 WHERE id = 1 AND generation = ?",
+                           arguments: [expected])
+            guard db.changesCount == 1 else { throw StoreError.staleState }
             try beforeCommit()
         }
         generation = expected + 1

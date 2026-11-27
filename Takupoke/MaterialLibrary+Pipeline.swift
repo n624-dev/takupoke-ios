@@ -7,7 +7,7 @@ extension MaterialLibrary {
         func open(at root: URL) throws -> MaterialLibrary {
             let copy = try MaterialLibrary(root: root)
             for (url, name) in inputs { try PipelineWorkspace.copyIfPresent(url, to: copy.files.appendingPathComponent(name)) }
-            try copy.persist(state)
+            try copy.seedPipelineSnapshot(state)
             return copy
         }
     }
@@ -41,6 +41,15 @@ extension MaterialLibrary {
     func acceptPipeline(_ copy: MaterialLibrary, kind: MaterialKind, expected: Data, ticket: FilePipeline.Ticket) throws {
         guard try pipelineIdentity(kind) == expected else { throw FilePipeline.Failure.stale }
         try ticket.beginCommit(period: .current())
+        if copy.metadataOnlyAcquisition == kind, let record = copy.state.record(for: kind) {
+            var next = state
+            next.records.removeAll { $0.kind == kind }
+            next.records.append(record)
+            next.attempts[kind.rawValue] = copy.state.attempts[kind.rawValue]
+            try persistUnchangedAcquisition(next, kind: kind, moveToEnd: true)
+            ticket.didCommit()
+            return
+        }
         let oldNames = Set(state.records.filter { $0.kind == kind }.map(\.storedName))
         var next = state
         var imported: URL?

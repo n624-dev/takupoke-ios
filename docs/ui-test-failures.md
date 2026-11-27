@@ -26,6 +26,12 @@
 - テストは `ApplicationData.refreshInBackground` を抽出し、OS境界の代替実装で実行する。実行日時を記録する境界の代替を追加し、拒否・二重呼出しでは記録せず、許可された処理だけ1回記録することも検査する。既存の通知の中止・待機判定は維持する。
 - 修正後、同じLinuxの通知・背景更新検査13件は失敗0。実際のBGTaskSchedulerによる予約・実行はApple環境で別途確認する。
 
+## #194 同一内容確認の作業領域が書込済みと判定される（2026-11-27）
+
+- `8d131dd` の作業差分、Swift 6.1.2／SQLite 3.53.4／Linux。11:42:47 UTC `testUnchangedPipelineCommitsOnlyAcquisitionMetadataOnTheLiveDatabase` で作業領域の変更種別がnilとなり、保存済み解析の行を読み出す従来経路を通過した。直接の確認日時保存とロールバックは成功。68件中1ケースでアサーション2件が失敗。
+- `PipelineSnapshot.open` は元の保存情報を作業領域へ写すため `persist` を呼ぶ。この初期化が解析の書込と同じフラグを立てていた。作業領域に元のsnapshotを確定した境界で変更追跡を始め、その後の解析・取得を区別する。フラグは通常保存や解析変更で初期化しない。
+- 修正後の同じ68件は失敗0。作業領域を経由した場合も実SQLiteの文を確認し、変更のない解析や授業行を読み出さず、原本・前回解析・並び順・generation検査を保つことを確認した。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。

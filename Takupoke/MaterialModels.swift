@@ -167,5 +167,6 @@ enum MaterialError: LocalizedError {
 protocol MaterialLibraryPersistence: AnyObject {
     func load() throws -> MaterialLibraryState
     func save(_ state: MaterialLibraryState) throws
+    func saveAcquisition(_ record: MaterialRecord, replacing previous: MaterialRecord, attempt: AcquisitionAttempt, moveToEnd: Bool) throws
     func retainedStoredNames() throws -> Set<String>
 }

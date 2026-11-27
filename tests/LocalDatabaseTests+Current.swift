@@ -4,6 +4,89 @@ import GRDB
 @testable import TakupokeParsing
 
 extension LocalDatabaseTests {
+    func testUnchangedAcquisitionOnlyReadsItsMetadataAndKeepsRollbackAndGenerationChecks() throws {
+        let example = try fixture()
+        let (db, library) = try runtimeStore()
+        defer { try? db.close() }
+        try acquire(library, kind: .events)
+        try acquire(library, kind: .timetable)
+        let timetable = try XCTUnwrap(example.pdfAnalyses?["timetable"])
+        try library.savePDFAnalysis(timetable)
+        try library.savePDFAnalysis(XCTUnwrap(example.pdfAnalyses?["events"]))
+        let original = try XCTUnwrap(library.state.record(for: .events))
+        let priorAttempt = try XCTUnwrap(library.state.attempts["events"])
+        let initialState = try LocalMaterialDatabase.encode(library.state)
+        let otherWriter = try LocalMaterialDatabase(url: runtime.appendingPathComponent("library.sqlite"))
+        defer { try? otherWriter.close() }
+        _ = try otherWriter.load()
+        var source = original.source
+        source.remoteETag = "fictional-new-validator"
+
+        db.beforeCommit = { throw MaterialError.unavailable }
+        XCTAssertThrowsError(try library.recordUnchanged(.events, source: source))
+        XCTAssertEqual(try LocalMaterialDatabase.encode(library.state), initialState)
+        XCTAssertEqual(try LocalMaterialDatabase.encode(db.load()), initialState)
+        db.beforeCommit = {}
+
+        var statements = [String]()
+        try db.queue.write { database in
+            database.trace { statements.append(String(describing: $0).lowercased()) }
+        }
+        try library.recordUnchanged(.events, source: source)
+        try db.queue.write { $0.trace(nil) }
+        XCTAssertTrue(statements.contains { $0.contains("update currentrecord set record") })
+        XCTAssertFalse(statements.contains { $0.contains("from lesson") || $0.contains("from changerow") || $0.contains("analysis a") })
+        let stored = try db.load()
+        XCTAssertEqual(try LocalMaterialDatabase.encode(stored), try LocalMaterialDatabase.encode(library.state))
+        let checked = try XCTUnwrap(stored.record(for: .events))
+        XCTAssertEqual(checked.storedName, original.storedName)
+        XCTAssertEqual(checked.lastAcquiredAt, original.lastAcquiredAt)
+        XCTAssertEqual(checked.source.remoteETag, source.remoteETag)
+        XCTAssertEqual(checked.lastCheckedAt, stored.attempts["events"]?.date)
+        XCTAssertNotEqual(checked.lastCheckedAt, priorAttempt.date)
+        let attempt = try XCTUnwrap(stored.attempts["events"])
+        XCTAssertThrowsError(try otherWriter.saveAcquisition(checked, replacing: original, attempt: attempt, moveToEnd: false)) {
+            guard case LocalMaterialDatabase.StoreError.staleState = $0 else {
+                return XCTFail("Expected the old generation to be rejected")
+            }
+        }
+        XCTAssertEqual(try LocalMaterialDatabase.encode(db.load()), try LocalMaterialDatabase.encode(stored))
+    }
+
+    func testUnchangedPipelineCommitsOnlyAcquisitionMetadataOnTheLiveDatabase() throws {
+        let example = try fixture()
+        let (db, library) = try runtimeStore()
+        defer { try? db.close() }
+        try acquire(library, kind: .timetable)
+        try acquire(library, kind: .events)
+        let saved = try XCTUnwrap(example.pdfAnalyses?["timetable"])
+        try library.savePDFAnalysis(saved)
+        let previous = try XCTUnwrap(library.state.record(for: .timetable))
+        let expected = try library.pipelineIdentity(.timetable)
+        let work = try library.isolatedCopy(at: runtime.appendingPathComponent("fictional-work"))
+        let staged = work.newStagingURL()
+        try Data(contentsOf: XCTUnwrap(work.localURL(for: .timetable))).write(to: staged)
+        let modified = Date(timeIntervalSince1970: 1_700_000_000)
+        try work.commit(staged: staged, kind: .timetable, source: previous.source,
+                        originalName: previous.originalName, byteCount: previous.byteCount,
+                        digest: previous.digest, modifiedAt: modified, reuseUnchanged: true)
+        XCTAssertEqual(work.metadataOnlyAcquisition, .timetable)
+        let ticket = FilePipeline.Ticket(source: .timetable, reason: .manual, period: .current(), limits: .init(), now: { 0 })
+        ticket.acquired()
+        var statements = [String]()
+        try db.queue.write { $0.trace { statements.append(String(describing: $0).lowercased()) } }
+        try library.acceptPipeline(work, kind: .timetable, expected: expected, ticket: ticket)
+        try db.queue.write { $0.trace(nil) }
+        XCTAssertFalse(statements.contains { $0.contains("from lesson") || $0.contains("analysis a") })
+        XCTAssertNotNil(ticket.successDates.acquired)
+        XCTAssertEqual(library.state.records.map(\.kind), [.events, .timetable])
+        let stored = try db.load()
+        XCTAssertEqual(stored.records.map(\.kind), [.events, .timetable])
+        XCTAssertEqual(stored.record(for: .timetable)?.sourceModifiedAt, modified)
+        XCTAssertEqual(stored.record(for: .timetable)?.storedName, previous.storedName)
+        XCTAssertEqual(try LocalMaterialDatabase.encode(stored.pdfAnalyses?["timetable"]), try LocalMaterialDatabase.encode(saved))
+    }
+
     func testCancellingTimetableReanalysisKeepsTheSameOriginalRecoveryJob() throws {
         let (db, library) = try runtimeStore()
         defer { try? db.close() }

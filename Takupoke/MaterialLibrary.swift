@@ -10,6 +10,12 @@ final class MaterialLibrary {
     private let manifest: URL
     private let persistence: MaterialLibraryPersistence?
     private let writeManifest: (Data, URL) throws -> Void
+    private enum Writes { case none, acquisition(MaterialKind), full }
+    private var writes = Writes.none
+    var metadataOnlyAcquisition: MaterialKind? {
+        if case .acquisition(let kind) = writes { return kind }
+        return nil
+    }
     var state: MaterialLibraryState
 
     init(root: URL, persistence: MaterialLibraryPersistence? = nil, writeManifest: @escaping (Data, URL) throws -> Void = {
@@ -87,6 +93,30 @@ final class MaterialLibrary {
         if let persistence { try persistence.save(next) }
         else { try writeManifest(data, manifest) }
         state = next
+        writes = .full
+    }
+
+    func seedPipelineSnapshot(_ snapshot: MaterialLibraryState) throws {
+        guard persistence == nil, state.records.isEmpty else { throw MaterialError.invalidState }
+        try persist(snapshot)
+        writes = .none
+    }
+
+    func persistUnchangedAcquisition(_ next: MaterialLibraryState, kind: MaterialKind, moveToEnd: Bool = false) throws {
+        let previousWrites = writes
+        if let persistence {
+            guard let previous = state.record(for: kind), let record = next.record(for: kind),
+                  let attempt = next.attempts[kind.rawValue] else { throw MaterialError.invalidState }
+            try persistence.saveAcquisition(record, replacing: previous, attempt: attempt, moveToEnd: moveToEnd)
+            state = next
+        } else {
+            try persist(next)
+        }
+        switch previousWrites {
+        case .none: writes = .acquisition(kind)
+        case .acquisition(let earlierKind) where earlierKind == kind: writes = .acquisition(kind)
+        default: writes = .full
+        }
     }
 
     func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil,
@@ -110,7 +140,7 @@ final class MaterialLibrary {
         next.records[index].source = source
         next.records[index].lastCheckedAt = now
         next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
-        try persist(next)
+        try persistUnchangedAcquisition(next, kind: kind)
     }
 
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
@@ -141,7 +171,7 @@ final class MaterialLibrary {
             next.records[index].lastCheckedAt = now
             next.records[index].lastAcquiredAt = now
             next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
-            try persist(next)
+            try persistUnchangedAcquisition(next, kind: kind)
             return
         }
         let name = UUID().uuidString + "." + kind.fileExtension

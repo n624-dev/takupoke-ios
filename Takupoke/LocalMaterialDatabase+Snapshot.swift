@@ -26,24 +26,7 @@ extension LocalMaterialDatabase {
             FROM currentRecord c JOIN original o ON o.id = c.originalID
             JOIN source s ON s.id = o.sourceID ORDER BY c.position
             """) {
-            let record = try decode(MaterialRecord.self, row["currentPayload"])
-            let original = try decode(MaterialRecord.self, row["record"])
-            // A 304 response may update HTTP validators and lastCheckedAt only.
-            var comparable = record
-            comparable.source = original.source
-            comparable.lastCheckedAt = original.lastCheckedAt
-            comparable.lastAcquiredAt = original.lastAcquiredAt
-                    comparable.sourceModifiedAt = original.sourceModifiedAt
-            guard try encode(comparable) == encode(original),
-                  row["currentKind"] as String == record.kind.rawValue,
-                  row["kind"] as String == record.kind.rawValue,
-                  row["storedName"] as String == record.storedName,
-                  row["digest"] as String == record.digest,
-                  row["originalName"] as String == record.originalName,
-                  row["settings"] as Data == (try encode(original.source)) else {
-                throw StoreError.invalidDatabase
-            }
-            state.records.append(record)
+            state.records.append(try validatedCurrentRecord(row))
         }
         guard state.records.count == (try Int.fetchOne(db, sql: "SELECT count(*) FROM currentRecord")) else {
             throw StoreError.invalidDatabase
@@ -81,5 +64,27 @@ extension LocalMaterialDatabase {
         }
         try readAnalyses(db, rows: analyses, state: &state)
         return (try MaterialLibrary.decodeLegacyManifest(encode(state)), library["generation"])
+    }
+
+    static func recordRestoringAcquisitionMetadata(_ record: MaterialRecord, from reference: MaterialRecord) -> MaterialRecord {
+        var comparable = record
+        comparable.source = reference.source
+        comparable.lastCheckedAt = reference.lastCheckedAt
+        comparable.lastAcquiredAt = reference.lastAcquiredAt
+        comparable.sourceModifiedAt = reference.sourceModifiedAt
+        return comparable
+    }
+
+    static func validatedCurrentRecord(_ row: Row) throws -> MaterialRecord {
+        let record = try decode(MaterialRecord.self, row["currentPayload"])
+        let original = try decode(MaterialRecord.self, row["record"])
+        guard try encode(recordRestoringAcquisitionMetadata(record, from: original)) == encode(original),
+              row["currentKind"] as String == record.kind.rawValue,
+              row["kind"] as String == record.kind.rawValue,
+              row["storedName"] as String == record.storedName,
+              row["digest"] as String == record.digest,
+              row["originalName"] as String == record.originalName,
+              row["settings"] as Data == (try encode(original.source)) else { throw StoreError.invalidDatabase }
+        return record
     }
 }
