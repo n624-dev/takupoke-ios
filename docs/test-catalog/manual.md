@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`887fc218f45f8afa1d1cd57ad2c86f39d30fe826a4b721b77cc881231a252697`
+`93129b189eeb3466ca5e9246879853f31af8087a8f3066d4a7c9902d453bf759`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -47,6 +47,7 @@ bash tools/test-manual-ui.sh
 - `testRecoveryFailureKeepsSafeStageAndRetryActionWithoutPrintingExternalValues`
 - `testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault`
 - `testCorrectionMenuEligibilityUsesEachFieldsOCRSources`
+- `testWithdrawingOptionalOCRTargetRestoresOriginalAndRetainsRequiredProof`
 - `testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit`
 - `testSelectedCorrectionUsesOnlyHashMatchedOriginalRasterAndNativeCapture`
 - `testExplicitHighConfidenceSelectionStillRefusesUnownedOrAlteredNativeCharacters`

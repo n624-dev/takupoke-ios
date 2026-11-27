@@ -33,6 +33,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     @Published private(set) var manualImages = [String:UIImage]()
     @Published private(set) var manualContextImages = [String:RecoveryManualImage]()
     @Published private(set) var manualInitialValues = [String:String]()
+    @Published private(set) var manualInitialAcknowledged = Set<String>()
     @Published private(set) var manualReview: RecoveryManualReview?
     var manualSourceURL: URL? { manualDraft == nil ? nil : source?.url }
     private var task: Task<Void,Never>?
@@ -283,6 +284,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                     images[field.id] = image
                 }
                 let previous = Dictionary(uniqueKeysWithValues:(candidate.result.humanCorrections ?? []).map { ($0.target.key,$0.value) })
+                manualInitialAcknowledged = []
                 manualInitialValues = Dictionary(uniqueKeysWithValues:draft.fields.map { ($0.id,previous[$0.id] ?? $0.originalText) })
                 manualContextImages = try Self.contextImages(draft,rasters:rasters)
                 manualImages = images; manualDraft = draft; manualReview = nil; preview = nil
@@ -294,6 +296,46 @@ final class PDFRecoveryCoordinator: ObservableObject {
             }
         }
     }
+    func removeOptionalCorrection(_ field: RecoveryManualField, values: [String: String], acknowledged: Set<String>) {
+        guard !running, manualReview == nil, let draft = manualDraft, let source,
+              draft.fields.contains(field), draft.optionalTargets.contains(field.target) else { return }
+        let operation = self.operation, control = AcquisitionControl(), ticket = aiTicket
+        preparationControl = control
+        running = true; failureReason = nil
+        status = "原本から訂正対象を確認しています⋯"
+        task = Task { @MainActor in
+            do {
+                let revised = try await CancellationLinkedTask.value(of: Task.detached(priority: .userInitiated) {
+                    let check = { try control.check(); try Task.checkCancellation(); try LocalAIFeaturePolicy.check(ticket) }
+                    try RecoveryConversion.verifyFile(source, check: check)
+                    return try RecoveryManualAssistance.withdrawingOptionalTarget(field, from: draft, os: "ios", check: check)
+                })
+                try check(operation)
+                guard manualDraft?.id == draft.id else { throw CancellationError() }
+                switch revised {
+                case .edit(let newDraft):
+                    let retained = Set(newDraft.fields.filter { draft.fields.contains($0) }.map(\.id))
+                    manualInitialValues = values.filter { retained.contains($0.key) }
+                    manualInitialAcknowledged = acknowledged.intersection(retained)
+                    manualImages = manualImages.filter { retained.contains($0.key) }
+                    manualContextImages = manualContextImages.filter { retained.contains($0.key) }
+                    manualDraft = newDraft
+                    status = "原本と照合して、選択した\(newDraft.fields.count)項目を確認してください。"
+                case .preview(let result):
+                    manualDraft = nil; manualImages = [:]; manualContextImages = [:]
+                    manualInitialValues = [:]; manualInitialAcknowledged = []
+                    preview = RecoveryPreview(document: draft.document, result: result, source: source)
+                    status = "採用前に元のPDFと資料全体の内容を確認してください。"
+                }
+                running = false
+            } catch {
+                guard self.operation == operation else { return }
+                running = false
+                failureReason = .correctionTargetUnverified
+            }
+        }
+    }
+
     func editManualReview() {
         guard !running, manualDraft != nil else { return }
         manualReview = nil
@@ -314,7 +356,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
                 try check(operation)
                 guard manualReview?.id == review.id, manualDraft?.id == draft.id else { throw CancellationError() }
                 preview = review.candidate
-                manualInitialValues = [:]
+                manualInitialValues = [:]; manualInitialAcknowledged = []
                 manualReview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; running = false
                 status = "採用前に元のPDFと資料全体の内容を確認してください。"
             } catch {
@@ -520,7 +562,7 @@ final class PDFRecoveryCoordinator: ObservableObject {
     func cancel() {
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
         previewNeedsRevalidation = false
-        previewRasters = [:]; manualInitialValues = [:]
+        previewRasters = [:]; manualInitialValues = [:]; manualInitialAcknowledged = []
         preview = nil; manualDraft = nil; manualImages = [:]; manualContextImages = [:]; manualReview = nil; pendingDocument = nil; pendingPages = nil; source = nil; modelAction = nil
         status = "復旧を開始してください。"; failureReason = nil
     }

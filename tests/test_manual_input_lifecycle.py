@@ -159,6 +159,7 @@ final class Coordinator {
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
  var previewRasters=[1:"original-raster"],manualInitialValues=["field":"prior-transcription"]
+ var manualInitialAcknowledged=Set<String>()
  var preview:Preview? = Preview(result: .init(humanCorrections: nil))
  var pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", modelAction:String?="preparing"
  var selectedSourceIsCurrent = true
@@ -265,6 +266,7 @@ enum RecoveryFailure { case originalRevalidation, selectionChanged }
     var failureReason: RecoveryFailure?
     var previewRasters = [1: "fictional-raster"]
     var manualImages = [String: String](), manualContextImages = [String: String](), manualInitialValues = [String: String]()
+    var manualInitialAcknowledged = Set<String>()
     init(source: Source) { self.source = source; preview = Preview(source: source) }
     func check(_ id: UUID) throws {
         try Task.checkCancellation()

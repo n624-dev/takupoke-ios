@@ -126,6 +126,13 @@ struct PDFRecoveryView: View {
                             .buttonStyle(.borderless)
                             .accessibilityAddTraits(acknowledged ? .isSelected : [])
                             .disabled(!useAiFeatures || coordinator.running)
+                            if draft.optionalTargets.contains(field.target) {
+                                Button("訂正対象から外す", systemImage: "minus.circle") {
+                                    coordinator.removeOptionalCorrection(field, values: manualValues,
+                                        acknowledged: Set(manualAcknowledged.filter(\.value).keys))
+                                }
+                                .disabled(!useAiFeatures || coordinator.running)
+                            }
                         }
                     }
                     Section {
@@ -186,7 +193,8 @@ struct PDFRecoveryView: View {
             .onChange(of:coordinator.preview?.id) { _,_ in sourcePage = nil; selectedClass = coordinator.preview?.document.classes.first ?? "" }
             .onChange(of:coordinator.manualDraft?.id) { _,_ in
                 manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,coordinator.manualInitialValues[$0.id] ?? $0.originalText) } ?? [])
-                manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil; sourcePage = nil
+                manualAcknowledged = Dictionary(uniqueKeysWithValues: coordinator.manualInitialAcknowledged.map { ($0, true) })
+                zoomedField = nil; editingManualField = nil; sourcePage = nil
             }
             .onChange(of:phase) { _,phase in
                 if phase != .active { sourcePage = nil; coordinator.suspendForInactivity(); models.cancel() }
