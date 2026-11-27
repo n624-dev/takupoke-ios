@@ -1,3 +1,8 @@
+## 先行全体CIで試験発表の架空資料と通知テストの起動が別々に停止（2026-11-27）
+
+- `a1791e8`、[全体46054901918試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46054901918/attempts/1)、SDK 27.2。12件成功、3件失敗、公開ジョブは予定どおり実行なし。iOS 26・27の通常Bは `testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel` が起点日を表示できず失敗。ケース65.158秒、65.601秒。このソースは配信版と一致する確認を架空資料に足した `e108d85` より前。`countdown-origin|testCountdownShowsProgressFromAnnouncement` で同じ失敗と、[確認を加えた両OSの通過](https://github.com/n624-dev/takupoke-ios/actions/runs/46060314457)を照合。
+- 同じ[iOS 26.5通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/46054901918/job/140697208200)は保存期間復旧が26.538秒で成功。後段の独立 `testChangedDataProducesOneLocalNotification` は22:23:44 UTCに `ApplicationChecks.swift:139`、Xcodeからアプリを起動する段階でタイムアウト、ケース204.331秒。通知の実検証には未到達。[iOS 27通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/46054901918/job/140697208393)は同じケースを含めて成功。iOS 27の保存期間復旧も25.971秒で成功し、先に同じ実行を続けた条件では予約と配信済みのOS応答が確認できた。
+
 ## 元のスクロール位置を保持した後もiOS 26で着地の間隔が99.634ms（2026-11-27）
 
 - `a5cc19c`、[限定46071822879 iOS 26.5](https://github.com/n624-dev/takupoke-ios/actions/runs/46071822879/job/140750327401)、SDK 27.2。21:55:04 UTCに `testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` の466行、ケース45.534秒。離した元の週のx=-63.333ptは最初の実枠にも維持され、次週はx=377ptで画面外。初回移動の実枠は元x=-91ptと次x=270pt、両ページが見えた後の間隔の検査は通過。着地0.216196秒と次の実枠0.315830秒の差99.634msが90ms条件を超過。画面枠の欠測0。場面の構成開始は着地31.669ms後、構成自体約0.106ms。元のスクロール復帰は着地から約1.192ms。別の時刻・行事週検査はiOS 26で通過。iOS 27は実行待ち。
