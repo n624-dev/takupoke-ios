@@ -308,6 +308,80 @@ precondition(views[2].position == CGPoint(x:5,y:29))
                            check=True, timeout=30)
             subprocess.run([str(executable)], check=True, timeout=10)
 
+    def test_native_motion_only_invalidates_the_footer_for_horizontal_changes(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify week motion observation")
+        grid = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text(encoding="utf-8")
+        week_model = (ROOT / "Takupoke/TimetableSchedule+Weeks.swift").read_text(encoding="utf-8")
+        attrs = grid.split("private final class WeekPageMotion", 1)[0].rstrip().splitlines()[-1]
+        state = "\n".join(line for line in grid.splitlines() if "var transition: Transition?" in line
+                          or "var reservedHeight: CGFloat?" in line)
+        update = block(grid, "private func advanceFrame(")
+        setup = '''import Foundation
+import Observation
+typealias SchoolDate = Int
+struct CADisplayLink { let timestamp: Double; let targetTimestamp: Double }
+struct Transaction { var disablesAnimations = false }
+func withTransaction(_ transaction: Transaction, _ work: () -> Void) {
+    precondition(transaction.disablesAnimations); work()
+}
+final class Counter: @unchecked Sendable { var value = 0 }
+'''
+        probe = '''
+    var reduceMotion = false
+    var slideClock = WeekSlideClock()
+    var lastSlideProgress: CGFloat?
+    var arrivals = 0
+    func adjustHeight(_ link: CADisplayLink) {}
+    func settle(id: UUID) {
+        precondition(transition?.id == id)
+        lastSlideProgress = transition?.slideProgress
+        arrivals += 1
+        transition = nil
+    }
+    func run(reducing: Bool, direction: CGFloat) {
+        reduceMotion = reducing
+        let source = 2, destination = direction == 1 ? 3 : 1
+        transition = Transition(source: source, destination: destination, rubber: -direction * 30,
+            width: 360, direction: direction, targetHeight: 240)
+        let footer = Counter(), row = Counter()
+        withObservationTracking { _ = transition } onChange: { footer.value += 1 }
+        withObservationTracking { _ = reservedHeight } onChange: { row.value += 1 }
+        reservedHeight = 300
+        precondition(footer.value == 0 && row.value == 1)
+        for frame in 0..<30 where arrivals == 0 {
+            let time = Double(frame) / 60
+            advanceFrame(CADisplayLink(timestamp: time, targetTimestamp: time + 1.0 / 60))
+        }
+        precondition(arrivals == 1 && footer.value == 1 && transition == nil)
+        precondition(lastSlideProgress.map { $0 > 0 && $0 < 1 } == true)
+        precondition(offset(for: destination, selected: destination, viewportWidth: 360) == 0)
+        precondition(opacity(for: source, selected: destination) == 0)
+        precondition(opacity(for: destination, selected: destination) == 1)
+    }
+}
+@main struct Probe {
+    @MainActor static func main() {
+        for reducing in [false, true] {
+            for direction: CGFloat in [-1, 1] { Motion().run(reducing: reducing, direction: direction) }
+        }
+    }
+}
+'''
+        motion_methods = "\n".join(block(grid, name) for name in ("func offset(for week:", "func opacity(for week:"))
+        program = "\n".join((setup, block(week_model, "struct WeekSlideClock"), attrs + " final class Motion: NSObject {",
+                             block(grid, "struct Transition"), state, update, motion_methods, probe))
+        with tempfile.TemporaryDirectory(prefix="takupoke-week-landing-") as scratch:
+            path = Path(scratch) / "check.swift"
+            path.write_text(program, encoding="utf-8")
+            executable = path.with_suffix("")
+            # Swift 6.1.2's Linux Observation dylib references a private Core symbol.
+            linker = ["-static-stdlib"] if sys.platform == "linux" else []
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", *linker, str(path), "-o", str(executable)],
+                           check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=10)
+
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
