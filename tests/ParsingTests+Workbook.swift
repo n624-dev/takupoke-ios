@@ -105,7 +105,7 @@ extension ParsingTests {
                 assertCode(.unknownAll) {
                     _ = try ChangeNormalizer.parse(XLSXReader.read(url, defaultYear: 2032), defaultYear: 2032)
                 }
-                let book = try XLSXReader.editableWorkbook(url)
+                let book = try XLSXReader.editableWorkbook(url, layout: nil, check: {})
                 let before = try book.table.review(edits: [:], defaultYear: 2032)
                 XCTAssertEqual(before[2]?.map(\.code), [.unknownAll])
                 let edits = [2: ChangeRowEdit(values: [1: "CN,ES"])]
@@ -126,7 +126,7 @@ extension ParsingTests {
                     let headers = required + periodNames + ["変更後", "変更後科目"]
                     let url = root.appendingPathComponent("fictional-alias-\(number)-\(reverse).xlsx")
                     try write(workbook([headers, date + values + ["", "架空科目"]]), to: url)
-                    let book = try XLSXReader.editableWorkbook(url)
+                    let book = try XLSXReader.editableWorkbook(url, layout: nil, check: {})
                     let review = try book.table.review(edits: [:], defaultYear: 2032)
                     if number == 2 {
                         let issue = try XCTUnwrap(review[2]?.first)
