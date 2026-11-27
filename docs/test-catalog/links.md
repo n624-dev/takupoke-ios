@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`ebfafc1d3ebfea77c1d1f81cc808e0f62d77f1654f0a3c7733558df931d125fc`
+`4d8acdb1d41aa82d466f9b8d7433723c69d9bd9cb38ac197479194e03aaaab06`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -26,6 +26,9 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 - `testUnknownAndUnderstatedLengthsBothStopAtFirstExcessByte`
 - `testExactLimitAndEmptyRevisionResponsesRemainUsable`
 - `testCancelledReaderDoesNotConsumeAnyPartOfTheResponse`
+- `testAccountCommunicationBudgetCountsRequestsAndExcludesTimeBetweenThem`
+- `testDeadlineEndsAnIntermittentTransferBeforeItsLateCompletion`
+- `testExplicitCancellationRemainsDistinctFromDeadlineAndAllowsAnotherRead`
 
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
