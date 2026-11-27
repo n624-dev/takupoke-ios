@@ -415,8 +415,10 @@ final class PDFRecoveryCoordinator: ObservableObject {
         for cell in doc.cells {
             guard let output=result.cells.first(where:{ $0.cellId == cell.id }),let start=cell.slots.map(\.period).min(),let end=cell.slots.map(\.period).max() else { continue }
             for slot in cell.slots {
+                let slotStart = doc.kind == .timetable ? slot.period : start
+                let slotEnd = doc.kind == .timetable ? slot.period : end
                 let time=doc.kind == .timetable ? nil : (start == end ? doc.times["\(slot.day):\(start)"] : doc.spanTimes["\(slot.day):\(start)-\(end)"])
-                entries[C.Slot(className:slot.className,day:slot.day,period:slot.period)]=output.lessons.map { C.Lesson(subject:$0.subject.value,teacher:$0.teacher.value,room:$0.room.value,spanStart:start,spanEnd:end,time:time) }
+                entries[C.Slot(className:slot.className,day:slot.day,period:slot.period)]=output.lessons.map { C.Lesson(subject:$0.subject.value,teacher:$0.teacher.value,room:$0.room.value,spanStart:slotStart,spanEnd:slotEnd,time:time) }
             }
         }
         return C.Snapshot(scope:C.Scope(kind:doc.kind.rawValue,schoolYear:doc.schoolYear,term:doc.term,classes:doc.classes,days:doc.days,slots:slots),entries:entries)
@@ -429,29 +431,11 @@ final class PDFRecoveryCoordinator: ObservableObject {
         if candidate.document.kind == .timetable, let old=previousTimetable,old.kind == .timetable {
             if old.recovery != nil {
                 if let certified=try RecoveryValidator.recertifiedTimetable(old,hash:old.sourceDigest),let adopted=certified.recovery { previous=snapshot(adopted.document,adopted.result) }
-            } else if old.version == PDFAnalysis.parserVersion,MaterialLibrary.validPDFAnalysis(old) {
-                var entries=[C.Slot:[C.Lesson]]()
-                for lesson in old.lessons {
-                    try check()
-                    let slot=C.sourceSlot(className:lesson.className,sourceClassName:lesson.sourceClassName,day:String(lesson.weekday),period:lesson.period)
-                    entries[slot,default:[]].append(C.Lesson(subject:lesson.names.subject,teacher:lesson.names.teacher,room:lesson.names.room,spanStart:lesson.period,spanEnd:lesson.period,time:nil))
-                }
-                // Strict storage does not enumerate blank cells. Compare only
-                // when every required slot is actually represented, never fill gaps.
-                previous=C.Snapshot(scope:C.Scope(kind:RecoveryDocumentKind.timetable.rawValue,schoolYear:old.schoolYear,term:old.term,classes:Array(Set(entries.keys.map(\.className))),days:Array(Set(entries.keys.map(\.day))),slots:Array(entries.keys)),entries:entries)
-            }
+            } else { previous = try old.strictComparisonSnapshot(check: check) }
         } else if let old=previousSpecial,(old.kind == .exam ? RecoveryDocumentKind.exam : .return) == candidate.document.kind {
             if old.recovery != nil {
                 if let certified=try RecoveryConversion.recertifiedSpecial(old,hash:old.sourceDigest),let adopted=certified.recovery { previous=snapshot(adopted.document,adopted.result) }
-            } else if old.version == SpecialScheduleAnalysis.parserVersion {
-                var entries=[C.Slot:[C.Lesson]]()
-                for lesson in old.lessons {
-                    try check()
-                    let slot=C.sourceSlot(className:lesson.className,sourceClassName:lesson.sourceClassName,day:lesson.date,period:lesson.period)
-                    entries[slot,default:[]].append(C.Lesson(subject:lesson.subject,teacher:lesson.teacher,room:lesson.room,spanStart:lesson.spanStart,spanEnd:lesson.spanEnd,time:old.timeRange(for:lesson)))
-                }
-                previous=C.Snapshot(scope:C.Scope(kind:(old.kind == .exam ? RecoveryDocumentKind.exam : .return).rawValue,schoolYear:old.schoolYear,term:nil,classes:old.coveredClasses,days:old.coveredDates,slots:Array(entries.keys)),entries:entries)
-            }
+            } else { previous = try old.strictComparisonSnapshot(check: check) }
         }
         try check()
         return C.compare(current,previous:previous)

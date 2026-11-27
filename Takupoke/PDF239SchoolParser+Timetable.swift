@@ -1,9 +1,10 @@
 // Strict parsing contract from 239.1 (bfc599fd5a552ced0c140497c703199547c30fd4).
-// Only type names and fixed failure IDs are adapted; no recovery proof is implied.
+// The acceptance conditions are unchanged. Record the physical slots already read.
 import Foundation
 
 extension PDF239SchoolParser {
-    static func timetable(_ page: PDFPageLayout, check: () throws -> Void) throws -> [PDFLesson] {
+    static func timetable(_ page: PDFPageLayout, check: () throws -> Void)
+        throws -> (lessons: [PDFLesson], provenSlots: [PDFTimetableSlot]?) {
         let grid = PDF239Grid(page: page)
         let headers = PDF239Grid.rows(page.glyphs.filter { $0.cy < page.height / 5 }).filter {
             key($0.map(\.text).joined()) == String(repeating: "12345678", count: 5)
@@ -20,6 +21,8 @@ extension PDF239SchoolParser {
         let classRows = PDF239Grid.rows(page.glyphs.filter { classBox.left < $0.cx && $0.cx < classBox.right &&
             $0.cy > first.bottom && $0.cy < bodyBottom })
         var output: [PDFLesson] = []
+        var provenSlots = [PDFTimetableSlot]()
+        var fullScopeProven = true
         var classes: Set<String> = []
         for (classIndex, glyphs) in classRows.enumerated() {
             try check()
@@ -77,10 +80,27 @@ extension PDF239SchoolParser {
                     }
                     if output.count > maximumRecords { throw PDFParseError(code: .limit, branch:.b371) }
                 }
+                if fullScopeProven {
+                    if coversFullRow(row, regions: seen), provenSlots.count < maximumRecords {
+                        provenSlots.append(.init(className: name, weekday: column / 8 + 1, period: column % 8 + 1))
+                    } else {
+                        fullScopeProven = false
+                    }
+                }
             }
         }
         guard !classes.isEmpty, !output.isEmpty else { throw PDFParseError(code: .unsupported, page: 1, branch:.b370) }
-        return output
+        return (output, fullScopeProven ? provenSlots : nil)
+    }
+
+    // Used only to record comparison evidence. A clipped strip or an
+    // uninspected gap cannot certify an empty slot.
+    static func coversFullRow(_ row: PDFBox, regions: Set<PDFBox>) -> Bool {
+        let ordered = regions.sorted { $0.top == $1.top ? $0.bottom < $1.bottom : $0.top < $1.top }
+        let tolerance = 0.3
+        guard let first = ordered.first, let last = ordered.last,
+              abs(first.top - row.top) < tolerance, abs(last.bottom - row.bottom) < tolerance else { return false }
+        return zip(ordered, ordered.dropFirst()).allSatisfy { abs($0.0.bottom - $0.1.top) < tolerance }
     }
 }
 

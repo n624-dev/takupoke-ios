@@ -47,6 +47,47 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     var dedicatedTimeDate: String? = nil
 
     var scopes: [SpecialScheduleScope]? = nil
+    var strictComparisonCoverage: Bool? = nil
+
+    var validStrictComparisonCoverage: Bool {
+        let count = kind == .exam ? 6 : 8
+        guard strictComparisonCoverage == true, recovery == nil, validScopes,
+              let scopes, Set(periodTimes.keys) == Set(1...count) else { return false }
+        return Self.strictSlotCount(scopes, periods: count) <= PDFSchoolParser.maximumRecords
+    }
+
+    static func strictSlotCount(_ scopes: [SpecialScheduleScope], periods: Int) -> Int {
+        scopes.reduce(0) { $0 + $1.classes.count * $1.dates.count * periods }
+    }
+
+    func strictComparisonSnapshot(check: () throws -> Void = {}) throws -> RecoveryManualComparison.Snapshot? {
+        guard recovery == nil, version == Self.parserVersion else { return nil }
+        try check()
+        typealias Comparison = RecoveryManualComparison
+        var entries: [Comparison.Slot: [Comparison.Lesson]] = [:]
+        if strictComparisonCoverage != nil {
+            guard validStrictComparisonCoverage, let scopes else { return nil }
+            let count = kind == .exam ? 6 : 8
+            for scope in scopes {
+                for name in scope.classes {
+                    for date in scope.dates {
+                        try check()
+                        for period in 1...count { entries[.init(className: name, day: date, period: period)] = [] }
+                    }
+                }
+            }
+        }
+        for lesson in lessons {
+            try check()
+            let slot = Comparison.sourceSlot(className: lesson.className, sourceClassName: lesson.sourceClassName,
+                                             day: lesson.date, period: lesson.period)
+            entries[slot, default: []].append(.init(subject: lesson.subject, teacher: lesson.teacher, room: lesson.room,
+                spanStart: lesson.spanStart, spanEnd: lesson.spanEnd, time: timeRange(for: lesson)))
+        }
+        let documentKind: RecoveryDocumentKind = kind == .exam ? .exam : .return
+        return .init(scope: .init(kind: documentKind.rawValue, schoolYear: schoolYear, term: nil, classes: coveredClasses,
+                                  days: coveredDates, slots: Array(entries.keys)), entries: entries)
+    }
 
     func applies(date: String, className: String) -> Bool {
         func contains(_ classes: [String]) -> Bool {

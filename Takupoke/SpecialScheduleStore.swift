@@ -365,7 +365,7 @@ final class SpecialScheduleStore {
         } else {
             scopeIsValid = analysis.version < 35 && analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17
         }
-        guard scopeIsValid else { return false }
+        guard scopeIsValid, analysis.strictComparisonCoverage == nil || analysis.validStrictComparisonCoverage else { return false }
         let dates = Set(analysis.coveredDates)
         let classes = Set(analysis.coveredClasses)
         guard dates.count == analysis.coveredDates.count, classes.count == analysis.coveredClasses.count else { return false }

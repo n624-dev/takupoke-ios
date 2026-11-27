@@ -15,6 +15,7 @@ enum PDF239SpecialScheduleParser {
         let dates: [String]
         let classes: [String]
         let lessons: [SpecialScheduleLesson]
+        let fullScopeProven: Bool
     }
 
     struct Times: Equatable {
@@ -31,6 +32,7 @@ enum PDF239SpecialScheduleParser {
         var lessons: [SpecialScheduleLesson] = []
         var expectedDates: [String]?
         var scopes: [SpecialScheduleScope] = []
+        var fullScopeProven = true
         var dedicatedTimeDate: String?
         var coveredClasses: Set<String> = []
         var periodTimes: Times?
@@ -73,6 +75,7 @@ enum PDF239SpecialScheduleParser {
             }
             expectedDates = Array(Set((expectedDates ?? []) + dates)).sorted()
             scopes.append(SpecialScheduleScope(page:index + 1,classes:parsed.classes,dates:dates))
+            fullScopeProven = fullScopeProven && parsed.fullScopeProven
             guard kind == .exam || coveredClasses.isDisjoint(with: parsed.classes) else {
                 throw PDFParseError(code: .ambiguous, page: index + 1, stage: .duplicateClass, branch:.b390)
             }
@@ -82,11 +85,13 @@ enum PDF239SpecialScheduleParser {
         }
         guard let year, let dates = expectedDates, let periodTimes,
               (kind == .exam || coveredClasses.count == 17), !lessons.isEmpty else { throw PDFParseError(code: .unsupported, branch:.b388) }
+        let slotCount = SpecialScheduleAnalysis.strictSlotCount(scopes, periods: kind == .exam ? 6 : 8)
         let analysis = SpecialScheduleAnalysis(kind: kind, sourceDigest: digest, sourceName: name,
                                        parsedAt: Date(), schoolYear: year, coveredDates: dates,
                                        coveredClasses: coveredClasses.sorted(), periodTimes: periodTimes.single,
                                        lessons: lessons.sorted { ($0.date, $0.className, $0.period, $0.page) <
-                                           ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate, scopes: scopes)
+                                           ($1.date, $1.className, $1.period, $1.page) }, dedicatedTimeDate: dedicatedTimeDate, scopes: scopes,
+                                       strictComparisonCoverage: fullScopeProven && slotCount <= PDF239SchoolParser.maximumRecords ? true : nil)
         guard analysis.validScopes else { throw PDFParseError(code:.ambiguous,stage:.duplicateClass,branch:.b427) }
         return analysis
     }

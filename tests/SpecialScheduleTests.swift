@@ -8,6 +8,40 @@ import GRDB
 // Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 
 final class SpecialScheduleTests: XCTestCase {
+    func testStrictExamReviewKeepsBlankScopeThroughSQLiteAndRejectsLegacyMissingProof() throws {
+        let pages = (1...6).map { examPage($0) }
+        let analysis = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bytes = Data("%PDF-fictional".utf8)
+        do {
+            let store = try SpecialScheduleStore(root: root)
+            let staged = store.newStagingURL()
+            try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: "fictional.pdf",
+                           byteCount: bytes.count, digest: "fictional")
+        }
+        let store = try SpecialScheduleStore(root: root)
+        var restored = try XCTUnwrap(store.records[.exam]?.analysis)
+        XCTAssertTrue(restored.validStrictComparisonCoverage)
+        let previous = try XCTUnwrap(restored.strictComparisonSnapshot())
+        XCTAssertEqual(previous.scope.slots.count, 17 * 5 * 6)
+        let blank = RecoveryManualComparison.Slot(className: "1_1", day: "2026-04-01", period: 2)
+        let occupied = RecoveryManualComparison.Slot(className: "1_1", day: "2026-04-01", period: 1)
+        XCTAssertEqual(previous.entries[blank], [])
+        var entries = previous.entries
+        entries[blank] = try XCTUnwrap(previous.entries[occupied])
+        let next = RecoveryManualComparison.Snapshot(scope: previous.scope, entries: entries)
+        let comparison = RecoveryManualComparison.compare(next, previous: previous)
+        XCTAssertTrue(comparison.available)
+        XCTAssertEqual(comparison.changes.map(\.slot), [blank])
+
+        restored.strictComparisonCoverage = nil
+        let legacy = try XCTUnwrap(restored.strictComparisonSnapshot())
+        XCTAssertNil(legacy.entries[blank])
+        XCTAssertFalse(RecoveryManualComparison.compare(next, previous: legacy).available)
+    }
+
     func testStrictExamRequiresEachDateLabelToDescribeOneWholeDay() throws {
         for (label, expected) in [("4月1日","2026-04-01"), ("４ 月 １ 日 （ 水 ）","2026-04-01"),
                                   ("4月1日水曜日","2026-04-01"), ("1月5日(火)","2027-01-05")] {

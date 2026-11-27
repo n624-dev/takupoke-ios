@@ -99,6 +99,7 @@ extension PDF239SpecialScheduleParser {
         let (periods, names, dateRuns) = try examStructure(page,schoolYear:schoolYear,pageNumber:pageNumber)
         let grid = PDF239Grid(page: page)
         var result: [SpecialScheduleLesson] = []
+        var fullScopeProven = true
         for (dayRun, day) in dateRuns {
             try check()
             let row = try grid.box(dayRun.cx, dayRun.cy)
@@ -121,10 +122,11 @@ extension PDF239SpecialScheduleParser {
                                               period: period, periodXs: periodXs,
                                               times: times, pageNumber: pageNumber)
                     }
+                    fullScopeProven = fullScopeProven && PDF239SchoolParser.coversFullRow(row, regions: seen)
                 }
             }
         }
-        return ParsedPage(dates: dateRuns.map { $0.1.iso8601 }, classes: names, lessons: result)
+        return ParsedPage(dates: dateRuns.map { $0.1.iso8601 }, classes: names, lessons: result, fullScopeProven: fullScopeProven)
     }
 
     /// Match printed grade bands to the independently identified class labels.
@@ -202,6 +204,7 @@ extension PDF239SpecialScheduleParser {
         let grid = PDF239Grid(page: page)
         var seenClasses: Set<String> = []
         var result: [SpecialScheduleLesson] = []
+        var fullScopeProven = true
         let firstClass = classRuns[0]
         let firstClassCell = try grid.box(firstClass.cx, firstClass.cy)
         let (contentTop, lowerHeadings) = try returnContentBand(page, firstClass: firstClass,
@@ -240,11 +243,12 @@ extension PDF239SpecialScheduleParser {
                                               times: dayTimes, pageNumber: 1, contentTop: contentTop,
                                               geometry:target, dayIndex:dayIndex)
                     }
+                    fullScopeProven = fullScopeProven && PDF239SchoolParser.coversFullRow(row, regions: seen)
                 }
             }
         }
         return ParsedPage(dates: dates.map { $0.1.iso8601 },
-                          classes: seenClasses.sorted(), lessons: result)
+                          classes: seenClasses.sorted(), lessons: result, fullScopeProven: fullScopeProven)
     }
 
     /// The class-label cell can extend upwards through a second header band.
