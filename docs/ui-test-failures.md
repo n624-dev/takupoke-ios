@@ -1,3 +1,7 @@
+## 先行全体CIのiOS 27でも週切替の反対方向で同じ間隔のずれ（2026-11-27）
+
+- `4e3154d`、[全体46061047443通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46061047443/job/140717110582)、iOS 27.0／SDK 27.2。22:33:47 UTC、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` の405行、ケース38.902秒。往路の移動・着地を通過した後、復路で指を離した時点の元の週x=95.333ptが15.524ms後の実枠でx=16ptに戻り、相対間隔が-281.667ptとなった。次の32.184msの実枠は-361pt。限定の往路と符号が逆でずれ量は同じ79.333pt。`4e3154d` は元スクロール位置を保持する修正を含まず、[修正後の両OSの実検査](https://github.com/n624-dev/takupoke-ios/actions/runs/46074553341)で往復を確認する。
+
 ## 先行全体CIで試験発表の架空資料と通知テストの起動が別々に停止（2026-11-27）
 
 - `a1791e8`、[全体46054901918試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46054901918/attempts/1)、SDK 27.2。12件成功、3件失敗、公開ジョブは予定どおり実行なし。iOS 26・27の通常Bは `testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel` が起点日を表示できず失敗。ケース65.158秒、65.601秒。このソースは配信版と一致する確認を架空資料に足した `e108d85` より前。`countdown-origin|testCountdownShowsProgressFromAnnouncement` で同じ失敗と、[確認を加えた両OSの通過](https://github.com/n624-dev/takupoke-ios/actions/runs/46060314457)を照合。
