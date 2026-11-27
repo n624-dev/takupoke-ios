@@ -286,6 +286,71 @@ final class Generated {{
         self.assertEqual(submit.count("NativeTestContacts.send("), 1)
         self.assertIn("start: center, end: center, duration: 0.1, pauseAfterLift: 0", submit)
         self.assertNotIn(".tap()", submit)
+        self.assertEqual(submit.count("app.snapshot()"), 1)
+
+    def test_manual_submit_snapshot_requires_a_unique_visible_enabled_native_button(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the native control geometry probe")
+        source = manual_check_source()
+        start = "    private func observeVisibleManualSubmit("
+        helper = start + source.split(start, 1)[1].split("    func assertSubmitEnabled", 1)[0]
+        program = r'''
+import Foundation
+enum Element { case application, collectionView, navigationBar, keyboard, button, other }
+struct Node {
+    let elementType: Element
+    let identifier: String
+    var frame: CGRect
+    var label = ""
+    var isEnabled = true
+    var isSelected = false
+    var children: [Node] = []
+}
+struct ManualButtonObservation { let frame: CGRect; let viewport: CGRect; let isSelected: Bool }
+struct ManualScrollNavigation { static func usable(_ rect: CGRect) -> Bool { !rect.isEmpty && !rect.isInfinite } }
+var failures = 0
+func XCTFail(_ reason: String) { failures += 1 }
+struct App { let root: Node; func snapshot() throws -> Node { root } }
+struct Control { var isHittable = true }
+struct Test {
+    let app: App
+    var submit = Control()
+    func snapshotNodes(in root: Node) -> [Node]? { [root] + root.children.flatMap { snapshotNodes(in: $0) ?? [] } }
+    func observed() -> ManualButtonObservation? {
+        var appFrame = CGRect.null
+        let result = observeVisibleManualSubmit(appFrame: &appFrame)
+        precondition(result == nil || appFrame == app.root.frame)
+        return result
+    }
+HELPER
+}
+let appFrame = CGRect(x: 0, y: 0, width: 393, height: 852)
+let button = Node(elementType: .button, identifier: "manual-submit", frame: .init(x: 16, y: 700, width: 360, height: 100),
+                  label: "訂正箇所と前回からの変更を確認")
+func view(_ buttons: [Node], keyboard: Bool = false, hittable: Bool = true) -> Test {
+    let list = Node(elementType: .collectionView, identifier: "manual-recovery-list", frame: appFrame, children: buttons)
+    let bar = Node(elementType: .navigationBar, identifier: "時間割の復旧", frame: .init(x: 0, y: 50, width: 393, height: 79))
+    let keys = Node(elementType: .keyboard, identifier: "fictional-keyboard", frame: .init(x: 0, y: 600, width: 393, height: 252))
+    return Test(app: App(root: Node(elementType: .application, identifier: "fictional", frame: appFrame,
+                                   children: keyboard ? [list, bar, keys] : [list, bar])), submit: .init(isHittable: hittable))
+}
+precondition(view([button]).observed()?.frame == button.frame)
+precondition(view([button], keyboard: true).observed() == nil)
+precondition(view([button], hittable: false).observed() == nil)
+var disabled = button
+disabled.isEnabled = false
+precondition(view([disabled]).observed() == nil)
+disabled.isEnabled = true
+disabled.label = "架空の別操作"
+precondition(view([disabled]).observed() == nil)
+precondition(view([button, button]).observed() == nil && failures == 1)
+'''.replace("HELPER", helper)
+        with tempfile.TemporaryDirectory(prefix="manual-submit-snapshot-") as directory:
+            path = Path(directory) / "main.swift"
+            path.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, str(path), "-o", str(path.with_suffix(""))], check=True, timeout=30)
+            subprocess.run([str(path.with_suffix(""))], check=True, timeout=10)
 
     def test_comparable_prior_defers_actual_builder_until_qa_window_exists(self):
         fixture=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")

@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`93129b189eeb3466ca5e9246879853f31af8087a8f3066d4a7c9902d453bf759`
+`19aec63920e61c0da890b728d21321a8ddd27d64bb38598e86156dc79fe41cee`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -126,6 +126,7 @@ bash tools/test-manual-ui.sh
 - `test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks`
 - `test_composed_recovery_fixtures_write_only_the_generated_failure_property`
 - `test_manual_submit_sends_one_contact_to_the_observed_button`
+- `test_manual_submit_snapshot_requires_a_unique_visible_enabled_native_button`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
 - `test_existing_app_generator_raster_anchor_matches_current_acquisition`
