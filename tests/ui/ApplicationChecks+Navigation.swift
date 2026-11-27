@@ -106,14 +106,14 @@ extension ApplicationChecks {
     func heading(_ title: String) -> XCUIElement {
         visible(app.staticTexts[title].firstMatch)
     }
-    func materialSection(_ title: String, on page: String) -> XCUIElement {
+    func materialSection(_ title: String, on page: String, preserveNearbySections: Bool = false) -> XCUIElement {
         let identifiers = [
             "状態": "material-state-section", "操作": "material-actions-section",
             "ファイル情報": "material-file-section", "解析結果": "material-analysis-section",
         ]
         let matches = app.staticTexts.matching(identifier: identifiers[title]!)
         let header = matches.element(boundBy: 0)
-        _ = visible(header, navigation: page)
+        _ = visible(header, navigation: page, preserveNearbyRows: preserveNearbySections)
         // A List can omit an offscreen header from AX until it is scrolled in.
         XCTAssertEqual(matches.count, 1, "Require the actual section header, not its row label")
         XCTAssertEqual(header.label, title)
@@ -170,7 +170,7 @@ extension ApplicationChecks {
     }
     func visible(_ e: XCUIElement, navigation: String? = nil, searchEarlierRows: Bool = false,
                  scrollLabels: XCUIElementQuery? = nil, allowPartiallyVisibleScrollLabels: Bool = false,
-                 requiresKeyboard: Bool = false) -> XCUIElement {
+                 requiresKeyboard: Bool = false, preserveNearbyRows: Bool = false) -> XCUIElement {
         func observedViewport() -> CGRect {
             bodyViewport(navigation: navigation, requiresKeyboard: requiresKeyboard)
         }
@@ -191,6 +191,17 @@ extension ApplicationChecks {
             }
             let frame = e.exists ? e.frame : CGRect.null
             print("UI_VISIBLE frame=\(frame);viewport=\(current);navigation=\(navigation ?? "current")")
+            if preserveNearbyRows && !usable(frame) {
+                // A lazy List can omit the next heading. Keep an overlapping
+                // viewport so its preceding heading can still be inspected.
+                let appFrame = app.frame
+                let origin = app.coordinate(withNormalizedOffset: .zero)
+                let start = origin.withOffset(CGVector(dx: current.midX - appFrame.minX, dy: current.midY - appFrame.minY))
+                let distance = current.height / 4
+                let end = start.withOffset(CGVector(dx: 0, dy: searchEarlierRows ? distance : -distance))
+                start.press(forDuration: 0.1, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 0)
+                continue
+            }
             if let drag = ObservedScreenGeometry.scrollDrag(for: frame, in: current) {
                 var points = drag
                 if let scrollLabels {

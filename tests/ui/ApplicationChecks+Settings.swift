@@ -277,7 +277,7 @@ extension ApplicationChecks {
             // to later actions and analysis results.
             XCTAssertTrue(contained(state, in: bodyViewport()))
             XCTAssertLessThan(state.frame.minY, file.frame.minY)
-            let actions = materialSection("操作", on: title)
+            let actions = materialSection("操作", on: title, preserveNearbySections: true)
             // Compare the current List's actual accessibility order, not
             // screen coordinates collected before and after scrolling.
             let sectionIDs = app.staticTexts.matching(NSPredicate(format:

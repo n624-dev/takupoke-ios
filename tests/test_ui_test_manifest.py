@@ -25,6 +25,22 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_material_section_order_uses_overlapping_native_scroll_search(self):
+        checks = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
+        details = block(checks, "func testSettingsAccountDataAndFileDetails()")
+        self.assertIn('materialSection("操作", on: title, preserveNearbySections: true)', details)
+        self.assertIn('XCTAssertEqual(sectionIDs, ["material-file-section", "material-actions-section"])', details)
+        self.assertIn("XCTAssertTrue(contained(actions, in: bodyViewport()))", details)
+        navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
+        section = block(navigation, "func materialSection(")
+        self.assertIn("preserveNearbyRows: preserveNearbySections", section)
+        self.assertIn("XCTAssertEqual(matches.count, 1", section)
+        visibility = block(navigation, "func visible(_ e:")
+        overlap = block(visibility, "if preserveNearbyRows && !usable(frame)")
+        self.assertIn("let distance = current.height / 4", overlap)
+        self.assertIn("start.press(forDuration: 0.1, thenDragTo: end", overlap)
+        self.assertIn("for _ in 0..<6", visibility)
+
     def test_both_countdown_edit_routes_typecheck_with_the_current_initializer(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

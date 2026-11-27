@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`0ccff720be49f4d42b5216aae1eef7d12a1adeb8c56107390ae326610301aff5`
+`b2933a480b20414395af0784bc40590b57ee23cb814838f385527da75981b386`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -39,6 +39,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_material_section_order_uses_overlapping_native_scroll_search`
 - `test_both_countdown_edit_routes_typecheck_with_the_current_initializer`
 - `test_countdown_progress_fixture_uses_matching_confirmed_source_evidence`
 - `test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch`

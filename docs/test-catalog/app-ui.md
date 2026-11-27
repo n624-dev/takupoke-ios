@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`3c572962243746806f5e966457482db27774a3c7296c302557226632647bf704`
+`a3d5f49ef8da4b7e8c9a594b2f0a1bdf9e320451d1af9e01b666424ba31c5247`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -91,6 +91,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_material_section_order_uses_overlapping_native_scroll_search`
 - `test_both_countdown_edit_routes_typecheck_with_the_current_initializer`
 - `test_countdown_progress_fixture_uses_matching_confirmed_source_evidence`
 - `test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch`

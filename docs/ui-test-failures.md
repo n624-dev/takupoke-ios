@@ -1,3 +1,8 @@
+## 先行全体CIのiOS 26でファイル詳細の2区画を同時に取得できない（2026-11-27）
+
+- `4e3154d`、[全体46061047443試行1の通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46061047443/job/140717110587)、iOS 26.5／SDK 27.2。22:44:13 UTC、`testSettingsAccountDataAndFileDetails` の `ApplicationChecks+Settings.swift:286` で `material-actions-section` だけを取得し、`material-file-section` がなかった。ケース280.185秒。試験発表の修正済みのケースは64.304秒で成功。全体は12件成功・3件失敗。両OSの通常Aは通過し、保存期間復旧と時間割変更通知がそれぞれ成功。ファイル詳細の表示欠落とAX取得の範囲は追加照合する。
+- `material-file-section|material-actions-section|UI_VISIBLE` でN183の詳細遷移と比較した。今回の試験時間割では、最初に「ファイル情報」を実画面で取得した。「操作」がAXに現れていないため画面全体のSwipeを送り、「操作」は見えたが前の「ファイル情報」がAXから外れた。未生成の見出しを探す場合に限り、実表示領域の高さの1/4だけドラッグし、少しずつ前の表示と重ねる。両方の実見出しのID・順序、操作の可視性、後続の画面検査は維持する。
+
 ## 最新のiOS 26週切替限定でXCTest開始前にジョブ上限（2026-11-27）
 
 - `3db93c0`、[限定46074553341試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46074553341/job/140759109514)、iOS 26.5／SDK 27.2。実ランタイムの準備、アプリのビルド、シミュレーター起動が成功。23:15:23 UTCにUI検査のコマンドを開始し、依存の解決結果を出した後、テストランナーとケースの開始記録は0件。GitHubの「maximum execution time of 30m0s」で終了し、元の90ms条件は未計測。手動取消なし。[同じコミットのiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/46074553341/job/140759109154) は両ケース成功、週切替の着地後は往路49.989ms・復路49.936ms。
