@@ -407,7 +407,7 @@ struct SimulatorApplication: App {
         }
         let clearedEvents = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: ProcessInfo.processInfo.arguments)
         if ProcessInfo.processInfo.arguments.contains("--only-distributed-data") {
-            FixtureLaunchDiagnostics.record(clearedEvents ? "status-fixture-prior-cache-cleared" : "status-fixture-no-prior-cache")
+            FixtureCITrace.mark(clearedEvents ? "status-fixture-prior-cache-cleared" : "status-fixture-no-prior-cache")
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
         if ProcessInfo.processInfo.arguments.contains("--empty-fixture") { return }
