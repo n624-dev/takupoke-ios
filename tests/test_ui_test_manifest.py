@@ -449,6 +449,9 @@ final class Counter: @unchecked Sendable { var value = 0 }
         let source = 2, destination = direction == 1 ? 3 : 1
         transition = Transition(source: source, destination: destination, rubber: -direction * 30,
             width: 360, direction: direction, targetHeight: 240)
+        let release = transition!.rubber
+        precondition(offset(for: source, selected: source, viewportWidth: 360) == 0)
+        precondition(offset(for: destination, selected: source, viewportWidth: 360) == (reducing ? 0 : direction * 360 + release))
         let footer = Counter(), row = Counter()
         withObservationTracking { _ = transition } onChange: { footer.value += 1 }
         withObservationTracking { _ = reservedHeight } onChange: { row.value += 1 }
@@ -457,6 +460,16 @@ final class Counter: @unchecked Sendable { var value = 0 }
         for frame in 0..<30 where arrivals == 0 {
             let time = Double(frame) / 60
             advanceFrame(CADisplayLink(timestamp: time, targetTimestamp: time + 1.0 / 60))
+            if let moving = transition {
+                let oldOffset = offset(for: source, selected: source, viewportWidth: 360)
+                let newOffset = offset(for: destination, selected: source, viewportWidth: 360)
+                if reducing {
+                    precondition(oldOffset == 0 && newOffset == 0)
+                } else {
+                    precondition(abs(newOffset - (oldOffset + release) - direction * 360) < 0.001)
+                    precondition(abs(oldOffset + release * moving.slideProgress + direction * 360 * moving.slideProgress) < 0.001)
+                }
+            }
         }
         precondition(arrivals == 1 && footer.value == 1 && transition == nil)
         precondition(lastSlideProgress.map { $0 > 0 && $0 < 1 } == true)
@@ -473,6 +486,14 @@ final class Counter: @unchecked Sendable { var value = 0 }
     }
 }
 '''
+        begin = block(grid, "private func begin(from week:")
+        restore = block(grid, "private func releaseHeldScroll()")
+        self.assertIn("scroll.setContentOffset(CGPoint(x: releasedOffset, y: scroll.contentOffset.y)", begin)
+        self.assertIn("heldScrollEdge = releasedOffset + rubber", begin)
+        self.assertNotIn("x: heldScrollEdge", begin)
+        self.assertIn("scroll.setContentOffset(CGPoint(x: heldScrollEdge, y: scroll.contentOffset.y)", restore)
+        for name in ("private func promote(", "func cancel()"):
+            self.assertIn("releaseHeldScroll()", block(grid, name))
         motion_methods = "\n".join(block(grid, name) for name in ("func offset(for week:", "func opacity(for week:"))
         program = "\n".join((setup, block(week_model, "struct WeekSlideClock"), attrs + " final class Motion: NSObject {",
                              block(grid, "struct Transition"), state, update, motion_methods, probe))

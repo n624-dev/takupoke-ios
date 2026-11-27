@@ -482,6 +482,7 @@ private final class WeekPageMotion: NSObject {
     var hasDeferredReleases: Bool { !deferredReleases.isEmpty }
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
+    private var heldScrollEdge: CGFloat = 0
     private var slideClock = WeekSlideClock()
     private var heightAdjustment: (startedAt: CFTimeInterval?, initialHeight: CGFloat, targetHeight: CGFloat)?
 
@@ -607,14 +608,14 @@ private final class WeekPageMotion: NSObject {
         let releasedOffset = scroll.layer.presentation()?.bounds.origin.x ?? scroll.contentOffset.x
         let rubber = WeekEdgePull.rubberBandOffset(offset: releasedOffset - minimum,
                                                   scrollRange: maximum - minimum)
-        let edge = releasedOffset + rubber
-        // Read the native rubber band before disabling it. Returning the scroll
-        // to its edge and translating the entire old page preserves visible x.
+        // Keep the native content at its visible release position during the
+        // handoff. Resetting it here would precede the SwiftUI page translation.
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
             heldScroll = scroll
+            heldScrollEdge = releasedOffset + rubber
             scroll.isScrollEnabled = false
-            scroll.setContentOffset(CGPoint(x: edge, y: scroll.contentOffset.y), animated: false)
+            scroll.setContentOffset(CGPoint(x: releasedOffset, y: scroll.contentOffset.y), animated: false)
             reservedHeight = initialHeight
             transition = Transition(source: week, destination: destination, rubber: rubber,
                 width: scroll.bounds.width, direction: destination > week ? 1 : -1, targetHeight: targetHeight)
@@ -678,9 +679,15 @@ private final class WeekPageMotion: NSObject {
             selection = value.destination
             arrive?(value.source, value.destination)
             transition = nil
-            heldScroll?.isScrollEnabled = true
-            heldScroll = nil
+            releaseHeldScroll()
         }
+    }
+
+    private func releaseHeldScroll() {
+        guard let scroll = heldScroll else { return }
+        heldScroll = nil
+        scroll.setContentOffset(CGPoint(x: heldScrollEdge, y: scroll.contentOffset.y), animated: false)
+        scroll.isScrollEnabled = true
     }
     private func finishHeight(reserving height: CGFloat? = nil) {
         stopDisplayLink()
@@ -699,8 +706,7 @@ private final class WeekPageMotion: NSObject {
     func cancel() {
         invalidateInput()
         stopDisplayLink()
-        heldScroll?.isScrollEnabled = true
-        heldScroll = nil
+        releaseHeldScroll()
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition = nil; preparation.reset(); reservedHeight = nil }
     }
@@ -715,8 +721,8 @@ private final class WeekPageMotion: NSObject {
     func offset(for week: SchoolDate, selected: SchoolDate, viewportWidth: CGFloat) -> CGFloat {
         if let value = transition {
             if week == value.source {
-                if reduceMotion { return value.rubber }
-                return value.rubber - (value.direction * value.width + value.rubber) * value.slideProgress
+                if reduceMotion { return 0 }
+                return -(value.direction * value.width + value.rubber) * value.slideProgress
             }
             if week == value.destination {
                 if reduceMotion { return 0 }
@@ -743,8 +749,8 @@ private struct WeekFooterHandoff: ViewModifier {
         // Only the grid was rubber-banding. Start the footer at its own
         // release position and have it cover the remaining distance with the grid.
         let value = motion.transition.flatMap { $0.source == week ? $0 : nil }
-        let remaining = motion.reduceMotion ? 1 : 1 - (value?.slideProgress ?? 0)
-        content.offset(x: -(value?.rubber ?? 0) * remaining)
+        let progress = motion.reduceMotion ? 0 : value?.slideProgress ?? 0
+        content.offset(x: (value?.rubber ?? 0) * progress)
     }
 }
 
