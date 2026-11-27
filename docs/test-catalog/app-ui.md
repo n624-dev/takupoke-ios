@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`612c9c068044cecf093511c03735656ecde1fec20aad662b4377b95c7c129549`
+`d1c79911215f946704b949c9dce1093fa586e30e934d1bb758c9ddc7497dbc7b`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -100,6 +100,7 @@ bash tools/test-app-ui.sh
 - `test_prepared_week_content_is_lazy_and_expires_with_its_window_or_revision`
 - `test_week_column_placement_reuses_only_the_matching_size_measurement`
 - `test_native_motion_only_invalidates_the_footer_for_horizontal_changes`
+- `test_week_height_changes_reuse_equal_positioned_pages`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_merged_card_probe_starts_with_only_the_original_case`

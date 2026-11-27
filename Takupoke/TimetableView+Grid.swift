@@ -340,18 +340,41 @@ private struct WeekPagesCanvas: View {
         WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight) {
             ForEach(pages) { page in
                 let isDisplayed = page.id == selection
-                page.equatable()
-                    .onGeometryChange(for: WeekPageMeasurement.self) {
-                        WeekPageMeasurement(size: $0.size, revision: page.revision)
-                    } action: { motion.measure($0, week: page.id) }
-                    .offset(x: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth))
-                    .opacity(motion.opacity(for: page.id, selected: selection))
-                    .allowsHitTesting(isDisplayed && motion.transition == nil)
-                    .accessibilityElement(children: .contain)
-                    .accessibilityHidden(!isDisplayed)
-                    .environment(\.isDisplayedTimetableWeek, isDisplayed)
+                PositionedWeekPage(page: page, motion: motion,
+                    horizontalOffset: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth),
+                    opacity: motion.opacity(for: page.id, selected: selection),
+                    isDisplayed: isDisplayed, acceptsTouches: isDisplayed && motion.transition == nil)
+                    .equatable()
             }
         }
+    }
+}
+
+// Resizing the enclosing row does not change a page's position, hit testing or accessibility.
+private struct PositionedWeekPage: View, Equatable {
+    let page: WeekPage
+    let motion: WeekPageMotion
+    let horizontalOffset: CGFloat
+    let opacity: Double
+    let isDisplayed: Bool
+    let acceptsTouches: Bool
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.page == rhs.page && lhs.motion === rhs.motion && lhs.horizontalOffset == rhs.horizontalOffset
+            && lhs.opacity == rhs.opacity && lhs.isDisplayed == rhs.isDisplayed && lhs.acceptsTouches == rhs.acceptsTouches
+    }
+
+    var body: some View {
+        page.equatable()
+            .onGeometryChange(for: WeekPageMeasurement.self) {
+                WeekPageMeasurement(size: $0.size, revision: page.revision)
+            } action: { motion.measure($0, week: page.id) }
+            .offset(x: horizontalOffset)
+            .opacity(opacity)
+            .allowsHitTesting(acceptsTouches)
+            .accessibilityElement(children: .contain)
+            .accessibilityHidden(!isDisplayed)
+            .environment(\.isDisplayedTimetableWeek, isDisplayed)
     }
 }
 

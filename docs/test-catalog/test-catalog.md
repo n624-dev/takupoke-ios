@@ -1,7 +1,7 @@
 # テスト一覧・対象検索・宣言整合性・CI接続
 
 対応関係・宣言名・実行方法のSHA-256：
-`40c650835a1224e2634ab4f51f1e5146f1da0a73c3ee61f199e1fc99827e59d3`
+`43cbc7459bdb6282ba44ea21475a421531a9ceaba49c6d6f88a65ce221604b3b`
 
 環境：Linux Python（隔離Gitリポジトリ）
 
@@ -48,6 +48,7 @@ python3 -B -m unittest discover -s tests -p test_workflow_source_paths.py
 - `test_prepared_week_content_is_lazy_and_expires_with_its_window_or_revision`
 - `test_week_column_placement_reuses_only_the_matching_size_measurement`
 - `test_native_motion_only_invalidates_the_footer_for_horizontal_changes`
+- `test_week_height_changes_reuse_equal_positioned_pages`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_merged_card_probe_starts_with_only_the_original_case`

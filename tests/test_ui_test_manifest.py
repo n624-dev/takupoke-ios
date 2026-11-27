@@ -442,6 +442,42 @@ final class Counter: @unchecked Sendable { var value = 0 }
                            check=True, timeout=30)
             subprocess.run([str(executable)], check=True, timeout=10)
 
+    def test_week_height_changes_reuse_equal_positioned_pages(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify reuse of positioned pages")
+        grid = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text()
+        declaration = grid.split("private struct PositionedWeekPage:", 1)[1].split("    var body:", 1)[0]
+        page = "private struct PositionedWeekPage:" + declaration.replace("View, Equatable", "Equatable", 1) + "}"
+        canvas = block(grid, "private struct WeekPagesCanvas: View")
+        self.assertIn("WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight)", canvas)
+        self.assertIn("acceptsTouches: isDisplayed && motion.transition == nil)\n                    .equatable()", canvas)
+        program = """import Foundation
+struct WeekPage: Equatable { let date: Int; let revision: Int }
+final class WeekPageMotion { var reservedHeight: CGFloat = 240 }
+PAGE
+private let motion = WeekPageMotion()
+private func rendered(date: Int = 3, revision: Int = 1, offset: CGFloat = 0, opacity: Double = 1,
+                      displayed: Bool = true, acceptsTouches: Bool = true,
+                      using owner: WeekPageMotion = motion) -> PositionedWeekPage {
+    PositionedWeekPage(page: WeekPage(date: date, revision: revision), motion: owner,
+                       horizontalOffset: offset, opacity: opacity, isDisplayed: displayed, acceptsTouches: acceptsTouches)
+}
+private let landed = rendered()
+motion.reservedHeight = 315
+precondition(landed == rendered())
+precondition(landed != rendered(date: 4) && landed != rendered(revision: 2))
+precondition(landed != rendered(offset: -50) && landed != rendered(opacity: 0.5))
+precondition(landed != rendered(displayed: false) && landed != rendered(acceptsTouches: false))
+precondition(landed != rendered(using: WeekPageMotion()))
+""".replace("PAGE", page)
+        with tempfile.TemporaryDirectory(prefix="takupoke-positioned-week-") as scratch:
+            source = Path(scratch) / "main.swift"
+            source.write_text(program, encoding="utf-8")
+            executable = source.with_suffix("")
+            subprocess.run([compiler, str(source), "-o", str(executable)], check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=10)
+
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
