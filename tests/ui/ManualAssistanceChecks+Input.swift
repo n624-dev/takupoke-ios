@@ -228,7 +228,8 @@ extension ManualAssistanceChecks {
         guard let (bar, target) = candidates.first, target.label == label, target.isEnabled,
               ManualScrollNavigation.usable(bar.frame), ManualScrollNavigation.usable(target.frame),
               bar.frame.contains(target.frame), root.frame.contains(target.frame) else { return nil }
-        let live = app.buttons.matching(identifier: identifier).allElementsBoundByAccessibilityElement
+        let live = app.navigationBars.matching(identifier: title).descendants(matching: .button)
+            .matching(identifier: identifier).allElementsBoundByAccessibilityElement
         observation += ";live-buttons=\(live.count)"
         guard live.count <= 1 else { ambiguous = true; return nil }
         guard let button = live.first, let bound = try? button.snapshot(),

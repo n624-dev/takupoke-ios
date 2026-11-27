@@ -313,7 +313,7 @@ var failures = 0
 func XCTFail(_ reason: String) { failures += 1 }
 struct App {
     let root: Node
-    var buttons = ControlQuery(allElementsBoundByAccessibilityElement: [])
+    var navigationBars = NavigationQuery(byTitle: [:])
     func snapshot() throws -> Node { root }
 }
 struct Control { let node: Node; var isHittable = true; func snapshot() throws -> Node { node } }
@@ -324,6 +324,15 @@ struct ControlQuery {
     }
 }
 struct List { let buttons: ControlQuery }
+struct NavigationQuery {
+    let byTitle: [String: [Control]]
+    var selected: String? = nil
+    func matching(identifier: String) -> NavigationQuery { .init(byTitle: byTitle, selected: identifier) }
+    func descendants(matching type: Element) -> ControlQuery {
+        let matches = selected.flatMap { byTitle[$0] } ?? []
+        return .init(allElementsBoundByAccessibilityElement: matches.filter { $0.node.elementType == type })
+    }
+}
 struct Test {
     let app: App
     let recoveryList: List
@@ -374,7 +383,7 @@ precondition(view([disabled]).observed() == nil)
 precondition(view([button, button]).observed() == nil && failures == 2)
 var done = Node(elementType: .button, identifier: "manual-edit-done",
                 frame: .init(x: 320, y: 60, width: 48, height: 44), label: "完了")
-func editor(_ candidates: [Node], live: [Control], extraBar: [Node]? = nil) -> Test {
+func editor(_ candidates: [Node], live: [Control], extraBar: [Node]? = nil, foreign: [Control] = []) -> Test {
     let title = "時間割の復旧"
     func bar(_ children: [Node]) -> Node {
         Node(elementType: .navigationBar, identifier: title, frame: .init(x: 0, y: 50, width: 393, height: 79), children: children)
@@ -382,12 +391,14 @@ func editor(_ candidates: [Node], live: [Control], extraBar: [Node]? = nil) -> T
     let list = List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: live))
     let bars = [bar(candidates)] + (extraBar.map { [bar($0)] } ?? [])
     let root = Node(elementType: .application, identifier: "fictional", frame: appFrame, children: bars)
-    return Test(app: App(root: root, buttons: list.buttons), recoveryList: list)
+    return Test(app: App(root: root, navigationBars: NavigationQuery(byTitle: [title: live, "別の画面": foreign])),
+                recoveryList: list)
 }
 let live = Control(node: done)
 let wrapper = Node(elementType: .other, identifier: "manual-edit-done", frame: done.frame, children: [done])
 precondition(editor([done], live: [live]).editCompletion() == done.frame)
 precondition(editor([wrapper], live: [live], extraBar: []).editCompletion() == done.frame)
+precondition(editor([done], live: [], foreign: [live]).editCompletion() == nil)
 precondition(editor([], live: [live]).editCompletion() == nil)
 precondition(editor([done], live: []).editCompletion() == nil)
 precondition(editor([done], live: [Control(node: done, isHittable: false)]).editCompletion() == nil)
