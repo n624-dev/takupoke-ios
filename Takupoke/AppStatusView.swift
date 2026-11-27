@@ -16,10 +16,9 @@ struct AppStatusEvidence {
     let year: Int?
     let selectedClasses: String
 
-    private var observedEvents: EventPublisherStatus.Observation? {
-        guard let year else { return nil }
+    private func currentEventsVersion(year: Int, at now: Date) -> FunctionalStatusSnapshot.EventVersion? {
         let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
-        return services.eventPublisher.observation(year: year, format: format)
+        return services.onlineEventVersion(year: year, format: format, at: now)
     }
 
     private var publisherWaiting: Bool {
@@ -40,15 +39,24 @@ struct AppStatusEvidence {
     }
 
     var eventsReview: StatusPresentation {
-        guard let year, let version = observedEvents?.version, version.dataVersion == events.saved[year]?.dataVersion,
+        let now = Date()
+        guard let year, let version = currentEventsVersion(year: year, at: now), version.dataVersion == events.saved[year]?.dataVersion,
               version.reviewState == "reviewed",
-              let date = version.reviewCheckedAt, date <= Date() else { return FunctionalStatusSnapshot.unknown }
+              let date = version.reviewCheckedAt, date <= now else { return FunctionalStatusSnapshot.unknown }
         return .init(title: "確認済み", tone: .good)
+    }
+
+    var eventsLastReviewedAt: Date? {
+        guard let year, let saved = events.saved[year],
+              let version = services.eventPublisher.observation(year: year, format: saved.payload.format?.rawValue ?? "v2")?.version,
+              version.dataVersion == saved.dataVersion, version.reviewState == "reviewed",
+              let date = version.reviewCheckedAt, date <= Date() else { return nil }
+        return date
     }
 
     var eventsRevision: StatusPresentation {
         guard let year, let saved = events.saved[year] else { return .init(title: "未取得", tone: .neutral) }
-        guard let version = observedEvents?.version, let savedVersion = saved.dataVersion else { return FunctionalStatusSnapshot.unknown }
+        guard let version = currentEventsVersion(year: year, at: Date()), let savedVersion = saved.dataVersion else { return FunctionalStatusSnapshot.unknown }
         if savedVersion == version.dataVersion { return .init(title: "配信版と一致", tone: .good) }
         if publisherWaiting { return .init(title: "保存済み", tone: .neutral) }
         return .init(title: "更新あり", tone: .attention)
@@ -92,7 +100,7 @@ struct AppStatusEvidence {
         if events.isChecking(year: year) || source?.evidence == .checking { return .checking }
         if checkFailed { return .failed }
         let now = Date()
-        guard let version = services.eventPublisher.observation(year: year, format: saved.payload.format?.rawValue ?? "v2")?.version,
+        guard let version = currentEventsVersion(year: year, at: now),
               let savedVersion = saved.dataVersion else { return .unconfirmed }
         guard version.dataVersion == savedVersion else { return .updateAvailable }
         let storedSource = events.sourcePresentation(year: year)
@@ -324,7 +332,8 @@ struct AppStatusView: View {
                 StatusRow(title: "授業時刻", status: evidence.timesStatus, date: times.current?.fetchedAt, dateLabel: "最終取得")
             }.accessibilityIdentifier("status-times")
             NavigationLink("学校アカウントで取得・更新") { AccountDataSettingsView() }
-            StatusRow(title: "行事の内容レビュー", status: evidence.eventsReview)
+            StatusRow(title: "行事の内容レビュー", status: evidence.eventsReview,
+                      date: evidence.eventsLastReviewedAt, dateLabel: "最終レビュー")
             StatusRow(title: "端末に保存した行事", status: evidence.eventsRevision)
         } header: { Text("配信データ") } footer: {
             Text("元PDFとの照合、配信元のレビュー、端末保存版の確認結果をそれぞれ表示します。")

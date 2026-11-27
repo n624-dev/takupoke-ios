@@ -17,12 +17,30 @@ PIPELINE_STUBS = r"""
 struct SchoolDataPeriod { static func current() -> Self { Self() } }
 protocol SelectedFileProviding {}
 struct SystemSelectedFileProvider: SelectedFileProviding {}
+final class FileRefreshDiagnostics {
+    enum Event { case refreshStarted, refreshFailed, hashSame, hashChanged, cancelled }
+    enum Source: String { case timetable, changes, exam, examReturn }
+    static let shared = FileRefreshDiagnostics()
+    var events = [Event]()
+    func record(_ event: Event, source: Source? = nil) { events.append(event) }
+}
 final class FilePipeline {
     enum Failure: Error { case cancelled, timedOut, stale }
     enum Reason { case selection, manual, automatic, background, review }
-    enum Stage { case parsing, validating }
-    enum Source { case timetable, changes, exam, examReturn }
+    enum Stage { case access, acquiring, parsing, validating }
+    typealias Source = FileRefreshDiagnostics.Source
+    struct Request { let id: UUID; let sources: Set<Source>; let successMessage: String? }
+    enum RequestResult { case succeeded, cancelled, failed(String) }
+    struct Status { let id: UUID; let requestID: UUID }
+    struct Observation {
+        let statuses: [Source: Status] = [:]
+        let activeSources: Set<Source> = []
+        let completed: [Source: Status] = [:]
+        func restricting(to sources: Set<Source>) -> Self { self }
+        func result(for id: UUID, sources: Set<Source>) -> RequestResult? { nil }
+    }
     final class Ticket {
+        let source = Source.changes
         var failure: FilePipeline.Failure?
         func check() throws { if let failure { throw failure } }
         func cancel() { failure = .cancelled }
@@ -34,7 +52,9 @@ final class FilePipeline {
         func afterCommit(_ callback: @escaping () -> Void) { callback() }
     }
     var intentSnapshot: [String: UInt64] { [:] }
+    let observation = Observation()
     static let shared = FilePipeline()
+    static func claimMonitorRegistrations(in outcomes: [Source: Status], handled: inout [Source: UUID]) -> Set<String> { [] }
     func cancel(_ sources: [Source]) {}
     func cancel(_ source: String) {}
     func isRecovering(_ source: String) -> Bool { false }
@@ -180,13 +200,6 @@ enum SpecialScheduleParser {
     static var parses = 0
     static func parse(_ pages: [Int], kind: SpecialScheduleKind, digest: String, name: String,
                       check: () throws -> Void) throws -> SpecialScheduleAnalysis { try check(); parses += 1; return SpecialScheduleAnalysis() }
-}
-final class FileRefreshDiagnostics {
-    enum Event { case refreshStarted, refreshFailed, hashSame, hashChanged, cancelled }
-    struct Source { init(rawValue: String) {} }
-    static let shared = FileRefreshDiagnostics()
-    var events = [Event]()
-    func record(_ event: Event, source: Source) { events.append(event) }
 }
 final class SpecialScheduleStore {
     let sources: [SpecialScheduleKind: Source]
@@ -366,7 +379,11 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
         control_source = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text()
         program = '''import Foundation
 enum MaterialKind: String { case changes }
-enum MaterialError: Error { case cancelled, unavailable, invalidState }
+enum MaterialError: Error { case cancelled, unavailable, invalidState, tooLarge, invalidFile, accessExpired, bookmarkFailed, providerReadFailed }
+ACQUISITION_PROBLEM
+extension FilePipeline {
+TRANSIENT
+}
 enum SimulatedError: Error { case disk }
 final class NSFileCoordinator { func cancel() {} }
 struct MaterialSource {}
@@ -401,7 +418,8 @@ final class MaterialLibrary {
         migrated = legacyChangeSettings != nil
     }
     func recordUnchanged(_ kind: MaterialKind, source: MaterialSource) throws {}
-    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
+    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil,
+                       problem: AcquisitionProblem? = nil) throws {
         recordedCancellation = cancelled
     }
 }
@@ -449,6 +467,8 @@ ACQUIRE
     }
 }
 '''.replace("CONTROL", block(control_source, "final class AcquisitionControl")) \
+           .replace("ACQUISITION_PROBLEM", block((ROOT / "Takupoke/MaterialModels.swift").read_text(), "enum AcquisitionProblem:")) \
+           .replace("TRANSIENT", block((ROOT / "Takupoke/FilePipeline.swift").read_text(), "static func isTransient(")) \
            .replace("OUTCOME", block(access_source, "private enum AcquisitionOutcome")) \
            .replace("ACQUIRE", block(access_source, "private func acquire(_"))
         with tempfile.TemporaryDirectory(prefix="provider-commit-") as scratch:
@@ -494,15 +514,11 @@ final class Monitor { var discarded = 0; func discardPendingRefreshes() { discar
 final class AcquisitionControl {
     let operationID = UUID()
     let usedPipeline = false
+    let pipelineSources = Set<FileRefreshDiagnostics.Source>()
     init(intents: [String: UInt64] = [:]) {}
     var acquiredProviderSources = Set<String>()
     var cancelled = false
     func cancel() { cancelled = true }
-}
-final class FileRefreshDiagnostics {
-    enum Step { case cancelled }
-    static let shared = FileRefreshDiagnostics()
-    func record(_ step: Step) {}
 }
 PENDING_SELECTIONS
 final class MaterialLibrary {
@@ -517,7 +533,8 @@ final class MaterialWorker {
 }
 @MainActor final class MaterialsModel {
     var busy = false, retired = false, failed = false, ready = true
-    var messageOperationID: UUID?, lastOperationUsedPipeline = false
+    var pendingPipelineRequest: FilePipeline.Request?, lastOperationUsedPipeline = false
+    var pipelineMonitorIDs: [FileRefreshDiagnostics.Source: UUID] = [:]
     var cancellationRequested = false, lastOperationWasCancelled = false
     var fileRefreshQueue = FileRefreshQueue()
     var pendingManualRefresh = Set<MaterialKind>()
@@ -534,6 +551,7 @@ final class MaterialWorker {
     func runPendingSelection() {}
     func runPendingFileRefresh() {}
 METHOD
+APPLY_PIPELINE_RESULT
 CANCEL_OPERATION
 }
 @main struct Probe {
@@ -582,6 +600,7 @@ CANCEL_OPERATION
     }
 }
 '''.replace("METHOD", method) \
+           .replace("APPLY_PIPELINE_RESULT", block(source, "private func applyPipelineResult(")) \
            .replace("CANCEL_OPERATION", block(source, "func cancelCurrentOperation()")) \
            .replace("PENDING_SELECTIONS", block((ROOT / "Takupoke/SelectedFileSource.swift").read_text(), "struct PendingFileSelections")) \
            .replace("CANCELLATION", block((ROOT / "Takupoke/StatusPresentation.swift").read_text(), "enum FileOperationOutcome")) \

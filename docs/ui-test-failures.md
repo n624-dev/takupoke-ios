@@ -32,6 +32,13 @@
 - `PipelineSnapshot.open` は元の保存情報を作業領域へ写すため `persist` を呼ぶ。この初期化が解析の書込と同じフラグを立てていた。作業領域に元のsnapshotを確定した境界で変更追跡を始め、その後の解析・取得を区別する。フラグは通常保存や解析変更で初期化しない。
 - 修正後の同じ68件は失敗0。作業領域を経由した場合も実SQLiteの文を確認し、変更のない解析や授業行を読み出さず、原本・前回解析・並び順・generation検査を保つことを確認した。
 
+## #192・#193 統合候補の架空Provider境界4件がコンパイルできない（2026-11-27）
+
+- `d515a75`、11:58 UTCにローカルPython全体366件を完了。Swift 6.1.2／Linuxで製品メソッドを抽出して動かす４件が、テスト側の型定義の不足で停止した。`test_acquisition_acknowledges_only_committed_copy_and_honors_cancellation_during_migration`、`test_actual_dispatch_retains_review_after_failure_and_closes_only_after_success`、`test_batch_cancellation_is_separate_from_child_deadline`、`test_special_provider_refresh_keeps_cancellation_separate_from_failure`。新しい取得エラー型、処理対象、統一完了状態をテスト用の境界が提供できず、実検査には未到達。統合候補のSwift全体768件は成功した。
+- 製品の抽出を維持し、架空の各境界に新しい型とメソッドを揃える。保存の前後・レビュー保持・中止・期限切れ・別資料の継続を検査する既存の期待値は維持する。
+- 11:59 UTCの対象9件では、上記4件のうち3件が復旧。取得エラー型を実コードから抽出しても、一時障害を分類する下位関数が架空境界にないため残る1件はコンパイルで停止した。下位関数も本番コードから取り込み、取得エラーの扱いまで同じ実行経路を使う。
+- 同じ対象9件を12:01 UTCに再実行し、すべて成功した。原本を保存するまで監視通知へ応答しないこと、中止時に保存しないこと、通常の完了・一時停止・繰り返し選択・レビュー保存を検査した。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。

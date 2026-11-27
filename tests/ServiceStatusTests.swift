@@ -48,6 +48,13 @@ final class ServiceStatusTests: XCTestCase {
         XCTAssertNil(updated.eventVersion(year: 2032, format: "v2", at: snapshot.validUntil))
         XCTAssertEqual(publisher.observation(year: 2032, format: "v2"), observation)
         XCTAssertNil(publisher.observation(year: 2032, format: "v1"))
+        var omission = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(reviewed.utf8)) as? [String: Any])
+        omission["data"] = ["events": ["checkedAt": "2032-04-01T00:00:01Z",
+                                           "validUntil": "2032-04-01T00:03:00Z", "versions": []]]
+        let currentWithoutEdition = try FunctionalStatusSnapshot.decode(JSONSerialization.data(withJSONObject: omission), service: .api)
+        publisher.accept(currentWithoutEdition, at: now)
+        XCTAssertNil(currentWithoutEdition.eventVersion(year: 2032, format: "v2", at: now))
+        XCTAssertEqual(publisher.observation(year: 2032, format: "v2"), observation)
         let matchedAt = try XCTUnwrap(updated.eventVersion(year: 2032, format: "v2", at: now)?.sourceCheckedAt)
         XCTAssertFalse(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(-1)))
         XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(1)))
