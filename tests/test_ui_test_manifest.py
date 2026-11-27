@@ -1381,17 +1381,26 @@ METHOD
                 app_test_project.instrument_retention_recovery(changed)
 
         notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        generated = app_test_project.instrument_retention_notification_reads(notifications)
+        generated = app_test_project.instrument_retention_notifications(notifications)
         for stage in ("pending", "delivered"):
             for phase in ("request", "callback"):
                 self.assertEqual(generated.count(f'FixtureCITrace.mark("retention-notice-{stage}-{phase}-\\(fixtureRetentionRead)")'), 1)
-        for original, observed in app_test_project.retention_notice_read_insertions():
-            self.assertEqual(generated.count(observed), 1)
+            for phase in ("start", "end"):
+                self.assertEqual(generated.count(f'FixtureCITrace.mark("retention-update-{stage}-removal-{phase}")'), 1)
+        reads = list(app_test_project.retention_notice_read_insertions())
+        removals = list(app_test_project.retention_notice_removal_insertions())
+        for _, observed in reads:
             self.assertIn('callback(requests)', observed)
+        for original, observed in removals:
+            self.assertEqual(observed.count(original), 1)
+            self.assertLess(observed.index('-removal-start'), observed.index(original))
+            self.assertLess(observed.index(original), observed.index('-removal-end'))
+        for original, observed in reads + removals:
+            self.assertEqual(generated.count(observed), 1)
             generated = generated.replace(observed, original, 1)
             for changed in (notifications.replace(original, ""), notifications + original):
                 with self.assertRaises(AssertionError):
-                    app_test_project.instrument_retention_notification_reads(changed)
+                    app_test_project.instrument_retention_notifications(changed)
         self.assertEqual(generated, notifications)
         fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         readiness = fixture.split("struct SimulatorRetentionProofView:", 1)[1].split("private final class FixtureYearInputObservation", 1)[0]
