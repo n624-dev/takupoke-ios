@@ -104,17 +104,116 @@ extension LocalMaterialDatabase {
             }
             try manager.moveItem(at: pending, to: root)
         }
-        do {
-            let database = try LocalMaterialDatabase(url: root.appendingPathComponent("library.sqlite"))
+        let recovered = root.appendingPathComponent("recovered", isDirectory: true)
+        let activeRoot = manager.fileExists(atPath: recovered.path) ? recovered : root
+        func open(_ directory: URL) throws -> MaterialLibrary {
+            let database = try LocalMaterialDatabase(url: directory.appendingPathComponent("library.sqlite"))
             database.libraryLock = lease
-            return try MaterialLibrary(root: root, persistence: database)
+            return try MaterialLibrary(root: directory, persistence: database)
+        }
+        do {
+            return try open(activeRoot)
         } catch {
-            // Do not expose SQL or payloads in a user-visible acquisition error.
+            if activeRoot == root, (try? recoverReadableMaterials(from: root, to: recovered)) == true,
+               let library = try? open(recovered) {
+                return library
+            }
             throw MaterialError.invalidState
         }
     }
 
-    private static func protect(_ url: URL) throws {
+    private static func recoverReadableMaterials(from root: URL, to recovered: URL) throws -> Bool {
+        let manager = FileManager.default
+        let original = try LocalMaterialDatabase(url: root.appendingPathComponent("library.sqlite"))
+        defer { try? original.close() }
+        guard try original.queue.read({ try String.fetchOne($0, sql: "PRAGMA quick_check") }) == "ok" else { return false }
+        let pending = root.appendingPathComponent("recovery-staging", isDirectory: true)
+        if manager.fileExists(atPath: pending.path) { try manager.removeItem(at: pending) }
+        try manager.createDirectory(at: pending, withIntermediateDirectories: false)
+        defer { try? manager.removeItem(at: pending) }
+        try protect(pending)
+        let databaseURL = pending.appendingPathComponent("library.sqlite")
+        let candidate = try LocalMaterialDatabase(url: databaseURL, create: true)
+        defer { try? candidate.close() }
+        try original.queue.backup(to: candidate.queue)
+        try protect(databaseURL)
+        let files = root.appendingPathComponent("files", isDirectory: true)
+        var readable = Set<MaterialKind>()
+        var damaged = Set<MaterialKind>()
+        for kind in MaterialKind.allCases {
+            do {
+                let hasRecord = try candidate.queue.writeWithoutTransaction { db in
+                    var hasRecord = false
+                    try db.inSavepoint {
+                        try discardTypes(in: db, keeping: [kind])
+                        let (state, _) = try currentSnapshot(db)
+                        let originals = try verifiedOriginals(in: db, directory: files)
+                        if let record = state.record(for: kind) {
+                            guard originals.contains(record.storedName) else { throw StoreError.invalidDatabase }
+                            hasRecord = true
+                        }
+                        return .rollback
+                    }
+                    return hasRecord
+                }
+                if hasRecord { readable.insert(kind) }
+            } catch StoreError.invalidDatabase {
+                damaged.insert(kind)
+            } catch MaterialError.invalidState {
+                damaged.insert(kind)
+            } catch is DecodingError {
+                damaged.insert(kind)
+            }
+        }
+        guard !readable.isEmpty, !damaged.isEmpty else { return false }
+        let names = try candidate.queue.write { db in
+            try discardTypes(in: db, keeping: Set(MaterialKind.allCases).subtracting(damaged))
+            guard try Row.fetchAll(db, sql: "PRAGMA foreign_key_check").isEmpty else { throw StoreError.invalidDatabase }
+            _ = try currentSnapshot(db)
+            return try verifiedOriginals(in: db, directory: files)
+        }
+        let destination = pending.appendingPathComponent("files", isDirectory: true)
+        try manager.createDirectory(at: destination, withIntermediateDirectories: false)
+        try protect(destination)
+        for name in names {
+            let target = destination.appendingPathComponent(name)
+            try manager.copyItem(at: files.appendingPathComponent(name), to: target)
+            try protect(target)
+        }
+        let verified = try MaterialLibrary(root: pending, persistence: candidate)
+        guard Set(verified.state.records.map(\.kind)) == readable else { return false }
+        try candidate.close()
+        try manager.moveItem(at: pending, to: recovered)
+        return true
+    }
+
+    private static func discardTypes(in db: Database, keeping kept: Set<MaterialKind>) throws {
+        for kind in MaterialKind.allCases where !kept.contains(kind) {
+            for table in ["currentRecord", "currentAnalysis", "lesson", "changeRow", "analysis", "original", "source", "attempt"] {
+                try db.execute(sql: "DELETE FROM \(table) WHERE kind = ?", arguments: [kind.rawValue])
+            }
+        }
+    }
+
+    private static func verifiedOriginals(in db: Database, directory: URL) throws -> Set<String> {
+        var names = Set<String>()
+        for row in try Row.fetchAll(db, sql: "SELECT record, kind, storedName, digest FROM original") {
+            guard let bytes: Data = row["record"] else { throw StoreError.invalidDatabase }
+            let record = try decode(MaterialRecord.self, bytes)
+            var manifest = MaterialLibraryState()
+            manifest.records = [record]
+            _ = try MaterialLibrary.decodeLegacyManifest(encode(manifest))
+            guard row["kind"] as String == record.kind.rawValue, row["storedName"] as String == record.storedName,
+                  row["digest"] as String == record.digest else { throw StoreError.invalidDatabase }
+            guard try MaterialFileReader.matchesStoredCopy(directory.appendingPathComponent(record.storedName),
+                byteCount: record.byteCount, digest: record.digest, isWorkbook: record.kind == .changes)
+            else { throw StoreError.invalidDatabase }
+            names.insert(record.storedName)
+        }
+        return names
+    }
+
+    static func protect(_ url: URL) throws {
         #if os(iOS) || os(macOS)
         var target = url
         var values = URLResourceValues()

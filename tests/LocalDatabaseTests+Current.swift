@@ -4,6 +4,47 @@ import GRDB
 @testable import TakupokeParsing
 
 extension LocalDatabaseTests {
+    func testOpeningLibraryRecoversVerifiedCopiesAndPreservesOriginalStore() throws {
+        let (db, library) = try runtimeStore()
+        for kind in [MaterialKind.timetable, .changes] {
+            let bytes = kind == .changes ? Data([0x50, 0x4b, 0x03, 0x04, 0x00]) : Data("%PDF-fictional".utf8)
+            let staged = library.newStagingURL()
+            try bytes.write(to: staged)
+            let saved = try MaterialFileReader.copy(staged, to: nil, isWorkbook: kind == .changes, check: {})
+            try library.commit(staged: staged, kind: kind, source: MaterialSource(), originalName: "fictional.\(kind.fileExtension)",
+                               byteCount: saved.count, digest: saved.digest, modifiedAt: nil)
+        }
+        let prior = try XCTUnwrap(library.state.record(for: .timetable))
+        let analysis = PDFAnalysis(kind: .timetable, sourceDigest: prior.digest, sourceName: prior.originalName,
+            parsedAt: time, schoolYear: 2033, term: "前期", lessons: [
+                PDFLesson(className: "3_IT", weekday: 1, period: 1,
+                    names: .init(subject: "架空科目A", teacher: "架空教員A", room: ""),
+                    sourceText: "架空原文", page: 1)
+            ], events: [], notices: [])
+        try library.savePDFAnalysis(analysis)
+        let good = try XCTUnwrap(library.localURL(for: .timetable))
+        let bad = try XCTUnwrap(library.localURL(for: .changes))
+        try db.queue.write { db in
+            try db.execute(sql: "UPDATE currentRecord SET record = ? WHERE kind = 'changes'", arguments: [Data([0x7B])])
+        }
+        try db.close()
+        let oldDatabase = runtime.appendingPathComponent("library.sqlite")
+        let originalBytes = try Data(contentsOf: oldDatabase)
+        do {
+            let recovered = try LocalMaterialDatabase.openLibrary(root: runtime)
+            XCTAssertEqual(recovered.state.records.map(\.kind), [.timetable])
+            XCTAssertEqual(recovered.state.pdfAnalyses?["timetable"]?.lessons.first?.names.subject, "架空科目A")
+            XCTAssertEqual(try Data(contentsOf: XCTUnwrap(recovered.localURL(for: .timetable))), Data("%PDF-fictional".utf8))
+            XCTAssertNotEqual(recovered.localURL(for: .timetable), good)
+        }
+        XCTAssertEqual(try Data(contentsOf: oldDatabase), originalBytes)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: bad.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: good.path))
+        let reopened = try LocalMaterialDatabase.openLibrary(root: runtime)
+        XCTAssertEqual(reopened.state.records.map(\.kind), [.timetable])
+        XCTAssertNil(reopened.state.record(for: .changes))
+    }
+
     func testAnalysisPDFURLUsesTheOriginalActuallyReferencedByTheSavedAnalysis() throws {
         let example = try fixture()
         let (db, library) = try runtimeStore()

@@ -5,6 +5,7 @@ import Foundation
 final class MaterialLibrary {
     static let maximumBytes = 50 * 1024 * 1024
     private let root: URL
+    var wasPartiallyRecovered: Bool { root.lastPathComponent == "recovered" }
     let files: URL
     private let staging: URL
     private let manifest: URL
@@ -53,6 +54,11 @@ final class MaterialLibrary {
         for record in state.records {
             let copy = files.appendingPathComponent(record.storedName)
             guard manager.fileExists(atPath: copy.path) else { throw MaterialError.invalidState }
+        }
+        if let persistence {
+            for name in try persistence.retainedStoredNames() {
+                guard manager.fileExists(atPath: files.appendingPathComponent(name).path) else { throw MaterialError.invalidState }
+            }
         }
         try manager.createDirectory(at: files, withIntermediateDirectories: true)
         try manager.createDirectory(at: staging, withIntermediateDirectories: true)

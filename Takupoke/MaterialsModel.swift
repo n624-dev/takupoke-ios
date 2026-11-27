@@ -14,6 +14,7 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var ready = false
     @Published private(set) var message: String?
+    @Published private(set) var wasPartiallyRecovered = false
     @Published private(set) var failed = false
     @Published private(set) var lastOperationUsedPipeline = false
     private var pendingPipelineRequest: FilePipeline.Request?
@@ -321,6 +322,7 @@ final class MaterialsModel: ObservableObject {
             }
         }
         state = MaterialLibraryState(); pdfURLs = [:]; analysisPDFURLs = [:]; changePreview = nil
+        wasPartiallyRecovered = false
         timetableReadReport = nil; timetableFailure = nil
         ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
@@ -418,6 +420,7 @@ final class MaterialsModel: ObservableObject {
             worker.clearPreview()
             let display = worker.library.map { MaterialLibrary.displayableTimetables($0.state) }
             let snapshot = display?.state
+            let wasRecovered = worker.library?.wasPartiallyRecovered == true
             let timetableReport = worker.timetableReadReport
             let timetableFailure = worker.timetableFailure
             var pdfURLs: [String: URL] = [:]
@@ -434,6 +437,7 @@ final class MaterialsModel: ObservableObject {
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.ready = snapshot != nil
+                self.wasPartiallyRecovered = wasRecovered
                 if let snapshot = snapshot { self.state = snapshot }
                 self.rejectedRecoveryKinds = display?.rejected ?? []
                 self.pdfURLs = pdfURLs

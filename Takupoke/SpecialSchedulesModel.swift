@@ -30,6 +30,7 @@ final class SpecialSchedulesModel: ObservableObject {
     @Published private(set) var ready = false
     @Published private(set) var busy = false
     @Published private(set) var message: String?
+    @Published private(set) var wasPartiallyRecovered = false
     @Published private(set) var failed = false
     @Published private(set) var lastOperationUsedPipeline = false
     private var pendingPipelineRequest: FilePipeline.Request?
@@ -214,6 +215,7 @@ final class SpecialSchedulesModel: ObservableObject {
         store = nil; recoveryCaptures = [:]; records = [:]; sources = [:]; urls = [:]; analysisPDFURLs = [:]
         fullReadReports = [:]; returnPositionsReport = nil
         acquisitionAttempts = [:]
+        wasPartiallyRecovered = false
         ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
     }
@@ -307,7 +309,8 @@ final class SpecialSchedulesModel: ObservableObject {
                 else {
                     let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                            appropriateFor: nil, create: true)
-                    store = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite", isDirectory: true), ownerQueue: ownerQueue)
+                    store = try SpecialScheduleStore.openRecovering(
+                        root: base.appendingPathComponent("SpecialSchedulesSQLite", isDirectory: true), ownerQueue: ownerQueue)
                 }
                 capture.store = store
                 try operation(store, control, capture)
@@ -342,6 +345,7 @@ final class SpecialSchedulesModel: ObservableObject {
                 if let kind { self.fullReadReports[kind] = capture.report }
                 if let store = capture.store {
                     self.store = store
+                    self.wasPartiallyRecovered = store.wasPartiallyRecovered
                     self.records = projection?.records ?? [:]
                     self.rejectedRecoveryKinds = projection?.rejected ?? []
                     self.sources = frozenSources

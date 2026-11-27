@@ -20,6 +20,11 @@ struct MaterialsView: View {
             Section("更新確認") {
                 FileRefreshControls(materials: model, specials: specialSchedules)
             }
+            if model.wasPartiallyRecovered || specialSchedules.wasPartiallyRecovered {
+                Section("保存データ") {
+                    InlineWarning("使える資料を復旧しました。読み取れなかった保存データは端末内に保全しています。")
+                }
+            }
             if !model.ready && !model.busy {
                 Section("保存データ") {
                     if let message = model.message { InlineWarning(message) }

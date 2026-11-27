@@ -5,6 +5,41 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testSpecialStoreRecoversOtherPDFWhenOneSavedPayloadIsUnreadable() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let ownerQueue = DispatchQueue(label: "fictional-special-recovery")
+        let store = try SpecialScheduleStore(root: root, ownerQueue: ownerQueue)
+        for kind in SpecialScheduleKind.allCases {
+            let bytes = Data("%PDF-fictional-\(kind.rawValue)".utf8)
+            let staged = store.newStagingURL()
+            try bytes.write(to: staged)
+            let snapshot = try MaterialFileReader.copy(staged, to: nil, isWorkbook: false, check: {})
+            let pages = kind == .exam ? [flexibleExamPage(["2-CN"], days: [1, 2])] : [returnPageWithSplitCell()]
+            let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: snapshot.digest, name: "fictional.pdf")
+            try store.save(staged: staged, analysis: analysis, originalName: analysis.sourceName,
+                           byteCount: snapshot.count, digest: snapshot.digest)
+        }
+        let savedExam = try XCTUnwrap(store.savedURL(for: .exam))
+        let savedReturn = try XCTUnwrap(store.savedURL(for: .examReturn))
+        try store.queue.write { db in
+            try db.execute(sql: "UPDATE specialSchedule SET payload = ? WHERE kind = 'examReturn'", arguments: [Data([0x7B])])
+        }
+        try store.queue.close()
+        let database = root.appendingPathComponent("specials.sqlite")
+        let original = try Data(contentsOf: database)
+        let recovered = try SpecialScheduleStore.openRecovering(root: root, ownerQueue: ownerQueue)
+        XCTAssertTrue(recovered.wasPartiallyRecovered)
+        XCTAssertEqual(recovered.records[.exam]?.analysis, store.records[.exam]?.analysis)
+        XCTAssertNil(recovered.sources[.examReturn])
+        XCTAssertNil(recovered.records[.examReturn])
+        XCTAssertEqual(try Data(contentsOf: database), original)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: savedExam.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: savedReturn.path))
+        let reopened = try SpecialScheduleStore.openRecovering(root: root, ownerQueue: ownerQueue)
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(reopened.savedURL(for: .exam))), Data("%PDF-fictional-exam".utf8))
+    }
+
     func testRemovingSelectedExamRollsBackOnFailureAndKeepsReturnAcrossRestart() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
