@@ -287,7 +287,7 @@ struct ContentView: View {
         await application.activate()
     }
 
-    private func setFileMonitoring(_ foreground: Bool) {
+    @MainActor private func setFileMonitoring(_ foreground: Bool) {
         application.setFileMonitoring(foreground)
         if !foreground { BackgroundRefresh.schedule() }
     }

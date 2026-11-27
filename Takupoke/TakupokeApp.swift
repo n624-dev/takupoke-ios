@@ -15,7 +15,7 @@ struct TakupokeApp: App {
                 .modifier(MainColorScope())
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
-            BackgroundRefresh.schedule()
+            await BackgroundRefresh.schedule()
             await ApplicationData.shared.refreshInBackground()
         }
     }

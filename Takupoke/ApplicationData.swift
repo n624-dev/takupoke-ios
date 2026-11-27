@@ -232,6 +232,7 @@ final class ApplicationData: ObservableObject {
         guard backgroundRefresh == nil,
               UIApplication.shared.applicationState == .background,
               UIApplication.shared.isProtectedDataAvailable else { return }
+        BackgroundRefresh.recordExecution()
         let task = Task { @MainActor in
             guard await self.prepare(), !Task.isCancelled else { return }
             self.setFileMonitoring(false)

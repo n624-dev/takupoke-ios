@@ -104,6 +104,86 @@ COUNTDOWN_EXPIRY_STATE = r'''
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_background_reservation_and_execution_preserve_separate_diagnostics(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to exercise the actual reservation diagnostic")
+        source = (ROOT / "Takupoke/BackgroundRefresh.swift").read_text(encoding="utf-8")
+        boundary = r'''
+import Foundation
+final class BGAppRefreshTaskRequest {
+    let identifier: String
+    var earliestBeginDate: Date?
+    init(identifier: String) { self.identifier = identifier }
+}
+@MainActor final class BGTaskScheduler {
+    struct Error: Swift.Error {
+        enum Code { case unavailable, notPermitted, tooManyPendingTaskRequests }
+        let code: Code
+    }
+    static let shared = BGTaskScheduler()
+    func submit(_ request: BGAppRefreshTaskRequest) throws { }
+}
+'''
+        probe = r'''
+enum FictionalServerError: Error { case unexpected }
+@main struct Probe {
+    @MainActor static func main() {
+        let suite = "fictional-refresh-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let t = Date(timeIntervalSince1970: 5000)
+        precondition(BackgroundRefresh.diagnostics(defaults: defaults) == BackgroundRefreshDiagnostics())
+        var pending = [String: Date]()
+        let submit: (BGAppRefreshTaskRequest) throws -> Void = { request in
+            let date = request.earliestBeginDate!
+            precondition(request.identifier == BackgroundRefresh.identifier)
+            pending[request.identifier] = date
+        }
+        BackgroundRefresh.schedule(at: t, defaults: defaults, submit: submit)
+        precondition(BackgroundRefresh.diagnostics(defaults: defaults) == .init(
+            reservation: .scheduled, lastAttemptAt: t, lastScheduledAt: t, lastExecutionAt: nil))
+        let replacement = t.addingTimeInterval(5)
+        BackgroundRefresh.schedule(at: replacement, defaults: defaults, submit: submit)
+        precondition(pending == [BackgroundRefresh.identifier: replacement.addingTimeInterval(3600)])
+
+        let errors: [(Error, BackgroundRefreshDiagnostics.Reservation)] = [
+            (BGTaskScheduler.Error(code: .unavailable), .unavailable),
+            (BGTaskScheduler.Error(code: .notPermitted), .notPermitted),
+            (BGTaskScheduler.Error(code: .tooManyPendingTaskRequests), .pendingLimit),
+            (FictionalServerError.unexpected, .otherFailure)
+        ]
+        for (offset, failure) in errors.enumerated() {
+            let date = t.addingTimeInterval(Double(10 + offset))
+            BackgroundRefresh.schedule(at: date, defaults: defaults) { _ in throw failure.0 }
+            let reopened = UserDefaults(suiteName: suite)!
+            precondition(BackgroundRefresh.diagnostics(defaults: reopened) == .init(
+                reservation: failure.1, lastAttemptAt: date, lastScheduledAt: replacement, lastExecutionAt: nil))
+            precondition(pending.count == 1)
+        }
+        let run = t.addingTimeInterval(600)
+        BackgroundRefresh.recordExecution(at: run, defaults: defaults)
+        let reopened = UserDefaults(suiteName: suite)!
+        precondition(BackgroundRefresh.diagnostics(defaults: reopened) == .init(
+            reservation: .otherFailure, lastAttemptAt: t.addingTimeInterval(13),
+            lastScheduledAt: replacement, lastExecutionAt: run))
+        BackgroundRefresh.schedule(at: run, defaults: defaults, submit: submit)
+        precondition(BackgroundRefresh.diagnostics(defaults: reopened) == .init(
+            reservation: .scheduled, lastAttemptAt: run, lastScheduledAt: run, lastExecutionAt: run))
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="background-reservation-") as directory:
+            root = Path(directory)
+            swift = root / "probe.swift"
+            binary = root / "probe"
+            swift.write_text(boundary + source.replace("import BackgroundTasks\n", "") + probe, encoding="utf-8")
+            compiled = subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", str(swift), "-o", str(binary)],
+                                      capture_output=True, text=True, timeout=60)
+            self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+            actual = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
+            self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
+
     def test_disabling_update_notices_removes_owned_ids_now_and_after_a_late_write(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
@@ -1495,7 +1575,11 @@ EXPIRE
     enum State { case active, background }
     static let shared = UIApplication()
     var applicationState = State.background
-    let isProtectedDataAvailable = true
+    var isProtectedDataAvailable = true
+}
+@MainActor enum BackgroundRefresh {
+    static var executions = 0
+    static func recordExecution() { executions += 1 }
 }
 @MainActor final class Material {
     let state = 0, records = 0, sources = 0, ready = true
@@ -1584,11 +1668,19 @@ ACTIVATION
         while !condition() { precondition(ContinuousClock.now < deadline); await Task.yield() }
     }
     @MainActor static func main() async {
+        let rejected = App()
+        UIApplication.shared.isProtectedDataAvailable = false
+        await rejected.refreshInBackground()
+        UIApplication.shared.isProtectedDataAvailable = true
+        precondition(BackgroundRefresh.executions == 0 && rejected.prepareCalls == 0)
         for cancel in [false, true] {
             let app = App()
+            let previousExecutions = BackgroundRefresh.executions
             let task = app.start()
             await observe { app.countdown.waiting != nil && app.notifications.finished }
             precondition(!app.finished && app.backgroundRefresh != nil)
+            await app.refreshInBackground()
+            precondition(BackgroundRefresh.executions == previousExecutions + 1)
             let token = app.countdown.revision
             if cancel {
                 task.cancel()

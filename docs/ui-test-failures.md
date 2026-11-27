@@ -20,6 +20,12 @@
 - 同じ `1bdb577` の [旧iOS 26ジョブ140454629583](https://github.com/n624-dev/takupoke-ios/actions/runs/45983942933/job/140454629583) は11:26:41 UTCにfailure終端し、旧限定CIは成功0件・失敗2件。iOS 26の到達点・原因は新規ログ取得前で未確定。
 - iOS 26も編集・確認・プレビューの同一プロセス復帰後に同じ空IDを16回探索して失敗した。700.122秒、XCTest失敗画像あり。導入したテスト側の探索ミスを両OSで確認した。共通修正 `7f2cf35` の [限定45989651382](https://github.com/n624-dev/takupoke-ios/actions/runs/45989651382) で採用と再起動まで照合する。
 
+## #199 予約診断追加後に背景更新のLinuxテストがコンパイルできない（2026-11-27）
+
+- 基点 `8d131dd` の作業差分、Swift 6.1.2／Linux。`test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan` が11:13 UTCの実行で `BackgroundRefresh` を解決できず、既存の背景通知検査に入らなかった。予約成否の新規境界テストは成功。Actions・Simulatorは未使用。
+- テストは `ApplicationData.refreshInBackground` を抽出し、OS境界の代替実装で実行する。実行日時を記録する境界の代替を追加し、拒否・二重呼出しでは記録せず、許可された処理だけ1回記録することも検査する。既存の通知の中止・待機判定は維持する。
+- 修正後、同じLinuxの通知・背景更新検査13件は失敗0。実際のBGTaskSchedulerによる予約・実行はApple環境で別途確認する。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。

@@ -384,7 +384,7 @@ struct SimulatorApplication: App {
                 }
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
-            BackgroundRefresh.schedule()
+            await BackgroundRefresh.schedule()
             await ApplicationData.shared.refreshInBackground()
         }
     }
