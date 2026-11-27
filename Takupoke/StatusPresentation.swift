@@ -44,16 +44,20 @@ struct StatusPresentation: Equatable {
         return .init(title: "確認した項目は正常です", tone: .good)
     }
 
-    static func downloaded(acquired: Bool, updateAvailable: Bool, failed: Bool, busy: Bool) -> Self {
+    static func downloaded(acquired: Bool, updateAvailable: Bool, failed: Bool, busy: Bool,
+                           confirmation: DistributedRevisionConfirmation? = nil) -> Self {
         if busy { return .init(title: "確認・取得中", tone: .checking) }
-        if failed {
+        if failed || confirmation?.outcome == .failed {
             return .init(title: "要確認", tone: .attention,
                          detail: acquired ? "前回取得したデータは保持しています。" : "データを取得できていません。")
         }
         if !acquired { return .init(title: "未取得", tone: .neutral) }
         if updateAvailable { return .init(title: "更新あり", tone: .attention) }
-        // A false updateAvailable flag also occurs before the first check.
-        return .init(title: "取得済み", tone: .unknown, detail: "更新状況は未確認です。")
+        if confirmation?.outcome == .unchanged { return .init(title: "更新確認済み", tone: .good) }
+        if confirmation?.outcome == .adopted {
+            return .init(title: "取得済み", tone: .neutral, detail: "配信版を検証して保存しました。")
+        }
+        return .init(title: "保存済み・更新未確認", tone: .unknown)
     }
 
     static func schoolEvents(ready: Bool, failed: Bool, checking: Bool, cacheFailed: Bool,

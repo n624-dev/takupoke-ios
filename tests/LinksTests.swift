@@ -20,7 +20,7 @@ final class LinksTests: XCTestCase {
             continuation?.resume(returning:value); continuation = nil
         }
     }
-    @MainActor private func waitForWaiters(_ count:Int,_ coordinator:LinksRevisionCoordinator) async throws {
+    @MainActor private func waitForWaiters(_ count:Int,_ coordinator:DistributedRevisionCoordinator) async throws {
         for _ in 0..<1000 {
             if coordinator.pendingWaiterCount == count { return }
             await Task.yield()
@@ -28,7 +28,7 @@ final class LinksTests: XCTestCase {
         XCTFail("revision callers did not enroll"); throw LinksError.unavailable
     }
     @MainActor func testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait() async throws {
-        let coordinator = LinksRevisionCoordinator(), gate = RevisionGate()
+        let coordinator = DistributedRevisionCoordinator(), gate = RevisionGate()
         defer { coordinator.reset(); gate.complete(.unchanged) }
         let first = Task { try await coordinator.value(installed:"fictional-v1",force:false,fetch:gate.fetch) }
         await fulfillment(of:[gate.started],timeout:2)
@@ -42,9 +42,25 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(secondValue,.available("fictional-v2"))
         XCTAssertEqual(coordinator.pendingWaiterCount,0)
     }
+    @MainActor func testCancellingTheLaterWaiterStillLetsTheFirstAcceptItsResponse() async throws {
+        let coordinator = DistributedRevisionCoordinator(), gate = RevisionGate()
+        defer { coordinator.reset(); gate.complete(.unchanged) }
+        let first = Task { try await coordinator.value(installed: "fictional-v1", force: true, fetch: gate.fetch) }
+        await fulfillment(of: [gate.started], timeout: 2)
+        let later = Task { try await coordinator.value(installed: "fictional-v1", force: true, fetch: gate.fetch) }
+        try await waitForWaiters(2, coordinator)
+        later.cancel()
+        do { _ = try await later.value; XCTFail("cancelled waiter succeeded") }
+        catch is CancellationError {}
+        XCTAssertEqual(coordinator.pendingWaiterCount, 1)
+        XCTAssertEqual(gate.calls, 1)
+        gate.complete(.unchanged)
+        let firstValue = try await first.value
+        XCTAssertEqual(firstValue, .unchanged)
+    }
     @MainActor func testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator() async throws {
         var time = 0.0, calls = 0
-        let coordinator = LinksRevisionCoordinator(minimumInterval:300,now:{ time })
+        let coordinator = DistributedRevisionCoordinator(minimumInterval:300,now:{ time })
         func request(_ installed:String?,_ force:Bool = false,_ fail:Bool = false) async throws -> MappingRevisionResult {
             try await coordinator.value(installed:installed,force:force) {
                 calls += 1
@@ -64,7 +80,7 @@ final class LinksTests: XCTestCase {
         coordinator.reset(); _ = try await request("fictional-v2"); XCTAssertEqual(calls,6)
     }
     @MainActor func testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess() async throws {
-        let coordinator = LinksRevisionCoordinator(), gate = RevisionGate()
+        let coordinator = DistributedRevisionCoordinator(), gate = RevisionGate()
         defer { coordinator.reset(); gate.complete(.unchanged) }
         let request = Task { try await coordinator.value(installed:nil,force:false,fetch:gate.fetch) }
         await fulfillment(of:[gate.started],timeout:2)
@@ -76,7 +92,7 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(result,.available("fictional-fresh"))
     }
     @MainActor func testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes() async throws {
-        let coordinator = LinksRevisionCoordinator(), old = RevisionGate(), current = RevisionGate()
+        let coordinator = DistributedRevisionCoordinator(), old = RevisionGate(), current = RevisionGate()
         defer { coordinator.reset(); old.complete(.unchanged); current.complete(.unchanged) }
         let stale = Task { try await coordinator.value(installed:nil,force:false,fetch:old.fetch) }
         await fulfillment(of:[old.started],timeout:2)

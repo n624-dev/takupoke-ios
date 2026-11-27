@@ -1,5 +1,26 @@
 import SwiftUI
 
+extension LinksModel {
+    var acquisitionStatus: StatusPresentation {
+        .downloaded(acquired: saved != nil, updateAvailable: updateAvailable, failed: failed, busy: busy,
+                    confirmation: revisionConfirmation)
+    }
+}
+
+extension MappingModel {
+    var acquisitionStatus: StatusPresentation {
+        .downloaded(acquired: current != nil, updateAvailable: updateAvailable, failed: failed, busy: busy,
+                    confirmation: revisionConfirmation)
+    }
+}
+
+extension TimetableTimesModel {
+    var acquisitionStatus: StatusPresentation {
+        .downloaded(acquired: current != nil, updateAvailable: updateAvailable, failed: failed, busy: busy,
+                    confirmation: revisionConfirmation)
+    }
+}
+
 struct AccountDataSettingsView: View {
     @EnvironmentObject private var times: TimetableTimesModel
     @EnvironmentObject private var account: AccountDataModel
@@ -37,16 +58,13 @@ struct AccountDataSettingsView: View {
             }
             Section("データ") {
                 NavigationLink { LinksDataDetailView() } label: {
-                    AcquisitionStatusRow(title: "リンク一覧", acquired: links.saved != nil,
-                                         updated: links.updateAvailable, failed: links.failed)
+                    AcquisitionStatusRow(title: "リンク一覧", status: links.acquisitionStatus)
                 }
                 NavigationLink { MappingSettingsView(model: mappings) } label: {
-                    AcquisitionStatusRow(title: "名称データ", acquired: mappings.current != nil,
-                                         updated: mappings.updateAvailable, failed: mappings.failed)
+                    AcquisitionStatusRow(title: "名称データ", status: mappings.acquisitionStatus)
                 }
                 NavigationLink { TimetableTimesDetailView() } label: {
-                    AcquisitionStatusRow(title: "授業時刻", acquired: times.current != nil,
-                                         updated: times.updateAvailable, failed: times.failed)
+                    AcquisitionStatusRow(title: "授業時刻", status: times.acquisitionStatus)
                 }
             }
             LinksPreferencesWarning(model: links)
@@ -71,19 +89,11 @@ struct AccountDataSettingsView: View {
 
 struct AcquisitionStatusRow: View {
     let title: String
-    let acquired: Bool
-    let updated: Bool
-    let failed: Bool
-
-    private var status: String {
-        if failed { return "要確認" }
-        if !acquired { return "未取得" }
-        return updated ? "更新あり" : "取得済み"
-    }
+    let status: StatusPresentation
 
     var body: some View {
         LabeledContent(title) {
-            Text(status).foregroundStyle(failed || (acquired && updated) ? Color.orange : Color.secondary)
+            Text(status.title).foregroundStyle(status.color)
         }
     }
 }
@@ -95,8 +105,10 @@ struct LinksDataDetailView: View {
         List {
             LinksPreferencesWarning(model: links)
             Section("状態") {
-                AcquisitionStatusRow(title: "リンク一覧", acquired: links.saved != nil,
-                                     updated: links.updateAvailable, failed: links.failed)
+                AcquisitionStatusRow(title: "リンク一覧", status: links.acquisitionStatus)
+                if let date = links.revisionConfirmation?.lastSuccess?.checkedAt {
+                    LabeledContent("最終確認成功") { Text(date, format: JapaneseDateDisplay.timestamp) }
+                }
                 if let message = links.message {
                     if links.failed { InlineWarning(message) }
                     else { Text(message).foregroundStyle(.secondary) }
@@ -120,8 +132,10 @@ struct TimetableTimesDetailView: View {
     var body: some View {
         List {
             Section("状態") {
-                AcquisitionStatusRow(title: "授業時刻", acquired: times.current != nil,
-                                     updated: times.updateAvailable, failed: times.failed)
+                AcquisitionStatusRow(title: "授業時刻", status: times.acquisitionStatus)
+                if let date = times.revisionConfirmation?.lastSuccess?.checkedAt {
+                    LabeledContent("最終確認成功") { Text(date, format: JapaneseDateDisplay.timestamp) }
+                }
                 if let message = times.message {
                     if times.failed { InlineWarning(message) }
                     else { Text(message).foregroundStyle(.secondary) }

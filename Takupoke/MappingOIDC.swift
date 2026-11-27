@@ -55,16 +55,16 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
             let browser = ASWebAuthenticationSession(url: authorizeURL, callbackURLScheme: "jp.n624.takupoke") { url, error in
                 Task { @MainActor in
                     guard self.completionID == id else { return }
-                    if let url, error == nil { self.finish(.success(url)) }
-                    else { self.finish(.failure(MappingError.authentication)) }
+                    self.finish(Self.browserResult(url: url, error: error))
                 }
             }
             self.session = browser
             browser.presentationContextProvider = self
             timeoutTask = Task { @MainActor [weak self] in
                 do { try await Task.sleep(for: .seconds(600)) } catch { return }
-                guard self?.completionID == id else { return }
-                self?.cancel()
+                guard let self, self.completionID == id else { return }
+                self.finish(.failure(MappingError.authenticationTimedOut))
+                self.session?.cancel()
             }
             if !browser.start() { finish(.failure(MappingError.authentication)) }
         }
@@ -95,7 +95,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
             .replacingOccurrences(of: "%20", with: "+")
         request.httpBody = Data(formBody.utf8)
         let tokenRequestedAt = Date()
-        let (bytes, response) = try await network.data(for: request)
+        let (bytes, response) = try await Self.fetch(request, using: network)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200,
               bytes.count <= 64 * 1024,
               let value = try? JSONDecoder().decode(TokenResponse.self, from: bytes),
@@ -106,6 +106,31 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
         try Task.checkCancellation()
         cachedToken = (value.access_token, requiredScopes, tokenRequestedAt.addingTimeInterval(TimeInterval(value.expires_in)))
         return value.access_token
+    }
+
+    private static func browserResult(url: URL?, error: Error?) -> Result<URL, Error> {
+        if (error as? ASWebAuthenticationSessionError)?.code == .canceledLogin {
+            return .failure(CancellationError())
+        }
+        guard error == nil, let url else { return .failure(MappingError.authentication) }
+        return .success(url)
+    }
+
+    private static func fetch(_ request: URLRequest, using network: URLSession) async throws -> (Data, URLResponse) {
+        try Task.checkCancellation()
+        let result: (Data, URLResponse)
+        do { result = try await network.data(for: request) }
+        catch {
+            try Task.checkCancellation()
+            if error is CancellationError { throw error }
+            throw MappingError.authenticationNetwork
+        }
+        try Task.checkCancellation()
+        if let response = result.1 as? HTTPURLResponse,
+           response.statusCode == 429 || (500...599).contains(response.statusCode) {
+            throw MappingError.authenticationNetwork
+        }
+        return result
     }
 
     private func finish(_ result: Result<URL, Error>) {
@@ -119,8 +144,8 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
 
     func cancel() {
         cachedToken = nil
-        session?.cancel()
         finish(.failure(CancellationError()))
+        session?.cancel()
         session = nil
     }
 
@@ -154,7 +179,7 @@ final class MappingOIDC: NSObject, ASWebAuthenticationPresentationContextProvidi
 
         var request = URLRequest(url: URL(string: Self.issuer + "/oauth/jwks")!)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (bytes, response) = try await network.data(for: request)
+        let (bytes, response) = try await Self.fetch(request, using: network)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200,
               bytes.count <= 64 * 1024,
               let object = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],

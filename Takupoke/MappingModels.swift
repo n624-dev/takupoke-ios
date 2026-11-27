@@ -3,16 +3,121 @@ import Foundation
 enum MappingRevisionResult: Equatable, Sendable {
     case unchanged
     case available(String)
+
+    static func isValidRevision(_ value: String) -> Bool {
+        value.range(of: "^[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil
+    }
+}
+
+/// Each observation belongs to the exact installation inspected by the request.
+struct DistributedRevisionConfirmation: Codable, Equatable {
+    struct Installation: Codable, Equatable {
+        let revision: String?
+        let acquiredAt: Date
+    }
+
+    struct Observation: Codable, Equatable {
+        let revision: String
+        let checkedAt: Date
+    }
+
+    enum Outcome: String, Codable {
+        case unchanged, updateAvailable, adopted, failed
+    }
+
+    let installation: Installation
+    private(set) var lastSuccess: Observation?
+    private(set) var lastAttemptAt: Date
+    private(set) var outcome: Outcome
+
+    var hasNewerRevision: Bool {
+        guard let lastSuccess else { return false }
+        return lastSuccess.revision != installation.revision
+    }
+
+    init(installation: Installation, result: MappingRevisionResult, at time: Date) {
+        self.installation = installation
+        self.lastAttemptAt = time
+        switch result {
+        case .unchanged:
+            self.lastSuccess = installation.revision.map { .init(revision: $0, checkedAt: time) }
+            self.outcome = .unchanged
+        case .available(let revision):
+            self.lastSuccess = .init(revision: revision, checkedAt: time)
+            self.outcome = .updateAvailable
+        }
+    }
+
+    init(adopted installation: Installation, at time: Date) {
+        self.installation = installation
+        self.lastAttemptAt = time
+        self.outcome = .adopted
+    }
+
+    init(failed installation: Installation, previous: Self?, at time: Date) {
+        self.installation = installation
+        self.lastAttemptAt = time
+        self.lastSuccess = previous?.installation == installation ? previous?.lastSuccess : nil
+        self.outcome = .failed
+    }
+
+    static func load(beside dataFile: URL, installation: Installation) -> Self? {
+        let url = confirmationURL(beside: dataFile)
+        guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 4096,
+              let data = try? Data(contentsOf: url), data.count <= 4096,
+              let record = try? JSONDecoder().decode(Self.self, from: data),
+              record.installation == installation, record.isValid else { return nil }
+        return record
+    }
+
+    func save(beside dataFile: URL?) {
+        guard isValid, let dataFile, let data = try? JSONEncoder().encode(self) else { return }
+        let url = Self.confirmationURL(beside: dataFile)
+        #if os(iOS)
+        try? data.write(to: url, options: [.atomic, .completeFileProtection])
+        #else
+        try? data.write(to: url, options: .atomic)
+        #endif
+    }
+
+    private static func confirmationURL(beside dataFile: URL) -> URL {
+        dataFile.appendingPathExtension("revision-check.json")
+    }
+
+    private var isValid: Bool {
+        guard installation.revision.map(MappingRevisionResult.isValidRevision) ?? true,
+              lastSuccess.map({ MappingRevisionResult.isValidRevision($0.revision) }) ?? true else { return false }
+        switch outcome {
+        case .unchanged:
+            return lastSuccess?.revision != nil && lastSuccess?.revision == installation.revision
+        case .updateAvailable:
+            return lastSuccess?.revision != nil && lastSuccess?.revision != installation.revision
+        case .adopted:
+            return installation.revision != nil && lastSuccess == nil
+        case .failed:
+            return true
+        }
+    }
 }
 
 enum MappingError: Error, LocalizedError {
     case invalidPackage, invalidResponse, authentication, unavailable, storage, changedDuringDownload
+    case authenticationTimedOut, authenticationNetwork
+
+    var authenticationFailureDescription: String? {
+        switch self {
+        case .authentication: return "認証を完了できませんでした。"
+        case .authenticationTimedOut: return "認証の待ち時間を超えました。"
+        case .authenticationNetwork: return "認証サービスに接続できませんでした。"
+        default: return nil
+        }
+    }
 
     var errorDescription: String? {
         switch self {
         case .invalidPackage: return "名称データの形式または整合性を確認できませんでした。"
         case .invalidResponse: return "名称データの配信応答を確認できませんでした。"
-        case .authentication: return "認証を完了できませんでした。"
+        case .authentication, .authenticationTimedOut, .authenticationNetwork: return authenticationFailureDescription
         case .unavailable: return "名称データを取得できませんでした。"
         case .storage: return "名称データを保存できませんでした。"
         case .changedDuringDownload: return "取得中に名称データが更新されました。もう一度お試しください。"

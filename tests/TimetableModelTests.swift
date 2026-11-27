@@ -260,6 +260,8 @@ final class TimetableModelTests: XCTestCase {
             XCTAssertFalse(current.failed); XCTAssertFalse(current.updateAvailable)
             let reopened = model(root); reopened.loadIfNeeded()
             XCTAssertFalse(reopened.failed); XCTAssertEqual(reopened.current?.revision, revision)
+            XCTAssertEqual(reopened.revisionConfirmation?.outcome, .adopted)
+            XCTAssertEqual(reopened.revisionConfirmation, current.revisionConfirmation)
             XCTAssertEqual(reopened.current?.data, TimetableTimes(schemaVersion: 1, days: []))
         }
     }

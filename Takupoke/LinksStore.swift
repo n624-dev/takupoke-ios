@@ -1,7 +1,7 @@
 import Foundation
 
 final class LinksStore {
-    private let file: URL
+    let file: URL
     private static let maximumSavedBytes = LinksPayload.maximumBytes + 100_000
 
     private static func cacheEncoder() -> JSONEncoder {

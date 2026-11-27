@@ -1,3 +1,8 @@
+## #233 Linuxの架空認証テストで中止済みの通信が開始された（2026-11-27）
+
+- 基点 `8d131dd` の作業差分、Swift 6.1.2 / Linux、ローカルの `test_browser_cancellation_authentication_and_transport_are_distinct`。SDK・Simulator・Actionsは未使用。中止済みのTaskをURLSessionへ渡したケースで、FoundationNetworkingの `TaskRegistry` が `didFailWithError` 中にSIGILLで停止した。先行試行は同じケースを通過しており、常時再現ではなかった。
+- `OIDC|認証ブラウザ` でN45/N46を照合した。今回は架空通信の開始と中止の競合で、N45の本番403およびN46のブラウザーのキャッシュ条件とは発生段階が異なる。製品の認証通信を開始する前に中止を検査する。テストの中止・通信失敗・拒否を判定する条件は維持する。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。

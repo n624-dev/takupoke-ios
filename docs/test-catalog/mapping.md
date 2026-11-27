@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`07acf1970eaee85d999e06262626871ff9d09ec5d564e06a0c94fef0c1abbfe0`
+`df0be6195f341b8f2922f50cb0c206ff2e49f56a1a864d3875f286974a5e77b0`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -69,6 +69,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
 - `testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait`
+- `testCancellingTheLaterWaiterStillLetsTheFirstAcceptItsResponse`
 - `testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator`
 - `testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess`
 - `testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes`
@@ -89,4 +90,5 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 
 ## [tests/test_mapping_oidc_form.py](../../tests/test_mapping_oidc_form.py)
 
+- `test_browser_cancellation_authentication_and_transport_are_distinct`
 - `test_exchange_preserves_opaque_code_in_form_body`

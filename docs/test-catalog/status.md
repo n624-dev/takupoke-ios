@@ -1,7 +1,7 @@
 # ステータス・公開監視情報・取消表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`cbd86c4341550b44c55787568d956bcaa457b80c2516a59effd29c0372ee5b1a`
+`0bea62eb2e8eb75a4e557e31dc7a35f6fad65cea48b6e25546f3ad02e5a15863`
 
 環境：Linux Swift（状態判定）／Apple iOS26/27（画面・通信）
 
@@ -26,6 +26,7 @@ bash tools/test-app-ui.sh
 - `testUnlinkedMissingDuplicateWrongTypeAndUnknownStateNeverBecomeHealthy`
 - `testHistoryKeepsUnmonitoredRecoveryAndUnknownDaysWithoutInventingDates`
 - `testResolvedIncidentWithNullEndAndUnsortedUpdatesUsesRelationships`
+- `testLargePublicPageRetainsUniqueReferencesAndRejectsAmbiguity`
 - `testCacheFailureExpiryAndClockRollbackRetainEvidenceButNotCurrentNormal`
 - `testMissingResourcesKeepTheirPreviousHistoryWithoutRevalidatingThem`
 - `testInvalidEnvelopeAndOversizedResponseAreRejected`
@@ -37,6 +38,8 @@ bash tools/test-app-ui.sh
 - `testCancellationIsNeutralAndKeepsTheSavedResult`
 - `testUnknownAndUnselectedDoNotBecomeFailuresOrAllNormal`
 - `testAccountAcquisitionDoesNotAssertLatestOrAuthentication`
+- `testRevisionObservationDistinguishesUnchangedNewerAndFailedWithSavedData`
+- `testRevisionConfirmationRestoresOnlyForTheSameInstallationAndCorruptionIsIndependent`
 - `testSummaryCountsAttentionWithoutCountingNeutralCancellation`
 - `testOnlyCancellationErrorsAreNeutral`
 - `testExplicitResumeIsInSessionAndDoesNotReplayDiscardedRequests`

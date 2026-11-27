@@ -7,8 +7,10 @@ struct MappingSettingsView: View {
     var body: some View {
         List {
             Section("状態") {
-                AcquisitionStatusRow(title: "名称データ", acquired: model.current != nil,
-                                     updated: model.updateAvailable, failed: model.failed)
+                AcquisitionStatusRow(title: "名称データ", status: model.acquisitionStatus)
+                if let date = model.revisionConfirmation?.lastSuccess?.checkedAt {
+                    LabeledContent("最終確認成功") { Text(date, format: JapaneseDateDisplay.timestamp) }
+                }
                 if model.busy || account.busy { LoadingRow(title: "確認中⋯") }
                 if let message = model.message {
                     if model.failed { InlineWarning(message) }

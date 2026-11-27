@@ -430,6 +430,9 @@ extension ApplicationChecks {
         _ = heading("配信データ")
         let links = app.buttons["status-links"]
         _ = visible(links, navigation: "ステータス")
+        let revisionConfirmed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS %@", "更新確認済み"), object: links)
+        XCTAssertEqual(XCTWaiter.wait(for: [revisionConfirmed], timeout: 10), .completed)
         links.tap()
         screen("リンク一覧")
         XCTAssertTrue(app.staticTexts["最終取得"].exists)

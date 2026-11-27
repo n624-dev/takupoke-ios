@@ -29,8 +29,8 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [原本取得・更新・保存・File Provider](test-catalog/material.md) | 71 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [ローカルDB・移行・半期削除](test-catalog/database.md) | 41 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [日本時間・学校年度・日付表示](test-catalog/date.md) | 9 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [リンク・検索・設定保持](test-catalog/links.md) | 19 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
-| [名称対応・パッケージ・認証取得](test-catalog/mapping.md) | 54 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [リンク・検索・設定保持](test-catalog/links.md) | 20 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
+| [名称対応・パッケージ・認証取得](test-catalog/mapping.md) | 56 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [学校行事API・年度別保存](test-catalog/events.md) | 49 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
 | [カウントダウン・日付・通知・保存](test-catalog/countdown.md) | 54 | Linux Swift／iOS 26.5・27.0シミュレータ |
 | [時間割・今日の予定・授業時刻・授業名](test-catalog/timetable.md) | 107 | Linux Swift／Apple Native（PDFKit・VisionはApple限定） |
@@ -54,4 +54,4 @@ CIはpushのbefore、PRのbase、手動実行ではHEADの親を比較する。
 | [全17クラス・5日・全時限の原PDF2x固定比較](test-catalog/ocr-full-scope-source2x.md) | 9 | Apple SDK26。既使用の独立架空6資料、現行2048 V6の失敗とは別条件 |
 | [従来型Vision・原画素4倍反復の認識器探索](test-catalog/ocr-legacy-line-screen.md) | 5 | Linux比較器／Mac SDK26 Native Vision（研究専用） |
 | [原教室コード・英語専用VisionとEnglishV1の独立比較](test-catalog/ocr-code-english-screen.md) | 14 | Linux契約検査／Mac SDK26 Native Vision（研究専用） |
-| [ステータス・公開監視情報・取消表示](test-catalog/status.md) | 46 | Linux Swift（状態判定）／Apple iOS26/27（画面・通信） |
+| [ステータス・公開監視情報・取消表示](test-catalog/status.md) | 49 | Linux Swift（状態判定）／Apple iOS26/27（画面・通信） |

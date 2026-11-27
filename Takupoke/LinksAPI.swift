@@ -2,7 +2,7 @@ import Foundation
 
 /// One owner per installed revision; callers cancel only their own wait.
 @MainActor
-final class LinksRevisionCoordinator {
+final class DistributedRevisionCoordinator {
     private struct Cached {
         let installed: String?
         let result: MappingRevisionResult

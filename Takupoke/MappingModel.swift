@@ -9,8 +9,12 @@ final class MappingModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var failed = false
+    @Published private(set) var revisionConfirmation: DistributedRevisionConfirmation?
 
     private var store: MappingStore?
+    private var dataFile: URL?
+    private let revisions = DistributedRevisionCoordinator()
+    private var revisionBusyOwner: UUID?
     private var damagedFile: MappingStore.DamagedFile?
     private var storedReadFailed = false
     private static let storedReadWarning = "保存した名称データを読み込めません。学校アカウントで取得し直してください。"
@@ -21,6 +25,15 @@ final class MappingModel: ObservableObject {
 
     init(directory: URL? = nil, baseURL: URL = URL(string: "https://takupoke-api.n624.jp")!) {
         self.directory = directory; self.baseURL = baseURL
+    }
+
+    private var installation: DistributedRevisionConfirmation.Installation? {
+        current.map { .init(revision: $0.revision, acquiredAt: $0.fetchedAt) }
+    }
+
+    private func recordConfirmation(_ confirmation: DistributedRevisionConfirmation) {
+        revisionConfirmation = confirmation
+        confirmation.save(beside: dataFile)
     }
 
     func loadIfNeeded() {
@@ -42,6 +55,7 @@ final class MappingModel: ObservableObject {
             try FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: directory.path)
             #endif
             let file = directory.appendingPathComponent("mappings.sqlite")
+            dataFile = file
             try? MappingStore.DamagedFile.discardAbandonedStage(in:directory)
             do {
                 let store = try MappingStore(url: file)
@@ -63,6 +77,10 @@ final class MappingModel: ObservableObject {
                 storedReadFailed = true
             }
             failed = storedReadFailed
+            if let installation {
+                revisionConfirmation = .load(beside: file, installation: installation)
+                updateAvailable = revisionConfirmation?.hasNewerRevision == true
+            }
             message = storedReadFailed ? Self.storedReadWarning : nil
             ready = true
         } catch {
@@ -75,43 +93,55 @@ final class MappingModel: ObservableObject {
         loadIfNeeded()
         guard ready, !checkedAtStartup, !busy else { return }
         checkedAtStartup = true
-        busy = true
         let operation = generation
         Task {
-            let network = Self.networkSession()
-            defer { network.invalidateAndCancel(); if operation == generation { busy = false } }
+            guard operation == generation else { return }
             do {
-                let result = try await MappingService(baseURL: baseURL, network: network)
-                    .checkRevision(installed: current?.revision)
-                guard operation == generation else { return }
-                apply(result)
+                _ = try await revision()
             } catch {
-                guard operation == generation else { return }
+                guard operation == generation, !(error is CancellationError) else { return }
                 reportFailure("名称データの更新を確認できませんでした。")
             }
         }
     }
 
-    func revision(using network: URLSession) async throws -> MappingRevisionResult {
+    func revision(using suppliedNetwork: URLSession? = nil) async throws -> MappingRevisionResult {
         loadIfNeeded()
         guard ready else { throw MappingError.storage }
         let operation = generation
-        let result = try await MappingService(baseURL: baseURL, network: network).checkRevision(installed: current?.revision)
-        try Task.checkCancellation()
-        guard operation == generation else { throw CancellationError() }
-        apply(result)
-        if case .unchanged = result, !failed { message = "名称データは最新です。" }
-        return result
+        let inspected = installation
+        return try await revisions.value(installed: inspected?.revision, force: true) { [self] in
+            guard operation == generation, installation == inspected else { throw CancellationError() }
+            let network = suppliedNetwork ?? Self.networkSession()
+            let owner = UUID()
+            revisionBusyOwner = owner; busy = true
+            defer {
+                if suppliedNetwork == nil { network.invalidateAndCancel() }
+                if revisionBusyOwner == owner { revisionBusyOwner = nil; busy = false }
+            }
+            let result: MappingRevisionResult
+            do {
+                result = try await MappingService(baseURL: baseURL, network: network).checkRevision(installed: inspected?.revision)
+                try Task.checkCancellation()
+                guard operation == generation, installation == inspected else { throw CancellationError() }
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError),
+                      operation == generation, installation == inspected else { throw CancellationError() }
+                if let inspected { recordConfirmation(.init(failed: inspected, previous: revisionConfirmation, at: Date())) }
+                throw error
+            }
+            if let inspected { recordConfirmation(.init(installation: inspected, result: result, at: Date())) }
+            apply(result)
+            if case .unchanged = result, !failed { message = "名称データは最新です。" }
+            return result
+        }
     }
 
     func checkInBackground() async {
-        guard !busy, !Task.isCancelled else { return }
-        busy = true
+        guard !Task.isCancelled else { return }
         let operation = generation
-        let network = Self.networkSession()
-        defer { network.invalidateAndCancel(); if operation == generation { busy = false } }
-        do { _ = try await revision(using: network) }
-        catch { if !Task.isCancelled, operation == generation { report(error) } }
+        do { _ = try await revision() }
+        catch { if !Task.isCancelled, !(error is CancellationError), operation == generation { report(error) } }
     }
 
     func download(token: String, revision: String, network: URLSession) async throws {
@@ -136,13 +166,16 @@ final class MappingModel: ObservableObject {
         } catch is CancellationError { throw CancellationError() }
         catch { throw MappingError.storage }
         storedReadFailed = false
+        revisions.reset()
         current = package
         updateAvailable = false
         failed = false
+        if let installation { recordConfirmation(.init(adopted: installation, at: package.fetchedAt)) }
         message = "名称データを更新しました。"
     }
 
     func report(_ error: Error) {
+        guard !(error is CancellationError) else { return }
         reportFailure((error as? MappingError ?? .unavailable).localizedDescription)
     }
 
@@ -154,7 +187,10 @@ final class MappingModel: ObservableObject {
 
     func resetForRetention() {
         generation = UUID()
+        revisions.reset()
+        revisionBusyOwner = nil
         current = nil; store = nil; damagedFile = nil; ready = false; busy = false
+        dataFile = nil; revisionConfirmation = nil
         storedReadFailed = false
         checkedAtStartup = false; updateAvailable = false; message = nil; failed = false
     }

@@ -53,13 +53,13 @@ struct AppStatusEvidence {
     }
 
     @MainActor var linkStatus: StatusPresentation {
-        .downloaded(acquired: links.saved != nil, updateAvailable: links.updateAvailable, failed: links.failed, busy: links.busy)
+        links.acquisitionStatus
     }
     @MainActor var mappingStatus: StatusPresentation {
-        .downloaded(acquired: mappings.current != nil, updateAvailable: mappings.updateAvailable, failed: mappings.failed, busy: mappings.busy)
+        mappings.acquisitionStatus
     }
     @MainActor var timesStatus: StatusPresentation {
-        .downloaded(acquired: times.current != nil, updateAvailable: times.updateAvailable, failed: times.failed, busy: times.busy)
+        times.acquisitionStatus
     }
     @MainActor var summary: StatusPresentation {
         var values = [eventsStatus, eventsReview, eventsRevision, linkStatus, mappingStatus, timesStatus]

@@ -12,7 +12,7 @@ enum MappingPackage {
     }
 
     static func validRevision(_ value: String) -> Bool {
-        value.range(of: "^[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil
+        MappingRevisionResult.isValidRevision(value)
     }
 
     static func decode(_ zip: Data, version: String, revision: String, archiveETag: String,

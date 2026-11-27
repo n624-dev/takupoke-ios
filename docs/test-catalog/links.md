@@ -1,7 +1,7 @@
 # リンク・検索・設定保持
 
 対応関係・宣言名・実行方法のSHA-256：
-`21556a3943903c8f4ff7058289e9575b5e92f785e4242a3ccff61dd1c60fb207`
+`6afc3031828a132373208b007096052c8728b1ca8ffc142af79bea243f4f92a7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -21,6 +21,7 @@ python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
 - `testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait`
+- `testCancellingTheLaterWaiterStillLetsTheFirstAcceptItsResponse`
 - `testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator`
 - `testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess`
 - `testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes`

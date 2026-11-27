@@ -20,11 +20,9 @@ import FoundationNetworking
 #endif
 protocol ObservableObject: AnyObject {}
 @propertyWrapper struct Published<Value> { var wrappedValue: Value }
-enum MappingError: Error { case authentication, changedDuringDownload, unavailable }
-enum MappingRevisionResult: Equatable { case unchanged, available(String) }
 enum MappingPackage {
     static func validRevision(_ value: String) -> Bool {
-        preconditionFailure("This lifecycle fixture does not download authenticated links")
+        MappingRevisionResult.isValidRevision(value)
     }
 }
 struct MappingService {
@@ -34,8 +32,26 @@ struct MappingService {
     func checkRevision(installed: String?, path: String) async throws -> MappingRevisionResult {
         guard path == "links-revision" else { throw MappingError.unavailable }
         Self.calls += 1
-        return .available(String(repeating: "F", count: 43))
+        let revision = String(repeating: "F", count: 43)
+        return installed == revision ? .unchanged : .available(revision)
     }
+}
+final class LinkDownloadTransport: URLProtocol, @unchecked Sendable {
+    static var payload = Data()
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        guard let url = request.url, url.host == "links.example.invalid", url.path == "/links" else {
+            client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+            return
+        }
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1",
+            headerFields: ["ETag": "\"fictional-download\"", "X-Links-Revision": String(repeating: "F", count: 43)])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Self.payload)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
 }
 @main struct Probe {
     @MainActor static func main() async throws {
@@ -92,12 +108,12 @@ struct MappingService {
         check(stored.colorOverrides["fictional-new"] == "blue" && stored.colorOverrides["fictional-colored"] == "blue", "color editing recovers without erasing old values")
         let dataRoot = URL(fileURLWithPath:CommandLine.arguments[1]).appendingPathComponent("LinksAPI")
         let links = try LinksStore(root:dataRoot)
-        func fictional(_ id: String) -> SavedLinks {
+        func fictional(_ id: String, acquiredAt: Date = Date(timeIntervalSince1970: 1_800_000_000.25)) -> SavedLinks {
             let item = LinkItem(id:id,categoryId:"fictional",label:"架空リンク",href:"https://example.invalid/page",
                 color:"sky",visible:true,sortOrder:0,recommended:false,recommendationOrder:0,searchAliases:[],searchTerms:"fictional match")
             let category = LinkCategory(id:"fictional",label:"架空カテゴリ",sortOrder:0,buttons:[item])
             return SavedLinks(payload:LinksPayload(version:"v1",linksVersion:"sha256-" + String(repeating:"a",count:64),
-                categories:[category]),apiETag:"W/\"fictional\"",checkedAt:Date())
+                categories:[category]),apiETag:"W/\"fictional\"",checkedAt:acquiredAt,revision:String(repeating:"F",count:43))
         }
         let cacheFile = dataRoot.appendingPathComponent("links.json")
         let damagedCache = Data("{fictional-malformed-link-cache".utf8)
@@ -111,13 +127,22 @@ struct MappingService {
         try links.save(fictional("fictional-first"))
         model.resetForRetention(); model.loadIfNeeded()
         check(!model.failed && model.message == nil, "reading the restored cache clears the warning")
+        check(model.revisionConfirmation == nil, "legacy data does not imply that a check took place")
+        _ = try await model.revision()
+        let confirmation = model.revisionConfirmation
+        check(confirmation?.outcome == .unchanged && confirmation?.lastSuccess != nil, "the live revision records a successful unchanged check")
+        await model.refresh()
+        check(model.revisionConfirmation == confirmation, "a cache hit preserves the original observation")
+        model.resetForRetention(); model.loadIfNeeded()
+        check(model.revisionConfirmation == confirmation, "reopening restores the existing observation")
         let originalRevision = model.searchRevision
         let originalHits = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:[])
         check(originalHits?.map(\.id) == ["fictional-first"], "search uses current saved data")
         let hidden = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:["fictional-first"])
         check(hidden?.isEmpty == true, "search applies the current hidden set")
-        try links.save(fictional("fictional-second"))
+        try links.save(fictional("fictional-second", acquiredAt: Date(timeIntervalSince1970: 1_800_000_000.75)))
         model.resetForRetention(); model.loadIfNeeded()
+        check(model.revisionConfirmation == nil, "replacing data with the same revision cannot reuse the older installation's confirmation")
         let updatedRevision = model.searchRevision
         let outdated = await model.search(normalizedQuery:"match",revision:originalRevision,excluding:[])
         let updated = await model.search(normalizedQuery:"match",revision:updatedRevision,excluding:[])
@@ -156,6 +181,18 @@ struct MappingService {
         check(model.color(for:currentLink) == "blue", "choosing a new supported color works after reload")
         check(model.preferences.colorOverrides[currentLink.id] == "blue", "the replacement is stored as an override")
         check(model.preferences.colorOverrides["fictional-removed"] == "fictional-old-color", "unrelated historic color is retained")
+        LinkDownloadTransport.payload = try JSONEncoder().encode(fictional("fictional-download").payload)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [LinkDownloadTransport.self]
+        let network = URLSession(configuration: configuration)
+        defer { network.invalidateAndCancel() }
+        try await model.download(token: "fictional-token", revision: String(repeating: "F", count: 43), network: network)
+        let adoption = model.revisionConfirmation
+        check(adoption?.outcome == .adopted, "a successful live download records an adoption")
+        let reopened = LinksModel(preferencesStore:store,storeRoot:URL(fileURLWithPath:CommandLine.arguments[1]))
+        reopened.loadIfNeeded()
+        check(reopened.saved?.checkedAt == model.saved?.checkedAt && reopened.revisionConfirmation == adoption,
+              "the adopted installation survives the payload and confirmation storage round trip")
         check(failures.isEmpty, "all preference and search lifecycle assertions")
         if !failures.isEmpty { exit(1) }
         print("Production link preferences: revision, repair and edit persistence passed.")
@@ -164,7 +201,9 @@ struct MappingService {
 '''
         with tempfile.TemporaryDirectory(prefix="takupoke-links-lifecycle-") as scratch:
             root = Path(scratch)
-            (root / "Host.swift").write_text(host, encoding="utf-8")
+            models = (ROOT / "Takupoke/MappingModels.swift").read_text(encoding="utf-8")
+            revision_models = models[models.index("enum MappingRevisionResult:"):models.index("struct MappingRule:")]
+            (root / "Host.swift").write_text(host + "\n" + revision_models, encoding="utf-8")
             model = (ROOT / "Takupoke/LinksModel.swift").read_text(encoding="utf-8")
             model = model.replace("import SwiftUI", "#if canImport(FoundationNetworking)\nimport FoundationNetworking\n#endif")
             (root / "LinksModel.swift").write_text(model, encoding="utf-8")

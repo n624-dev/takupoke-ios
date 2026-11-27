@@ -150,6 +150,40 @@ final class ServiceStatusTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(conflicted.resources[.api]?.incidents.first).resolved)
     }
 
+    func testLargePublicPageRetainsUniqueReferencesAndRejectsAmbiguity() throws {
+        let updateType = "status_update"
+        let reportType = "status_report"
+        let affected = [["status_page_resource_id": "9028864", "status": "resolved"]]
+        let reportCount = 160
+        var reports = [[String: String]]()
+        var nodes = [resource("9028864"), resource("9028865")]
+        for index in 0..<reportCount {
+            let id = "fictional-report-\(index)"
+            let updateIDs = (0..<6).map { "\(id)-\($0)" }
+            var report = node(id, reportType, ["title": "架空障害", "affected_resources": affected,
+                                               "starts_at": "2032-04-01T00:00:00Z"])
+            report["relationships"] = ["status_updates": ["data": updateIDs.map { reference($0, updateType) }]]
+            reports.append(reference(id, reportType))
+            nodes.append(report)
+            for (number, updateID) in updateIDs.enumerated() {
+                let update = node(updateID, updateType, ["message": "架空の経過",
+                    "published_at": number == 5 ? "invalid" : "2032-04-01T00:00:00.123Z",
+                    "affected_resources": affected])
+                nodes.append(update)
+                if index == 0 && number == 0 { nodes.append(update) }
+                if index == 0 && number == 1 { nodes.append(node(updateID, ["status": "downtime"])) }
+            }
+        }
+        let data = try payload(nodes, reports: reports)
+        XCTAssertLessThan(data.count, ServiceStatusSnapshot.maximumBytes)
+        let snapshot = try ServiceStatusSnapshot.decode(data)
+        let incidents = try XCTUnwrap(snapshot.resources[.api]?.incidents)
+        XCTAssertEqual(incidents.count, reportCount)
+        XCTAssertEqual(incidents.first?.updates.map(\.id), (1...4).map { "fictional-report-0-\($0)" })
+        XCTAssertTrue(incidents.dropFirst().allSatisfy { $0.updates.count == 5 })
+        XCTAssertEqual(snapshot.resources[.authentication]?.incidents, [])
+    }
+
     func testCacheFailureExpiryAndClockRollbackRetainEvidenceButNotCurrentNormal() throws {
         let snapshot = try ServiceStatusSnapshot.decode(payload([resource("9028864")]))
         var cache = ServiceStatusCache()
