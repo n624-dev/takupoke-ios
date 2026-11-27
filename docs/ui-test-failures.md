@@ -1,3 +1,8 @@
+## 先行全体CIのiOS 26手動訂正で起動済みの画面を最初に照会できない（2026-11-27）
+
+- `4e3154d`、[全体46061047443試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46061047443/job/140717110658)、iOS 26.5／SDK 27.2。実ランタイム準備、ビルド、XCTest開始、架空資料の準備、アプリの前面表示を通過。アプリ自身は `application-ready`、`fixture-ready`、`app-active` を記録した。23:12:41 UTC、`ManualAssistanceChecks.swift:74` の最初の `fixture-ready` の実画面照会が `Timed out while evaluating UI query`。ケース121.140秒、元の2400秒の外側期限には到達していない。設定・入力・通知へのタッチなし。
+- `fixture-ready|ManualAssistanceChecks.swift:74|Timed out while evaluating UI query` で従来のタブ内のImage照会停止と、[同じ実起動・訂正が通過したiOS 26.5の限定](https://github.com/n624-dev/takupoke-ios/actions/runs/46046762157/job/140667850299)を比較した。今回は前面到達後の最初の画面照会。製品の起動が止まった証拠はなく、XCTest照会の下位原因は未確定。最新の全体CIで同じ完了条件を確認する。
+
 ## 先行全体CIのiOS 27でも週切替の反対方向で同じ間隔のずれ（2026-11-27）
 
 - `4e3154d`、[全体46061047443通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46061047443/job/140717110582)、iOS 27.0／SDK 27.2。22:33:47 UTC、`testPreparedWeeksMoveContinuouslyAndKeepTheirHeadersStable` の405行、ケース38.902秒。往路の移動・着地を通過した後、復路で指を離した時点の元の週x=95.333ptが15.524ms後の実枠でx=16ptに戻り、相対間隔が-281.667ptとなった。次の32.184msの実枠は-361pt。限定の往路と符号が逆でずれ量は同じ79.333pt。`4e3154d` は元スクロール位置を保持する修正を含まず、[修正後の両OSの実検査](https://github.com/n624-dev/takupoke-ios/actions/runs/46074553341)で往復を確認する。
