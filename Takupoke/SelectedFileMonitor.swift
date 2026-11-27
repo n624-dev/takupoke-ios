@@ -42,7 +42,7 @@ final class SelectedFileMonitor {
     }
 
     init(registrationChanged: @escaping () -> Void = {},
-         waitForRegistration: @escaping RegistrationWait = { _ in try await Task.sleep(for: .seconds(30)) },
+         waitForRegistration: @escaping RegistrationWait = { _ in try await Task.sleep(nanoseconds: 30_000_000_000) },
          changed: @escaping (String) -> Void, factory: Factory? = nil) {
         self.changed = changed
         self.registrationChanged = registrationChanged

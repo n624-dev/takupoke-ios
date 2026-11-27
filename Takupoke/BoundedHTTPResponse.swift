@@ -17,15 +17,16 @@ enum BoundedHTTPResponse {
 
     final class CommunicationBudget: @unchecked Sendable {
         private let lock = NSLock()
-        private let now: @Sendable () -> ContinuousClock.Instant
-        private let wait: @Sendable (ContinuousClock.Instant) async throws -> Void
-        private let requestLimit: Duration
-        private var remaining: Duration
+        private let now: @Sendable () -> TimeInterval
+        private let wait: @Sendable (TimeInterval) async throws -> Void
+        private let requestLimit: TimeInterval
+        private var remaining: TimeInterval
 
-        init(total: Duration = .seconds(180), perRequest: Duration = .seconds(60),
-             now: @escaping @Sendable () -> ContinuousClock.Instant = { .now },
-             wait: @escaping @Sendable (ContinuousClock.Instant) async throws -> Void = {
-                 try await ContinuousClock().sleep(until: $0)
+        init(total: TimeInterval = 180, perRequest: TimeInterval = 60,
+             now: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+             wait: @escaping @Sendable (TimeInterval) async throws -> Void = { deadline in
+                 let seconds = max(0, deadline - ProcessInfo.processInfo.systemUptime)
+                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
              }) {
             self.remaining = total
             self.requestLimit = perRequest
@@ -35,16 +36,16 @@ enum BoundedHTTPResponse {
 
         func read<Value: Sendable>(_ operation: @escaping @Sendable () async throws -> Value) async throws -> Value {
             let start = now()
-            let allowed = lock.withLock { () -> Duration in
+            let allowed = lock.withLock {
                 // Reserve the available allowance while this request owns it.
                 let allowed = min(requestLimit, remaining)
                 remaining -= allowed
                 return allowed
             }
-            guard allowed > .zero else { throw Failure.deadlineExceeded }
-            let end = start.advanced(by: allowed)
+            guard allowed > 0 else { throw Failure.deadlineExceeded }
+            let end = start + allowed
             defer {
-                let spent = min(allowed, max(.zero, start.duration(to: now())))
+                let spent = min(allowed, max(0, now() - start))
                 lock.withLock { remaining += allowed - spent }
             }
             return try await Deadline(hasExpired: { [now] in now() >= end },
@@ -55,12 +56,6 @@ enum BoundedHTTPResponse {
     struct Deadline: Sendable {
         let hasExpired: @Sendable () -> Bool
         let waitUntilExpired: @Sendable () async throws -> Void
-
-        init<C: Clock>(clock: C, duration: C.Duration) {
-            let end = clock.now.advanced(by: duration)
-            self.init(hasExpired: { clock.now >= end },
-                      waitUntilExpired: { try await clock.sleep(until: end, tolerance: nil) })
-        }
 
         init(hasExpired: @escaping @Sendable () -> Bool,
              waitUntilExpired: @escaping @Sendable () async throws -> Void) {
@@ -119,7 +114,7 @@ enum BoundedHTTPResponse {
 
     #if canImport(Darwin)
     static func read(_ request: URLRequest, using session: URLSession, maximum: Int) async throws -> (Data, HTTPURLResponse) {
-        let budget = communicationBudget ?? CommunicationBudget(total: .seconds(60))
+        let budget = communicationBudget ?? CommunicationBudget(total: 60)
         return try await budget.read { try await readResponse(request, using: session, maximum: maximum) }
     }
 

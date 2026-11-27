@@ -54,7 +54,10 @@ struct PDFAnalysisView: View {
     private let weekdays = ["すべて", "月", "火", "水", "木", "金"]
     private var selectedPDF: URL? { model.pdfURLs[kind.rawValue] }
     private var analysisPDF: URL? { model.analysisPDFURLs[kind.rawValue] }
-    private var separateAnalysisPDF: Bool { analysisPDF != nil && analysisPDF != selectedPDF }
+    private var separateAnalysisPDF: Bool {
+        guard analysisPDF != nil else { return false }
+        return selectedPDF == nil || analysis?.sourceDigest != model.state.record(for: kind)?.digest
+    }
 
     var body: some View {
         List {

@@ -161,6 +161,10 @@ struct SchoolDataRetention {
                 let url = root.appendingPathComponent(path)
                 if FileManager.default.fileExists(atPath: url.path) { try remove(url) }
             }
+            if let installed = try? installedPeriod(), installed != period,
+               FileManager.default.fileExists(atPath: unverified.path) {
+                try remove(unverified)
+            }
         } catch { throw Failure.cleanup }
         do {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)

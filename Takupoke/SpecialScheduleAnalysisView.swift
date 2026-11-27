@@ -18,7 +18,10 @@ struct SpecialScheduleAnalysisView: View {
     private var record: SpecialScheduleRecord? { model.records[kind] }
     private var selectedPDF: URL? { model.urls[kind] }
     private var analysisPDF: URL? { model.analysisPDFURLs[kind] }
-    private var separateAnalysisPDF: Bool { analysisPDF != nil && analysisPDF != selectedPDF }
+    private var separateAnalysisPDF: Bool {
+        guard analysisPDF != nil else { return false }
+        return selectedPDF == nil || record?.digest != source?.digest
+    }
 
     var body: some View {
         List {

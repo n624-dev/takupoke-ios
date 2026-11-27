@@ -234,10 +234,16 @@ print("Verified actual background preservation and heavy-work/cancel transitions
         linked = (ROOT / "Takupoke/CancellationLinkedTask.swift").read_text(encoding="utf-8")
         methods = "\n".join(block(coordinator, start) for start in (
             "    private var hasManualWork:", "    func suspendForInactivity()", "    func resumeAfterInactivity()",
-            "    func invalidateManualIfSourceChanged()", "    func cancel()",
+            "    func invalidateManualIfSourceChanged()", "    func cancel()", "    private func recoveryWorkerFinished(",
         ))
         source = linked + r'''
-struct Source: Sendable { let url: URL; let bytes: Data }
+typealias RecoveryDocumentKind = String
+struct Source: Sendable { let url: URL; let bytes: Data; let kind = "fictional-timetable" }
+@MainActor final class UIApplication {
+    static let shared = UIApplication()
+    enum State { case active, inactive }
+    var applicationState: State = .active
+}
 struct Preview: Sendable {
     struct Result: Sendable { let humanCorrections: [String]? }
     let source: Source
@@ -273,6 +279,7 @@ enum RecoveryFailure { case originalRevalidation, selectionChanged }
     var manualImages = [String: String](), manualContextImages = [String: String](), manualInitialValues = [String: String]()
     var manualInitialAcknowledged = Set<String>()
     init(source: Source) { self.source = source; preview = Preview(source: source) }
+    func finishedForTest(_ kind: RecoveryDocumentKind, operation: UUID) { recoveryWorkerFinished(kind, operation: operation) }
     func check(_ id: UUID) throws {
         try Task.checkCancellation()
         guard operation == id, selectedSourceIsCurrent else { throw CancellationError() }
@@ -288,12 +295,20 @@ enum RecoveryFailure { case originalRevalidation, selectionChanged }
 
         let unchanged = Coordinator(source: source)
         let previewID = unchanged.preview?.id
+        let oldWorker = unchanged.operation
+        unchanged.recoveryWorkers[source.kind] = oldWorker
         unchanged.suspendForInactivity()
         precondition(unchanged.previewNeedsRevalidation && !unchanged.running)
+        precondition(unchanged.endingRecovery == [source.kind])
         unchanged.resumeAfterInactivity()
+        precondition(!unchanged.running && unchanged.preview?.id == previewID)
+        unchanged.finishedForTest(source.kind, operation: UUID())
+        precondition(!unchanged.running && unchanged.endingRecovery == [source.kind])
+        unchanged.finishedForTest(source.kind, operation: oldWorker)
         precondition(unchanged.running && unchanged.previewNeedsRevalidation)
         await unchanged.task?.value
         precondition(!unchanged.running && !unchanged.previewNeedsRevalidation && unchanged.failureReason == nil && unchanged.preview?.id == previewID)
+        precondition(unchanged.endingRecovery.isEmpty && unchanged.recoveryWorkers.isEmpty)
         let completedOperation = unchanged.operation
         unchanged.resumeAfterInactivity()
         precondition(unchanged.operation == completedOperation && !unchanged.running)

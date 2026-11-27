@@ -92,6 +92,17 @@ final class SchoolDataRetentionTests: XCTestCase {
                     XCTAssertEqual(try Data(contentsOf: retained), Data(name.utf8))
                 }
             }
+            let next = SchoolDataPeriod(day: try XCTUnwrap(SchoolDate(iso8601: "2033-04-01")))
+            XCTAssertThrowsError(try retention.replace(with: next, remove: { url in
+                if url.path == archiveRoot.path { throw CocoaError(.fileWriteNoPermission) }
+                try manager.removeItem(at: url)
+            })) { XCTAssertEqual($0 as? SchoolDataRetention.Failure, .cleanup) }
+            XCTAssertEqual(try retention.installedPeriod(), current)
+            XCTAssertTrue(manager.fileExists(atPath: archiveRoot.path))
+            try retention.replace(with: next)
+            XCTAssertEqual(try retention.installedPeriod(), next)
+            XCTAssertFalse(manager.fileExists(atPath: archiveRoot.path))
+            XCTAssertTrue(manager.fileExists(atPath: root.appendingPathComponent("SchoolEventsAPI").path))
         }
     }
 

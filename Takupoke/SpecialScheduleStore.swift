@@ -39,14 +39,15 @@ final class SpecialScheduleStore {
         let files = root.appendingPathComponent("files", isDirectory: true)
         let (usable, unreadable, names) = try original.read { db in
             guard try String.fetchOne(db, sql: "PRAGMA quick_check") == "ok",
-                  try db.tableExists("specialSchedule"), try db.tableExists("specialSource") else {
+                  try db.tableExists("specialSchedule") else {
                 throw StoreError.invalidState
             }
+            let hasSources = try db.tableExists("specialSource")
             var usable = Set<SpecialScheduleKind>(), unreadable = Set<SpecialScheduleKind>(), names = Set<String>()
             for kind in SpecialScheduleKind.allCases {
                 do {
                     let record = try readRecords(db, files: files, kind: kind)[kind]
-                    let source = try readSources(db, files: files, kind: kind)[kind]
+                    let source = hasSources ? try readSources(db, files: files, kind: kind)[kind] : nil
                     var originals: [(String, Int, String)] = []
                     if let record {
                         if record.analysis.recovery != nil,
@@ -83,7 +84,7 @@ final class SpecialScheduleStore {
             try original.backup(to: copy)
             try copy.write { db in
                 for kind in unreadable {
-                    for table in ["specialSource", "specialSchedule", "specialAcquisitionAttempt"] {
+                    for table in ["specialSource", "specialSchedule", "specialAcquisitionAttempt"] where try db.tableExists(table) {
                         try db.execute(sql: "DELETE FROM \(table) WHERE kind = ?", arguments: [kind.rawValue])
                     }
                 }
@@ -157,25 +158,8 @@ final class SpecialScheduleStore {
                     )
                     """)
             }
-            try db.execute(sql: """
-                CREATE TABLE IF NOT EXISTS specialAcquisitionAttempt (
-                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
-                    payload BLOB NOT NULL
-                )
-                """)
             return try db.tableExists("specialSource")
         }
-        acquisitionAttempts = (try? queue.read { db in
-            var attempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
-            for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialAcquisitionAttempt WHERE length(payload) <= 4096") {
-                let key: String = row["kind"]
-                let bytes: Data = row["payload"]
-                guard bytes.count <= 4096, let kind = SpecialScheduleKind(rawValue: key),
-                      let attempt = try? JSONDecoder().decode(AcquisitionAttempt.self, from: bytes) else { continue }
-                attempts[kind] = attempt
-            }
-            return attempts
-        }) ?? [:]
         records = try queue.read { try Self.readRecords($0, files: files) }
         // The legacy schema had only accepted analyses. Upgrade it only when
         // those validated records account for every retained PDF copy.
@@ -198,6 +182,25 @@ final class SpecialScheduleStore {
                 storedName: record.storedName, byteCount: record.byteCount, digest: record.digest,
                 acquiredAt: record.acquiredAt, failure: nil, grant: nil)
         }
+        try queue.write { db in
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS specialAcquisitionAttempt (
+                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                    payload BLOB NOT NULL
+                )
+                """)
+        }
+        acquisitionAttempts = (try? queue.read { db in
+            var attempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
+            for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialAcquisitionAttempt WHERE length(payload) <= 4096") {
+                let key: String = row["kind"]
+                let bytes: Data = row["payload"]
+                guard bytes.count <= 4096, let kind = SpecialScheduleKind(rawValue: key),
+                      let attempt = try? JSONDecoder().decode(AcquisitionAttempt.self, from: bytes) else { continue }
+                attempts[kind] = attempt
+            }
+            return attempts
+        }) ?? [:]
         try removeUnreferencedFiles()
         for kind in Array(records.keys) { try recertifyAccepted(kind:kind) }
     }

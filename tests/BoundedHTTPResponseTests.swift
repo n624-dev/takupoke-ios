@@ -99,13 +99,13 @@ final class BoundedHTTPResponseTests: XCTestCase {
     func testAccountCommunicationBudgetCountsRequestsAndExcludesTimeBetweenThem() async throws {
         final class Clock: @unchecked Sendable {
             let lock = NSLock()
-            var instant = ContinuousClock.now
-            func read() -> ContinuousClock.Instant { lock.withLock { instant } }
-            func advance(_ seconds: Int) { lock.withLock { instant = instant.advanced(by: .seconds(seconds)) } }
+            var instant: TimeInterval = 0
+            func read() -> TimeInterval { lock.withLock { instant } }
+            func advance(_ seconds: TimeInterval) { lock.withLock { instant += seconds } }
         }
         let clock = Clock()
         let budget = BoundedHTTPResponse.CommunicationBudget(now: { clock.read() }, wait: { _ in
-            try await Task.sleep(for: .seconds(10))
+            try await Task.sleep(nanoseconds: 10_000_000_000)
         })
         for _ in 0..<3 {
             let data = try await budget.read { clock.advance(55); return Data([1]) }
@@ -120,7 +120,9 @@ final class BoundedHTTPResponseTests: XCTestCase {
             _ = try await budget.read { XCTFail("A fifth transfer must not start after budget exhaustion"); return Data() }
             XCTFail("Expected the total communication limit")
         } catch BoundedHTTPResponse.Failure.deadlineExceeded {}
-        let freshBudget = BoundedHTTPResponse.CommunicationBudget(now: { clock.read() })
+        let freshBudget = BoundedHTTPResponse.CommunicationBudget(now: { clock.read() }, wait: { _ in
+            try await Task.sleep(nanoseconds: 10_000_000_000)
+        })
         do {
             _ = try await freshBudget.read { clock.advance(60); return Data([3]) }
             XCTFail("Each communication has its own sixty second limit")
