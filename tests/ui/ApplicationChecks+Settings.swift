@@ -460,6 +460,7 @@ extension ApplicationChecks {
         XCTAssertFalse(app.staticTexts["停止中"].exists)
         back(to: "ステータス")
         _ = heading("この端末")
+        _ = visible(app.descendants(matching: .any)["status-background-refresh"], navigation: "ステータス")
         _ = visible(app.buttons["更新確認の記録をコピー"], navigation: "ステータス")
         back(to: "設定")
         XCTAssertTrue(entry.exists)

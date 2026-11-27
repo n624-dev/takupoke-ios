@@ -390,10 +390,40 @@ struct AppStatusView: View {
                     title: materials.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended ? "一時停止中" : "有効",
                     tone: .neutral))
             }
+            backgroundRefreshStatus
             StatusRow(title: "ローカル保存データ", status: evidence.storageStatus)
             NavigationLink { materialSettings } label: {
                 StatusRow(title: "選択ファイルへのアクセス", status: .init(title: "各ファイルの確認結果を参照", tone: .neutral))
             }
+        }
+    }
+
+    private var backgroundRefreshStatus: some View {
+        let record = BackgroundRefresh.diagnostics()
+        let title: String
+        switch record.reservation {
+        case .scheduled: title = "iPhoneが更新依頼を受付済み"
+        case .unavailable: title = "iPhoneのバックグラウンド更新を利用できません"
+        case .notPermitted, .pendingLimit, .otherFailure: title = "最新の更新依頼は受け付けられませんでした"
+        case nil: title = "更新依頼の記録なし"
+        }
+        return VStack(alignment: .leading, spacing: 5) {
+            Text("アプリを閉じている間の更新").font(.headline)
+            Text(title).font(.subheadline)
+            backgroundRefreshDate("最後に依頼", record.lastAttemptAt)
+            backgroundRefreshDate("最後に受付", record.lastScheduledAt)
+            backgroundRefreshDate("最後に実行", record.lastExecutionAt)
+            Text("実行する時刻はiPhoneが決めます。").foregroundStyle(.secondary)
+        }
+        .font(.caption)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("status-background-refresh")
+    }
+
+    private func backgroundRefreshDate(_ label: String, _ date: Date?) -> some View {
+        LabeledContent(label) {
+            if let date { Text(date, format: JapaneseDateDisplay.timestamp) }
+            else { Text("記録なし") }
         }
     }
 

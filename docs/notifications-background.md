@@ -46,3 +46,5 @@
 差分判定は架空のデータで検証します。実機では通知許可・初回取り込み・選択中クラスの変更通知・試験／返却PDFの更新通知・バックグラウンド確認・VoiceOverを確認してください。iOSによるバックグラウンド実行頻度は、ビルドや自動テストの成功だけでは確認できません。
 
 参照：[Appleの通知許可](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)、[SwiftUIのバックグラウンドタスク](https://developer.apple.com/videos/play/wwdc2022/10142/)、[BGAppRefreshTask](https://developer.apple.com/documentation/backgroundtasks/bgapprefreshtask)。
+
+ステータスの「この端末」では、バックグラウンド更新を最後に依頼した時刻、iPhoneが受け付けた時刻、実際に更新を始めた時刻を確認できます。実行する時刻はiPhoneが決めます。
