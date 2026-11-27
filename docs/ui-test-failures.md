@@ -1,3 +1,8 @@
+## 最新のiOS 26週切替限定でXCTest開始前にジョブ上限（2026-11-27）
+
+- `3db93c0`、[限定46074553341試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46074553341/job/140759109514)、iOS 26.5／SDK 27.2。実ランタイムの準備、アプリのビルド、シミュレーター起動が成功。23:15:23 UTCにUI検査のコマンドを開始し、依存の解決結果を出した後、テストランナーとケースの開始記録は0件。GitHubの「maximum execution time of 30m0s」で終了し、元の90ms条件は未計測。手動取消なし。[同じコミットのiOS 27](https://github.com/n624-dev/takupoke-ios/actions/runs/46074553341/job/140759109154) は両ケース成功、週切替の着地後は往路49.989ms・復路49.936ms。
+- `test-phase-remaining-enter|maximum execution time|handleStalledWait` で先行の準備停止、iOS 27でテストランナーの起動記録があった停止と照合した。今回は `xcodebuild` の依存解決後からケース開始までの停止で、描画の期待値やアプリの操作成否は未観測。開始済みの全体CIは同じSDK・実ケースをiOS 26通常Bの枠で実行する。追加の実行で既存ランナー待ちを増やさない。
+
 ## 先行全体CIのiOS 26手動訂正で起動済みの画面を最初に照会できない（2026-11-27）
 
 - `4e3154d`、[全体46061047443試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46061047443/job/140717110658)、iOS 26.5／SDK 27.2。実ランタイム準備、ビルド、XCTest開始、架空資料の準備、アプリの前面表示を通過。アプリ自身は `application-ready`、`fixture-ready`、`app-active` を記録した。23:12:41 UTC、`ManualAssistanceChecks.swift:74` の最初の `fixture-ready` の実画面照会が `Timed out while evaluating UI query`。ケース121.140秒、元の2400秒の外側期限には到達していない。設定・入力・通知へのタッチなし。
