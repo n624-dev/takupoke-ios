@@ -1,3 +1,12 @@
+## PR #238のiOS 27通常Aで配信データだけのテストに先行ケースの行事が残る（2026-11-27）
+
+- `d963487`、[全体46003572284 試行1のiOS 27.0通常A](https://github.com/n624-dev/takupoke-ios/actions/runs/46003572284/job/140523988502)、SDK 27.2。24件中23成功。`testStatusScreenUsesPublicResourcesAndDataRoutes` はステータスの実NavigationBarまで進み、13:58:53 UTCに `ApplicationChecks+Settings.swift:433` で集計の「更新確認済み」が10秒以内に成立せず失敗（29.025秒）。リンク・監視先への後続操作は未到達。ログ中の失敗用画像はホームで、この失敗時の集計画面を示していないため表示原因の根拠に含めない。
+- 先行ケースでは現在年度の架空行事を `SchoolEventsAPI` に保存する。配信データだけのfixtureは行事の新規保存を省くが、リセット処理は製品の半期処理を通るため既存の公開行事を保持する。先行ケースの未確認行事が集計に加わり得る。先行ケースのストアを用いる対照でこの条件を確認し、配信データだけのfixtureを起動時に初期化する。製品の行事保持、集計判定、表示文言、XCTestの10秒を維持する。
+- 同じジョブで合格した保存期間復旧テストの SwiftUI 警告が `record(_:)` に入り、失敗用の撮影を消費していた。以降の実失敗を撮影するため、Apple XCTestの `isFailure` を見て失敗の時だけ撮影し、記録自体は警告・失敗ともそのままXCTestへ渡す。 [Apple XCTest](https://developer.apple.com/documentation/xctest/xctissue-swift.struct/isfailure)
+- 局所の初回Python対照は、`seed` 本体にある架空の破損JSONの `{` をSwiftの構文と区別しない抽出補助を使い、`IndexError` で停止した。`seed` の中は呼び出し順だけを照合し、実行するリセット関数だけを抽出する。
+- 撮影条件の局所対照も、MainActorを持つ検査をSwiftのトップレベルから呼んで型検査で停止。実コードのMainActor隔離を守るため、対照の `@MainActor static func main()` から同じ経路を実行する。
+- 実行前レビューで、新しい固定の起動記録が別のロガーの許可一覧にないため破棄されることを確認した。既存CIの実行中トレースへ直接記録し、その呼び出しを生成前の検査で照合する。
+
 ## #183・#193が解析と保存の同じエラー型を取得の一時障害と判定（2026-11-27）
 
 - 13:58 UTC、`d963487` 基点のSwift 6.1.2／Linux。実パイプラインに、解析・検証・保存から `URLError.networkConnectionLost` と `MaterialError.providerReadFailed` を返した。自動確認と手動再取得の12組で、初回だけで終えるべき処理が再試行2回へ進んだ。原因は取得の期限切れだけが発生段階を見ており、残りの一時障害をエラー型だけで判定したこと。
