@@ -103,6 +103,7 @@ extension PDF239SpecialScheduleParser {
         for (dayRun, day) in dateRuns {
             try check()
             let row = try grid.box(dayRun.cx, dayRun.cy)
+            var rowRegions = Set<PDFBox>()
             for (column, name) in names.enumerated() {
                 let periodXs = (0..<6).map { periods[column * 6 + $0].cx }
                 for period in 1...6 {
@@ -122,8 +123,11 @@ extension PDF239SpecialScheduleParser {
                                               period: period, periodXs: periodXs,
                                               times: times, pageNumber: pageNumber)
                     }
-                    fullScopeProven = fullScopeProven && PDF239SchoolParser.coversFullRow(row, regions: seen)
+                    if fullScopeProven { rowRegions.formUnion(seen) }
                 }
+            }
+            if fullScopeProven {
+                fullScopeProven = coversTableRow(page, row: row, headings: periods, regions: rowRegions)
             }
         }
         return ParsedPage(dates: dateRuns.map { $0.1.iso8601 }, classes: names, lessons: result, fullScopeProven: fullScopeProven)
@@ -221,6 +225,7 @@ extension PDF239SpecialScheduleParser {
             let name = grade.text + "_" + run.text
             guard seenClasses.insert(name).inserted else { throw PDFParseError(code: .ambiguous, page: 1, stage: .duplicateClass, branch:.b397) }
             let row = try grid.box(run.cx, run.cy)
+            var rowRegions = Set<PDFBox>()
             for (dayIndex, (_, day)) in dates.enumerated() {
                 let dayTimes = dayIndex == 0 ? times : ordinaryTimes
                 let periodXs = (0..<8).map { periods[dayIndex * 8 + $0].cx }
@@ -243,12 +248,22 @@ extension PDF239SpecialScheduleParser {
                                               times: dayTimes, pageNumber: 1, contentTop: contentTop,
                                               geometry:target, dayIndex:dayIndex)
                     }
-                    fullScopeProven = fullScopeProven && PDF239SchoolParser.coversFullRow(row, regions: seen)
+                    if fullScopeProven { rowRegions.formUnion(seen) }
                 }
+            }
+            if fullScopeProven {
+                fullScopeProven = coversTableRow(page, row: row, headings: periods, regions: rowRegions)
             }
         }
         return ParsedPage(dates: dates.map { $0.1.iso8601 },
                           classes: seenClasses.sorted(), lessons: result, fullScopeProven: fullScopeProven)
+    }
+
+    private static func coversTableRow(_ page: PDFPageLayout, row: PDFBox, headings: [PDFGlyph], regions: Set<PDFBox>) -> Bool {
+        guard let last = headings.last, let right = PDF239SchoolParser.rightTableEdge(on: page, row: row, after: last.cx) else {
+            return false
+        }
+        return PDF239SchoolParser.coversFullRow(row, from: row.right, to: right, regions: regions)
     }
 
     /// The class-label cell can extend upwards through a second header band.

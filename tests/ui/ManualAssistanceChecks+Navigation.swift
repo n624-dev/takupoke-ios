@@ -297,14 +297,10 @@ extension ManualAssistanceChecks {
               barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground else {
             XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
         }
-        print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=native-center-brief-contact;duration=0.1")
-        let center = CGPoint(x: frame.midX, y: frame.midY)
-        do {
-            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
-                                        named: "Manual fixture toolbar")
-        } catch {
-            XCTFail("Native fixture menu contact failed: \(error)");return
-        }
+        print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=app-coordinate-tap")
+        let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+        let target = CGVector(dx: frame.midX - screenFrame.minX, dy: frame.midY - screenFrame.minY)
+        origin.withOffset(target).tap()
         tapFixtureDialogAction(action, requiredTitles: requiredTitles, screenFrame: screenFrame)
     }
 

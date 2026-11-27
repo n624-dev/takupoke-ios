@@ -161,16 +161,16 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | 詳細番号 | 生成時分類 | 拒否条件／コード抜粋 | 実装 |
 |---|---|---|---|
 | R380 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L13) |
-| R379 | P06 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L19) |
-| R378 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L31) |
-| R377 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L37) |
-| R376 | P16 | `guard classes.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L40) |
-| R375 | 分類なし／呼出元 | `guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L65) |
-| R374 | P17 | `guard lines.count <= 3, !lines[0].isEmpty else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L66) |
-| R373 | P18 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L71) |
-| R372 | P19 | `if parallel && parts[0].contains(where: { $0.isEmpty }) { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L73) |
-| R371 | 分類なし／呼出元 | `if output.count > maximumRecords { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L81) |
-| R370 | 分類なし／呼出元 | `guard !classes.isEmpty, !output.isEmpty else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L92) |
+| R379 | P06 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L20) |
+| R378 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L32) |
+| R377 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L38) |
+| R376 | P16 | `guard classes.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L41) |
+| R375 | 分類なし／呼出元 | `guard lines.reduce(0, { $0 + $1.utf8.count }) <= 4096 else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L67) |
+| R374 | P17 | `guard lines.count <= 3, !lines[0].isEmpty else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L68) |
+| R373 | P18 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L73) |
+| R372 | P19 | `if parallel && parts[0].contains(where: { $0.isEmpty }) { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L75) |
+| R371 | 分類なし／呼出元 | `if output.count > maximumRecords { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L83) |
+| R370 | 分類なし／呼出元 | `guard !classes.isEmpty, !output.isEmpty else { throw` | [確認条件](../Takupoke/PDF239SchoolParser+Timetable.swift#L96) |
 
 ### 239.1のStrict判定（原条件と固定番号）
 
@@ -211,14 +211,14 @@ R126の条件は四隅／R263の辺／R264の根拠／R265の重なりに分離�
 | R430 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L81) |
 | R435 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L84) |
 | R431 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L91) |
-| R432 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L119) |
-| R402 | P05 | `guard step > 5 else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L171) |
-| R401 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L178) |
-| R400 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L188) |
-| R399 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L202) |
-| R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L214) |
-| R436 | P15 | `返却の学年帯とクラス行を実罫線または行ごとの区切りから一意に対応できない` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L216) |
-| R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L222) |
+| R432 | P08 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L120) |
+| R402 | P05 | `guard step > 5 else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L175) |
+| R401 | P10 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L182) |
+| R400 | P05 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L192) |
+| R399 | P14 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L206) |
+| R398 | P15 | `複合条件の拒否。実装リンクの条件全文を参照` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L218) |
+| R436 | P15 | `返却の学年帯とクラス行を実罫線または行ごとの区切りから一意に対応できない` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L220) |
+| R397 | P16 | `guard seenClasses.insert(name).inserted else { throw` | [確認条件](../Takupoke/PDF239SpecialScheduleParser+Pages.swift#L226) |
 
 ### 239.1のStrict時刻と数値途中の採用拒否
 

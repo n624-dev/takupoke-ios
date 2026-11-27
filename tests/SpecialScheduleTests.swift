@@ -42,6 +42,17 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertFalse(RecoveryManualComparison.compare(next, previous: legacy).available)
     }
 
+    func testStrictExamMayParseWithoutProvingAnUnsampledStripIsEmpty() throws {
+        var pages = (1...6).map { examPage($0) }
+        let complete = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        pages[0].lines.append(PDFRule(x1: 105, y1: 110, x2: 105, y2: 310))
+        pages[0].glyphs.append(PDFGlyph(text: "未", x: 101, y: 156, width: 3, height: 4))
+        let partial = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        XCTAssertTrue(complete.validStrictComparisonCoverage)
+        XCTAssertEqual(partial.lessons, complete.lessons)
+        XCTAssertNil(partial.strictComparisonCoverage)
+    }
+
     func testStrictExamRequiresEachDateLabelToDescribeOneWholeDay() throws {
         for (label, expected) in [("4月1日","2026-04-01"), ("４ 月 １ 日 （ 水 ）","2026-04-01"),
                                   ("4月1日水曜日","2026-04-01"), ("1月5日(火)","2027-01-05")] {

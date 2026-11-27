@@ -87,8 +87,14 @@ def view(text):
             .onDisappear { FixtureCITrace.mark("manual-screen-disappeared") }
             .dynamicTypeSize(manualQATypeSize)
             .toolbar { ToolbarItem(placement:.topBarTrailing) {
-                Button("架空検証") { manualQAActionsPresented = true }
+                Button("架空検証") {
+                    FixtureCITrace.mark("manual-fixture-menu-action")
+                    manualQAActionsPresented = true
+                }
             } }
+            .onChange(of: manualQAActionsPresented) { _, presented in
+                FixtureCITrace.mark(presented ? "manual-fixture-menu-presented" : "manual-fixture-menu-dismissed")
+            }
             .confirmationDialog("架空検証", isPresented: $manualQAActionsPresented) {
                 Button("表示サイズを変更") { manualQATypeSize = manualQATypeSize == .large ? .xxxLarge : .large }
                 Button("同じ原本の状態を再確認") {

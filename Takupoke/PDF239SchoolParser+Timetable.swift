@@ -14,6 +14,7 @@ extension PDF239SchoolParser {
         }
         let header = headers[0]
         let first = try grid.box(header[0].cx, header[0].cy)
+        let rightEdge = header.last.flatMap { entry in try? grid.box(entry.cx, entry.cy).right }
         let classBox = try grid.box(first.left - 2, first.bottom + 20)
         guard let bodyBottom = page.lines.filter({ $0.vertical && abs($0.x1 - classBox.right) < 0.3 }).map(\.y2).max() else {
             throw PDFParseError(code: .unsupported, page: 1, stage: .gridColumn, branch:.b379)
@@ -41,6 +42,7 @@ extension PDF239SchoolParser {
             // The first class spans the supplementary period header as well.
             // Use the top of its first actual subject cell to exclude that header.
             row.top = max(row.top, try grid.box(header[0].cx, y).top)
+            var rowRegions = Set<PDFBox>()
             for (column, h) in header.enumerated() {
                 try check()
                 let cuts = Set(page.lines.filter { $0.horizontal && $0.x1 - 0.5 <= h.cx && h.cx <= $0.x2 + 0.5 &&
@@ -80,13 +82,15 @@ extension PDF239SchoolParser {
                     }
                     if output.count > maximumRecords { throw PDFParseError(code: .limit, branch:.b371) }
                 }
-                if fullScopeProven {
-                    if coversFullRow(row, regions: seen), provenSlots.count < maximumRecords {
-                        provenSlots.append(.init(className: name, weekday: column / 8 + 1, period: column % 8 + 1))
-                    } else {
-                        fullScopeProven = false
-                    }
-                }
+                if fullScopeProven { rowRegions.formUnion(seen) }
+            }
+            if fullScopeProven {
+                if let rightEdge, provenSlots.count <= maximumRecords - header.count,
+                   coversFullRow(row, from: classBox.right, to: rightEdge, regions: rowRegions) {
+                    provenSlots.append(contentsOf: header.indices.map {
+                        .init(className: name, weekday: $0 / 8 + 1, period: $0 % 8 + 1)
+                    })
+                } else { fullScopeProven = false }
             }
         }
         guard !classes.isEmpty, !output.isEmpty else { throw PDFParseError(code: .unsupported, page: 1, branch:.b370) }
@@ -95,12 +99,32 @@ extension PDF239SchoolParser {
 
     // Used only to record comparison evidence. A clipped strip or an
     // uninspected gap cannot certify an empty slot.
-    static func coversFullRow(_ row: PDFBox, regions: Set<PDFBox>) -> Bool {
-        let ordered = regions.sorted { $0.top == $1.top ? $0.bottom < $1.bottom : $0.top < $1.top }
+    static func coversFullRow(_ row: PDFBox, from left: Double, to right: Double, regions: Set<PDFBox>) -> Bool {
         let tolerance = 0.3
-        guard let first = ordered.first, let last = ordered.last,
-              abs(first.top - row.top) < tolerance, abs(last.bottom - row.bottom) < tolerance else { return false }
-        return zip(ordered, ordered.dropFirst()).allSatisfy { abs($0.0.bottom - $0.1.top) < tolerance }
+        guard left < right, row.top < row.bottom, !regions.isEmpty, regions.count <= 512,
+              regions.allSatisfy({
+                  $0.top < $0.bottom && $0.left < $0.right &&
+                      $0.top >= row.top - tolerance && $0.bottom <= row.bottom + tolerance &&
+                      $0.left >= left && $0.right <= right
+              }) else { return false }
+        let inside = regions.flatMap { [$0.top, $0.bottom] }.filter { row.top < $0 && $0 < row.bottom }
+        let edges = Set([row.top, row.bottom] + inside).sorted()
+        let ordered = regions.sorted { $0.left == $1.left ? $0.right < $1.right : $0.left < $1.left }
+        for (top, bottom) in zip(edges, edges.dropFirst()) {
+            let columns = ordered.filter { $0.top <= top && $0.bottom >= bottom }
+            guard let first = columns.first, let last = columns.last,
+                  first.left == left, last.right == right,
+                  zip(columns, columns.dropFirst()).allSatisfy({ $0.0.right == $0.1.left }) else {
+                return false
+            }
+        }
+        return true
+    }
+
+    static func rightTableEdge(on page: PDFPageLayout, row: PDFBox, after lastHeading: Double) -> Double? {
+        page.lines.lazy.filter {
+            $0.vertical && $0.x1 > lastHeading && $0.y1 <= row.top + 0.3 && $0.y2 >= row.bottom - 0.3
+        }.map(\.x1).max()
     }
 }
 

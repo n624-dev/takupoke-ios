@@ -408,15 +408,16 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
         return images
     }
-    nonisolated private static func snapshot(_ doc:RecoveryDocument,_ result:RecoveryResult) -> RecoveryManualComparison.Snapshot {
+    nonisolated private static func snapshot(_ doc:RecoveryDocument,_ result:RecoveryResult,
+                                            compareByTimetablePeriod: Bool = false) -> RecoveryManualComparison.Snapshot {
         typealias C = RecoveryManualComparison
         let slots=doc.requiredSlots.map { C.Slot(className:$0.className,day:$0.day,period:$0.period) }
         var entries=[C.Slot:[C.Lesson]]()
         for cell in doc.cells {
             guard let output=result.cells.first(where:{ $0.cellId == cell.id }),let start=cell.slots.map(\.period).min(),let end=cell.slots.map(\.period).max() else { continue }
             for slot in cell.slots {
-                let slotStart = doc.kind == .timetable ? slot.period : start
-                let slotEnd = doc.kind == .timetable ? slot.period : end
+                let slotStart = compareByTimetablePeriod ? slot.period : start
+                let slotEnd = compareByTimetablePeriod ? slot.period : end
                 let time=doc.kind == .timetable ? nil : (start == end ? doc.times["\(slot.day):\(start)"] : doc.spanTimes["\(slot.day):\(start)-\(end)"])
                 entries[C.Slot(className:slot.className,day:slot.day,period:slot.period)]=output.lessons.map { C.Lesson(subject:$0.subject.value,teacher:$0.teacher.value,room:$0.room.value,spanStart:slotStart,spanEnd:slotEnd,time:time) }
             }
@@ -426,18 +427,22 @@ final class PDFRecoveryCoordinator: ObservableObject {
     nonisolated private static func comparison(_ candidate:RecoveryPreview,previousTimetable:PDFAnalysis?,previousSpecial:SpecialScheduleAnalysis?,check:() throws -> Void) throws -> RecoveryManualComparison.Result {
         typealias C = RecoveryManualComparison
         try check()
-        let current=snapshot(candidate.document,candidate.result)
         var previous:C.Snapshot?
+        var compareByTimetablePeriod = false
         if candidate.document.kind == .timetable, let old=previousTimetable,old.kind == .timetable {
             if old.recovery != nil {
                 if let certified=try RecoveryValidator.recertifiedTimetable(old,hash:old.sourceDigest),let adopted=certified.recovery { previous=snapshot(adopted.document,adopted.result) }
-            } else { previous = try old.strictComparisonSnapshot(check: check) }
+            } else {
+                previous = try old.strictComparisonSnapshot(check: check)
+                compareByTimetablePeriod = previous != nil
+            }
         } else if let old=previousSpecial,(old.kind == .exam ? RecoveryDocumentKind.exam : .return) == candidate.document.kind {
             if old.recovery != nil {
                 if let certified=try RecoveryConversion.recertifiedSpecial(old,hash:old.sourceDigest),let adopted=certified.recovery { previous=snapshot(adopted.document,adopted.result) }
             } else { previous = try old.strictComparisonSnapshot(check: check) }
         }
         try check()
+        let current = snapshot(candidate.document, candidate.result, compareByTimetablePeriod: compareByTimetablePeriod)
         return C.compare(current,previous:previous)
     }
     private static func crop(_ box:RecoveryBox,raster:RecoveryRasterGrid) -> UIImage? {

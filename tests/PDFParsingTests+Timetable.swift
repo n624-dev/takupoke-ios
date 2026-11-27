@@ -42,6 +42,18 @@ extension PDFParsingTests {
         XCTAssertFalse(RecoveryManualComparison.compare(new, previous: old).available)
     }
 
+    func testStrictTimetableMayParseWithoutProvingAnUnsampledStripIsEmpty() throws {
+        let complete = try PDFSchoolParser.parse([timetable()], kind: .timetable, digest: "fictional", name: "fictional.pdf")
+        var separated = timetable()
+        // The strip is between the row label and the first period's center.
+        separated.lines.append(v(103, 100, 160))
+        separated.glyphs += text("未", x: 100.4, y: 112, step: 1)
+        let partial = try PDFSchoolParser.parse([separated], kind: .timetable, digest: "fictional", name: "fictional.pdf")
+        XCTAssertNotNil(complete.strictTimetableSlots)
+        XCTAssertEqual(partial.lessons, complete.lessons)
+        XCTAssertNil(partial.strictTimetableSlots)
+    }
+
     func testStrict239RetainsFirstYearMarkerAndOriginalCoordinateContract() throws {
         var page = timetable()
         page.glyphs += text("2040年度",x:500,y:20)

@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`b5b70f42bc6801aaa8177b4c392de35d27bcf0e6b9f9aacc3ac11b8455c3c1a1`
+`bf5e62771af16cd7c992ece11f18dbf4d5b4f09d41fade1825837e389d371c7e`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -47,6 +47,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
 - `testStrictExamReviewKeepsBlankScopeThroughSQLiteAndRejectsLegacyMissingProof`
+- `testStrictExamMayParseWithoutProvingAnUnsampledStripIsEmpty`
 - `testStrictExamRequiresEachDateLabelToDescribeOneWholeDay`
 - `testPrintedExamWeekdayMustAgreeInStrictCertifiedAndRecovery`
 - `testSegmentedCellTopBordersDefineTheCompleteExamBody`

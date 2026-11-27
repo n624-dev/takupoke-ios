@@ -1,7 +1,7 @@
 # Strict PDF・文字・位置・罫線
 
 対応関係・宣言名・実行方法のSHA-256：
-`6a9144c7241cfa53fa17cc5005e64c8f7dbf8f507d3f4fa46adc78065604cb9f`
+`077518522c4e398dd95661f1edf742d644fd24ee9ce7cd67c6506a8eb04f9a70`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -95,6 +95,7 @@ python3 -B tools/pdf_branch_catalog.py check
 ## [tests/PDFParsingTests+Timetable.swift](../../tests/PDFParsingTests+Timetable.swift)
 
 - `testStrictReviewRoundTripKeepsOnlyProvenEmptyTimetableSlots`
+- `testStrictTimetableMayParseWithoutProvingAnUnsampledStripIsEmpty`
 - `testStrict239RetainsFirstYearMarkerAndOriginalCoordinateContract`
 - `testStrict239RestoresTrailingEmptyFieldsWithoutRoleCalibration`
 - `testRelativeTimetableOutsideViewportCannotBecomeStrictSuccess`
