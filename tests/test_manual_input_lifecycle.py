@@ -154,6 +154,7 @@ enum RecoveryFailure { case selectionChanged, originalRevalidation }
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
  var operation=UUID(), running=true, status=""
+ var recoveryWorkers=[String:UUID](), endingRecovery=Set<String>()
  var failureReason:RecoveryFailure? = .originalRevalidation
  var previewNeedsRevalidation = false
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
@@ -189,7 +190,10 @@ app.recovery.manualDraft=nil
 app.setFileMonitoring(false)
 precondition(app.recovery.source == nil && app.recovery.preview == nil)
 precondition(app.recovery.previewRasters.isEmpty && app.recovery.manualInitialValues.isEmpty)
-let other=Application(); other.recovery.cancel() // Retention/user cancellation still destroys private draft.
+let other=Application()
+other.recovery.recoveryWorkers["fictional-timetable"] = other.recovery.operation
+other.recovery.cancel() // Retention/user cancellation still destroys private draft.
+precondition(other.recovery.endingRecovery == ["fictional-timetable"] && other.recovery.recoveryWorkers.count == 1)
 precondition(other.recovery.manualDraft == nil && other.recovery.manualImages.isEmpty && other.recovery.manualReview == nil && other.recovery.manualContextImages.isEmpty)
 precondition(other.recovery.previewRasters.isEmpty && other.recovery.manualInitialValues.isEmpty)
 let corrected=Application()
@@ -258,6 +262,7 @@ enum RecoveryFailure { case originalRevalidation, selectionChanged }
     var task: Task<Void, Never>?
     var preparationControl: AcquisitionControl?
     var operation = UUID(), running = false, status = "", modelAction: String?
+    var recoveryWorkers=[String:UUID](), endingRecovery=Set<String>()
     var previewNeedsRevalidation = false
     var aiTicket = 1, selectedSourceIsCurrent = true
     var preview: Preview?

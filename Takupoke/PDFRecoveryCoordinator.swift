@@ -17,6 +17,8 @@ struct RecoveryManualReview: Identifiable {
 @MainActor
 final class PDFRecoveryCoordinator: ObservableObject {
     @Published private(set) var running = false
+    @Published private(set) var endingRecovery = Set<RecoveryDocumentKind>()
+    private var recoveryWorkers: [RecoveryDocumentKind: UUID] = [:]
     @Published private(set) var previewNeedsRevalidation = false
     @Published private(set) var status = ""
     @Published var preview: RecoveryPreview? {
@@ -57,17 +59,17 @@ final class PDFRecoveryCoordinator: ObservableObject {
     private var previewRasters = [Int:RecoveryRasterGrid]()
 
     func start(_ kind: RecoveryDocumentKind) {
-        guard !running else { return }
+        guard !running, recoveryWorkers[kind] == nil else { return }
         guard LocalAIFeaturePolicy.enabled else { cancel(); status = "復旧はOFFです。"; return }
-        let previous = task
         cancel(); failureReason = nil; preview = nil
         let operation = UUID(); self.operation = operation; aiTicket = LocalAIFeaturePolicy.capture()
         let ticket = aiTicket
         let preparationControl = AcquisitionControl(); self.preparationControl = preparationControl
         running = true; status = "保存済みのPDFを確認しています⋯"
+        recoveryWorkers[kind] = operation
         task = Task { @MainActor [weak self] in
             guard let self else { return }
-            await previous?.value
+            defer { self.recoveryWorkerFinished(kind, operation: operation) }
             do {
                 try Task.checkCancellation()
                 guard self.operation == operation else { return }
@@ -125,15 +127,23 @@ final class PDFRecoveryCoordinator: ObservableObject {
     }
     func retryModel() {
         guard LocalAIFeaturePolicy.enabled, modelAction != .unavailable, !running, let source,
-              pendingDocument != nil || pendingPages != nil else { return }
+              recoveryWorkers[source.kind] == nil, pendingDocument != nil || pendingPages != nil else { return }
         running = true; modelAction = nil; failureReason = nil
         let operation = self.operation
         let control = AcquisitionControl(); preparationControl = control
+        recoveryWorkers[source.kind] = operation
         task = Task {
+            defer { recoveryWorkerFinished(source.kind, operation: operation) }
             if let doc = pendingDocument { await run(doc,source:source,operation:operation,control:control) }
             else if let pages = pendingPages { await buildAndRun(pages,source:source,operation:operation,control:control) }
         }
     }
+    private func recoveryWorkerFinished(_ kind: RecoveryDocumentKind, operation: UUID) {
+        guard recoveryWorkers[kind] == operation else { return }
+        recoveryWorkers[kind] = nil
+        endingRecovery.remove(kind)
+    }
+
     private func buildAndRun(_ prepared: RecoveryPreparedPages,source:RecoverySelectedSource,operation:UUID,control:AcquisitionControl) async {
         defer { LocalRecoveryModelManager.shared.release(lease:operation) }
         if prepared.nativeCapture != nil { previewRasters = prepared.rasters }
@@ -560,6 +570,9 @@ final class PDFRecoveryCoordinator: ObservableObject {
         }
     }
     func cancel() {
+        if let kind = recoveryWorkers.first(where: { $0.value == operation })?.key {
+            endingRecovery.insert(kind)
+        }
         task?.cancel(); preparationControl?.cancel(); preparationControl = nil; operation = UUID(); running = false
         previewNeedsRevalidation = false
         previewRasters = [:]; manualInitialValues = [:]; manualInitialAcknowledged = []

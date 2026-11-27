@@ -21,7 +21,9 @@ struct PDFRecoveryView: View {
                 Section {
                     Text("学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。")
                         .font(.subheadline).foregroundStyle(.secondary)
-                    if coordinator.running { LoadingRow(title:coordinator.status,cancel:{ coordinator.cancel() }) }
+                    if coordinator.endingRecovery.contains(kind) {
+                        Text("中止しました。端末内復旧の終了を待っています。")
+                    } else if coordinator.running { LoadingRow(title:coordinator.status,cancel:{ coordinator.cancel() }) }
                     else if let failure = coordinator.failure { InlineWarning(failure) }
                     else { Text(coordinator.status) }
                 }
@@ -168,7 +170,7 @@ struct PDFRecoveryView: View {
                             Button("元のPDFを確認", systemImage: "doc.richtext") { showSource() }
                         }
                     }
-                } else if !coordinator.running, coordinator.failureReason == nil {
+                } else if !coordinator.running, !coordinator.endingRecovery.contains(kind), coordinator.failureReason == nil {
                     Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent).disabled(!useAiFeatures) }
                 }
             }
