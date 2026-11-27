@@ -3,6 +3,7 @@ import UIKit
 
 final class ManualAssistanceChecks:SimulatorIdentityTestCase {
     var app:XCUIApplication!
+    var completedManualEdits = 0
     // AX snapshots on a loaded simulator can take longer than five seconds.
     // Keep every native state assertion, allowing bounded time to observe it.
     let nativeStateTimeout:TimeInterval=45
@@ -19,6 +20,7 @@ final class ManualAssistanceChecks:SimulatorIdentityTestCase {
         return true
     }
     func launch(_ flags:[String]=[]) {
+        completedManualEdits = 0
         app.launchArguments=["--reset-fixture","--manual-ui","--fixture-input-trace","--fixture-year-input-trace","--manual-integral-rails","-AppleLanguages","(ja)","-AppleLocale","ja_JP"]+flags
         guard launchApplicationOnce() else { return }
         guard pressNativeTabIcon("設定", in: app, timeout: nativeStateTimeout) else { return }

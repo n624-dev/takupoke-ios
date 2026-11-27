@@ -170,10 +170,22 @@ extension ManualAssistanceChecks {
         // The product commits text and dismisses the keyboard; it never checks
         // acknowledgement on the user's behalf.
         guard finishManualEditing() else { return }
+        let expectedCompletions = completedManualEdits + 1
+        var invalid = false
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            self.app.keyboards.allElementsBoundByIndex.isEmpty
-        },object:app)
-        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout),.completed,app.debugDescription)
+            guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            let counters = nodes.filter {
+                $0.elementType == .staticText && $0.identifier == "manual-fixture-completed-edits"
+            }
+            guard counters.count <= 1 else { invalid = true; return true }
+            guard let counter = counters.first, let actions = Int(counter.label) else { return false }
+            if actions > expectedCompletions { invalid = true; return true }
+            return actions == expectedCompletions && !nodes.contains { $0.elementType == .keyboard }
+        },object:nil)
+        guard XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout) == .completed, !invalid else {
+            XCTFail("One actual Done action must dismiss the keyboard"); return
+        }
+        completedManualEdits = expectedCompletions
         let completed=self.recoveryList.descendants(matching:.any).matching(identifier:"manual-value-"+id).allElementsBoundByIndex
         guard completed.count==1 else { XCTFail("Completed input must remain unique");return }
         XCTAssertEqual(completed[0].value as? String,value,"The physical edit must replace the full previous input before acknowledgement")

@@ -78,7 +78,11 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
         self.assertLess(edit.index('e.typeText(value)'), edit.index('guard finishManualEditing()'))
-        self.assertLess(edit.index('guard finishManualEditing()'),edit.index('self.app.keyboards.allElementsBoundByIndex.isEmpty'))
+        self.assertLess(edit.index('guard finishManualEditing()'),edit.index('manual-fixture-completed-edits'))
+        self.assertLess(edit.index('completedManualEdits = expectedCompletions'),edit.index('let completed=self.recoveryList'))
+        self.assertIn('actions == expectedCompletions && !nodes.contains { $0.elementType == .keyboard }', edit)
+        self.assertIn('if actions > expectedCompletions { invalid = true; return true }', edit)
+        self.assertIn('completedManualEdits = 0\n        app.launchArguments', checks)
         completion=edit.split('    private func finishManualEditing()',1)[1].split('    private func observeManualEditCompletion(',1)[0]
         self.assertIn('systemUptime + nativeStateTimeout', completion)
         self.assertIn('XCTWaiter.wait(for: [ready], timeout: remaining)', completion)
@@ -95,6 +99,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('Button("完了") { editingManualField = nil }',toolbar)
         self.assertNotIn('placement:.keyboard',toolbar)
         self.assertNotIn('manualAcknowledged',toolbar)
+        generated = module.view(view)
+        self.assertEqual(generated.count('manualQACompletedEdits += 1'), 1)
+        self.assertIn('Button("完了") { editingManualField = nil; manualQACompletedEdits += 1 }', generated)
+        self.assertRegex(generated, r'Text\(String\(manualQACompletedEdits\)\)\s*\.font\(\.system\(size:1\)\)\.accessibilityIdentifier\("manual-fixture-completed-edits"\)\.allowsHitTesting\(false\)')
 
     def test_manual_case_filter_is_exact_and_default_keeps_whole_suite(self):
         runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")

@@ -80,7 +80,10 @@ def view(text):
     @State private var manualQATypeSize:DynamicTypeSize = .large
     @State private var manualQAActionsPresented = false
     @State private var manualQARevalidationCount = 0
+    @State private var manualQACompletedEdits = 0
     @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false''')
+    text = once(text, 'Button("完了") { editingManualField = nil }',
+                'Button("完了") { editingManualField = nil; manualQACompletedEdits += 1 }')
     text = once(text, '.navigationTitle(title)', '''.accessibilityIdentifier("manual-recovery-list")
             .navigationTitle(title)
             .onAppear { FixtureCITrace.mark("manual-screen-appeared") }
@@ -112,6 +115,8 @@ def view(text):
                             .font(.system(size:1)).accessibilityIdentifier("manual-fixture-type-size").allowsHitTesting(false)
                         Text(String(manualQARevalidationCount))
                             .font(.system(size:1)).accessibilityIdentifier("manual-fixture-revalidations").allowsHitTesting(false)
+                        Text(String(manualQACompletedEdits))
+                            .font(.system(size:1)).accessibilityIdentifier("manual-fixture-completed-edits").allowsHitTesting(false)
                         Text("preview=\\(coordinator.preview != nil);review=\\(coordinator.manualReview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");revalidation=\\(coordinator.previewNeedsRevalidation);revalidations=\\(coordinator.manualQAPreviewRevalidations);failure=\\(coordinator.failure ?? "none")")
                             .font(.system(size:1)).accessibilityIdentifier("manual-coordinator-state").allowsHitTesting(false)
                         if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete").allowsHitTesting(false) }
