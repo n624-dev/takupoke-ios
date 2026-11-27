@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`fb706eef7ff5f5aa2a99d1f898fec5bddf94c78ab3bdcc128c71ae5fe7fc796c`
+`f0123ceba7638a6d34e654cb2b37eb40070517488796b09954f2f9a3d2356eff`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -79,6 +79,7 @@ bash tools/test-manual-ui.sh
 
 - `test_actual_activation_does_not_resume_source_checks_after_backgrounding_during_awaits`
 - `test_actual_background_methods_preserve_idle_draft_and_cancel_heavy_work`
+- `test_actual_preview_resume_checks_in_place_file_changes_before_adoption`
 - `test_actual_field_callbacks_reject_replaced_missing_and_reviewed_drafts`
 - `test_retention_route_keeps_explicit_draft_cancellation`
 - `test_retention_waits_for_confirmed_notifications_before_advancing_or_resetting_marker`

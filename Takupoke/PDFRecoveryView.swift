@@ -169,7 +169,7 @@ struct PDFRecoveryView: View {
             }
             .onChange(of:phase) { _,phase in
                 if phase != .active { sourcePage = nil; coordinator.suspendForInactivity(); models.cancel() }
-                else { coordinator.invalidateManualIfSourceChanged() }
+                else { coordinator.resumeAfterInactivity() }
             }
             .onReceive(ApplicationData.shared.materials.$state) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .onReceive(ApplicationData.shared.specialSchedules.$sources) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
