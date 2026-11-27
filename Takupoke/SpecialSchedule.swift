@@ -32,7 +32,7 @@ struct SpecialScheduleScope: Codable, Equatable {
 }
 
 struct SpecialScheduleAnalysis: Codable, Equatable {
-    static let parserVersion = 39
+    static let parserVersion = 40
     var version = parserVersion
     let kind: SpecialScheduleKind
     let sourceDigest: String
@@ -47,6 +47,39 @@ struct SpecialScheduleAnalysis: Codable, Equatable {
     var dedicatedTimeDate: String? = nil
 
     var scopes: [SpecialScheduleScope]? = nil
+    /// Verified chart entries keyed by the full period range, e.g. "2-3".
+    /// Nil denotes an older stored analysis without independent chart evidence.
+    var consecutiveTimes: [String: String]? = nil
+
+    var hasValidConsecutiveTimes: Bool {
+        let count = kind == .exam ? 6 : 8
+        return (consecutiveTimes ?? [:]).allSatisfy { key, clock in
+            let parts = key.split(separator: "-", omittingEmptySubsequences: false)
+            guard parts.count == 2, let first = Int(parts[0]), let last = Int(parts[1]),
+                  first >= 1, first < last, last <= count, key == "\(first)-\(last)",
+                  clock.range(of: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]〜(?:[01][0-9]|2[0-3]):[0-5][0-9]$",
+                              options: .regularExpression) != nil else { return false }
+            return clock.prefix(5) < clock.suffix(5)
+        }
+    }
+
+    func independentContinuousClock(on date: String, className: String, periods: ClosedRange<Int>,
+                                    matching displayed: SpecialScheduleLesson?) -> String? {
+        guard periods.lowerBound < periods.upperBound, applies(date: date, className: className),
+              kind == .exam || date == dedicatedTimeDate,
+              let clock = consecutiveTimes?["\(periods.lowerBound)-\(periods.upperBound)"] else { return nil }
+        let sameDay = lessons.filter { $0.date == date && $0.className == className }
+        let covered = sameDay.filter { periods.contains($0.period) }
+        guard let anchor = displayed ?? covered.first,
+              covered.count == periods.count, Set(covered.map(\.period)) == Set(periods) else { return nil }
+        func sameLesson(_ lesson: SpecialScheduleLesson) -> Bool {
+            lesson.page == anchor.page && (lesson.sourceClassName ?? lesson.className) == (anchor.sourceClassName ?? anchor.className) &&
+                lesson.subject == anchor.subject && lesson.teacher == anchor.teacher && lesson.room == anchor.room
+        }
+        guard covered.allSatisfy({ $0.spanStart == $0.period && $0.spanEnd == $0.period && sameLesson($0) }),
+              !sameDay.contains(where: { ($0.period == periods.lowerBound - 1 || $0.period == periods.upperBound + 1) && sameLesson($0) }) else { return nil }
+        return clock
+    }
 
     func applies(date: String, className: String) -> Bool {
         func contains(_ classes: [String]) -> Bool {

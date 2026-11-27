@@ -94,7 +94,8 @@ extension SpecialScheduleTests {
 
     func examPage(_ number: Int, omitLastTime: Bool = false,
                           mergedFirstTwo: Bool = false,
-                          metadataOnFirstCell: Bool = false, timingOverride: [String]? = nil) -> PDFPageLayout {
+                          metadataOnFirstCell: Bool = false, timingOverride: [String]? = nil,
+                          separateContinuousExam: Bool = false) -> PDFPageLayout {
         var glyphs: [PDFGlyph] = []
         var lines: [PDFRule] = []
         var sourceLine = 0
@@ -138,10 +139,18 @@ extension SpecialScheduleTests {
         for index in 0..<5 {
             write("4月\(index + 1)日", x: 16, y: 126 + Double(index) * 40)
             for column in 0..<columns {
+                if separateContinuousExam, number == 1, index == 0, column == 0 {
+                    for x in [146.0, 186.0] {
+                        write("架空科目A", x: x, y: 126, step: 6)
+                        write("架空教員A", x: x, y: 136, step: 5)
+                        write("架空教室A", x: x, y: 145, step: 5, height: 4)
+                    }
+                    continue
+                }
                 write("架空科目A", x: 106 + Double(column) * 240,
                       y: 126 + Double(index) * 40, step: 6)
             }
-            if index == 0 {
+            if index == 0 && !(separateContinuousExam && number == 1) {
                 write("架空教員A", x: 106, y: 136, step: 5)
                 write("架空教室A", x: 106, y: 145, step: 5, height: 4)
             }
@@ -151,7 +160,7 @@ extension SpecialScheduleTests {
         for (index, time) in times.enumerated() where !omitLastTime || index != 5 {
             write("\(index + 1)時限目\(time)", x: 20, y: 470 + Double(index) * 15)
         }
-        write("1・2時限連続8:50~10:20", x: 300, y: 470)
+        write(separateContinuousExam ? "2・3時限連続9:20~10:40" : "1・2時限連続8:50~10:20", x: 300, y: 470)
         return PDFPageLayout(width: 850, height: 600, glyphs: glyphs, lines: lines)
     }
 

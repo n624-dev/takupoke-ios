@@ -1,3 +1,12 @@
+## #189 独立した連続試験セルの表示時計と進行判定（2026-11-27）
+
+- 基点 `8d131dd` と架空fixtureのみ変更、Swift 6.1.2／SQLite 3.53.4／Linux。11:19:31 UTCに `testExplicitClockForSeparateExamCellsSurvivesStoreReload` が期待どおり失敗。StrictとCertifiedはいずれも独立した2・3限の解析・SQLite保存・再読込と2単独時計の保持は通過。合成カードは09:20〜10:55、10:05は休憩、10:40と10:45は進行中となった。専用時計09:20〜10:40を適用すると、これら4条件が反転する。Apple PDFKitと実画面は未検証。
+- `連続|休憩|専用時計` で#60・#62・#72、および `testIndependentSpecialCellsKeepTheirGapWhenVisuallyMerged` と元の `SpecialScheduleParser`・`TimetableDaySchedule` を照合した。既存の回帰は罫線がない物理結合、または専用時計がない独立セルを扱った。解析が読み取った専用時計を原本セルの範囲と別に保持し、出所・全時限が確認できたまとまりにだけ適用する。
+- 続くLinuxの関連102件では独立セルのStrict・Certified・SQLite再読込と復旧の新規2件が成功。11:27:10 UTCに既存 `testRetainedSpecialRecoveryProjectsCurrentVersionWhileAnotherSourceFails` が失敗し、前回正常な復旧結果が再表示されなかった。旧版認証の対象条件と証拠を照合して原因を特定する。
+- 11:30:56 UTCの追加検査で、SQLite以前のSwift JSONの符号化・再読込だけで復旧用資料の指紋が変わった。訂正結果の指紋と採用日時は一致。架空の資料用JSONの差が原因であり、再照合で指紋の一致を外す変更は行わない。
+- 11:34 UTCの差分診断で、追加した `explicitSpanTimeKeys` は符号化されるが既存の独自 `init(from:)` で読み戻していないことを確認。任意フィールドとして読み、旧形式にない場合はnilのまま保持する。新しい証拠を含む資料と結果の指紋が、採用直後・JSON往復・SQLite再読込で同一であることを既存の前回正常結果保持テストに追加した。
+- 同じ関連102件の再実行は失敗0。新規の専用時刻、タイミング境界、部分変更、根拠のない時計拒否、以前の正常結果保持を確認。旧採用版を移行する仕様と、Apple PDFKit・実画面の検証は継続。
+
 ## N56 最終回収の空snapshot guardが停止（2026-10-20）
 
 - 正式419の全15CI・匿名公開物照合・最終文書push完了後、ローカル回収helperがios-416-second-jobs.jsonを0bytesと仮定しassertionで停止した。該当ファイルは削除せず保持。先に既知の所有transport probeとそのreceiptだけを削除し、pyc以降の回収・最終完了receipt作成には未到達。

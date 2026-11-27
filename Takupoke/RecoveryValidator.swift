@@ -333,10 +333,37 @@ enum RecoveryValidator {
             if doc.kind == .return { classified.formUnion(doc.normalTimeNoteEvidence) }
         }
         check(Set(doc.sources.map(\.id)) == classified, "unclassifiedSource")
+        if doc.kind == .timetable { check(doc.explicitSpanTimeKeys == nil, "clockScope") }
         if doc.kind != .timetable {
             let spanKeys = Set(doc.cells.compactMap { cell -> String? in guard cell.slots.count > 1, let slot = cell.slots.first, let first = cell.slots.map(\.period).min(), let last = cell.slots.map(\.period).max() else { return nil }; return "\(slot.day):\(first)-\(last)" })
-            let clockKeys = Set(doc.times.keys).union(spanKeys)
-            check(Set(doc.spanTimes.keys) == spanKeys && Set(doc.clockEvidence.keys) == clockKeys && Set(doc.clockBindings.keys).isSubset(of: clockKeys) && Set(doc.clockReplicas.keys).isSubset(of:Set(doc.clockBindings.keys)), "clockScope")
+            let explicitKeys = Set(doc.explicitSpanTimeKeys ?? [])
+            let allSpanKeys = spanKeys.union(explicitKeys)
+            let clockKeys = Set(doc.times.keys).union(allSpanKeys)
+            check(Set(doc.spanTimes.keys) == allSpanKeys && Set(doc.clockEvidence.keys) == clockKeys && Set(doc.clockBindings.keys).isSubset(of: clockKeys) && Set(doc.clockReplicas.keys).isSubset(of:Set(doc.clockBindings.keys)), "clockScope")
+            if let explicitList = doc.explicitSpanTimeKeys {
+                check(explicitList.count == explicitKeys.count && explicitList == explicitList.sorted(), "explicitSpanScope")
+                let eligibleDays = doc.kind == .exam ? Set(doc.days) : Set(doc.days.sorted().prefix(1))
+                var datesByRange = [String: Set<String>]()
+                var timesByRange = [String: Set<String>]()
+                let pagesByDay = Dictionary(grouping: doc.cells.flatMap { cell in
+                    cell.slots.first.map { [(day: $0.day, page: cell.page)] } ?? []
+                }, by: \.day).mapValues { Set($0.map(\.page)) }
+                for key in explicitList {
+                    guard work.charge(1) else { return RecoveryValidation(errors:["validationLimit"]) }
+                    guard let time = doc.spanTimes[key], let primary = doc.clockBindings[key],
+                          eligibleDays.contains(primary.day), primary.spanStart < primary.spanEnd else {
+                        check(false, "explicitSpanBinding"); continue
+                    }
+                    let range = "\(primary.spanStart)-\(primary.spanEnd)"
+                    let bindings = [primary] + doc.clockReplicas[key, default: []]
+                    check(key == "\(primary.day):\(range)" && bindings.allSatisfy { $0.commonScope && !$0.derivedSpan } &&
+                          Set(bindings.map(\.page)) == pagesByDay[primary.day] &&
+                          clockBound(primary.day, primary.spanStart, primary.spanEnd, time), "explicitSpanBinding")
+                    datesByRange[range, default: []].insert(primary.day)
+                    timesByRange[range, default: []].insert(time)
+                }
+                check(datesByRange.values.allSatisfy { $0 == eligibleDays } && timesByRange.values.allSatisfy { $0.count == 1 }, "explicitSpanScope")
+            }
             check(Set(doc.timeEvidence).isSubset(of: Set(doc.clockEvidence.values.flatMap { $0 })), "clockCoverage")
             check(doc.times.count == doc.days.count * maxPeriod && evidence(doc.timeEvidence, doc.timeEvidence), "times")
             for day in doc.days {

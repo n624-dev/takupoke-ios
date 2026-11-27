@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`ca863de170d0fe3819a3367b427bc0a2256f2847b22201920a6cac98f2984ce7`
+`f1e5f4a6c10bfd5578db81b13a89474f21ec145615d2ffcdaccfadd4c9b7d425`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -60,6 +60,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 - `testSpecialWholeNumericTokensRetainAdjacentAndWidthNormalizedHeadings`
 - `testTruncatedSpecialClockCannotReplaceSavedGoodAnalysis`
 - `testParsedMergedCellRetainsRawClockButItsRemainingFragmentUsesPeriodClock`
+- `testExplicitClockForSeparateExamCellsSurvivesStoreReload`
 - `testRepeatedLowerHeaderBandBelowMergedClassBorderUsesItsOwnRule`
 - `testSingleDayPeriodWordAndPartialSeparatorDoNotMoveTheBodyBoundary`
 - `testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields`

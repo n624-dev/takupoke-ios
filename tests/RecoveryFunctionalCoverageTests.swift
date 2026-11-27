@@ -143,6 +143,14 @@ extension SpecialScheduleTests {
         try store.save(staged:a,analysis:accepted,originalName:accepted.sourceName,byteCount:bytesA.count,digest:digest)
         var old = try XCTUnwrap(store.records[.exam])
         old.analysis.version = 35
+        let reread = try JSONDecoder().decode(SpecialScheduleRecord.self, from: JSONEncoder().encode(old))
+        let receipt = try XCTUnwrap(reread.analysis.recovery)
+        XCTAssertEqual(try RecoveryValidator.fingerprint(receipt.document), receipt.acceptance.scopeHash)
+        XCTAssertEqual(try RecoveryValidator.fingerprint(receipt.result), receipt.acceptance.resultHash)
+        XCTAssertEqual(reread.analysis.parsedAt, receipt.acceptance.acceptedAt)
+        let verified = try XCTUnwrap(RecoveryValidator.recertify(receipt, hash: digest))
+        XCTAssertEqual(verified.document.explicitSpanTimeKeys, document.explicitSpanTimeKeys)
+        XCTAssertNotNil(try RecoveryConversion.recertifiedSpecial(reread.analysis, hash: digest))
         let database = try DatabaseQueue(path:root.appendingPathComponent("specials.sqlite").path)
         func persist(_ record: SpecialScheduleRecord) throws {
             try database.write { try $0.execute(sql:"UPDATE specialSchedule SET payload = ? WHERE kind = 'exam'",
@@ -161,7 +169,8 @@ extension SpecialScheduleTests {
         let reopened = try SpecialScheduleStore(root:root)
         let visible = reopened.displayableRecords()
         XCTAssertEqual(reopened.records[.exam]?.analysis.version,35)
-        XCTAssertEqual(visible.records[.exam]?.analysis,accepted)
+        let retained = try XCTUnwrap(visible.records[.exam]?.analysis)
+        XCTAssertTrue(retained == accepted, "The previous verified result must be kept without changes")
         XCTAssertEqual(visible.records[.exam]?.digest,digest)
         XCTAssertTrue(visible.rejected.isEmpty)
         XCTAssertEqual(reopened.sources[.exam]?.digest,digestB)
