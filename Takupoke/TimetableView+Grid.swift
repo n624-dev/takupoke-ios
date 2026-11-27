@@ -4,17 +4,17 @@ import UIKit
 import UIKit.UIGestureRecognizerSubclass
 
 extension TimetableView {
-    var weekGrid: some View {
+    func weekGrid(within bounds: ClosedRange<SchoolDate>) -> some View {
         // The date is the identity. Promoting a prepared page preserves its live
         // layout and scroll view; there is no image-to-view handoff on arrival.
         let revision = detailRevision + [mainColor.selection.rawValue,
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
             String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth)), updateFocus?.iso8601 ?? ""]
-        return WeekPages(selection: weekSelection, bounds: weekBounds, revision: revision,
+        return WeekPages(selection: weekSelection, bounds: bounds, revision: revision,
                          viewportWidth: gridViewportWidth, pull: weekPull, accent: weekControlColor,
                          content: { AnyView(weekPage(on: $0)) },
                          arrive: { source, target in
-                             if weekStart == source, weekBounds.contains(target) { weekStart = target }
+                             if weekStart == source, bounds.contains(target) { weekStart = target }
                          })
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(GeometryReader { proxy in

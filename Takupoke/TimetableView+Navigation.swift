@@ -116,15 +116,6 @@ extension TimetableView {
         showingWeekPicker = false
     }
 
-    var canMovePrevious: Bool {
-        guard let previous = weekStart.addingDays(-7) else { return false }
-        return weekBounds.contains(previous)
-    }
-
-    var canMoveNext: Bool {
-        guard let next = weekStart.addingDays(7) else { return false }
-        return weekBounds.contains(next)
-    }
 
     static func decode(_ value: String) -> [String] {
         value.split(separator: "|").map(String.init).reduce(into: [String]()) { result, name in

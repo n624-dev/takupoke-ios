@@ -452,6 +452,17 @@ final class Counter: @unchecked Sendable { var value = 0 }
         canvas = block(grid, "private struct WeekPagesCanvas: View")
         self.assertIn("WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight)", canvas)
         self.assertIn("acceptsTouches: isDisplayed && motion.transition == nil)\n                    .equatable()", canvas)
+        timetable = (ROOT / "Takupoke/TimetableView.swift").read_text()
+        main_body = block(timetable, "var body: some View")
+        self.assertEqual(main_body.count("weekBounds"), 1)
+        self.assertIn("weekSection(within: bounds)", main_body)
+        controls_source = (ROOT / "Takupoke/TimetableView+WeekSection.swift").read_text()
+        self.assertNotIn("weekBounds", controls_source)
+        controls = block(controls_source, "fileprivate func weekControls(")
+        self.assertEqual(controls.count("weekStart"), 1)
+        self.assertEqual(controls.count("bounds.contains("), 2)
+        self.assertIn("bounds: bounds, revision: revision", block(grid, "func weekGrid("))
+        self.assertIn("bounds.contains(target)", block(grid, "func weekGrid("))
         program = """import Foundation
 struct WeekPage: Equatable { let date: Int; let revision: Int }
 final class WeekPageMotion { var reservedHeight: CGFloat = 240 }

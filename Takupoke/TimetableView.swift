@@ -26,8 +26,8 @@ struct TimetableView: View {
         nonmutating set {
             guard selectedWeek.date != newValue else { return }
             selectedWeek.date = newValue
-            updateFocus = nil
-            updateMessage = nil
+            if updateFocus != nil { updateFocus = nil }
+            if updateMessage != nil { updateMessage = nil }
             closeDetailSelections()
         }
     }
@@ -114,6 +114,7 @@ struct TimetableView: View {
     }
 
     var body: some View {
+        let bounds = weekBounds
         NavigationStack {
             List {
                 if !model.ready {
@@ -144,7 +145,7 @@ struct TimetableView: View {
                             InlineWarning("保存したクラスの一部は現在の資料にありません。選択は保持しています。")
                         }
                     }
-                    weekSection
+                    weekSection(within: bounds)
                     changesSection
                 }
             }
@@ -164,7 +165,7 @@ struct TimetableView: View {
                 if phase == .active { refreshToday() }
                 else { weekPull.completeWeekMove() }
             }
-            .onChange(of: weekBounds) { bounds in
+            .onChange(of: bounds) { bounds in
                 weekStart = min(max(weekStart, bounds.lowerBound), bounds.upperBound)
                 if showingWeekPicker {
                     weekPickerDate = min(max(weekPickerDate, weekPickerRange.lowerBound),

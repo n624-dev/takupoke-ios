@@ -1,11 +1,9 @@
 import SwiftUI
 
 extension TimetableView {
-    var weekSection: some View { TimetableWeekSection(timetable: self) }
-
-    fileprivate var weekSectionContent: some View {
+    func weekSection(within bounds: ClosedRange<SchoolDate>) -> some View {
         Section {
-            TimetableWeekControls(timetable: self)
+            TimetableWeekControls(timetable: self, bounds: bounds)
             Picker("表示モード", selection: $includesChanges) {
                 Text("通常").tag(false)
                 Text("変更込み").tag(true)
@@ -45,26 +43,29 @@ extension TimetableView {
                     InlineWarning("保存したクラスは現在の資料に見つかりません。資料を再解析するか、クラスを選び直してください。")
                 }
             } else {
-                TimetableWeekGridRow(timetable: self)
+                TimetableWeekGridRow(timetable: self, bounds: bounds)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
             if selectedClasses.isEmpty { weekEvents(on: weekStart) }
         } header: { Text("週の時間割") }
     }
 
-    fileprivate var weekControls: some View {
-        ViewThatFits(in: .horizontal) {
-            weekControlRow(compact: false)
-            weekControlRow(compact: true)
+    fileprivate func weekControls(within bounds: ClosedRange<SchoolDate>) -> some View {
+        let selected = weekStart
+        let hasPrevious = selected.addingDays(-7).map { bounds.contains($0) } ?? false
+        let hasNext = selected.addingDays(7).map { bounds.contains($0) } ?? false
+        return ViewThatFits(in: .horizontal) {
+            weekControlRow(start: selected, compact: false, hasPrevious: hasPrevious, hasNext: hasNext)
+            weekControlRow(start: selected, compact: true, hasPrevious: hasPrevious, hasNext: hasNext)
             VStack(spacing: 8) {
                 ViewThatFits(in: .horizontal) {
-                    calendarButton(compact: false)
-                    calendarButton(compact: true, fitsOwnRow: true)
+                    calendarButton(start: selected, compact: false)
+                    calendarButton(start: selected, compact: true, fitsOwnRow: true)
                 }
                 HStack {
-                    previousWeekButton
+                    previousWeekButton(available: hasPrevious)
                     Spacer()
-                    nextWeekButton
+                    nextWeekButton(available: hasNext)
                 }
             }
         }
@@ -78,18 +79,18 @@ extension TimetableView {
         }
     }
 
-    private func weekControlRow(compact: Bool) -> some View {
+    private func weekControlRow(start: SchoolDate, compact: Bool, hasPrevious: Bool, hasNext: Bool) -> some View {
         HStack(spacing: 0) {
-            previousWeekButton
+            previousWeekButton(available: hasPrevious)
             Spacer(minLength: 6)
-            calendarButton(compact: compact)
+            calendarButton(start: start, compact: compact)
             Spacer(minLength: 6)
-            nextWeekButton
+            nextWeekButton(available: hasNext)
         }
     }
 
-    @ViewBuilder private var previousWeekButton: some View {
-        if canMovePrevious {
+    @ViewBuilder private func previousWeekButton(available: Bool) -> some View {
+        if available {
             Button { moveWeek(-7) } label: {
                 Text("前週").fixedSize().foregroundStyle(weekControlColor)
             }
@@ -97,8 +98,8 @@ extension TimetableView {
         }
     }
 
-    @ViewBuilder private var nextWeekButton: some View {
-        if canMoveNext {
+    @ViewBuilder private func nextWeekButton(available: Bool) -> some View {
+        if available {
             Button { moveWeek(7) } label: {
                 Text("翌週").fixedSize().foregroundStyle(weekControlColor)
             }
@@ -106,12 +107,12 @@ extension TimetableView {
         }
     }
 
-    private func calendarButton(compact: Bool, fitsOwnRow: Bool = false) -> some View {
-        let end = weekStart.addingDays(6)!
+    private func calendarButton(start: SchoolDate, compact: Bool, fitsOwnRow: Bool = false) -> some View {
+        let end = start.addingDays(6)!
         return Button(action: openWeekPicker) {
             HStack(spacing: 5) {
                 Image(systemName: "calendar").fixedSize().accessibilityHidden(true)
-                Text(weekStart.weekRangeLabel(ending: end, compact: compact))
+                Text(start.weekRangeLabel(ending: end, compact: compact))
                     .lineLimit(1)
                     .minimumScaleFactor(fitsOwnRow ? 0.65 : 1)
                     .fixedSize(horizontal: !fitsOwnRow, vertical: true)
@@ -121,7 +122,7 @@ extension TimetableView {
             .foregroundStyle(weekControlColor)
         }
         .fixedSize(horizontal: !fitsOwnRow, vertical: true)
-        .accessibilityLabel("\(weekStart.month)月\(weekStart.day)日から\(end.month)月\(end.day)日")
+        .accessibilityLabel("\(start.month)月\(start.day)日から\(end.month)月\(end.day)日")
         .accessibilityIdentifier("timetable-week-calendar")
         .accessibilityHint("カレンダーで表示する週を選びます")
     }
@@ -140,16 +141,12 @@ private struct WeekControlButtonStyle: ButtonStyle {
     }
 }
 
-private struct TimetableWeekSection: View {
-    let timetable: TimetableView
-    var body: some View { timetable.weekSectionContent }
-}
-
 // Each row observes the selected week independently. A landing does not
 // require recomputing the section containing the data and status rows.
 private struct TimetableWeekControls: View {
     let timetable: TimetableView
-    var body: some View { timetable.weekControls }
+    let bounds: ClosedRange<SchoolDate>
+    var body: some View { timetable.weekControls(within: bounds) }
 }
 
 private struct TimetableWeekEventCoverage: View {
@@ -159,5 +156,6 @@ private struct TimetableWeekEventCoverage: View {
 
 private struct TimetableWeekGridRow: View {
     let timetable: TimetableView
-    var body: some View { timetable.weekGrid }
+    let bounds: ClosedRange<SchoolDate>
+    var body: some View { timetable.weekGrid(within: bounds) }
 }
