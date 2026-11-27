@@ -166,9 +166,6 @@ extension MaterialLibrary {
               let previous = state.records[index].source.personalChanges else { return }
         let record = state.records[index]
         guard previous.year == year, previous.reviewedDigest != record.digest else { return }
-        if records.isEmpty, !manual, record.source.personalChanges?.reviewedDigest != expectedDigest {
-            throw ChangeParseError(code: .staleConfirmation)
-        }
         let rows = try view.table.savedEdits(sourceIdentity: record.source.selectionID ?? record.storedName,
             digest: record.digest, defaultYear: year, edits: view.edits)
         var next = state
@@ -188,9 +185,6 @@ extension MaterialLibrary {
         guard let source = state.record(for:.changes), source.source.personalChanges == nil,
               let year = source.source.rowSkipConsent?.defaultYear ?? source.source.weekdayConsent?.defaultYear else { return nil }
         let view = try changeEditor(year: year, check: check)
-        if records.isEmpty, !manual, record.source.personalChanges?.reviewedDigest != expectedDigest {
-            throw ChangeParseError(code: .staleConfirmation)
-        }
         let rows = try view.table.savedEdits(sourceIdentity: source.source.selectionID ?? source.storedName,
             digest: source.digest, defaultYear: year, edits: view.edits, check: check)
         guard let rows else { return nil }
