@@ -94,6 +94,7 @@ def view(text):
                     FixtureCITrace.mark("manual-fixture-menu-action")
                     manualQAActionsPresented = true
                 }
+                .accessibilityIdentifier("manual-fixture-menu")
             } }
             .onChange(of: manualQAActionsPresented) { _, presented in
                 FixtureCITrace.mark(presented ? "manual-fixture-menu-presented" : "manual-fixture-menu-dismissed")

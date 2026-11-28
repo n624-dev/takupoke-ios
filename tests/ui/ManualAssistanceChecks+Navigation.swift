@@ -285,21 +285,39 @@ extension ManualAssistanceChecks {
         let requiredTitles: Set<String> = ["表示サイズを変更", "同じ原本の状態を再確認", "架空原本のハッシュを変更"]
         guard requiredTitles.contains(action) else { XCTFail("Unknown fixture menu action: " + action); return }
         let title = "架空検証"
-        let bar=app.navigationBars["時間割の復旧"]
-        guard bar.waitForExistence(timeout:nativeStateTimeout),
-              bar.buttons[title].waitForExistence(timeout:nativeStateTimeout) else {
-            XCTFail("Fixture menu must exist on its recovery toolbar");return
+        let identifier = "manual-fixture-menu"
+        let barTitle = "時間割の復旧"
+        let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
+        var visible: (button: CGRect, screen: CGRect)?
+        var ambiguous = false
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline,
+                  let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root),
+                  ManualScrollNavigation.usable(root.frame) else { return false }
+            let bars = nodes.filter { $0.elementType == .navigationBar && $0.identifier == barTitle }
+            if bars.count > 1 { ambiguous = true; return true }
+            guard let bar = bars.first, let children = self.snapshotNodes(in: bar),
+                  ManualScrollNavigation.usable(bar.frame), root.frame.contains(bar.frame) else { return false }
+            let candidates = children.filter { $0.elementType == .button && $0.identifier == identifier }
+            if candidates.count > 1 { ambiguous = true; return true }
+            guard let candidate = candidates.first, candidate.label == title, candidate.isEnabled,
+                  ManualScrollNavigation.usable(candidate.frame), bar.frame.contains(candidate.frame) else { return false }
+            let live = self.app.navigationBars.matching(identifier: barTitle).descendants(matching: .button)
+                .matching(identifier: identifier).allElementsBoundByAccessibilityElement
+            if live.count > 1 { ambiguous = true; return true }
+            guard let button = live.first, let bound = try? button.snapshot(),
+                  bound.elementType == candidate.elementType, bound.identifier == identifier,
+                  bound.label == title, bound.frame == candidate.frame, bound.isEnabled, button.isHittable,
+                  ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            visible = (candidate.frame, root.frame)
+            return true
+        }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: nativeStateTimeout) == .completed,
+              !ambiguous, let visible, app.state == .runningForeground,
+              ProcessInfo.processInfo.systemUptime < deadline else {
+            XCTFail("Fixture menu must be unique, visible and operable on its recovery toolbar"); return
         }
-        let barFrame=bar.frame
-        let current=bar.buttons.matching(NSPredicate(format:"label == %@",title))
-            .allElementsBoundByAccessibilityElement
-        guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
-        let button=current[0],frame=button.frame,screenFrame=app.frame
-        guard ManualScrollNavigation.usable(screenFrame),ManualScrollNavigation.usable(barFrame),
-              ManualScrollNavigation.usable(frame),screenFrame.contains(barFrame),
-              barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground else {
-            XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
-        }
+        let frame = visible.button, screenFrame = visible.screen
         print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=app-coordinate-tap")
         let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
         let target = CGVector(dx: frame.midX - screenFrame.minX, dy: frame.midY - screenFrame.minY)
