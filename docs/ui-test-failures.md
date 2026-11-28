@@ -1,7 +1,13 @@
+## iOS 26の端末内復旧1項目でAppleのカタログ取得が失敗（2026-11-28）
+
+- `d0ab384`、[全体46099518301試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794679)、iOS 26.5のbuild `23F77`／arm64、SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。03:48:48 UTCに `MobileAssetError.Download Code=47`、`tryAgainLater=true` を返し、`xcodebuild -downloadPlatform` は終了70。Simulatorの作成とXCTestに到達しておらず撮影できる端末はなかった。
+- `MobileAssetError.Download|tryAgainLater|23F77` でN185-CI6／N185-CI8と[試験カウントダウンの限定46060314457](https://github.com/n624-dev/takupoke-ios/actions/runs/46060314457)を照合した。いずれもAppleからRuntimeを取得する前段で発生し、直前のiOS 26.5通常Aと手動明示選択では同じSDKとbuildでOS準備から画面検査まで成功した。対象のケースとRuntimeを維持し、全体の終端後に新しいRunnerで失敗したジョブだけ再検証する。
+
 ## iOS 26の週切替で復路の実接触が10秒中断（2026-11-28）
 
 - `3db93c0`、[全体46074701669試行1、iOS 26.5通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46074701669/job/140761269772)、SDK 27.2。往路の実描画は90ms以内、着地後最大49.987ms。復路は02:20:02 UTCにアプリがpanの開始を記録し、最後の途中移動と最終移動の配送間隔が10.006秒になった。02:20:13に指の解放を受けたが、週移動開始とフレーム採取通知が記録されず、02:20:23に失敗。ケース60.291秒、失敗PNG1枚。
 - `week-motion-contact|week-motion-release|Prepared week edge pull` で、元の週の位置が最初の描画で戻ったケースおよび着地99.634msのケースと比較。今回は復路の週移動開始前の停止。終了時の実画面と接触経路の先行条件は維持し、配送中断の下位原因は未確定として記録する。
+- `d0ab384` の[全体46099518301試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794585)は同じOS・SDKの実操作で往復とも完了した。ケース43.538秒、最大描画間隔は54.754msと66.632ms、ページ間隔は両方向361pt。既存の90ms条件と着地時の行高変更を確認した。
 
 ## iOS 27の端末内復旧で架空検証メニューを開く前のXCTestが例外終了（2026-11-28）
 
