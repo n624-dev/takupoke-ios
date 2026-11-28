@@ -60,7 +60,11 @@ final class ServiceStatusModel: ObservableObject {
                 switch result {
                 case .notModified(let etag): try self.cache.revalidate(responseETag: etag, at: Date())
                 case .snapshot(let bytes, let etag):
-                    self.cache.accept(try ServiceStatusSnapshot.decode(bytes), etag: etag, at: Date())
+                    let worker = Task.detached { try ServiceStatusSnapshot.decode(bytes) }
+                    let snapshot = try await CancellationLinkedTask.value(of: worker)
+                    try Task.checkCancellation()
+                    guard self.requestID == id else { return }
+                    self.cache.accept(snapshot, etag: etag, at: Date())
                 }
                 self.scheduleExpiry()
             } catch {

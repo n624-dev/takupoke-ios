@@ -1,7 +1,7 @@
 # PDF復旧・OCR・構造・Validator・端末内Provider
 
 対応関係・宣言名・実行方法のSHA-256：
-`6b8e4cad4f12fbe5a1ea61e06b7a2eb199a7dca27fb932ea8313ab0730e4b64a`
+`6f761f124ca75ab3adbaf8afc1978b2ac677a16d008119468c92115bf967d0b7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -121,6 +121,8 @@ bash tools/test-parsing.sh
 - `testRecoverySpecialTitleYearEvidenceCannotIgnoreASecondYear`
 - `testSpecialTitleYearMustBeUniqueAndEquivalentYearMarkersRemainValid`
 - `testExamLayoutRecoveryReusesAllRepeatedClockCharts`
+- `testExamRecoveryVerifiesExplicitClockAcrossIndependentCellsAndPages`
+- `testExamClockRecheckKeepsPreviouslyAcceptedLessonsAndRequiresMatchingPDFScope`
 - `testExamDerivedSpanOnLaterPageUsesVerifiedPrimaryEndpointChart`
 - `testReturnDerivedSpanOnLaterPageUsesApplicableNormalNote`
 - `testReturnLayoutRecoveryRequiresNormalTimeNoteAndSpanEndpoints`
@@ -231,6 +233,7 @@ bash tools/test-parsing.sh
 
 ## [tests/RecoveryTests.swift](../../tests/RecoveryTests.swift)
 
+- `testRecoveryModelActionDistinguishesUnavailablePreparationAndDownload`
 - `testGroundedRulesDoNotLoadLanguageModel`
 - `testModelNotReadyWaitsWithoutDownloadingFallback`
 - `testMalformedOutputIsTerminalBeforeNextProvider`
@@ -315,3 +318,4 @@ bash tools/test-parsing.sh
 
 - `testParentCancellationReachesAnAlreadySuspendedOwnedWorkerAndWaitsForCleanup`
 - `testSuccessAndOriginalFailureKeepTheirValues`
+- `testCancellationSignalsAnUnresponsiveWorkerWithoutReleasingItsOwnership`

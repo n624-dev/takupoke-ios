@@ -18,7 +18,10 @@ extension ManualAssistanceChecks {
         XCTAssertTrue(ManualScrollNavigation.usable(frame),"Present keyboard must have finite positive geometry")
         return frame
     }
-    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:XCUIElementQuery?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧",observeButton:((ManualButtonObservation)->Void)?=nil)->XCUIElement {
+    func visible(_ e:XCUIElement,towardTop:Bool=false,knownID:String="",alternatives:((any XCUIElementSnapshot)->Bool)?=nil,buttonLabel:String?=nil,ownerID:String="manual-recovery-list",barTitle:String="時間割の復旧",observeButton:((ManualButtonObservation)->Void)?=nil)->XCUIElement {
+        guard !knownID.isEmpty || alternatives != nil || buttonLabel != nil else {
+            XCTFail("A manual navigation target needs an ID, a button label or a candidate query"); return e
+        }
         let started = ProcessInfo.processInfo.systemUptime
         var attempts = 0
         defer {
@@ -90,18 +93,28 @@ extension ManualAssistanceChecks {
                 XCTFail("Known manual control must be unique: "+targetID);return e
             }
             let target=matches.first ?? e
-            // Bind current candidates after measuring the viewport, and reuse
-            // each observed frame. An absent/virtualized candidate must not send
-            // us back to an unrelated global firstMatch.frame lookup.
-            let observed=alternatives.map { query in
-                query.allElementsBoundByAccessibilityElement.map { (element:$0,frame:$0.frame) }
+            // Read candidate geometry from one List snapshot. A recycled or
+            // offscreen row must not trigger an XCTest identity lookup.
+            var alternativeFrame:CGRect?
+            if let alternatives,let snapshot=try? list.snapshot(),let nodes=snapshotNodes(in:snapshot) {
+                let candidates=nodes.filter { $0.elementType == .staticText && alternatives($0) }
+                alternativeFrame=candidates.first?.frame
+                var current:XCUIElement?
+                let visibleCandidate=manualVisibleCandidate(candidates:candidates,viewport:viewport,frame:{ $0.frame }) { candidate in
+                    guard !candidate.identifier.isEmpty,candidate.isEnabled else { return false }
+                    let matching=list.staticTexts.matching(identifier:candidate.identifier).allElementsBoundByAccessibilityElement
+                    guard matching.count==1,let element=matching.first,let bound=try? element.snapshot(),
+                          bound.elementType == .staticText,bound.identifier==candidate.identifier,bound.label==candidate.label,
+                          bound.frame==candidate.frame,bound.isEnabled,element.isHittable else { return false }
+                    current=element
+                    return true
+                }
+                if visibleCandidate != nil,let current { return current }
             }
-            if let observed,let actual=manualVisibleCandidate(candidates:observed,viewport:viewport,
-                frame:{ $0.frame },isHittable:{ $0.element.isHittable }) { return actual.element }
-            let exists=observed.map { !$0.isEmpty } ?? !matches.isEmpty
+            let exists = !matches.isEmpty
             let targetFrame:CGRect?
             var buttonSnapshot: (any XCUIElementSnapshot)?
-            if let observed { targetFrame=observed.first?.frame }
+            if alternatives != nil { targetFrame=alternativeFrame }
             else if exists, observeButton != nil {
                 guard let snapshot = try? target.snapshot() else {
                     XCTFail("Could not observe the current native Button: " + targetID);return e
@@ -212,6 +225,9 @@ extension ManualAssistanceChecks {
                     // Capture the real descendants while proving this row is
                     // passive. Re-querying the same Cell afterward stalled AX.
                     let texts=cell.staticTexts.allElementsBoundByIndex
+                    // A review row with selectable corrected text is interactive
+                    // even though XCTest categorizes its children as StaticText.
+                    if inRecovery && texts.contains(where: { $0.identifier.hasPrefix("manual-reviewed-") }) { return false }
                     let images=texts.isEmpty ? cell.images.allElementsBoundByIndex:[]
                     guard !texts.isEmpty || !images.isEmpty,let frame=rowFrames[id] else { return false }
                     let relative=frame.offsetBy(dx:-listFrame.minX,dy:-listFrame.minY)
@@ -269,29 +285,43 @@ extension ManualAssistanceChecks {
         let requiredTitles: Set<String> = ["表示サイズを変更", "同じ原本の状態を再確認", "架空原本のハッシュを変更"]
         guard requiredTitles.contains(action) else { XCTFail("Unknown fixture menu action: " + action); return }
         let title = "架空検証"
-        let bar=app.navigationBars["時間割の復旧"]
-        guard bar.waitForExistence(timeout:nativeStateTimeout),
-              bar.buttons[title].waitForExistence(timeout:nativeStateTimeout) else {
-            XCTFail("Fixture menu must exist on its recovery toolbar");return
+        let identifier = "manual-fixture-menu"
+        let barTitle = "時間割の復旧"
+        let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
+        var visible: (button: CGRect, screen: CGRect)?
+        var ambiguous = false
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline,
+                  let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root),
+                  ManualScrollNavigation.usable(root.frame) else { return false }
+            let bars = nodes.filter { $0.elementType == .navigationBar && $0.identifier == barTitle }
+            if bars.count > 1 { ambiguous = true; return true }
+            guard let bar = bars.first, let children = self.snapshotNodes(in: bar),
+                  ManualScrollNavigation.usable(bar.frame), root.frame.contains(bar.frame) else { return false }
+            let candidates = children.filter { $0.elementType == .button && $0.identifier == identifier }
+            if candidates.count > 1 { ambiguous = true; return true }
+            guard let candidate = candidates.first, candidate.label == title, candidate.isEnabled,
+                  ManualScrollNavigation.usable(candidate.frame), bar.frame.contains(candidate.frame) else { return false }
+            let live = self.app.navigationBars.matching(identifier: barTitle).descendants(matching: .button)
+                .matching(identifier: identifier).allElementsBoundByAccessibilityElement
+            if live.count > 1 { ambiguous = true; return true }
+            guard let button = live.first, let bound = try? button.snapshot(),
+                  bound.elementType == candidate.elementType, bound.identifier == identifier,
+                  bound.label == title, bound.frame == candidate.frame, bound.isEnabled, button.isHittable,
+                  ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            visible = (candidate.frame, root.frame)
+            return true
+        }, object: nil)
+        guard XCTWaiter.wait(for: [ready], timeout: nativeStateTimeout) == .completed,
+              !ambiguous, let visible, app.state == .runningForeground,
+              ProcessInfo.processInfo.systemUptime < deadline else {
+            XCTFail("Fixture menu must be unique, visible and operable on its recovery toolbar"); return
         }
-        let barFrame=bar.frame
-        let current=bar.buttons.matching(NSPredicate(format:"label == %@",title))
-            .allElementsBoundByAccessibilityElement
-        guard current.count==1 else { XCTFail("Fixture menu must have one native Button");return }
-        let button=current[0],frame=button.frame,screenFrame=app.frame
-        guard ManualScrollNavigation.usable(screenFrame),ManualScrollNavigation.usable(barFrame),
-              ManualScrollNavigation.usable(frame),screenFrame.contains(barFrame),
-              barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground else {
-            XCTFail("Fixture menu must be visible on its own recovery toolbar: "+app.debugDescription);return
-        }
-        print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=native-center-brief-contact;duration=0.1")
-        let center = CGPoint(x: frame.midX, y: frame.midY)
-        do {
-            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
-                                        named: "Manual fixture toolbar")
-        } catch {
-            XCTFail("Native fixture menu contact failed: \(error)");return
-        }
+        let frame = visible.button, screenFrame = visible.screen
+        print("TAKUPOKE-MANUAL-MENU frame=\(frame);method=app-coordinate-tap")
+        let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+        let target = CGVector(dx: frame.midX - screenFrame.minX, dy: frame.midY - screenFrame.minY)
+        origin.withOffset(target).tap()
         tapFixtureDialogAction(action, requiredTitles: requiredTitles, screenFrame: screenFrame)
     }
 

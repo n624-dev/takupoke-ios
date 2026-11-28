@@ -32,6 +32,7 @@ struct FileRefreshQueue {
 
     mutating func resume() { suspended = false }
     mutating func discardPending() { pending.removeAll() }
+    mutating func discardPending(_ id: String) { pending.remove(id) }
 
     mutating func request(_ id: String) {
         if foreground && !suspended { pending.insert(id) }
@@ -102,6 +103,10 @@ struct PendingFileSelections<Kind, Selection> {
     }
 
     mutating func clear() { items.removeAll() }
+
+    mutating func clear(_ kind: Kind) where Kind: Equatable {
+        items.removeAll { $0.kind == kind }
+    }
 }
 
 /// The provider worker owns acquisition/persistence; this runs every requested

@@ -13,6 +13,58 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(os.name == "posix", "Bash runner")
 class PickerRunnerTests(unittest.TestCase):
+    def test_picker_viewport_uses_one_complete_current_snapshot(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to exercise the picker viewport selector")
+        swift = (ROOT / "tests/ui/MaterialPickerTapChecks.swift").read_text()
+        body = swift.split("        func viewport() -> CGRect? {", 1)[1].split("        var undisturbedViewport", 1)[0]
+        support = """import Foundation
+enum Kind { case navigationBar, tabBar, collectionView, other }
+struct Node {
+    let elementType: Kind
+    let identifier: String
+    var label = ""
+    let frame: CGRect
+}
+final class App {
+    let nodes: [Node]
+    var queryCount = 0
+    init(_ nodes: [Node]) { self.nodes = nodes }
+    func snapshot() throws -> [Node] { queryCount += 1; return nodes }
+}
+func snapshotNodes(in roots: [Node]) -> [Node]? { roots }
+func capture(_ nodes: [Node]) -> CGRect? {
+    let app = App(nodes)
+    func viewport() -> CGRect? {
+VIEWPORT
+    let result = viewport()
+    precondition(app.queryCount == 1)
+    return result
+}
+let bar = Node(elementType: .navigationBar, identifier: "", label: "ファイル選択",
+               frame: CGRect(x: 0, y: 24, width: 393, height: 93))
+let tabs = Node(elementType: .tabBar, identifier: "", frame: CGRect(x: 90, y: 769, width: 213, height: 51))
+let list = Node(elementType: .collectionView, identifier: "picker-file-list",
+                frame: CGRect(x: 0, y: 50, width: 393, height: 802))
+let unrelated = Node(elementType: .collectionView, identifier: "home", frame: list.frame)
+let placeholder = Node(elementType: .other, identifier: list.identifier, frame: list.frame)
+let clipped = Node(elementType: .collectionView, identifier: list.identifier,
+                   frame: CGRect(x: 0, y: 810, width: 393, height: 40))
+precondition(capture([bar, tabs, list, unrelated]) == CGRect(x: 0, y: 121, width: 393, height: 644))
+for nodes in [[bar, tabs, unrelated], [bar, tabs, placeholder], [bar, tabs, clipped],
+              [bar, bar, tabs, list], [bar, tabs, tabs, list], [bar, tabs, list, list]] {
+    precondition(capture(nodes) == nil)
+}
+"""
+        with tempfile.TemporaryDirectory(prefix="takupoke-picker-viewport-") as directory:
+            root = Path(directory)
+            source = root / "main.swift"
+            source.write_text(support.replace("VIEWPORT", body))
+            subprocess.run([compiler, "-module-cache-path", str(root / "modules"), str(source),
+                            "-o", str(root / "test")], check=True, timeout=60)
+            subprocess.run([str(root / "test")], check=True, timeout=15)
+
     def test_picker_lease_typechecks_with_only_picker_dependencies(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:

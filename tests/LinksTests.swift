@@ -1,5 +1,10 @@
 import Foundation
 import XCTest
+#if canImport(CryptoKit)
+import CryptoKit
+#elseif canImport(Crypto)
+import Crypto
+#endif
 @testable import TakupokeParsing
 
 final class LinksTests: XCTestCase {
@@ -20,7 +25,7 @@ final class LinksTests: XCTestCase {
             continuation?.resume(returning:value); continuation = nil
         }
     }
-    @MainActor private func waitForWaiters(_ count:Int,_ coordinator:LinksRevisionCoordinator) async throws {
+    @MainActor private func waitForWaiters(_ count:Int,_ coordinator:DistributedRevisionCoordinator) async throws {
         for _ in 0..<1000 {
             if coordinator.pendingWaiterCount == count { return }
             await Task.yield()
@@ -28,7 +33,7 @@ final class LinksTests: XCTestCase {
         XCTFail("revision callers did not enroll"); throw LinksError.unavailable
     }
     @MainActor func testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait() async throws {
-        let coordinator = LinksRevisionCoordinator(), gate = RevisionGate()
+        let coordinator = DistributedRevisionCoordinator(), gate = RevisionGate()
         defer { coordinator.reset(); gate.complete(.unchanged) }
         let first = Task { try await coordinator.value(installed:"fictional-v1",force:false,fetch:gate.fetch) }
         await fulfillment(of:[gate.started],timeout:2)
@@ -42,9 +47,25 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(secondValue,.available("fictional-v2"))
         XCTAssertEqual(coordinator.pendingWaiterCount,0)
     }
+    @MainActor func testCancellingTheLaterWaiterStillLetsTheFirstAcceptItsResponse() async throws {
+        let coordinator = DistributedRevisionCoordinator(), gate = RevisionGate()
+        defer { coordinator.reset(); gate.complete(.unchanged) }
+        let first = Task { try await coordinator.value(installed: "fictional-v1", force: true, fetch: gate.fetch) }
+        await fulfillment(of: [gate.started], timeout: 2)
+        let later = Task { try await coordinator.value(installed: "fictional-v1", force: true, fetch: gate.fetch) }
+        try await waitForWaiters(2, coordinator)
+        later.cancel()
+        do { _ = try await later.value; XCTFail("cancelled waiter succeeded") }
+        catch is CancellationError {}
+        XCTAssertEqual(coordinator.pendingWaiterCount, 1)
+        XCTAssertEqual(gate.calls, 1)
+        gate.complete(.unchanged)
+        let firstValue = try await first.value
+        XCTAssertEqual(firstValue, .unchanged)
+    }
     @MainActor func testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator() async throws {
         var time = 0.0, calls = 0
-        let coordinator = LinksRevisionCoordinator(minimumInterval:300,now:{ time })
+        let coordinator = DistributedRevisionCoordinator(minimumInterval:300,now:{ time })
         func request(_ installed:String?,_ force:Bool = false,_ fail:Bool = false) async throws -> MappingRevisionResult {
             try await coordinator.value(installed:installed,force:force) {
                 calls += 1
@@ -64,7 +85,7 @@ final class LinksTests: XCTestCase {
         coordinator.reset(); _ = try await request("fictional-v2"); XCTAssertEqual(calls,6)
     }
     @MainActor func testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess() async throws {
-        let coordinator = LinksRevisionCoordinator(), gate = RevisionGate()
+        let coordinator = DistributedRevisionCoordinator(), gate = RevisionGate()
         defer { coordinator.reset(); gate.complete(.unchanged) }
         let request = Task { try await coordinator.value(installed:nil,force:false,fetch:gate.fetch) }
         await fulfillment(of:[gate.started],timeout:2)
@@ -76,7 +97,7 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(result,.available("fictional-fresh"))
     }
     @MainActor func testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes() async throws {
-        let coordinator = LinksRevisionCoordinator(), old = RevisionGate(), current = RevisionGate()
+        let coordinator = DistributedRevisionCoordinator(), old = RevisionGate(), current = RevisionGate()
         defer { coordinator.reset(); old.complete(.unchanged); current.complete(.unchanged) }
         let stale = Task { try await coordinator.value(installed:nil,force:false,fetch:old.fetch) }
         await fulfillment(of:[old.started],timeout:2)
@@ -164,6 +185,65 @@ final class LinksTests: XCTestCase {
         }
     }
 
+    func testMappingIDTokenChecksClaimsClockAndRealSignatureSeparately() throws {
+        let signer = P256.Signing.PrivateKey()
+        let issuer = "https://auth.example.invalid", client = "fictional-client", nonce = "fictional-nonce"
+        let now: TimeInterval = 10_000
+        let base: [String: Any] = ["iss": issuer, "aud": client, "nonce": nonce, "sub": "fictional-subject",
+                                  "acr": "urn:takunin:assurance:strict", "amr": ["microsoft"], "iat": now, "exp": now + 600]
+        func encodeURL(_ value: Data) -> String {
+            value.base64EncodedString().replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        }
+        func token(claims: [String: Any] = [:], header: [String: String] = [:],
+                   key: P256.Signing.PrivateKey? = nil) throws -> String {
+            let fields = ["alg": "ES256", "typ": "JWT", "kid": "fictional-key"].merging(header) { _, new in new }
+            let input = try JSONSerialization.data(withJSONObject: fields)
+            let payload = try JSONSerialization.data(withJSONObject: base.merging(claims) { _, new in new })
+            let signing = encodeURL(input) + "." + encodeURL(payload)
+            let signature = try (key ?? signer).signature(for: Data(signing.utf8))
+            return signing + "." + encodeURL(signature.rawRepresentation)
+        }
+        func keys(_ key: P256.Signing.PublicKey? = nil, changes: [String: String] = [:]) throws -> Data {
+            let raw = (key ?? signer.publicKey).x963Representation
+            let value = ["kid": "fictional-key", "kty": "EC", "crv": "P-256", "alg": "ES256", "use": "sig",
+                         "x": encodeURL(Data(raw[1..<33])), "y": encodeURL(Data(raw[33..<65]))]
+            return try JSONSerialization.data(withJSONObject: ["keys": [value.merging(changes) { _, new in new }]])
+        }
+        func check(_ jwt: String) throws -> MappingIDTokenVerification {
+            try MappingIDTokenVerification(jwt: jwt, issuer: issuer, clientID: client, nonce: nonce, selection: .all, now: now)
+        }
+
+        let verified = try check(token())
+        try verified.verifySignature(using: keys())
+        try check(token(claims: ["iat": now + 30])).verifySignature(using: keys())
+        let invalidClaims: [[String: Any]] = [["iss": "https://other.example.invalid"], ["aud": "other"], ["nonce": "other"],
+                                             ["sub": ""], ["exp": now], ["exp": now + 601], ["iat": now + 31],
+                                             ["iat": now + 30, "exp": now + 30], ["amr": ["school_network"]]]
+        for claims in invalidClaims {
+            XCTAssertThrowsError(try check(token(claims: claims)))
+        }
+        for header in [["alg": "HS256"], ["typ": "other"], ["kid": ""]] {
+            XCTAssertThrowsError(try check(token(header: header)))
+        }
+        XCTAssertThrowsError(try check("fictional.malformed"))
+        for jwks in [Data("{}".utf8), Data("fictional".utf8), try keys(changes: ["kid": "other"]),
+                     try keys(changes: ["x": "AA"]), try keys(P256.Signing.PrivateKey().publicKey)] {
+            XCTAssertThrowsError(try verified.verifySignature(using: jwks))
+        }
+        let incorrectSignature = try check(token(key: P256.Signing.PrivateKey()))
+        XCTAssertThrowsError(try incorrectSignature.verifySignature(using: keys()))
+    }
+
+    func testMappingAccessTokenCacheKeepsScopeAndExpirySeparate() {
+        let now = Date(timeIntervalSince1970: 100)
+        let cache = MappingAccessTokenCache(value: "fictional-token", scopes: ["links.read", "mapping.read"], expiresAt: now.addingTimeInterval(31))
+        XCTAssertEqual(cache.usableToken(requiring: ["links.read"], now: now), "fictional-token")
+        XCTAssertNil(cache.usableToken(requiring: ["links.read", "other.read"], now: now))
+        XCTAssertNil(cache.usableToken(requiring: ["links.read"], now: now.addingTimeInterval(1)))
+        XCTAssertNil(cache.usableToken(requiring: ["links.read"], now: now.addingTimeInterval(32)))
+    }
+
     func testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear() throws {
         let original = try XCTUnwrap(URL(string: "https://l.n624.jp/gSBBt"))
         for department in SyllabusLinkPolicy.departments {
@@ -193,9 +273,9 @@ final class LinksTests: XCTestCase {
 
     private func item(id: String = "fictional-link", href: String = "https://example.invalid/path",
                       visible: Bool = true, label: String = "架空リンクA", sortOrder: Int = 1,
-                      recommended: Bool = false, recommendationOrder: Int = 0) -> LinkItem {
+                      recommended: Bool = false, recommendationOrder: Int = 0, color: String = "sky") -> LinkItem {
         LinkItem(id: id, categoryId: "fictional-category", label: label, href: href,
-                 color: "sky", visible: visible, sortOrder: sortOrder, recommended: recommended,
+                 color: color, visible: visible, sortOrder: sortOrder, recommended: recommended,
                  recommendationOrder: recommendationOrder, searchAliases: ["架空別名A"], searchTerms: "かくうりんく|fictional")
     }
 
@@ -261,6 +341,36 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(try store.load(), original)
     }
 
+    func testUnknownLinkColorUsesTheStandardColorAndKeepsTheExactPublishedValue() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LinksStore(root: root)
+        let original = SavedLinks(payload: payload([item()]), apiETag: tag, checkedAt: Date(timeIntervalSince1970: 1))
+        try store.save(original)
+        let etag = "\"fictional-new-edition\""
+        let checked = Date(timeIntervalSince1970: 2)
+        let rawColor = "fictional-future-color"
+        let published = payload([item(), item(id: "fictional-future", color: rawColor)])
+        let adopted = try LinksResponse.decode(status: 200, data: JSONEncoder().encode(published),
+            receivedETag: etag, saved: original, checkedAt: checked)
+        try store.save(adopted)
+        let restored = try XCTUnwrap(LinksStore(root: root).load())
+        XCTAssertEqual(restored, adopted)
+        let buttons = try XCTUnwrap(restored.payload.categories.first?.buttons)
+        XCTAssertEqual(buttons.map(\.id), ["fictional-link", "fictional-future"])
+        XCTAssertEqual(buttons.map(\.color), ["sky", rawColor])
+        XCTAssertEqual(buttons.map(\.displayColor), ["sky", "gray"])
+        let checkedAgain = try LinksResponse.decode(status: 304, data: Data(), receivedETag: etag, saved: restored)
+        XCTAssertEqual(checkedAgain.payload, published)
+
+        let invalidURL = payload([item(href: "http://example.invalid", color: rawColor)])
+        let blank = payload([item(color: " \n")])
+        for rejected in [invalidURL, blank] {
+            XCTAssertThrowsError(try store.save(SavedLinks(payload: rejected, apiETag: etag, checkedAt: checked)))
+            XCTAssertEqual(try store.load(), adopted)
+        }
+    }
+
     func testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -303,6 +413,29 @@ final class LinksTests: XCTestCase {
         value.colorOverrides["fictional-link"] = "not-a-color"
         XCTAssertThrowsError(try store.save(value))
         XCTAssertEqual(try store.load().colorOverrides["fictional-link"], "teal")
+    }
+
+    func testDamagedLinkPreferencesRestoreEachReadableValueAndKeepTheOriginal() throws {
+        let suite = "link-partial-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = LinkPreferencesStore(defaults: defaults)
+        let key = "linkPreferences.v1"
+        let damaged = Data(#"{"favoriteIDs":["fictional-a",1],"hiddenIDs":["fictional-b"],"colorOverrides":{"fictional-c":"blue","fictional-d":false,"fictional-e":"future-color"}}"#.utf8)
+        defaults.set(damaged, forKey: key)
+        XCTAssertThrowsError(try store.save(LinkPreferences()))
+        let recovered = try XCTUnwrap(store.recoverReadableValues())
+        XCTAssertEqual(recovered.favoriteIDs, ["fictional-a"])
+        XCTAssertEqual(recovered.hiddenIDs, ["fictional-b"])
+        XCTAssertEqual(recovered.colorOverrides, ["fictional-c": "blue", "fictional-e": "future-color"])
+        XCTAssertEqual(try store.load(), recovered)
+        let archive = try XCTUnwrap(defaults.dictionaryRepresentation().keys.first { $0.hasPrefix(key + ".retained.") })
+        XCTAssertEqual(defaults.data(forKey: archive), damaged)
+        XCTAssertNil(try store.recoverReadableValues())
+        let unknown = Data(#"{"version":2,"favoriteIDs":["fictional-f"]}"#.utf8)
+        defaults.set(unknown, forKey: key)
+        XCTAssertThrowsError(try store.recoverReadableValues())
+        XCTAssertEqual(defaults.data(forKey: key), unknown)
     }
 
     func testSearchMatchesKanaRomajiAndRanking() {

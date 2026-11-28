@@ -53,6 +53,59 @@ final class SchoolDataRetentionTests: XCTestCase {
         XCTAssertEqual(try retention.installedPeriod(), second)
     }
 
+    func testAutomaticMarkerRecoveryKeepsCurrentDataOrArchivesUnverifiedDataAndRetries() throws {
+        let manager = FileManager.default
+        let current = SchoolDataPeriod(day: try XCTUnwrap(SchoolDate(iso8601: "2032-10-01")))
+        let malformed = Data("{fictional-broken-marker".utf8)
+        let markerName = "school-data-period.json"
+        for hasProof in [false, true] {
+            let root = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? manager.removeItem(at: root) }
+            let retention = SchoolDataRetention(root: root)
+            try manager.createDirectory(at: root, withIntermediateDirectories: true)
+            if hasProof { try retention.replace(with: current) }
+            let marker = root.appendingPathComponent(markerName)
+            try malformed.write(to: marker)
+            let names = ["SchoolMaterialsSQLite", "SpecialSchedulesSQLite", "SchoolEventsAPI", "unrelated"]
+            for name in names { try Data(name.utf8).write(to: root.appendingPathComponent(name)) }
+            if !hasProof {
+                XCTAssertThrowsError(try retention.restoreInvalidPeriod(current) { source, archive in
+                    if source.lastPathComponent == "SpecialSchedulesSQLite" { throw CocoaError(.fileWriteNoPermission) }
+                    try manager.moveItem(at: source, to: archive)
+                })
+                XCTAssertEqual(try Data(contentsOf: marker), malformed)
+                XCTAssertTrue(manager.fileExists(atPath: root.appendingPathComponent("SpecialSchedulesSQLite").path))
+            }
+            XCTAssertEqual(try retention.restoreInvalidPeriod(current), hasProof)
+            XCTAssertEqual(try retention.installedPeriod(), current)
+            let archiveRoot = root.appendingPathComponent("SchoolDataUnverifiedPeriod")
+            let archive = try XCTUnwrap(manager.contentsOfDirectory(at: archiveRoot, includingPropertiesForKeys: nil).first)
+            XCTAssertEqual(try Data(contentsOf: archive.appendingPathComponent(markerName)), malformed)
+            for name in names {
+                let active = root.appendingPathComponent(name)
+                let retained = archive.appendingPathComponent(name)
+                if hasProof || name == "SchoolEventsAPI" || name == "unrelated" {
+                    XCTAssertEqual(try Data(contentsOf: active), Data(name.utf8))
+                    XCTAssertFalse(manager.fileExists(atPath: retained.path))
+                } else {
+                    XCTAssertFalse(manager.fileExists(atPath: active.path))
+                    XCTAssertEqual(try Data(contentsOf: retained), Data(name.utf8))
+                }
+            }
+            let next = SchoolDataPeriod(day: try XCTUnwrap(SchoolDate(iso8601: "2033-04-01")))
+            XCTAssertThrowsError(try retention.replace(with: next, remove: { url in
+                if url.path == archiveRoot.path { throw CocoaError(.fileWriteNoPermission) }
+                try manager.removeItem(at: url)
+            })) { XCTAssertEqual($0 as? SchoolDataRetention.Failure, .cleanup) }
+            XCTAssertEqual(try retention.installedPeriod(), current)
+            XCTAssertTrue(manager.fileExists(atPath: archiveRoot.path))
+            try retention.replace(with: next)
+            XCTAssertEqual(try retention.installedPeriod(), next)
+            XCTAssertFalse(manager.fileExists(atPath: archiveRoot.path))
+            XCTAssertTrue(manager.fileExists(atPath: root.appendingPathComponent("SchoolEventsAPI").path))
+        }
+    }
+
     func testHalfYearDeletionPreservesPreferencesPublicEventsAndExternalOriginal() throws {
         let manager = FileManager.default
         let root = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString)

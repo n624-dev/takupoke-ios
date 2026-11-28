@@ -142,14 +142,30 @@ final class Work { var cancelled=false; func cancel() { cancelled=true } }
 final class Monitor { var enabled=false; func setFileMonitoring(_ value:Bool) { enabled=value }; func setSourceChecksActive(_ value:Bool) { enabled=value } }
 final class Clock { var running=true; func start() { running=true }; func pause() { running=false } }
 final class LocalRecoveryModelManager { static let shared=LocalRecoveryModelManager(); var cancelled=false; func cancel() { cancelled=true } }
+enum LocalAIFeaturePolicy {
+ static var valid = true
+ static func check(_ ticket: Int) throws { if !valid { throw CancellationError() } }
+}
+struct Preview {
+ struct Result { let humanCorrections: [String]? }
+ let result: Result
+}
+enum RecoveryFailure { case selectionChanged, originalRevalidation }
 final class Coordinator {
  var task:Work?=Work(), preparationControl:Work?=Work()
- var operation=UUID(), running=true, status="", failure:String?="failure"
+ var operation=UUID(), running=true, status=""
+ var recoveryWorkers=[String:UUID](), endingRecovery=Set<String>()
+ var failureReason:RecoveryFailure? = .originalRevalidation
+ var previewNeedsRevalidation = false
  var manualDraft:String?="original-snapshot", manualImages=["field":"original-crop"]
  var manualReview:String?="review",manualContextImages=["field":"actual-cell"]
  var previewRasters=[1:"original-raster"],manualInitialValues=["field":"prior-transcription"]
- var preview:String?="preview", pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", awaitingModel=true
-''' + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func cancel()") + '''
+ var manualInitialAcknowledged=Set<String>()
+ var preview:Preview? = Preview(result: .init(humanCorrections: nil))
+ var pendingDocument:String?="document", pendingPages:String?="pages", source:String?="source", modelAction:String?="preparing"
+ var selectedSourceIsCurrent = true
+ var aiTicket = 1
+''' + block(coordinator, "    private var hasManualWork: Bool") + "\n" + block(coordinator, "    func suspendForInactivity()") + "\n" + block(coordinator, "    func invalidateManualIfSourceChanged()") + "\n" + block(coordinator, "    func cancel()") + '''
 }
 final class Application {
  let recovery=Coordinator(), materials=Monitor(), specialSchedules=Monitor(), schoolEvents=Monitor(); var ready=true
@@ -174,9 +190,32 @@ app.recovery.manualDraft=nil
 app.setFileMonitoring(false)
 precondition(app.recovery.source == nil && app.recovery.preview == nil)
 precondition(app.recovery.previewRasters.isEmpty && app.recovery.manualInitialValues.isEmpty)
-let other=Application(); other.recovery.cancel() // Retention/user cancellation still destroys private draft.
+let other=Application()
+other.recovery.recoveryWorkers["fictional-timetable"] = other.recovery.operation
+other.recovery.cancel() // Retention/user cancellation still destroys private draft.
+precondition(other.recovery.endingRecovery == ["fictional-timetable"] && other.recovery.recoveryWorkers.count == 1)
 precondition(other.recovery.manualDraft == nil && other.recovery.manualImages.isEmpty && other.recovery.manualReview == nil && other.recovery.manualContextImages.isEmpty)
 precondition(other.recovery.previewRasters.isEmpty && other.recovery.manualInitialValues.isEmpty)
+let corrected=Application()
+corrected.recovery.manualDraft=nil
+corrected.recovery.manualReview=nil
+corrected.recovery.preview = Preview(result: .init(humanCorrections: ["fictional-corrected-value"]))
+let previewWorker = corrected.recovery.task!
+corrected.setFileMonitoring(false)
+corrected.setFileMonitoring(false)
+corrected.recovery.invalidateManualIfSourceChanged()
+precondition(previewWorker.cancelled && !corrected.recovery.running)
+precondition(corrected.recovery.previewNeedsRevalidation)
+precondition(corrected.recovery.preview?.result.humanCorrections == ["fictional-corrected-value"])
+precondition(corrected.recovery.source == "source" && corrected.recovery.previewRasters[1] == "original-raster")
+corrected.recovery.selectedSourceIsCurrent = false
+corrected.recovery.invalidateManualIfSourceChanged()
+precondition(corrected.recovery.preview == nil && corrected.recovery.source == nil)
+precondition(corrected.recovery.failureReason == .selectionChanged)
+let disabled = Application()
+LocalAIFeaturePolicy.valid = false
+disabled.recovery.invalidateManualIfSourceChanged()
+precondition(disabled.recovery.manualDraft == nil && disabled.recovery.source == nil)
 print("Verified actual background preservation and heavy-work/cancel transitions.")
 '''
         # All scratch belongs to this invocation, including its generated executable.
@@ -186,6 +225,111 @@ print("Verified actual background preservation and heavy-work/cancel transitions
             subprocess.run([compiler, "-swift-version", "5", "-module-cache-path", str(path / "modules"),
                             str(path / "main.swift"), "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
+
+    def test_actual_preview_resume_checks_in_place_file_changes_before_adoption(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift compiler unavailable; native CI compiles the same methods")
+        coordinator = (ROOT / "Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
+        linked = (ROOT / "Takupoke/CancellationLinkedTask.swift").read_text(encoding="utf-8")
+        methods = "\n".join(block(coordinator, start) for start in (
+            "    private var hasManualWork:", "    func suspendForInactivity()", "    func resumeAfterInactivity()",
+            "    func invalidateManualIfSourceChanged()", "    func cancel()", "    private func recoveryWorkerFinished(",
+        ))
+        source = linked + r'''
+typealias RecoveryDocumentKind = String
+struct Source: Sendable { let url: URL; let bytes: Data; let kind = "fictional-timetable" }
+@MainActor final class UIApplication {
+    static let shared = UIApplication()
+    enum State { case active, inactive }
+    var applicationState: State = .active
+}
+struct Preview: Sendable {
+    struct Result: Sendable { let humanCorrections: [String]? }
+    let source: Source
+    let result = Result(humanCorrections: ["fictional-correction"])
+    let id = UUID()
+}
+enum LocalAIFeaturePolicy { static func check(_ ticket: Int) throws {} }
+final class AcquisitionControl: Sendable {
+    func check() throws {}
+    func cancel() {}
+}
+enum RecoveryConversion {
+    enum Failure: Error { case changed }
+    static func verifyFile(_ source: Source, check: () throws -> Void) throws {
+        try check()
+        guard try Data(contentsOf: source.url) == source.bytes else { throw Failure.changed }
+        try check()
+    }
+}
+enum RecoveryFailure { case originalRevalidation, selectionChanged }
+@MainActor final class Coordinator {
+    var task: Task<Void, Never>?
+    var preparationControl: AcquisitionControl?
+    var operation = UUID(), running = false, status = "", modelAction: String?
+    var recoveryWorkers=[String:UUID](), endingRecovery=Set<String>()
+    var previewNeedsRevalidation = false
+    var aiTicket = 1, selectedSourceIsCurrent = true
+    var preview: Preview?
+    var source: Source?
+    var manualDraft: String?, manualReview: String?, pendingDocument: String?, pendingPages: String?
+    var failureReason: RecoveryFailure?
+    var previewRasters = [1: "fictional-raster"]
+    var manualImages = [String: String](), manualContextImages = [String: String](), manualInitialValues = [String: String]()
+    var manualInitialAcknowledged = Set<String>()
+    init(source: Source) { self.source = source; preview = Preview(source: source) }
+    func finishedForTest(_ kind: RecoveryDocumentKind, operation: UUID) { recoveryWorkerFinished(kind, operation: operation) }
+    func check(_ id: UUID) throws {
+        try Task.checkCancellation()
+        guard operation == id, selectedSourceIsCurrent else { throw CancellationError() }
+    }
+''' + methods + r'''
+}
+@main struct Probe {
+    @MainActor static func main() async throws {
+        let url = URL(fileURLWithPath: CommandLine.arguments[1])
+        let bytes = Data("fictional-original".utf8)
+        try bytes.write(to: url)
+        let source = Source(url: url, bytes: bytes)
+
+        let unchanged = Coordinator(source: source)
+        let previewID = unchanged.preview?.id
+        let oldWorker = unchanged.operation
+        unchanged.recoveryWorkers[source.kind] = oldWorker
+        unchanged.suspendForInactivity()
+        precondition(unchanged.previewNeedsRevalidation && !unchanged.running)
+        precondition(unchanged.endingRecovery == [source.kind])
+        unchanged.resumeAfterInactivity()
+        precondition(!unchanged.running && unchanged.preview?.id == previewID)
+        unchanged.finishedForTest(source.kind, operation: UUID())
+        precondition(!unchanged.running && unchanged.endingRecovery == [source.kind])
+        unchanged.finishedForTest(source.kind, operation: oldWorker)
+        precondition(unchanged.running && unchanged.previewNeedsRevalidation)
+        await unchanged.task?.value
+        precondition(!unchanged.running && !unchanged.previewNeedsRevalidation && unchanged.failureReason == nil && unchanged.preview?.id == previewID)
+        precondition(unchanged.endingRecovery.isEmpty && unchanged.recoveryWorkers.isEmpty)
+        let completedOperation = unchanged.operation
+        unchanged.resumeAfterInactivity()
+        precondition(unchanged.operation == completedOperation && !unchanged.running)
+
+        let changed = Coordinator(source: source)
+        changed.suspendForInactivity()
+        try Data("fictional-modified".utf8).write(to: url, options: .atomic)
+        precondition(changed.selectedSourceIsCurrent)
+        changed.resumeAfterInactivity()
+        await changed.task?.value
+        precondition(changed.selectedSourceIsCurrent && !changed.running)
+        precondition(changed.preview == nil && changed.source == nil && changed.failureReason == .originalRevalidation)
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="manual-preview-resume-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(source, encoding="utf-8")
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", "-module-cache-path", str(path / "modules"),
+                            str(path / "probe.swift"), "-o", str(path / "probe")], check=True, timeout=60)
+            subprocess.run([str(path / "probe"), str(path / "fictional.pdf")], check=True, timeout=15)
 
     def test_actual_field_callbacks_reject_replaced_missing_and_reviewed_drafts(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
@@ -267,7 +411,11 @@ struct SchoolDataPeriod: Equatable {
         return Self.installed
     }
     func replace(with period: SchoolDataPeriod) throws { Self.replaced += 1; Self.installed = period }
-    func quarantineInvalidMarker() throws { Self.corrupt = false; Self.quarantined += 1 }
+    func finalizeUnverifiedArchive() throws {}
+    func saveProofForInstalledPeriod(_ period: SchoolDataPeriod) throws {}
+    func restoreInvalidPeriod(_ period: SchoolDataPeriod) throws -> Bool {
+        Self.corrupt = false; Self.quarantined += 1; try replace(with: period); return false
+    }
     func finishRecovery() throws {}
 }
 @MainActor final class FileRefreshDiagnostics {
@@ -306,6 +454,7 @@ struct SchoolDataPeriod: Equatable {
     let mappings = Unit(), links = Unit(), times = Unit(), countdown = Countdown()
     var ready = true, preparing = false, retentionNotice = false, retentionFailure = false
     var retentionFailureReason: SchoolDataRetention.Failure?
+    var recoveredRetention: String?
     var loadedPeriod: SchoolDataPeriod? = .init(half:1)
     func setFileMonitoring(_ enabled: Bool) { precondition(!enabled) }
 RECOVERY_ACTION
@@ -326,7 +475,7 @@ STOP
             let app = Application(root:root)
             app.countdown.response = countdownResponds
             app.notifications.response = updatesRespond
-            let blocked = await app.prepare(recoverInvalidMarker:corrupt)
+            let blocked = await app.prepare()
             precondition(!blocked && !app.ready && app.loadedPeriod == nil && !app.preparing)
             precondition(app.retentionFailure && app.retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:corrupt))
             precondition(app.canRecoverRetention == corrupt)
@@ -337,9 +486,10 @@ STOP
             precondition(app.links.resets == 1 && app.times.resets == 1 && app.countdown.includesDelivered == [true])
             app.countdown.response = true
             app.notifications.response = true
-            let recovered = await app.prepare(recoverInvalidMarker:app.canRecoverRetention)
+            let recovered = await app.prepare()
             precondition(recovered && app.ready && !app.retentionFailure && app.retentionFailureReason == nil)
-            precondition(app.loadedPeriod?.half == 2 && app.retentionNotice && !app.preparing)
+            precondition(app.loadedPeriod?.half == 2 && app.retentionNotice == !corrupt && !app.preparing)
+            precondition((app.recoveredRetention != nil) == corrupt)
             precondition(SchoolDataRetention.replaced == 1 && SchoolDataRetention.quarantined == (corrupt ? 1 : 0))
             precondition(app.countdown.includesDelivered == [true,true])
         }

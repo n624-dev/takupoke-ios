@@ -3,6 +3,31 @@ import Foundation
 @testable import TakupokeParsing
 
 final class FileRefreshTests: XCTestCase {
+    func testSavedPDFLeasesHoldExactOriginalUntilTheLastViewerCloses() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = root.appendingPathComponent("fictional-original.pdf")
+        let replacement = root.appendingPathComponent("fictional-replacement.pdf")
+        let bytes = Data("%PDF-fictional-original".utf8)
+        try bytes.write(to: original)
+        try Data("%PDF-fictional-replacement".utf8).write(to: replacement)
+        var first = SavedPDFLease.open(original), second = SavedPDFLease.open(original)
+        XCTAssertEqual(first?.url, original.standardizedFileURL)
+        XCTAssertEqual(second?.url, original.standardizedFileURL)
+
+        try SavedPDFLease.retire(original)
+        try SavedPDFLease.retire(original) // A collector can observe the same file again.
+        XCTAssertEqual(try Data(contentsOf: XCTUnwrap(first?.url)), bytes)
+        XCTAssertNil(SavedPDFLease.open(original))
+        XCTAssertNotNil(SavedPDFLease.open(replacement))
+        first = nil
+        XCTAssertTrue(FileManager.default.fileExists(atPath: original.path))
+        second = nil
+        XCTAssertFalse(FileManager.default.fileExists(atPath: original.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: replacement.path))
+    }
+
     private final class PipelineClock: @unchecked Sendable {
         let lock = NSLock()
         private var tick: TimeInterval = 0
@@ -101,6 +126,165 @@ final class FileRefreshTests: XCTestCase {
         XCTAssertEqual(probe.calls, 3); XCTAssertEqual(probe.commits, 1); XCTAssertEqual(probe.cleanups, 1)
         XCTAssertEqual(pipeline.snapshot[.changes]?.attempt, 2)
         XCTAssertEqual(pipeline.snapshot[.changes]?.stage, .succeeded)
+    }
+
+    func testTransportShapedFailuresAfterAcquisitionNeverStartANewAttempt() throws {
+        let owner = DispatchQueue(label: "fictional-stage-retry-owner")
+        let errors: [Error] = [URLError(.networkConnectionLost), MaterialError.providerReadFailed]
+        var limits = FilePipeline.Limits()
+        limits.retryDelay = 0
+        for reason: FilePipeline.Reason in [.automatic, .manual] {
+            for stage: FilePipeline.Stage in [.parsing, .validating, .saving] {
+                for error in errors {
+                    let pipeline = FilePipeline(limits: limits)
+                    let cleaned = DispatchSemaphore(value: 0)
+                    XCTAssertThrowsError(try pipeline.run(source: .exam, reason: reason, period: .current(), cancelled: {},
+                        work: { ticket in
+                            if stage != .saving { ticket.enter(stage); throw error }
+                            return 42
+                        }, cleanup: { cleaned.signal() }, retryQueue: owner, commit: { _, ticket in
+                            try ticket.beginCommit(period: .current())
+                            throw error
+                        }))
+                    XCTAssertEqual(cleaned.wait(timeout: .now() + 5), .success)
+                    let status = try XCTUnwrap(pipeline.snapshot[.exam])
+                    XCTAssertEqual(status.attempt, 0, "\(reason) \(stage)")
+                    XCTAssertEqual(status.stage, .failed)
+                    XCTAssertNotNil(status.requestFinishedAt)
+                    XCTAssertFalse(pipeline.isRecovering(.exam))
+                }
+            }
+        }
+    }
+
+    func testStaleReferenceRequiresTheReadAndSavedOriginalDigestsToMatch() throws {
+        var reads = 0
+        try MaterialBookmarkResolution.verifiesOriginal(receivedDigest: "fictional-original", savedDigest: "fictional-original") {
+            reads += 1; return "fictional-original"
+        }
+        XCTAssertEqual(reads, 1)
+        XCTAssertThrowsError(try MaterialBookmarkResolution.verifiesOriginal(receivedDigest: "changed", savedDigest: "fictional-original") {
+            XCTFail("A different provider file must not renew the reference"); return "fictional-original"
+        }) { error in
+            guard case .bookmarkStale? = error as? MaterialError else { return XCTFail("Expected stale reference failure") }
+        }
+        XCTAssertThrowsError(try MaterialBookmarkResolution.verifiesOriginal(receivedDigest: "fictional-original", savedDigest: "fictional-original") {
+            "different-actual-stored-file"
+        }) { error in
+            guard case .bookmarkStale? = error as? MaterialError else { return XCTFail("Expected stale reference failure") }
+        }
+    }
+
+    func testRetryAcquiringTheOriginalButFailingToParseAllowsMonitorRecovery() throws {
+        var limits = FilePipeline.Limits()
+        limits.retryDelay = 0
+        let owner = DispatchQueue(label: "fictional-monitor-recovery-owner")
+        for source in FileRefreshDiagnostics.Source.allCases {
+            let pipeline = FilePipeline(limits: limits)
+            let cleaned = DispatchSemaphore(value: 0)
+            XCTAssertThrowsError(try pipeline.run(source: source, reason: .automatic, period: .current(),
+                cancelled: {}, work: { ticket in
+                    if ticket.attempt == 0 { throw URLError(.networkConnectionLost) }
+                    ticket.acquired()
+                    return PDFParseError(code: .ambiguous)
+                }, cleanup: { cleaned.signal() }, retryQueue: owner, commit: { parseFailure, ticket in
+                    try ticket.beginCommit(period: .current())
+                    ticket.didCommit()
+                    throw parseFailure
+                }))
+            XCTAssertEqual(cleaned.wait(timeout: .now() + 5), .success)
+            let status = try XCTUnwrap(pipeline.snapshot[source])
+            XCTAssertEqual(status.attempt, 1)
+            XCTAssertEqual(status.stage, .failed)
+            XCTAssertTrue(status.canRetryMonitorRegistration)
+
+            XCTAssertThrowsError(try pipeline.run(source: source, reason: .automatic, period: .current(),
+                cancelled: {}, work: { ticket in ticket.acquired(); return 42 }, cleanup: {},
+                commit: { _, ticket in
+                    try ticket.beginCommit(period: .current())
+                    throw MaterialError.invalidState
+                }))
+            XCTAssertEqual(pipeline.snapshot[source]?.canRetryMonitorRegistration, false)
+
+            XCTAssertThrowsError(try pipeline.run(source: source, reason: .automatic, period: .current(),
+                cancelled: {}, work: { _ in throw MaterialError.accessExpired }, cleanup: {},
+                commit: { (_: Int, _) in XCTFail("An inaccessible original cannot be committed") }))
+            XCTAssertEqual(pipeline.snapshot[source]?.canRetryMonitorRegistration, false)
+        }
+    }
+
+    func testPipelinePublishesOneLogicalResultAfterBothSourcesFinish() throws {
+        var limits = FilePipeline.Limits()
+        limits.retryDelay = 0
+        let owner = DispatchQueue(label: "fictional-request-owner")
+        let pipeline = FilePipeline(limits: limits)
+        let requestID = UUID()
+        let expected: Set<FileRefreshDiagnostics.Source> = [.timetable, .changes]
+        let finalized = expectation(description: "logical outcome is published")
+        finalized.assertForOverFulfill = true
+        let observer = NotificationCenter.default.addObserver(forName: .filePipelineChanged, object: nil, queue: nil) { change in
+            guard (change.object as? FilePipeline) === pipeline,
+                  pipeline.observation.result(for: requestID, sources: expected) != nil else { return }
+            finalized.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        owner.suspend()
+        var suspended = true
+        defer { if suspended { owner.resume() } }
+        let parseFailure = PDFParseError(code: .ambiguous)
+        XCTAssertThrowsError(try pipeline.run(source: .timetable, reason: .manual, period: .current(), cancelled: {},
+            work: { ticket in
+                if ticket.attempt == 0 { throw URLError(.networkConnectionLost) }
+                ticket.acquired(); ticket.enter(.parsing)
+                return 42
+            }, cleanup: {}, retryQueue: owner, requestID: requestID, commit: { _, ticket in
+                try ticket.beginCommit(period: .current())
+                ticket.didCommit()
+                throw parseFailure
+            }))
+        XCTAssertNil(pipeline.observation.completed[.timetable])
+        XCTAssertNil(pipeline.observation.result(for: requestID, sources: expected))
+        try pipeline.run(source: .changes, reason: .manual, period: .current(), cancelled: {}, work: { _ in 1 },
+            cleanup: {}, requestID: requestID, commit: { _, ticket in
+                try ticket.beginCommit(period: .current()); ticket.didCommit()
+            })
+        let initial = pipeline.observation
+        XCTAssertEqual(initial.result(for: requestID, sources: [.changes]), .succeeded)
+        XCTAssertNil(initial.result(for: requestID, sources: expected))
+
+        owner.resume()
+        suspended = false
+        wait(for: [finalized], timeout: 5)
+        let terminal = pipeline.observation
+        XCTAssertEqual(terminal.result(for: requestID, sources: expected), .failed(parseFailure.localizedDescription))
+        XCTAssertNil(terminal.result(for: UUID(), sources: expected))
+        var handled: [FileRefreshDiagnostics.Source: UUID] = [:]
+        XCTAssertEqual(FilePipeline.claimMonitorRegistrations(in: terminal.completed, handled: &handled), ["timetable"])
+        XCTAssertTrue(FilePipeline.claimMonitorRegistrations(in: terminal.completed, handled: &handled).isEmpty)
+    }
+
+    func testFirstRegularAcquisitionFailurePersistsWithoutAnOriginal() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let root = directory.appendingPathComponent("library")
+        let failures: [(MaterialError, AcquisitionProblem)] = [(.tooLarge, .sizeLimit), (.invalidFile, .invalidFormat),
+            (.accessExpired, .permission), (.providerReadFailed, .temporary)]
+        for kind in [MaterialKind.timetable, .changes] {
+            for (error, problem) in failures {
+                do {
+                    let live = try LocalMaterialDatabase.openLibrary(root: root)
+                    try live.recordFailure(kind, message: error.localizedDescription, problem: AcquisitionProblem(error))
+                    try live.recordFailure(kind, message: MaterialError.cancelled.localizedDescription, cancelled: true)
+                }
+                let reopened = try LocalMaterialDatabase.openLibrary(root: root)
+                XCTAssertNil(reopened.state.record(for: kind))
+                XCTAssertEqual(reopened.state.attempts[kind.rawValue]?.problem, problem)
+                let status = FileStatusPresentation.material(reopened.state, kind: kind, year: 2032)
+                XCTAssertEqual(status.updateState, .unavailable)
+                XCTAssertEqual(status.status.detail, problem.message)
+            }
+        }
     }
 
     func testIsolatedLibraryRejectsChangedSourceAndKeepsOtherFiles() throws {
@@ -698,20 +882,20 @@ final class FileRefreshTests: XCTestCase {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        var observations: [Fake] = []; var callbacks: [(Bool) -> Void] = []
-        let monitor = SelectedFileMonitor(changed: { _ in XCTFail("Unexpected refresh") }, factory: { _, _, registered in
-            let fake = Fake(); observations.append(fake); callbacks.append(registered); return fake
+        var observations: [Fake] = []; var callbacks: [(Bool) -> Void] = []; var completed: [() -> Void] = []
+        let monitor = SelectedFileMonitor(changed: { _ in XCTFail("Unexpected refresh") }, factory: { _, _, registered, ended in
+            let fake = Fake(); observations.append(fake); callbacks.append(registered); completed.append(ended); return fake
         })
         let source = SelectedFileSource(id: "changes", grant: SourceGrant(bookmark: Data([1]), name: "fictional.xlsx", isFolder: false))
         monitor.update([source]); monitor.setForeground(true)
         XCTAssertEqual(observations.count, 1)
         monitor.update([source]); XCTAssertEqual(observations.count, 1)
-        callbacks[0](false); await drainCallbacks()
+        callbacks[0](false); completed[0](); await drainCallbacks()
         monitor.update([source]); XCTAssertEqual(observations.count, 1)
         monitor.update([source], retryFailedFor: ["timetable"]); XCTAssertEqual(observations.count, 1)
         monitor.update([source], retryFailedFor: ["changes"])
         XCTAssertEqual(observations.count, 2); XCTAssertEqual(observations[1].starts, [false])
-        callbacks[1](true); await drainCallbacks()
+        callbacks[1](true); completed[1](); await drainCallbacks()
         monitor.update([source], retryFailedFor: ["changes"]); XCTAssertEqual(observations.count, 2)
         callbacks[0](false); await drainCallbacks()
         XCTAssertEqual(monitor.registrations["changes"], .registered)
@@ -720,6 +904,64 @@ final class FileRefreshTests: XCTestCase {
         monitor.update([source], retryFailedFor: ["changes"]); XCTAssertEqual(observations.count, 2)
         monitor.setForeground(true); XCTAssertEqual(observations.count, 3)
         monitor.setForeground(false)
+    }
+
+    @MainActor
+    func testRegistrationTimeoutKeepsOnlyItsWorkerOwnedAndDiscardsLateCallbacks() async throws {
+        final class Fake: SelectedFileObserving {
+            var stops = 0
+            func start(requestInitialRefresh: Bool) {}
+            func stop() { stops += 1 }
+            func refreshCompleted() {}
+        }
+        struct Observation {
+            let worker: Fake
+            let changed: () -> Void
+            let registered: (Bool) -> Void
+            let ended: () -> Void
+        }
+        var observers: [String: [Observation]] = [:]
+        var deadlines: [String: CheckedContinuation<Void, Never>] = [:]
+        var requests: [String] = []
+        let monitor = SelectedFileMonitor(waitForRegistration: { id in
+            await withCheckedContinuation { deadlines[id] = $0 }
+        }, changed: { requests.append($0) }, factory: { source, changed, registered, ended in
+            let worker = Fake()
+            observers[source.id, default: []].append(.init(worker: worker, changed: changed, registered: registered, ended: ended))
+            return worker
+        })
+        let changes = SelectedFileSource(id: "changes", grant: SourceGrant(bookmark: Data([1]), name: "fictional.xlsx", isFolder: false))
+        let timetable = SelectedFileSource(id: "timetable", grant: SourceGrant(bookmark: Data([2]), name: "fictional.pdf", isFolder: false))
+        monitor.setForeground(true)
+        monitor.update([changes, timetable])
+        let deadline = ProcessInfo.processInfo.systemUptime + 3
+        while deadlines.count < 2, ProcessInfo.processInfo.systemUptime < deadline { await Task.yield() }
+        defer {
+            monitor.setForeground(false)
+            deadlines.values.forEach { $0.resume() }
+        }
+        let slow = try XCTUnwrap(observers["changes"]?.first)
+        let available = try XCTUnwrap(observers["timetable"]?.first)
+        try XCTUnwrap(deadlines.removeValue(forKey: "changes")).resume()
+        available.registered(true); available.ended()
+        while (monitor.registrations["changes"] != .timedOut || monitor.isRegistering("timetable")),
+              ProcessInfo.processInfo.systemUptime < deadline { await Task.yield() }
+        XCTAssertEqual(monitor.blockedSources, ["changes"])
+        XCTAssertEqual(monitor.registrations["changes"], .timedOut)
+        XCTAssertEqual(monitor.registrations["timetable"], .registered)
+        XCTAssertEqual(slow.worker.stops, 1)
+        XCTAssertEqual(monitor.timeoutStatus("changes")?.title, "監視登録が期限切れ・終了待ち")
+
+        slow.registered(true); slow.changed()
+        await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
+        XCTAssertEqual(monitor.registrations["changes"], .timedOut)
+        XCTAssertTrue(requests.isEmpty)
+        slow.ended()
+        while monitor.isRegistering("changes"), ProcessInfo.processInfo.systemUptime < deadline { await Task.yield() }
+        XCTAssertTrue(monitor.blockedSources.isEmpty)
+        XCTAssertEqual(monitor.timeoutStatus("changes")?.title, "監視登録が期限切れ")
+        XCTAssertEqual(requests, ["changes"])
+        XCTAssertEqual(observers["timetable"]?.count, 1)
     }
 
     func testReadAcknowledgesMaterializedVersionAndStillDetectsLaterEdit() throws {
@@ -842,7 +1084,7 @@ final class FileRefreshTests: XCTestCase {
     @MainActor
     func testSuspendedMonitorCannotRestartFromSourceUpdateOrLateWork() async throws {
         var calls: [String] = []
-        let monitor = SelectedFileMonitor { calls.append($0) }
+        let monitor = SelectedFileMonitor(changed: { calls.append($0) })
         monitor.update([SelectedFileSource(id: "exam", grant: nil)])
         monitor.setForeground(true)
         monitor.suspend()
@@ -860,7 +1102,7 @@ final class FileRefreshTests: XCTestCase {
     @MainActor
     func testEveryForegroundEntryChecksOnceAndUnchangedSourcesDoNotLoop() async throws {
         var calls: [String] = []
-        let monitor = SelectedFileMonitor { calls.append($0) }
+        let monitor = SelectedFileMonitor(changed: { calls.append($0) })
         let source = SelectedFileSource(id: "exam", grant: nil)
         monitor.update([source])
         monitor.setForeground(true)
@@ -879,7 +1121,7 @@ final class FileRefreshTests: XCTestCase {
     @MainActor
     func testBackgroundAndReselectionInvalidatePendingCallbacks() async throws {
         var calls: [String] = []
-        let monitor = SelectedFileMonitor { calls.append($0) }
+        let monitor = SelectedFileMonitor(changed: { calls.append($0) })
         monitor.setForeground(true)
         monitor.update([SelectedFileSource(id: "exam", grant: nil)])
         monitor.setForeground(false)

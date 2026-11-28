@@ -17,8 +17,21 @@ extension ManualAssistanceChecks {
             requireReviewSurvivesBackground(value,processBefore:processBefore)
         }) else { return }
         measuredStep("reedit-and-review") { reeditAndReviewCorrection(key,input,value) }
+        openReviewPreview(); requirePreview()
+        guard measuredStep("preview-background", {
+            guard let revalidations = observedPreviewRevalidations() else { return false }
+            guard enterBackground() else { return false }
+            app.activate()
+            guard app.wait(for: .runningForeground, timeout: 10) else {
+                XCTFail("App did not return to the existing recovery screen")
+                return false
+            }
+            XCTAssertEqual(uniqueLabel("manual-process-launch", in: observation), processBefore)
+            requirePreview(revalidatedAfter: revalidations)
+            XCTAssertTrue(recoveryList.staticTexts["原本を確認して入力した1項目を含みます。"].exists)
+            return true
+        }) else { return }
         measuredStep("save-and-relaunch") {
-            openReviewPreview();requirePreview()
             persistAndRequireProof([key:value+"再確認"])
         }
     }

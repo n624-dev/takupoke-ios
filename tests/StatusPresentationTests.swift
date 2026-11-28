@@ -51,14 +51,104 @@ final class StatusPresentationTests: XCTestCase {
         XCTAssertEqual(StatusPresentation.summary([]).tone, .unknown)
     }
 
+    func testUsingOnlyConfirmedDataReachesGreenAndNamesAffectedData() {
+        let confirmed: [(title: String, state: DataUpdateState)] = [("リンク一覧", .confirmed), ("試験時間割", .unused)]
+        let ready = StatusPresentation.dataSummary(confirmed)
+        XCTAssertEqual(ready.title, "更新確認済み")
+        XCTAssertEqual(ready.tone, .good)
+        let pending = StatusPresentation.dataSummary(confirmed + [("名称データ", .unconfirmed)])
+        XCTAssertEqual(pending.title, "名称データの更新が未確認")
+        XCTAssertEqual(pending.tone, .unknown)
+        XCTAssertEqual(StatusPresentation.dataSummary([("試験時間割", .unused)]).title, "データを設定してください")
+        let failedFirstFetch = DataUpdateState.withoutLocalData(checking: false, failed: true)
+        XCTAssertEqual(StatusPresentation.dataSummary(confirmed + [("学校行事", failedFirstFetch)]).tone, .unavailable)
+        XCTAssertEqual(StatusPresentation.dataSummary(confirmed + [("授業時刻", .updateAvailable)]).title, "授業時刻に更新があります")
+        let waiting = StatusPresentation.dataSummary(confirmed + [("学校行事", .updateWaiting)])
+        XCTAssertEqual(waiting.title, "更新待ち")
+        XCTAssertTrue(waiting.detail?.contains("学校行事") == true)
+        XCTAssertEqual(StatusPresentation.dataSummary(confirmed + [("通常時間割", .unavailable), ("名称データ", .failed)]).tone, .unavailable)
+    }
+
+    func testSavedFileNeedsAnActualCheckAndKeepsItAcrossCancellation() {
+        let date = Date(timeIntervalSince1970: 200)
+        let name = "fictional.xlsx"
+        let digest = "fictional-digest"
+        var state = MaterialLibraryState()
+        state.records = [MaterialRecord(kind: .changes, source: .init(), originalName: name, storedName: name,
+                                        byteCount: 1, digest: digest, acquiredAt: date)]
+        state.changeAnalysis = .init(sourceDigest: digest, sourceName: name, defaultYear: 2032, parsedAt: date, records: [])
+        func updateState() -> DataUpdateState { FileStatusPresentation.material(state, kind: .changes, year: 2032).updateState }
+        XCTAssertEqual(updateState(), .unconfirmed)
+        state.records[0].lastCheckedAt = date.addingTimeInterval(60)
+        XCTAssertEqual(updateState(), .confirmed)
+        state.attempts["changes"] = .init(date: date.addingTimeInterval(120), failure: MaterialError.cancelled.localizedDescription)
+        XCTAssertEqual(updateState(), .confirmed)
+        state.attempts["changes"] = .init(date: date.addingTimeInterval(180), failure: MaterialError.accessExpired.localizedDescription)
+        XCTAssertEqual(updateState(), .failed)
+    }
+
     func testAccountAcquisitionDoesNotAssertLatestOrAuthentication() {
         let acquired = StatusPresentation.downloaded(acquired: true, updateAvailable: false, failed: false, busy: false)
-        XCTAssertEqual(acquired.title, "取得済み")
+        XCTAssertEqual(acquired.title, "保存済み・更新未確認")
         XCTAssertEqual(acquired.tone, .unknown)
         XCTAssertEqual(StatusPresentation.summary([acquired, .init(title: "接続あり", tone: .neutral)]).tone, .unknown)
         XCTAssertEqual(StatusPresentation.downloaded(acquired: false, updateAvailable: true, failed: false, busy: false).tone, .neutral)
         XCTAssertEqual(StatusPresentation.downloaded(acquired: true, updateAvailable: true, failed: false, busy: false).tone, .attention)
         XCTAssertEqual(StatusPresentation.downloaded(acquired: true, updateAvailable: false, failed: true, busy: false).tone, .attention)
+    }
+
+    func testRevisionObservationDistinguishesUnchangedNewerAndFailedWithSavedData() {
+        let revision = String(repeating: "A", count: 43)
+        let newer = String(repeating: "B", count: 43)
+        let acquiredAt = Date(timeIntervalSince1970: 100)
+        let checkedAt = acquiredAt.addingTimeInterval(120)
+        let installation = DistributedRevisionConfirmation.Installation(revision: revision, acquiredAt: acquiredAt)
+        let adopted = DistributedRevisionConfirmation(adopted: installation, at: acquiredAt)
+        let confirmed = DistributedRevisionConfirmation(installation: installation, result: .unchanged, at: checkedAt)
+        let available = DistributedRevisionConfirmation(installation: installation, result: .available(newer), at: checkedAt)
+        let failed = DistributedRevisionConfirmation(failed: installation, previous: confirmed,
+                                                     at: checkedAt.addingTimeInterval(10))
+
+        func status(_ record: DistributedRevisionConfirmation?, busy: Bool = false, storageFailed: Bool = false) -> StatusPresentation {
+            .downloaded(acquired: !storageFailed, updateAvailable: record?.hasNewerRevision == true,
+                        failed: storageFailed, busy: busy, confirmation: record)
+        }
+
+        XCTAssertEqual(status(nil).tone, .unknown)
+        XCTAssertEqual(status(nil, busy: true).tone, .checking)
+        XCTAssertEqual(status(adopted).title, "取得済み")
+        XCTAssertNil(adopted.lastSuccess)
+        XCTAssertEqual(status(confirmed).title, "更新確認済み")
+        XCTAssertEqual(status(confirmed).tone, .good)
+        XCTAssertEqual(status(available).title, "更新あり")
+        XCTAssertEqual(status(failed).tone, .attention)
+        XCTAssertEqual(failed.lastSuccess, confirmed.lastSuccess)
+        XCTAssertEqual(failed.lastSuccess?.checkedAt, checkedAt)
+        XCTAssertGreaterThan(failed.lastAttemptAt, checkedAt)
+        XCTAssertEqual(status(confirmed, storageFailed: true).tone, .attention)
+    }
+
+    func testRevisionConfirmationRestoresOnlyForTheSameInstallationAndCorruptionIsIndependent() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let data = root.appendingPathComponent("fictional-data.json")
+        try Data("fictional payload".utf8).write(to: data)
+        let revision = String(repeating: "A", count: 43)
+        let acquiredAt = Date(timeIntervalSince1970: 100)
+        let original = DistributedRevisionConfirmation.Installation(revision: revision, acquiredAt: acquiredAt)
+        let replacement = DistributedRevisionConfirmation.Installation(revision: revision,
+                                                                      acquiredAt: acquiredAt.addingTimeInterval(10))
+        let checkedAt = acquiredAt.addingTimeInterval(3)
+        let record = DistributedRevisionConfirmation(installation: original, result: .unchanged, at: checkedAt)
+
+        XCTAssertNil(DistributedRevisionConfirmation.load(beside: data, installation: original))
+        record.save(beside: data)
+        XCTAssertEqual(DistributedRevisionConfirmation.load(beside: data, installation: original), record)
+        XCTAssertNil(DistributedRevisionConfirmation.load(beside: data, installation: replacement))
+        try Data("malformed".utf8).write(to: data.appendingPathExtension("revision-check.json"))
+        XCTAssertNil(DistributedRevisionConfirmation.load(beside: data, installation: original))
+        XCTAssertEqual(try Data(contentsOf: data), Data("fictional payload".utf8))
     }
 
     func testSummaryCountsAttentionWithoutCountingNeutralCancellation() {

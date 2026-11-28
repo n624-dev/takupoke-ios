@@ -371,7 +371,7 @@ struct CountdownLibrary: Codable, Equatable {
 }
 
 enum CountdownAvailability: Equatable {
-    case available, loading, missingYear, missingEvent, sourcePending, sourceDifference
+    case available, loading, missingYear, missingEvent, sourcePending, sourceChecking, sourceCheckFailed, sourceDifference
     case noClass, noExam, noDocument, notAnalysed, analysisFailed, expired, previousResult
     case changesUnavailable, changesUnconfirmed
 
@@ -381,8 +381,10 @@ enum CountdownAvailability: Equatable {
         case .loading: return "資料を確認中"
         case .missingYear: return "行事ID付きの学校行事を取得してください。"
         case .missingEvent: return "元の行事を確認できません。対象を選び直してください。"
-        case .sourcePending: return "原本の状態を確認中です。通知は保留しています。"
-        case .sourceDifference: return "原本の内容確認待ちです。保存済み日程を表示しています。"
+        case .sourcePending: return "保存済みの版は元PDFとの一致が未確認です。通知は保留しています。"
+        case .sourceChecking: return "元PDFとの一致を確認中です。通知は保留しています。"
+        case .sourceCheckFailed: return "元PDFとの一致を確認できませんでした。通知は保留しています。"
+        case .sourceDifference: return "保存済みの版と元PDFに差異があります。通知は保留しています。"
         case .noClass: return "時間割でクラスを選択してください。"
         case .noExam: return "保存済みの資料に該当する試験がありません。"
         case .noDocument: return "試験時間割は未取得です。"
@@ -396,7 +398,7 @@ enum CountdownAvailability: Equatable {
     }
     var allowsNotification: Bool { self == .available || self == .previousResult }
     var presentsDatesOnHome: Bool {
-        self == .available || self == .sourcePending || self == .sourceDifference ||
+        self == .available || self == .sourcePending || self == .sourceChecking || self == .sourceCheckFailed || self == .sourceDifference ||
             self == .previousResult || self == .changesUnconfirmed
     }
 
@@ -424,6 +426,7 @@ struct CountdownCard: Identifiable, Equatable {
     var evidence: String = ""
     var classScope: String?
     var examProgress: CountdownExamProgress?
+    var publicSourceFreshUntil: Date?
 
     var targetKey: String { reference?.key ?? (expiry == nil ? id.uuidString : evidence) }
     var noticeTarget: CountdownNoticeTarget { .init(id: id, key: targetKey) }
@@ -487,8 +490,13 @@ struct CountdownNotice: Equatable {
     let title: String
     let fireAt: Date
     let classScope: String?
+    var publicSourceFreshUntil: Date? = nil
     var targetID: UUID { target.id }
     var targetKey: String { target.key }
+
+    func canReserve(at now: Date) -> Bool {
+        fireAt > now && publicSourceFreshUntil.map { now < $0 } != false
+    }
 
     static func identifier(for target: CountdownNoticeTarget, isPrivate: Bool, reminder: CountdownReminder) -> String {
         let scope = isPrivate ? privatePrefix : prefix + "personal."
@@ -510,15 +518,23 @@ struct CountdownNotice: Equatable {
         let today = TimetableDaySchedule.schoolDay(at: now)
         return cards.flatMap { card -> [Self] in
             guard card.preferences.notifications, card.availability.allowsNotification, let dates = card.dates,
+                  card.publicSourceFreshUntil.map({ now < $0 }) != false,
                   dates.phase(on: today) != .finished else { return [] }
             return card.preferences.reminders.compactMap { reminder in
                 guard let fireAt = reminder.fireDate(start: dates.start), fireAt > now,
                       card.expiry.map({ fireAt < $0 && now < $0 }) != false else { return nil }
                 let target = card.noticeTarget
                 return Self(identifier: identifier(for: target, isPrivate: card.isPrivate, reminder: reminder), target: target,
-                            title: card.title, fireAt: fireAt, classScope: card.classScope)
+                            title: card.title, fireAt: fireAt, classScope: card.classScope, publicSourceFreshUntil: card.publicSourceFreshUntil)
             }
         }.sorted { ($0.fireAt, $0.identifier) < ($1.fireAt, $1.identifier) }
+    }
+
+    static func displacedReservations(_ planned: [Self], confirmed: Set<String>) -> Set<String> {
+        let eligible = Set(planned.map(\.identifier))
+        let accepted = confirmed.intersection(eligible)
+        let earliest = Set(planned.prefix(accepted.count).map(\.identifier))
+        return accepted.subtracting(earliest)
     }
 }
 
@@ -602,9 +618,32 @@ struct CountdownStore {
 
     func loadClassProgress(file: UUID?, period: SchoolDataPeriod) throws -> CountdownClassProgress {
         guard let file, let bytes = try storedBytes(at: privateURL(file)) else { return .init(period: period) }
-        let stored = try JSONDecoder().decode(CountdownClassProgress.self, from: bytes)
-        guard CountdownCustomProgress.valid(stored.entries, isPrivate: true) else { throw ReadError.unsafeFile }
-        return stored.period == period ? stored : .init(period: period)
+        if let stored = try? decodeClassProgress(bytes) {
+            return stored.period == period ? stored : .init(period: period)
+        }
+        guard let fields = try JSONSerialization.jsonObject(with: bytes) as? [String: Any],
+              Set(fields.keys) == ["period", "entries"], let rawPeriod = fields["period"],
+              let saved = try? JSONDecoder().decode(SchoolDataPeriod.self, from: JSONSerialization.data(withJSONObject: rawPeriod)),
+              let rows = fields["entries"] as? [Any] else { throw ReadError.corrupt }
+        guard saved == period else { return .init(period: period) }
+        let entries = rows.compactMap { row -> CountdownCustomProgress? in
+            guard JSONSerialization.isValidJSONObject(row), let bytes = try? JSONSerialization.data(withJSONObject: row),
+                  let entry = try? JSONDecoder().decode(CountdownCustomProgress.self, from: bytes),
+                  CountdownCustomProgress.valid([entry], isPrivate: true) else { return nil }
+            return entry
+        }
+        let grouped = Dictionary(grouping: entries, by: \.key)
+        var seen = Set<CountdownExamProgressKey>()
+        let readable = entries.filter { entry in
+            grouped[entry.key]?.allSatisfy { $0 == entry } == true && seen.insert(entry.key).inserted
+        }
+        return CountdownClassProgress(period: period, entries: readable)
+    }
+
+    private func decodeClassProgress(_ bytes: Data) throws -> CountdownClassProgress {
+        let value = try JSONDecoder().decode(CountdownClassProgress.self, from: bytes)
+        guard CountdownCustomProgress.valid(value.entries, isPrivate: true) else { throw ReadError.unsafeFile }
+        return value
     }
 
     func saveMigratingProgress(_ library: CountdownLibrary, to target: CountdownExamProgressKey?,
@@ -655,7 +694,12 @@ struct CountdownStore {
             if let staged { try? FileManager.default.removeItem(at: staged) }
             throw error
         }
-        if let previous = library.classProgressFile { try? FileManager.default.removeItem(at: privateURL(previous)) }
+        if let previous = library.classProgressFile {
+            let existing = privateURL(previous)
+            if let bytes = try? storedBytes(at: existing), (try? decodeClassProgress(bytes)) != nil {
+                try? FileManager.default.removeItem(at: existing)
+            }
+        }
         return next
     }
 
@@ -670,7 +714,8 @@ struct CountdownStore {
         for candidate in files where candidate.pathExtension == "json" {
             guard let id = UUID(uuidString: candidate.deletingPathExtension().lastPathComponent), id != file,
                   let info = try? candidate.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
-                  info.isRegularFile == true, info.isSymbolicLink != true else { continue }
+                  info.isRegularFile == true, info.isSymbolicLink != true,
+                  let bytes = try? storedBytes(at: candidate), (try? decodeClassProgress(bytes)) != nil else { continue }
             try? FileManager.default.removeItem(at: candidate)
         }
     }

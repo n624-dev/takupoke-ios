@@ -9,6 +9,9 @@ struct TimetableView: View {
     @ObservedObject var schoolEvents: SchoolEventsModel
     @ObservedObject var mappings: MappingModel
     @Binding var todayRequest: UUID?
+    @Binding var updateRequest: ScheduleUpdateNotice?
+    @State var updateFocus: SchoolDate?
+    @State var updateMessage: String?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) var gridDynamicTypeSize
     @EnvironmentObject var mainColor: MainColorModel
@@ -23,6 +26,8 @@ struct TimetableView: View {
         nonmutating set {
             guard selectedWeek.date != newValue else { return }
             selectedWeek.date = newValue
+            if updateFocus != nil { updateFocus = nil }
+            if updateMessage != nil { updateMessage = nil }
             closeDetailSelections()
         }
     }
@@ -109,6 +114,7 @@ struct TimetableView: View {
     }
 
     var body: some View {
+        let bounds = weekBounds
         NavigationStack {
             List {
                 if !model.ready {
@@ -139,13 +145,18 @@ struct TimetableView: View {
                             InlineWarning("保存したクラスの一部は現在の資料にありません。選択は保持しています。")
                         }
                     }
-                    weekSection
+                    weekSection(within: bounds)
                     changesSection
                 }
             }
             .navigationTitle("時間割")
-            .onAppear { refreshToday(); consumeTodayRequest() }
+            .onAppear { refreshToday(); consumeTodayRequest(); consumeUpdateRequest() }
             .onChange(of: todayRequest) { _ in consumeTodayRequest() }
+            .onChange(of: updateRequest) { _, _ in consumeUpdateRequest() }
+            .onChange(of: model.ready) { _, _ in consumeUpdateRequest() }
+            .onChange(of: model.failed) { _, _ in consumeUpdateRequest() }
+            .onChange(of: specialSchedules.ready) { _, _ in consumeUpdateRequest() }
+            .onChange(of: specialSchedules.failed) { _, _ in consumeUpdateRequest() }
             .onReceive(clock) { _ in refreshToday() }
             .task { model.loadIfNeeded() }
             .task { specialSchedules.loadIfNeeded() }
@@ -154,7 +165,7 @@ struct TimetableView: View {
                 if phase == .active { refreshToday() }
                 else { weekPull.completeWeekMove() }
             }
-            .onChange(of: weekBounds) { bounds in
+            .onChange(of: bounds) { bounds in
                 weekStart = min(max(weekStart, bounds.lowerBound), bounds.upperBound)
                 if showingWeekPicker {
                     weekPickerDate = min(max(weekPickerDate, weekPickerRange.lowerBound),
@@ -196,7 +207,7 @@ struct TimetableView: View {
         }
     }
 
-    private func closeDetailSelections() {
+    func closeDetailSelections() {
         if selectedLesson != nil { selectedLesson = nil }
         if selectedSpecial != nil { selectedSpecial = nil }
         if selectedChange != nil { selectedChange = nil }

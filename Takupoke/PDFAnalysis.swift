@@ -177,6 +177,16 @@ struct PDFEventClassification: Codable, Equatable {
         return Self(type: .special)
     }
 }
+struct PDFTimetableSlot: Codable, Hashable {
+    let className: String
+    let weekday: Int
+    let period: Int
+
+    var comparisonSlot: RecoveryManualComparison.Slot {
+        .init(className: className, day: String(weekday), period: period)
+    }
+}
+
 struct PDFAnalysis: Codable {
     static let parserVersion = 34
     // Timetable fixes must not ask users to reparse an unchanged calendar.
@@ -192,6 +202,31 @@ struct PDFAnalysis: Codable {
     var events: [PDFSchoolEvent]
     var notices: [String]
     var recovery: RecoveryAdopted? = nil
+    var strictTimetableSlots: [PDFTimetableSlot]? = nil
+
+    func strictComparisonSnapshot(check: () throws -> Void = {}) throws -> RecoveryManualComparison.Snapshot? {
+        try check()
+        guard kind == .timetable, recovery == nil, version == Self.parserVersion,
+              MaterialLibrary.validPDFAnalysis(self) else { return nil }
+        typealias Comparison = RecoveryManualComparison
+        var entries: [Comparison.Slot: [Comparison.Lesson]] = [:]
+        for slot in strictTimetableSlots ?? [] {
+            try check()
+            entries[slot.comparisonSlot] = []
+        }
+        for lesson in lessons {
+            try check()
+            let slot = Comparison.sourceSlot(className: lesson.className, sourceClassName: lesson.sourceClassName,
+                                             day: String(lesson.weekday), period: lesson.period)
+            entries[slot, default: []].append(.init(subject: lesson.names.subject, teacher: lesson.names.teacher,
+                room: lesson.names.room, spanStart: lesson.period, spanEnd: lesson.period, time: nil))
+        }
+        let slots = Array(entries.keys)
+        try check()
+        return .init(scope: .init(kind: RecoveryDocumentKind.timetable.rawValue, schoolYear: schoolYear, term: term,
+                                  classes: Array(Set(slots.map(\.className))), days: Array(Set(slots.map(\.day))),
+                                  slots: slots), entries: entries)
+    }
 }
 
 /// A PDF-only projection after parsing / Evidence validation. It never changes

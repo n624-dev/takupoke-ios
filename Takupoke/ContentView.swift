@@ -11,6 +11,7 @@ struct ContentView: View {
     @EnvironmentObject private var mainColor: MainColorModel
     @State private var selectedTab: Tab = .home
     @State private var timetableTodayRequest: UUID?
+    @State private var timetableUpdateRequest: ScheduleUpdateNotice?
     @StateObject private var application = ApplicationData.shared
     private var dataReady: Bool { application.readyForCurrentPeriod }
     private var loadedPeriod: SchoolDataPeriod? { application.loadedPeriod }
@@ -18,7 +19,7 @@ struct ContentView: View {
     private var retentionNotice: Bool { application.retentionNotice }
     @AppStorage("setupPresented") private var setupPresented = false
     @State private var showingSetup = false
-    @State private var confirmingRetentionRecovery = false
+    @State private var protectedDataAvailable = UIApplication.shared.isProtectedDataAvailable
     @ObservedObject private var notifications = ApplicationData.shared.notifications
     private let materials = ApplicationData.shared.materials
     private let specialSchedules = ApplicationData.shared.specialSchedules
@@ -32,24 +33,25 @@ struct ContentView: View {
         Group {
             if dataReady { tabs }
             else {
-                VStack(spacing: 16) {
+                NavigationStack { VStack(spacing: 16) {
                     if retentionFailure {
                         InlineWarning(application.retentionFailureMessage)
-                        if application.canRecoverRetention {
-                            Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }
-                                .buttonStyle(.bordered)
-                        }
                         Button("再試行") { Task { await activate() } }
+                        if protectedDataAvailable {
+                            NavigationLink("公開の学校行事") { SchoolEventsSettingsView(model: schoolEvents) }
+                            NavigationLink("カウントダウン") {
+                                CountdownManagementView(events: schoolEvents)
+                                    .task { schoolEvents.loadIfNeeded(); application.updatePublicCountdown() }
+                            }
+                        }
                     } else { LoadingRow(title: "読み込み中⋯") }
-                }.padding()
+                }.padding() }
             }
         }
-        .confirmationDialog("学校データを初期化して復旧しますか？", isPresented: $confirmingRetentionRecovery, titleVisibility: .visible) {
-            Button("学校データを初期化して復旧", role: .destructive) { Task { await application.recoverRetention() } }
-            Button("キャンセル", role: .cancel) { }
-        } message: {
-            Text("破損した管理情報を隔離し、保存済みの学校データを削除して保存期間を設定し直します。個人設定・公開行事・OneDriveなどの元ファイルは保持します。資料の再選択と再取得が必要です。")
-        }
+        .alert("保存期間の復旧", isPresented: Binding(get: { application.recoveredRetention != nil },
+            set: { if !$0 { application.recoveredRetention = nil } })) {
+            Button("閉じる", role: .cancel) { application.recoveredRetention = nil }
+        } message: { Text(application.recoveredRetention ?? "") }
         .environmentObject(account)
         .environmentObject(links)
         .environmentObject(mappings)
@@ -67,7 +69,11 @@ struct ContentView: View {
             if scenePhase == .active { schoolEvents.reevaluate(); application.updateCountdown() }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in
+            protectedDataAvailable = true
             if scenePhase == .active { Task { await activate() } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataWillBecomeUnavailableNotification)) { _ in
+            protectedDataAvailable = false
         }
         .onReceive(boundaryCheck) { _ in
             if scenePhase == .active, loadedPeriod != SchoolDataPeriod.current() {
@@ -85,7 +91,12 @@ struct ContentView: View {
         }
         .onChange(of: dataReady) { ready in
             if !ready { showingSetup = false }
+            else { openPendingScheduleUpdate() }
         }
+        .onChange(of: notifications.openedUpdate, initial: true) { _, _ in openPendingScheduleUpdate() }
+        .onChange(of: scenePhase) { _, _ in openPendingScheduleUpdate() }
+        .onChange(of: showingSetup) { _, _ in openPendingScheduleUpdate() }
+        .onChange(of: retentionNotice) { _, _ in openPendingScheduleUpdate() }
         .onReceive(setupReadiness) { ready in
             if ready {
                 // Published emits before the final model assignment.
@@ -105,6 +116,15 @@ struct ContentView: View {
         } message: {
             Text("保存期間が切り替わりました。ファイルの再選択とリンク一覧・名称データ・授業時刻の再取得が必要です。")
         }
+    }
+
+    private func openPendingScheduleUpdate() {
+        guard dataReady, scenePhase == .active, UIApplication.shared.isProtectedDataAvailable,
+              !retentionNotice, !showingSetup, let update = notifications.openedUpdate else { return }
+        timetableTodayRequest = nil
+        timetableUpdateRequest = update
+        selectedTab = .timetable
+        notifications.openedUpdate = nil
     }
 
     private var setupReadiness: AnyPublisher<Bool,Never> {
@@ -146,7 +166,7 @@ struct ContentView: View {
                 .tabItem { tabLabel("ホーム", symbol: "house", tab: .home, selectedSymbol: "house.fill") }.tag(Tab.home)
             LinksView(model: links)
                 .tabItem { tabLabel("一覧", symbol: "list.bullet", tab: .links) }.tag(Tab.links)
-            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest)
+            TimetableView(model: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings, todayRequest: $timetableTodayRequest, updateRequest: $timetableUpdateRequest)
                 .tabItem { tabLabel("時間割", symbol: "calendar", tab: .timetable) }.tag(Tab.timetable)
             SettingsView(materials: materials, specialSchedules: specialSchedules, schoolEvents: schoolEvents, mappings: mappings)
                 .tabItem { tabLabel("設定", symbol: "gearshape", tab: .settings, selectedSymbol: "gearshape.fill") }.tag(Tab.settings)
@@ -287,7 +307,7 @@ struct ContentView: View {
         await application.activate()
     }
 
-    private func setFileMonitoring(_ foreground: Bool) {
+    @MainActor private func setFileMonitoring(_ foreground: Bool) {
         application.setFileMonitoring(foreground)
         if !foreground { BackgroundRefresh.schedule() }
     }

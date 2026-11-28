@@ -52,6 +52,9 @@ extension TimetableView {
                             Text("\(change.displayDate) · \(TimetableDisplayText.className(change.displayClassName)) · \(change.period.isEmpty ? "時限未記載" : change.displayPeriod)")
                                 .font(.caption).foregroundStyle(.secondary)
                             Text(TimetableDisplayText.kana(selection.comparison.summary)).font(.subheadline)
+                            if change.detailPeriods == nil {
+                                Text("時間割・ホームに未反映").font(.caption).foregroundStyle(.secondary)
+                            }
                             if !(change.remainingNote ?? change.note).isEmpty { Text(TimetableDisplayText.kana(change.remainingNote ?? change.note)).font(.caption).foregroundStyle(.secondary) }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)

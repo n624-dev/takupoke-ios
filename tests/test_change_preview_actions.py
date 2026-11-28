@@ -17,12 +17,30 @@ PIPELINE_STUBS = r"""
 struct SchoolDataPeriod { static func current() -> Self { Self() } }
 protocol SelectedFileProviding {}
 struct SystemSelectedFileProvider: SelectedFileProviding {}
+final class FileRefreshDiagnostics {
+    enum Event { case refreshStarted, refreshFailed, hashSame, hashChanged, cancelled }
+    enum Source: String { case timetable, changes, exam, examReturn }
+    static let shared = FileRefreshDiagnostics()
+    var events = [Event]()
+    func record(_ event: Event, source: Source? = nil) { events.append(event) }
+}
 final class FilePipeline {
     enum Failure: Error { case cancelled, timedOut, stale }
     enum Reason { case selection, manual, automatic, background, review }
-    enum Stage { case parsing, validating }
-    enum Source { case timetable, changes, exam, examReturn }
+    enum Stage { case access, acquiring, parsing, validating }
+    typealias Source = FileRefreshDiagnostics.Source
+    struct Request { let id: UUID; let sources: Set<Source>; let successMessage: String? }
+    enum RequestResult { case succeeded, cancelled, failed(String) }
+    struct Status { let id: UUID; let requestID: UUID }
+    struct Observation {
+        let statuses: [Source: Status] = [:]
+        let activeSources: Set<Source> = []
+        let completed: [Source: Status] = [:]
+        func restricting(to sources: Set<Source>) -> Self { self }
+        func result(for id: UUID, sources: Set<Source>) -> RequestResult? { nil }
+    }
     final class Ticket {
+        let source = Source.changes
         var failure: FilePipeline.Failure?
         func check() throws { if let failure { throw failure } }
         func cancel() { failure = .cancelled }
@@ -34,7 +52,9 @@ final class FilePipeline {
         func afterCommit(_ callback: @escaping () -> Void) { callback() }
     }
     var intentSnapshot: [String: UInt64] { [:] }
+    let observation = Observation()
     static let shared = FilePipeline()
+    static func claimMonitorRegistrations(in outcomes: [Source: Status], handled: inout [Source: UUID]) -> Set<String> { [] }
     func cancel(_ sources: [Source]) {}
     func cancel(_ source: String) {}
     func isRecovering(_ source: String) -> Bool { false }
@@ -89,10 +109,12 @@ struct Library { let state = State() }
 final class Worker { let library: Library? = Library(); func open() throws {} }
 struct Store { let sources: [SpecialScheduleKind: Source] = [:] }
 final class Control { func check() throws {}; func cancel() {} }
+struct Monitor { var blockedSources = Set<String>() }
 @MainActor final class MaterialsModel {
     var busy = false, retired = false, backgroundRefreshID: UUID?
     var fileRefreshQueue = FileRefreshQueue(), dispatches = 0
     var control: Control?, automaticChangeSchoolYear: Int? = 2032
+    var fileMonitor = Monitor()
     // This harness checks admission only. Production operations are not run by this fake dispatcher.
     func perform(success: String?, completion: @escaping (Bool) -> Void, operation: (Worker, Control) throws -> Void) {
         dispatches += 1; completion(true)
@@ -104,6 +126,7 @@ MATERIALS
     var busy = false, retired = false, backgroundRefreshID: UUID?
     var fileRefreshQueue = FileRefreshQueue(), dispatches = 0
     var control: Control?
+    var fileMonitor = Monitor()
     func perform(success: String?, completion: @escaping (Bool) -> Void, operation: (Store, Control, Bool) throws -> Void) {
         dispatches += 1; completion(true)
     }
@@ -144,7 +167,7 @@ SPECIALS
         refresh = (ROOT / "Takupoke/SpecialSchedulesModel+Startup.swift").read_text(encoding="utf-8")
         access = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text(encoding="utf-8")
         program = r'''import Foundation
-enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed }
+enum MaterialError: Error { case cancelled, unavailable, accessExpired, providerReadFailed, bookmarkStale }
 enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
 struct PDFParseError: Error { enum Code { case cancelled }; let code: Code }
 struct ChangeParseError: Error { enum Code { case cancelled }; let code: Code }
@@ -154,15 +177,42 @@ struct URL {
     init() {}
     init(resolvingBookmarkData: Data, options: [Int], relativeTo: URL?, bookmarkDataIsStale: inout Bool) throws {}
 }
-struct ScopedMaterialSelection { init(_ url: URL) {} }
-struct Grant { let bookmark = Data() }
+struct ScopedMaterialSelection {
+    let url: URL
+    init(_ url: URL) { self.url = url }
+    func access<T>(_ block: (URL) throws -> T) throws -> T { try block(url) }
+}
+struct SourceGrant { let bookmark: Data; init(bookmark: Data = Data()) { self.bookmark = bookmark } }
+typealias Grant = SourceGrant
+struct MaterialBookmarkResolution {
+    let url = URL()
+    let isStale: Bool
+    static func resolve(_ bookmark: Data) throws -> Self { Self(isStale: !bookmark.isEmpty) }
+    func renewedGrant(_ previous: SourceGrant, receivedDigest: String, savedDigest: String,
+                      readSavedDigest: () throws -> String) throws -> SourceGrant {
+        try Self.verifiesOriginal(receivedDigest: receivedDigest, savedDigest: savedDigest, readSavedDigest: readSavedDigest)
+        return SourceGrant(bookmark: Data([9]))
+    }
+VERIFIES_ORIGINAL
+}
+enum MaterialFileReader {
+    static var saved = "saved"
+    static func copy(_ url: URL, to: URL?, isWorkbook: Bool, check: () throws -> Void) throws -> (count: Int, digest: String) {
+        try check(); return (10, saved)
+    }
+}
 struct Source {
     let digest = "saved", originalName = "fictional.pdf"
     let grant: Grant?
     let failure: PDFParseError? = nil
     let attemptParserVersion: Int? = SpecialScheduleAnalysis.parserVersion
 }
-struct SpecialScheduleAnalysis { static let parserVersion = 1; let version = SpecialScheduleAnalysis.parserVersion }
+struct SpecialScheduleAnalysis {
+    static let parserVersion = 1
+    let version = SpecialScheduleAnalysis.parserVersion
+    let consecutiveTimes: [String: String]? = [:]
+    let recoveredExamClockEvidence: Bool? = nil
+}
 struct Saved { let digest = "saved", analysis = SpecialScheduleAnalysis() }
 enum RecoveryConversion { static func trustsAcquisitionCache(_ value: SpecialScheduleAnalysis, hash: String) -> Bool { true } }
 enum PDFParseAttempt {
@@ -181,28 +231,24 @@ enum SpecialScheduleParser {
     static func parse(_ pages: [Int], kind: SpecialScheduleKind, digest: String, name: String,
                       check: () throws -> Void) throws -> SpecialScheduleAnalysis { try check(); parses += 1; return SpecialScheduleAnalysis() }
 }
-final class FileRefreshDiagnostics {
-    enum Event { case refreshStarted, refreshFailed, hashSame, hashChanged, cancelled }
-    struct Source { init(rawValue: String) {} }
-    static let shared = FileRefreshDiagnostics()
-    var events = [Event]()
-    func record(_ event: Event, source: Source) { events.append(event) }
-}
 final class SpecialScheduleStore {
     let sources: [SpecialScheduleKind: Source]
     let records = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map { ($0, Saved()) })
     var failed = [SpecialScheduleKind](), confirmed = [SpecialScheduleKind](), selected = [SpecialScheduleKind](), discarded = 0, analyses = 0
-    var parseCancellations: [SpecialScheduleKind] = []
-    init(missingGrant: SpecialScheduleKind? = nil) {
+    var parseCancellations: [SpecialScheduleKind] = [], renewed = [SpecialScheduleKind]()
+    init(missingGrant: SpecialScheduleKind? = nil, staleGrant: SpecialScheduleKind? = nil) {
         sources = Dictionary(uniqueKeysWithValues: SpecialScheduleKind.allCases.map {
-            ($0, Source(grant: $0 == missingGrant ? nil : Grant()))
+            ($0, Source(grant: $0 == missingGrant ? nil : Grant(bookmark: $0 == staleGrant ? Data([1]) : Data())))
         })
     }
     func newStagingURL() -> URL { URL() }
     func discardStaging(_ url: URL) { discarded += 1 }
     func selectedURL(for kind: SpecialScheduleKind) -> URL? { URL() }
     func hasSelectedFile(_ kind: SpecialScheduleKind) -> Bool { true }
-    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String) throws { confirmed.append(kind) }
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String, renewedGrant: SourceGrant?) throws {
+        confirmed.append(kind)
+        if renewedGrant != nil { renewed.append(kind) }
+    }
     func recordAcquisitionFailure(kind: SpecialScheduleKind) throws { failed.append(kind) }
     func recordFailure(_ error: PDFParseError, kind: SpecialScheduleKind) throws {
         precondition(error.code == .cancelled)
@@ -210,7 +256,9 @@ final class SpecialScheduleStore {
     }
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String, byteCount: Int,
                        digest: String, grant: Grant) throws { selected.append(kind) }
-    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws { analyses += 1 }
+    func acceptParsedAnalysis(_ parsed: SpecialScheduleAnalysis, selectedURL: URL, check: () throws -> Void) throws {
+        try check(); analyses += 1
+    }
 }
 CONTROL
 enum SpecialSchedulesModel {
@@ -227,7 +275,7 @@ enum SpecialSchedulesModel {
     struct Receipt { let acknowledge: () -> Void }
     static var cancelled = false, succeed = false, copied = [SpecialScheduleKind](), acknowledged = [SpecialScheduleKind]()
     static func copy(_ selection: ScopedMaterialSelection, to staged: URL, kind: SpecialScheduleKind,
-                     control: AcquisitionControl) throws -> (String, Int, String, Receipt) {
+                     control: AcquisitionControl) throws -> (name: String, count: Int, digest: String, receipt: Receipt) {
         copied.append(kind)
         if kind == .exam && !succeed {
             if cancelled { control.cancel(); try control.check() }
@@ -307,10 +355,22 @@ check(legacyStore.failed == [.exam] && legacyStore.confirmed == [.examReturn],
       "a missing bookmark must not block another authorized file or record an unperformed check")
 check(legacyStore.selected.isEmpty && legacyStore.analyses == 0 && SpecialSchedulesModel.copied == [.examReturn],
       "keep the cached selection and analysis for the legacy file")
+for saved in ["saved", "different-actual-saved"] {
+    MaterialFileReader.saved = saved
+    let store = SpecialScheduleStore(staleGrant: .exam)
+    do {
+        try SpecialSchedulesModel.refreshSelectedFiles(store, requested: ["exam", "examReturn"], control: AcquisitionControl())
+        check(saved == "saved", "a mismatched copy cannot renew the reference")
+    } catch MaterialError.bookmarkStale { check(saved != "saved", "matching input must renew automatically") }
+    catch { check(false, "unexpected stale reference error") }
+    check(store.renewed == (saved == "saved" ? [.exam] : []), "only the matching source may renew its grant")
+    check(store.confirmed.contains(.examReturn) && store.selected.isEmpty, "unrelated source must still be confirmed")
+}
 if !failures.isEmpty { print(failures.joined(separator: "\n")); exit(1) }
 '''.replace("METHOD", block(refresh, "nonisolated static func refreshSelectedFiles(")) \
    .replace("CANCELLATION", block((ROOT / "Takupoke/StatusPresentation.swift").read_text(), "enum FileOperationOutcome")) \
-   .replace("CONTROL", block(access, "final class AcquisitionControl"))
+   .replace("CONTROL", block(access, "final class AcquisitionControl")) \
+   .replace("VERIFIES_ORIGINAL", block((ROOT / "Takupoke/MaterialModels.swift").read_text(), "static func verifiesOriginal("))
         with tempfile.TemporaryDirectory(prefix="special-provider-refresh-") as scratch:
             root = Path(scratch)
             source = root / "main.swift"
@@ -366,7 +426,11 @@ precondition(library.saved == recovered.digest && worker.timetableFailure == nil
         control_source = (ROOT / "Takupoke/SelectedFileProvider.swift").read_text()
         program = '''import Foundation
 enum MaterialKind: String { case changes }
-enum MaterialError: Error { case cancelled, unavailable, invalidState }
+enum MaterialError: Error { case cancelled, unavailable, invalidState, tooLarge, invalidFile, accessExpired, bookmarkFailed, bookmarkStale, bookmarkUnresolved, providerReadFailed }
+ACQUISITION_PROBLEM
+extension FilePipeline {
+TRANSIENT
+}
 enum SimulatedError: Error { case disk }
 final class NSFileCoordinator { func cancel() {} }
 struct MaterialSource {}
@@ -401,7 +465,8 @@ final class MaterialLibrary {
         migrated = legacyChangeSettings != nil
     }
     func recordUnchanged(_ kind: MaterialKind, source: MaterialSource) throws {}
-    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
+    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil,
+                       problem: AcquisitionProblem? = nil) throws {
         recordedCancellation = cancelled
     }
 }
@@ -449,6 +514,8 @@ ACQUIRE
     }
 }
 '''.replace("CONTROL", block(control_source, "final class AcquisitionControl")) \
+           .replace("ACQUISITION_PROBLEM", block((ROOT / "Takupoke/MaterialModels.swift").read_text(), "enum AcquisitionProblem:")) \
+           .replace("TRANSIENT", block((ROOT / "Takupoke/FilePipeline.swift").read_text(), "static func isTransient(")) \
            .replace("OUTCOME", block(access_source, "private enum AcquisitionOutcome")) \
            .replace("ACQUIRE", block(access_source, "private func acquire(_"))
         with tempfile.TemporaryDirectory(prefix="provider-commit-") as scratch:
@@ -494,19 +561,16 @@ final class Monitor { var discarded = 0; func discardPendingRefreshes() { discar
 final class AcquisitionControl {
     let operationID = UUID()
     let usedPipeline = false
+    let pipelineSources = Set<FileRefreshDiagnostics.Source>()
     init(intents: [String: UInt64] = [:]) {}
     var acquiredProviderSources = Set<String>()
     var cancelled = false
     func cancel() { cancelled = true }
 }
-final class FileRefreshDiagnostics {
-    enum Step { case cancelled }
-    static let shared = FileRefreshDiagnostics()
-    func record(_ step: Step) {}
-}
 PENDING_SELECTIONS
 final class MaterialLibrary {
     var state = MaterialLibraryState()
+    let wasPartiallyRecovered = false
     static func displayableTimetables(_ state: MaterialLibraryState) -> (state: MaterialLibraryState, rejected: Set<String>) { (state, []) }
 }
 final class MaterialWorker {
@@ -517,23 +581,29 @@ final class MaterialWorker {
 }
 @MainActor final class MaterialsModel {
     var busy = false, retired = false, failed = false, ready = true
-    var messageOperationID: UUID?, lastOperationUsedPipeline = false
+    var pendingPipelineRequest: FilePipeline.Request?, lastOperationUsedPipeline = false
+    var pipelineMonitorIDs: [FileRefreshDiagnostics.Source: UUID] = [:]
     var cancellationRequested = false, lastOperationWasCancelled = false
     var fileRefreshQueue = FileRefreshQueue()
     var pendingManualRefresh = Set<MaterialKind>()
+    var pendingManualChecks = Set<MaterialKind>()
     var pendingSelections = PendingFileSelections<MaterialKind, Int>()
     let fileMonitor = Monitor()
     var message: String?, changePreview: ChangePreview? = ChangePreview()
     var changeFailureContext: (identity: String, digest: String, year: Int)?
     var generation = UUID(), state = MaterialLibraryState(), rejectedRecoveryKinds = Set<String>()
     var control: AcquisitionControl?, pdfURLs: [String: URL] = [:]
+    var analysisPDFURLs: [String: URL] = [:]
+    var wasPartiallyRecovered = false
     var timetableReadReport: String?, timetableFailure: PDFParseError?
     let worker = MaterialWorker(), queue = DispatchQueue(label: "fictional-review-worker")
     var observedAcquisitions = Set<String>()
+    nonisolated static func analysisPDFURLs(in library: MaterialLibrary, visible state: MaterialLibraryState) -> [String: URL] { [:] }
     func updateFileMonitoring(retryFailedFor acquired: Set<String>) { observedAcquisitions = acquired }
     func runPendingSelection() {}
     func runPendingFileRefresh() {}
 METHOD
+APPLY_PIPELINE_RESULT
 CANCEL_OPERATION
 }
 @main struct Probe {
@@ -582,6 +652,7 @@ CANCEL_OPERATION
     }
 }
 '''.replace("METHOD", method) \
+           .replace("APPLY_PIPELINE_RESULT", block(source, "private func applyPipelineResult(")) \
            .replace("CANCEL_OPERATION", block(source, "func cancelCurrentOperation()")) \
            .replace("PENDING_SELECTIONS", block((ROOT / "Takupoke/SelectedFileSource.swift").read_text(), "struct PendingFileSelections")) \
            .replace("CANCELLATION", block((ROOT / "Takupoke/StatusPresentation.swift").read_text(), "enum FileOperationOutcome")) \
@@ -761,6 +832,10 @@ METHOD
         program = r'''import Foundation
 enum MaterialKind: String { case timetable, changes; var title: String { rawValue } }
 struct ScopedMaterialSelection {}
+struct Monitor {
+    var blockedSources = Set<String>()
+    func isRegistering(_ id: String) -> Bool { blockedSources.contains(id) }
+}
 struct AcquisitionControl {}
 struct ChangeParseError: Error, LocalizedError {
     enum Code { case defaultYear }
@@ -781,9 +856,13 @@ QUEUE
     var retired = false, busy = false, failed = false, message: String?
     var automaticChangeSchoolYear: Int? = nil
     var pendingManualRefresh = Set<MaterialKind>()
+    var pendingManualChecks = Set<MaterialKind>()
     var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
+    var fileMonitor = Monitor()
     let worker = MaterialWorker()
     var dispatches = 0
+    func checkForUpdates(_ kind: MaterialKind) {}
+    func drainAfterCompletion() { runPendingSelection() }
     func perform(success: String?, changeYear: Int? = nil, operation: (MaterialWorker, AcquisitionControl) throws -> Void) {
         dispatches += 1; try! operation(worker, AcquisitionControl())
     }
@@ -802,12 +881,22 @@ METHODS
         // Append a final item to drain the same production queue after a busy operation.
         model.selectFile(ScopedMaterialSelection(), kind: .changes)
         precondition(model.worker.reads == [.timetable] && model.worker.pdfs == [.timetable])
+        model.drainAfterCompletion()
         model.refresh(.timetable)
         precondition(model.worker.reads == [.timetable, .timetable])
         model.automaticChangeSchoolYear = 2032
         model.refresh(.changes); model.analyzeChanges(defaultYear: nil)
         precondition(model.worker.years == [2032, 2032])
         precondition(model.dispatches == 4)
+        model.fileMonitor.blockedSources = ["changes"]
+        model.selectFile(ScopedMaterialSelection(), kind: .changes)
+        model.selectFile(ScopedMaterialSelection(), kind: .timetable)
+        precondition(model.dispatches == 5 && model.worker.reads.last == .timetable)
+        model.fileMonitor.blockedSources = []
+        model.selectFile(ScopedMaterialSelection(), kind: .timetable)
+        precondition(model.dispatches == 6 && model.worker.reads.last == .changes)
+        model.drainAfterCompletion()
+        precondition(model.dispatches == 7 && model.worker.reads.suffix(2) == [.changes, .timetable])
     }
 }
 '''.replace("METHODS", methods).replace("QUEUE", queue)

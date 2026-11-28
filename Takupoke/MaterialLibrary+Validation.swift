@@ -11,7 +11,7 @@ extension MaterialLibrary {
         }
         if let analysis = state.changeAnalysis {
             guard (1...ChangeAnalysis.parserVersion).contains(analysis.version),
-                  !analysis.records.isEmpty, analysis.records.count <= ChangeNormalizer.maximumRecords else {
+                  analysis.hasValidRecordCount else {
                 throw MaterialError.invalidState
             }
         }
@@ -29,6 +29,16 @@ extension MaterialLibrary {
     static func validPDFAnalysis(_ analysis: PDFAnalysis) -> Bool {
         guard (1...PDFAnalysis.parserVersion).contains(analysis.version), analysis.kind != .changes,
               analysis.lessons.count + analysis.events.count <= PDFSchoolParser.maximumRecords else { return false }
+        if let proof = analysis.strictTimetableSlots {
+            guard analysis.kind == .timetable, analysis.recovery == nil, !proof.isEmpty,
+                  proof.count <= PDFSchoolParser.maximumRecords else { return false }
+            let slots = Set(proof)
+            let classes = Set(proof.map(\.className))
+            guard slots.count == proof.count, proof.count == classes.count * 40,
+                  proof.allSatisfy({ !$0.className.isEmpty && (1...5).contains($0.weekday) && (1...8).contains($0.period) }),
+                  analysis.lessons.allSatisfy({ slots.contains(.init(className: $0.sourceClassName ?? $0.className,
+                                                                      weekday: $0.weekday, period: $0.period)) }) else { return false }
+        }
         switch analysis.kind {
         case .timetable: return !analysis.lessons.isEmpty && analysis.events.isEmpty &&
             analysis.lessons.allSatisfy { (1...5).contains($0.weekday) && (1...8).contains($0.period) && !$0.names.subject.isEmpty &&

@@ -8,6 +8,51 @@ import GRDB
 // Explicit testStrict239 cases and StrictPDFCompatibilityTests exercise app Strict.
 
 final class SpecialScheduleTests: XCTestCase {
+    func testStrictExamReviewKeepsBlankScopeThroughSQLiteAndRejectsLegacyMissingProof() throws {
+        let pages = (1...6).map { examPage($0) }
+        let analysis = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bytes = Data("%PDF-fictional".utf8)
+        do {
+            let store = try SpecialScheduleStore(root: root)
+            let staged = store.newStagingURL()
+            try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: "fictional.pdf",
+                           byteCount: bytes.count, digest: "fictional")
+        }
+        let store = try SpecialScheduleStore(root: root)
+        var restored = try XCTUnwrap(store.records[.exam]?.analysis)
+        XCTAssertTrue(restored.validStrictComparisonCoverage)
+        let previous = try XCTUnwrap(restored.strictComparisonSnapshot())
+        XCTAssertEqual(previous.scope.slots.count, 17 * 5 * 6)
+        let blank = RecoveryManualComparison.Slot(className: "1_1", day: "2026-04-01", period: 2)
+        let occupied = RecoveryManualComparison.Slot(className: "1_1", day: "2026-04-01", period: 1)
+        XCTAssertEqual(previous.entries[blank], [])
+        var entries = previous.entries
+        entries[blank] = try XCTUnwrap(previous.entries[occupied])
+        let next = RecoveryManualComparison.Snapshot(scope: previous.scope, entries: entries)
+        let comparison = RecoveryManualComparison.compare(next, previous: previous)
+        XCTAssertTrue(comparison.available)
+        XCTAssertEqual(comparison.changes.map(\.slot), [blank])
+
+        restored.strictComparisonCoverage = nil
+        let legacy = try XCTUnwrap(restored.strictComparisonSnapshot())
+        XCTAssertNil(legacy.entries[blank])
+        XCTAssertFalse(RecoveryManualComparison.compare(next, previous: legacy).available)
+    }
+
+    func testStrictExamMayParseWithoutProvingAnUnsampledStripIsEmpty() throws {
+        var pages = (1...6).map { examPage($0) }
+        let complete = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        pages[0].lines.append(PDFRule(x1: 105, y1: 110, x2: 105, y2: 310))
+        pages[0].glyphs.append(PDFGlyph(text: "未", x: 101, y: 156, width: 3, height: 4))
+        let partial = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        XCTAssertTrue(complete.validStrictComparisonCoverage)
+        XCTAssertEqual(partial.lessons, complete.lessons)
+        XCTAssertNil(partial.strictComparisonCoverage)
+    }
+
     func testStrictExamRequiresEachDateLabelToDescribeOneWholeDay() throws {
         for (label, expected) in [("4月1日","2026-04-01"), ("４ 月 １ 日 （ 水 ）","2026-04-01"),
                                   ("4月1日水曜日","2026-04-01"), ("1月5日(火)","2027-01-05")] {
@@ -350,6 +395,78 @@ final class SpecialScheduleTests: XCTestCase {
         XCTAssertEqual(parsed.lessons.first { $0 == original }?.timeRange, "08:50〜10:20")
     }
 
+    func testExplicitClockForSeparateExamCellsSurvivesStoreReload() throws {
+        let times = ["8:10~8:55", "9:20~10:00", "10:15~10:55", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+        let pages = (1...6).map { examPage($0, timingOverride: times, separateContinuousExam: true) }
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2026-04-01"))
+        let bytes = Data("%PDF-fictional-separate-exam".utf8)
+        let digest = "fictional-separate-exam"
+        let analyses = [
+            try SpecialScheduleParser.parse(pages, kind: .exam, digest: digest, name: "fictional.pdf"),
+            try SpecialScheduleParser.parseCertified(pages, kind: .exam, digest: digest, name: "fictional.pdf"),
+        ]
+        for parsed in analyses {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: root) }
+            do {
+                let store = try SpecialScheduleStore(root: root)
+                let staged = store.newStagingURL()
+                try bytes.write(to: staged)
+                try store.save(staged: staged, analysis: parsed, originalName: "fictional.pdf", byteCount: bytes.count, digest: digest)
+            }
+            let reopened = try SpecialScheduleStore(root: root)
+            let analysis = try XCTUnwrap(reopened.records[.exam]?.analysis)
+            XCTAssertEqual(analysis.consecutiveTimes, ["2-3": "09:20〜10:40"])
+            try assertIndependentExamClock(analysis, on: day, printed: true)
+            XCTAssertEqual(analysis.periodTime(on: day.iso8601, period: 3), "10:15〜10:55")
+
+            let schedule = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [analysis], includesChanges: true)
+            let block = try XCTUnwrap(schedule.blocks(on: day, className: "1_1", international: false).first { $0.startPeriod == 2 })
+            for (time, ongoing) in [("09:19", false), ("09:20", true), ("10:39", true), ("10:40", false)] {
+                let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "\(day.iso8601)T\(time):00+09:00"))
+                XCTAssertEqual(schedule.isInProgress(block, on: day, className: "1_1", now: now), ongoing, time)
+            }
+            let change = ScheduleChange(change_date: day.iso8601, class_name: "1_1", period: "3", before_subject: "", after_subject: "架空変更科目", teacher: "", room: "", note: "補講", raw_text: "", canonical_text: "")
+            let changed = TimetableDaySchedule(timetable: nil, changes: ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2026, parsedAt: Date(), records: [change]), events: nil, specials: [analysis], includesChanges: true)
+            let first = try XCTUnwrap(changed.blocks(on: day, className: "1_1", international: false).first { $0.startPeriod == 2 })
+            XCTAssertEqual(first.endPeriod, 2)
+            XCTAssertEqual(changed.cardTime(first, on: day, className: "1_1"), "09:20〜10:00")
+        }
+    }
+
+    func testIndependentExamWithoutPrintedContinuousTimeUsesSeparatePeriods() throws {
+        let times = ["8:10~8:55", "9:20~10:00", "10:15~10:55", "11:50~12:35", "13:20~14:05", "14:20~15:05"]
+        let original = (1...6).map { examPage($0, timingOverride: times, separateContinuousExam: true) }
+        let pages = replacingFirstExamTime(original, with: "", consecutive: true)
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2026-04-01"))
+        let strict = try SpecialScheduleParser.parse(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        let certified = try SpecialScheduleParser.parseCertified(pages, kind: .exam, digest: "fictional", name: "fictional.pdf")
+        for analysis in [strict, certified] {
+            try assertIndependentExamClock(analysis, on: day, printed: false)
+        }
+    }
+
+    private func assertIndependentExamClock(_ analysis: SpecialScheduleAnalysis, on day: SchoolDate,
+                                            printed: Bool, fixture: String = "fictional.pdf") throws {
+        let cells = analysis.lessons.filter { $0.date == day.iso8601 && $0.className == "1_1" }
+            .sorted { $0.period < $1.period }
+        XCTAssertEqual(cells.map(\.period), [2, 3], fixture)
+        XCTAssertEqual(cells.map(\.spanStart), [2, 3], fixture)
+        XCTAssertEqual(cells.map(\.spanEnd), [2, 3], fixture)
+        XCTAssertEqual(analysis.consecutiveTimes?["2-3"], printed ? "09:20〜10:40" : nil, fixture)
+        let schedule = TimetableDaySchedule(timetable: nil, changes: nil, events: nil, specials: [analysis], includesChanges: true)
+        let block = try XCTUnwrap(schedule.blocks(on: day, className: "1_1", international: false).first)
+        XCTAssertEqual(block.startPeriod, 2, fixture)
+        XCTAssertEqual(block.endPeriod, 3, fixture)
+        if printed {
+            XCTAssertEqual(schedule.cardTime(block, on: day, className: "1_1"), "09:20〜10:40", fixture)
+        }
+        for (time, expected) in [("10:05", printed), ("10:45", !printed)] {
+            let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "\(day.iso8601)T\(time):00+09:00"))
+            XCTAssertEqual(schedule.isInProgress(block, on: day, className: "1_1", now: now), expected, fixture)
+        }
+    }
+
     func testRepeatedLowerHeaderBandBelowMergedClassBorderUsesItsOwnRule() throws {
         let original = try SpecialScheduleParser.parse([returnPageWithMergedClassHeader(includeHeadings:false)],
             kind:.examReturn,digest:"fictional",name:"fictional.pdf")
@@ -425,6 +542,22 @@ final class SpecialScheduleTests: XCTestCase {
     }
 
 #if canImport(PDFKit)
+    func testIndependentExamCellsUseOnlyExplicitClockThroughNativePDFKit() throws {
+        let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
+        let day = try XCTUnwrap(SchoolDate(iso8601: "2032-04-01"))
+        for (filename, printed) in [("independent-cell-clock-exam.pdf", true), ("independent-cell-no-clock-exam.pdf", false)] {
+            let original = URL(fileURLWithPath: path).appendingPathComponent(filename)
+            let strict = try PDFKitReader.readSpecial(original)
+            let certified = try PDFKitReader.readCertifiedSpecial(original)
+            for analysis in [
+                try SpecialScheduleParser.parse(strict, kind: .exam, digest: "independent", name: filename),
+                try SpecialScheduleParser.parseCertified(certified, kind: .exam, digest: "independent", name: filename)
+            ] {
+                try assertIndependentExamClock(analysis, on: day, printed: printed, fixture: filename)
+            }
+        }
+    }
+
     func testReturnColumnHeadingSeparationThroughNativePDFKit() throws {
         let path = try XCTUnwrap(ProcessInfo.processInfo.environment["TAKUPOKE_STRICT_COMPATIBILITY_FIXTURES"])
         for filename in ["heading-return.pdf","merged-class-heading-return.pdf"] {

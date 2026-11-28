@@ -1,7 +1,7 @@
 import Foundation
 
 final class LinksStore {
-    private let file: URL
+    let file: URL
     private static let maximumSavedBytes = LinksPayload.maximumBytes + 100_000
 
     private static func cacheEncoder() -> JSONEncoder {
@@ -59,20 +59,57 @@ struct LinkPreferences: Codable, Equatable {
 final class LinkPreferencesStore {
     private let defaults: UserDefaults
     private let key = "linkPreferences.v1"
+    private static let knownKeys: Set<String> = ["favoriteIDs", "hiddenIDs", "colorOverrides"]
 
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
     func load() throws -> LinkPreferences {
         guard let saved = defaults.object(forKey: key) else { return LinkPreferences() }
         guard let data = saved as? Data else { throw LinksError.invalidResponse }
+        let fields = try preferenceFields(data)
+        guard Set(fields.keys) == Self.knownKeys else { throw LinksError.invalidResponse }
         return try JSONDecoder().decode(LinkPreferences.self, from: data)
     }
 
+    func recoverReadableValues() throws -> LinkPreferences? {
+        guard let data = defaults.data(forKey: key), (try? load()) == nil else { return nil }
+        let fields = try preferenceFields(data)
+        var recovered = LinkPreferences()
+        var recognized = false
+        if let values = fields["favoriteIDs"] as? [Any] {
+            recovered.favoriteIDs = Set(values.compactMap { $0 as? String })
+            recognized = true
+        }
+        if let values = fields["hiddenIDs"] as? [Any] {
+            recovered.hiddenIDs = Set(values.compactMap { $0 as? String })
+            recognized = true
+        }
+        if let values = fields["colorOverrides"] as? [String: Any] {
+            recovered.colorOverrides = values.compactMapValues { $0 as? String }
+            recognized = true
+        }
+        guard recognized else { return nil }
+        let bytes = try JSONEncoder().encode(recovered)
+        let retained = key + ".retained." + UUID().uuidString
+        defaults.set(data, forKey: retained)
+        guard defaults.data(forKey: retained) == data, defaults.data(forKey: key) == data else {
+            throw LinksError.invalidResponse
+        }
+        defaults.set(bytes, forKey: key)
+        return recovered
+    }
+
+    private func preferenceFields(_ data: Data) throws -> [String: Any] {
+        guard let fields = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              Set(fields.keys).isSubset(of: Self.knownKeys) else { throw LinksError.invalidResponse }
+        return fields
+    }
+
     func save(_ preferences: LinkPreferences) throws {
+        let original = try load().colorOverrides
         let unsupported = preferences.colorOverrides.filter { !LinksPayload.colors.contains($0.value) }
         if !unsupported.isEmpty {
             // Carry forward an opaque saved color without accepting any new unsupported value.
-            let original = try load().colorOverrides
             guard unsupported.allSatisfy({ original[$0.key] == $0.value }) else { throw LinksError.invalidResponse }
         }
         defaults.set(try JSONEncoder().encode(preferences), forKey: key)

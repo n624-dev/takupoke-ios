@@ -51,6 +51,7 @@
       ],
       "sources": [
         "Takupoke/FileRefreshDiagnostics.swift",
+        "Takupoke/SavedPDFLease.swift",
         "Takupoke/MaterialAccess.swift",
         "Takupoke/MaterialLibrary+Analysis.swift",
         "Takupoke/MaterialLibrary+Validation.swift",
@@ -137,13 +138,16 @@
         "python3 -B -m unittest discover -s tests -p test_links_model_lifecycle.py"
       ],
       "sources": [
+        "Takupoke/BoundedHTTPResponse.swift",
         "Takupoke/LinkSearch.swift",
         "Takupoke/LinksAPI.swift",
         "Takupoke/LinksModel.swift",
         "Takupoke/LinksStore.swift",
-        "Takupoke/LinksView.swift"
+        "Takupoke/LinksView.swift",
+        "tests/support_swift_http.py"
       ],
       "checks": [
+        "tests/BoundedHTTPResponseTests.swift",
         "tests/LinksTests.swift",
         "tests/test_links_model_lifecycle.py"
       ]
@@ -157,6 +161,7 @@
         "python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v"
       ],
       "sources": [
+        "Takupoke/MappingIDTokenVerification.swift",
         "Takupoke/MappingModel.swift",
         "Takupoke/MappingModels.swift",
         "Takupoke/MappingOIDC.swift",
@@ -168,6 +173,7 @@
         "Takupoke/MappingStore.swift"
       ],
       "checks": [
+        "tests/BoundedHTTPResponseTests.swift",
         "tests/MappingPackageTests.swift",
         "tests/MappingRulesTests.swift",
         "tests/MappingServiceTests.swift",
@@ -190,6 +196,7 @@
         "Takupoke/SchoolEventsView.swift"
       ],
       "checks": [
+        "tests/BoundedHTTPResponseTests.swift",
         "tests/SchoolEventsAPITests.swift",
         "tests/SchoolEventsSourceStatusTests.swift",
         "tests/SchoolEventsSourceModelTests.swift"

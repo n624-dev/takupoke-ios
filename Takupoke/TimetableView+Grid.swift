@@ -1,15 +1,16 @@
+import Observation
 import SwiftUI
 import UIKit
 import UIKit.UIGestureRecognizerSubclass
 
 extension TimetableView {
-    var weekGrid: some View {
+    func weekGrid(within bounds: ClosedRange<SchoolDate>) -> some View {
         // The date is the identity. Promoting a prepared page preserves its live
         // layout and scroll view; there is no image-to-view handoff on arrival.
         let revision = detailRevision + [mainColor.selection.rawValue,
             String(describing: gridDynamicTypeSize), String(Double(gridViewportWidth)),
-            String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth))]
-        return WeekPages(selection: weekSelection, bounds: weekBounds, revision: revision,
+            String(Double(standardPeriodColumnWidth)), String(Double(periodColumnWidth)), updateFocus?.iso8601 ?? ""]
+        return WeekPages(selection: weekSelection, bounds: bounds, revision: revision,
                          viewportWidth: gridViewportWidth, pull: weekPull, accent: weekControlColor,
                          content: { AnyView(weekPage(on: $0)) },
                          arrive: { source, target in
@@ -45,52 +46,59 @@ extension TimetableView {
         let columns = days.map(dayLayout)
         let eventsOnly = !columns.isEmpty && columns.allSatisfy { $0.fullDayEventTitle != nil }
         let rowHeights = gridRowHeights(columns, days: days)
-        return VStack(spacing: 0) {
-            ScrollView(.horizontal) {
-                WeekColumnsLayout(widths: [periodColumnWidth] + columns.map(\.width), spacing: gridSpacing) {
-                    Group {
-                        if eventsOnly { Color.clear }
-                        else { Text("時限").font(periodHeadingFont) }
-                    }
-                    .frame(width: periodColumnWidth)
-                    ForEach(columns, id: \.day) { column in dayHeaderCell(column) }
-                    Group {
-                        if eventsOnly {
-                            Color.clear.frame(width: periodColumnWidth, height: gridRowHeight)
-                        } else {
-                            VStack(spacing: gridSpacing) {
-                                ForEach(1...8, id: \.self) { period in
-                                    let commonTime = commonPeriodTime(period, days: days)
-                                    VStack(spacing: 2) {
-                                        Text("\(period)").font(periodNumberFont)
-                                        if let commonTime {
-                                            Text(TimetableDisplayText.periodTime(commonTime))
-                                                .font(periodClockFont).foregroundStyle(.secondary)
-                                        }
+        let grid = ScrollView(.horizontal) {
+            WeekColumnsLayout(widths: [periodColumnWidth] + columns.map(\.width), spacing: gridSpacing) {
+                Group {
+                    if eventsOnly { Color.clear }
+                    else { Text("時限").font(periodHeadingFont) }
+                }
+                .frame(width: periodColumnWidth)
+                ForEach(columns, id: \.day) { column in dayHeaderCell(column).id("week-date-" + column.day.iso8601) }
+                Group {
+                    if eventsOnly {
+                        Color.clear.frame(width: periodColumnWidth, height: gridRowHeight)
+                    } else {
+                        VStack(spacing: gridSpacing) {
+                            ForEach(1...8, id: \.self) { period in
+                                let commonTime = commonPeriodTime(period, days: days)
+                                VStack(spacing: 2) {
+                                    Text("\(period)").font(periodNumberFont)
+                                    if let commonTime {
+                                        Text(TimetableDisplayText.periodTime(commonTime))
+                                            .font(periodClockFont).foregroundStyle(.secondary)
                                     }
-                                    .multilineTextAlignment(.center)
-                                    .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
                                 }
+                                .multilineTextAlignment(.center)
+                                .frame(width: periodColumnWidth, height: rowHeights[period - 1], alignment: .center)
                             }
                         }
                     }
-                    // This probe starts at the first lesson, so the header's
-                    // final bottom is read from geometry, never fed back into layout.
-                    .background(WeekPullObserver(week: week, pull: weekPull))
-                    ForEach(columns, id: \.day) { column in
-                        if eventsOnly, let title = column.fullDayEventTitle {
-                            fullDayEventCard(title, width: column.width, height: nil)
-                        } else {
-                            dayColumn(column, days: days, rowHeights: rowHeights)
-                        }
+                }
+                // This probe starts at the first lesson, so the header's
+                // final bottom is read from geometry, never fed back into layout.
+                .background(WeekPullObserver(week: week, pull: weekPull))
+                ForEach(columns, id: \.day) { column in
+                    if eventsOnly, let title = column.fullDayEventTitle {
+                        fullDayEventCard(title, width: column.width, height: nil)
+                    } else {
+                        dayColumn(column, days: days, rowHeights: rowHeights)
                     }
                 }
-                .padding(.trailing, gridSpacing)
             }
-            .scrollBounceBehavior(.always, axes: .horizontal)
-            .fixedSize(horizontal: false, vertical: true)
-            .dynamicTypeSize(.large...)
-            .modifier(WeekGridAccessibility(label: "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"))
+            .padding(.trailing, gridSpacing)
+        }
+        .scrollBounceBehavior(.always, axes: .horizontal)
+        .fixedSize(horizontal: false, vertical: true)
+        .dynamicTypeSize(.large...)
+        .modifier(WeekGridAccessibility(label: "\(selectedClasses.map(TimetableDisplayText.className).joined(separator: "・"))の週の時間割"))
+        return VStack(spacing: 0) {
+            if let updateFocus, days.contains(updateFocus) {
+                ScrollViewReader { scroll in
+                    grid.onAppear { scroll.scrollTo("week-date-" + updateFocus.iso8601, anchor: .leading) }
+                }
+            } else {
+                grid
+            }
             weekEvents(on: week, embedded: true)
                 .modifier(WeekFooterHandoff(motion: weekPull.motion, week: week))
         }
@@ -187,7 +195,7 @@ private struct WeekPage: Identifiable, View, Equatable {
     let id: SchoolDate
     let revision: [String]
     let content: WeekPageContent
-    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.revision == rhs.revision }
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id && lhs.revision == rhs.revision }
     var body: some View { content.view() }
 }
 
@@ -324,7 +332,7 @@ private struct WeekPagesCanvas: View {
     let pages: [WeekPage]
     let selection: TimetableWeekSelection
     let viewportWidth: CGFloat
-    @ObservedObject var motion: WeekPageMotion
+    let motion: WeekPageMotion
 
     var body: some View {
         let selection = self.selection.date
@@ -332,18 +340,41 @@ private struct WeekPagesCanvas: View {
         WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight) {
             ForEach(pages) { page in
                 let isDisplayed = page.id == selection
-                page.equatable()
-                    .onGeometryChange(for: WeekPageMeasurement.self) {
-                        WeekPageMeasurement(size: $0.size, revision: page.revision)
-                    } action: { motion.measure($0, week: page.id) }
-                    .offset(x: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth))
-                    .opacity(motion.opacity(for: page.id, selected: selection))
-                    .allowsHitTesting(isDisplayed && motion.transition == nil)
-                    .accessibilityElement(children: .contain)
-                    .accessibilityHidden(!isDisplayed)
-                    .environment(\.isDisplayedTimetableWeek, isDisplayed)
+                PositionedWeekPage(page: page, motion: motion,
+                    horizontalOffset: motion.offset(for: page.id, selected: selection, viewportWidth: viewportWidth),
+                    opacity: motion.opacity(for: page.id, selected: selection),
+                    isDisplayed: isDisplayed, acceptsTouches: isDisplayed && motion.transition == nil)
+                    .equatable()
             }
         }
+    }
+}
+
+// Resizing the enclosing row does not change a page's position, hit testing or accessibility.
+private struct PositionedWeekPage: View, Equatable {
+    let page: WeekPage
+    let motion: WeekPageMotion
+    let horizontalOffset: CGFloat
+    let opacity: Double
+    let isDisplayed: Bool
+    let acceptsTouches: Bool
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.page == rhs.page && lhs.motion === rhs.motion && lhs.horizontalOffset == rhs.horizontalOffset
+            && lhs.opacity == rhs.opacity && lhs.isDisplayed == rhs.isDisplayed && lhs.acceptsTouches == rhs.acceptsTouches
+    }
+
+    var body: some View {
+        page.equatable()
+            .onGeometryChange(for: WeekPageMeasurement.self) {
+                WeekPageMeasurement(size: $0.size, revision: page.revision)
+            } action: { motion.measure($0, week: page.id) }
+            .offset(x: horizontalOffset)
+            .opacity(opacity)
+            .allowsHitTesting(acceptsTouches)
+            .accessibilityElement(children: .contain)
+            .accessibilityHidden(!isDisplayed)
+            .environment(\.isDisplayedTimetableWeek, isDisplayed)
     }
 }
 
@@ -411,8 +442,8 @@ final class WeekPullProgress: ObservableObject {
     }
 }
 
-@MainActor
-private final class WeekPageMotion: NSObject, ObservableObject {
+@MainActor @Observable
+private final class WeekPageMotion: NSObject {
     struct Transition {
         let id = UUID()
         let source: SchoolDate
@@ -430,8 +461,8 @@ private final class WeekPageMotion: NSObject, ObservableObject {
             self.value = value; self.probe = probe
         }
     }
-    @Published private(set) var transition: Transition?
-    @Published private(set) var reservedHeight: CGFloat?
+    private(set) var transition: Transition?
+    private(set) var reservedHeight: CGFloat?
     let preparation = WeekPagePreparation()
     var selection: SchoolDate?
     var bounds: ClosedRange<SchoolDate>?
@@ -451,6 +482,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     var hasDeferredReleases: Bool { !deferredReleases.isEmpty }
     private var displayLink: CADisplayLink?
     private weak var heldScroll: UIScrollView?
+    private var heldScrollEdge: CGFloat = 0
     private var slideClock = WeekSlideClock()
     private var heightAdjustment: (startedAt: CFTimeInterval?, initialHeight: CGFloat, targetHeight: CGFloat)?
 
@@ -576,14 +608,14 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         let releasedOffset = scroll.layer.presentation()?.bounds.origin.x ?? scroll.contentOffset.x
         let rubber = WeekEdgePull.rubberBandOffset(offset: releasedOffset - minimum,
                                                   scrollRange: maximum - minimum)
-        let edge = releasedOffset + rubber
-        // Read the native rubber band before disabling it. Returning the scroll
-        // to its edge and translating the entire old page preserves visible x.
+        // Keep the native content at its visible release position during the
+        // handoff. Resetting it here would precede the SwiftUI page translation.
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) {
             heldScroll = scroll
+            heldScrollEdge = releasedOffset + rubber
             scroll.isScrollEnabled = false
-            scroll.setContentOffset(CGPoint(x: edge, y: scroll.contentOffset.y), animated: false)
+            scroll.setContentOffset(CGPoint(x: releasedOffset, y: scroll.contentOffset.y), animated: false)
             reservedHeight = initialHeight
             transition = Transition(source: week, destination: destination, rubber: rubber,
                 width: scroll.bounds.width, direction: destination > week ? 1 : -1, targetHeight: targetHeight)
@@ -600,13 +632,16 @@ private final class WeekPageMotion: NSObject, ObservableObject {
         guard let value = transition else { adjustHeight(link); return }
         let duration = reduceMotion ? 0.15 : 0.25
         let elapsed = slideClock.progress(timestamp: link.timestamp, target: link.targetTimestamp, duration: duration)
+        if elapsed == 1 {
+            // Promotion already presents the final offset and opacity. Emit one
+            // visual change for landing instead of also publishing a slide frame.
+            slideClock = WeekSlideClock()
+            settle(id: value.id)
+            return
+        }
         let progress = CGFloat(elapsed + elapsed * (1 - elapsed) / 2)
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition?.slideProgress = progress }
-        if elapsed == 1 {
-            slideClock = WeekSlideClock()
-            settle(id: value.id)
-        }
     }
     private func settle(id: UUID) {
         guard let value = transition, value.id == id else { return }
@@ -644,9 +679,15 @@ private final class WeekPageMotion: NSObject, ObservableObject {
             selection = value.destination
             arrive?(value.source, value.destination)
             transition = nil
-            heldScroll?.isScrollEnabled = true
-            heldScroll = nil
+            releaseHeldScroll()
         }
+    }
+
+    private func releaseHeldScroll() {
+        guard let scroll = heldScroll else { return }
+        heldScroll = nil
+        scroll.setContentOffset(CGPoint(x: heldScrollEdge, y: scroll.contentOffset.y), animated: false)
+        scroll.isScrollEnabled = true
     }
     private func finishHeight(reserving height: CGFloat? = nil) {
         stopDisplayLink()
@@ -665,8 +706,7 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     func cancel() {
         invalidateInput()
         stopDisplayLink()
-        heldScroll?.isScrollEnabled = true
-        heldScroll = nil
+        releaseHeldScroll()
         var transaction = Transaction(); transaction.disablesAnimations = true
         withTransaction(transaction) { transition = nil; preparation.reset(); reservedHeight = nil }
     }
@@ -681,8 +721,8 @@ private final class WeekPageMotion: NSObject, ObservableObject {
     func offset(for week: SchoolDate, selected: SchoolDate, viewportWidth: CGFloat) -> CGFloat {
         if let value = transition {
             if week == value.source {
-                if reduceMotion { return value.rubber }
-                return value.rubber - (value.direction * value.width + value.rubber) * value.slideProgress
+                if reduceMotion { return 0 }
+                return -(value.direction * value.width + value.rubber) * value.slideProgress
             }
             if week == value.destination {
                 if reduceMotion { return 0 }
@@ -701,14 +741,16 @@ private final class WeekPageMotion: NSObject, ObservableObject {
 }
 
 private struct WeekFooterHandoff: ViewModifier {
-    @ObservedObject var motion: WeekPageMotion
+    // The footer only reads horizontal motion. Height-only frames need no new
+    // footer body evaluation for any of the prepared weeks.
+    let motion: WeekPageMotion
     let week: SchoolDate
     func body(content: Content) -> some View {
         // Only the grid was rubber-banding. Start the footer at its own
         // release position and have it cover the remaining distance with the grid.
         let value = motion.transition.flatMap { $0.source == week ? $0 : nil }
-        let remaining = motion.reduceMotion ? 1 : 1 - (value?.slideProgress ?? 0)
-        content.offset(x: -(value?.rubber ?? 0) * remaining)
+        let progress = motion.reduceMotion ? 0 : value?.slideProgress ?? 0
+        content.offset(x: (value?.rubber ?? 0) * progress)
     }
 }
 

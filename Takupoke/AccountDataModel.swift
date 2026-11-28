@@ -16,41 +16,43 @@ final class AccountDataModel: ObservableObject {
         let operation = Task {
             let network = LinksModel.networkSession()
             defer { network.invalidateAndCancel(); busy = false; task = nil }
-            var mappingRevision: String?
-            var linkRevision: String?
-            var timesRevision: String?
-            do {
-                if selection.contains(.mappings), case .available(let revision) = try await mappings.revision(using: network) { mappingRevision = revision }
-            } catch { if !Task.isCancelled { mappings.report(error) } }
-            do {
-                if selection.contains(.links), case .available(let revision) = try await links.revision() { linkRevision = revision }
-            } catch { if !Task.isCancelled { links.report(error) } }
-            do {
-                if selection.contains(.times), case .available(let revision) = try await times.revision(using: network) { timesRevision = revision }
-            } catch { if !Task.isCancelled { times.report(error) } }
-            guard !Task.isCancelled, mappingRevision != nil || linkRevision != nil || timesRevision != nil else { return }
-            do {
-                let token = try await oidc.accessToken(using: network, selection: selection)
-                try Task.checkCancellation()
-                if let revision = mappingRevision {
-                    do { try await mappings.download(token: token, revision: revision, network: network) }
-                    catch { if !Task.isCancelled { mappings.report(error) } }
-                }
-                try Task.checkCancellation()
-                if let revision = linkRevision {
-                    do { try await links.download(token: token, revision: revision, network: network) }
-                    catch { if !Task.isCancelled { links.report(error) } }
-                }
-                try Task.checkCancellation()
-                if let revision = timesRevision {
-                    do { try await times.download(token: token, revision: revision, network: network) }
-                    catch { if !Task.isCancelled { times.report(error) } }
-                }
-            } catch {
-                if !Task.isCancelled {
-                    if timesRevision != nil { times.report(error) }
-                    if mappingRevision != nil { mappings.report(error) }
-                    if linkRevision != nil { links.report(error) }
+            await BoundedHTTPResponse.$communicationBudget.withValue(.init()) {
+                var mappingRevision: String?
+                var linkRevision: String?
+                var timesRevision: String?
+                do {
+                    if selection.contains(.mappings), case .available(let revision) = try await mappings.revision() { mappingRevision = revision }
+                } catch { if !Task.isCancelled { mappings.report(error) } }
+                do {
+                    if selection.contains(.links), case .available(let revision) = try await links.revision() { linkRevision = revision }
+                } catch { if !Task.isCancelled { links.report(error) } }
+                do {
+                    if selection.contains(.times), case .available(let revision) = try await times.revision() { timesRevision = revision }
+                } catch { if !Task.isCancelled { times.report(error) } }
+                guard !Task.isCancelled, mappingRevision != nil || linkRevision != nil || timesRevision != nil else { return }
+                do {
+                    let token = try await oidc.accessToken(using: network, selection: selection)
+                    try Task.checkCancellation()
+                    if let revision = mappingRevision {
+                        do { try await mappings.download(token: token, revision: revision, network: network) }
+                        catch { if !Task.isCancelled { mappings.report(error) } }
+                    }
+                    try Task.checkCancellation()
+                    if let revision = linkRevision {
+                        do { try await links.download(token: token, revision: revision, network: network) }
+                        catch { if !Task.isCancelled { links.report(error) } }
+                    }
+                    try Task.checkCancellation()
+                    if let revision = timesRevision {
+                        do { try await times.download(token: token, revision: revision, network: network) }
+                        catch { if !Task.isCancelled { times.report(error) } }
+                    }
+                } catch {
+                    if !Task.isCancelled, !(error is CancellationError) {
+                        if timesRevision != nil { times.report(error) }
+                        if mappingRevision != nil { mappings.report(error) }
+                        if linkRevision != nil { links.report(error) }
+                    }
                 }
             }
         }

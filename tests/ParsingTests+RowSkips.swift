@@ -237,9 +237,10 @@ extension ParsingTests {
             rows[1][1] = "YY"
             rows[4][1] = "全"
             try write(workbook(rows), to: url)
-            let changes = try ChangeNormalizer.parse(
-                XLSXReader.read(url, defaultYear: 2032, skippingRows: [3, 4]), defaultYear: 2032)
-            XCTAssertEqual(changes.map(\.class_name), ["1_YY", "1_YY"])
+            assertCode(.unknownAll) {
+                _ = try ChangeNormalizer.parse(
+                    XLSXReader.read(url, defaultYear: 2032, skippingRows: [3, 4]), defaultYear: 2032)
+            }
             let missing = root.appendingPathComponent("all-without-evidence.xlsx")
             rows[1] = []
             try write(workbook(rows), to: missing)

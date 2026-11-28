@@ -14,6 +14,97 @@ final class SpecialScheduleStore {
     let queue: DatabaseQueue
     var records: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
     var sources: [SpecialScheduleKind: SpecialScheduleSource] = [:]
+    var acquisitionAttempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
+    var wasPartiallyRecovered: Bool { root.lastPathComponent == "recovered" }
+
+    static func openRecovering(root: URL, ownerQueue: DispatchQueue) throws -> SpecialScheduleStore {
+        let recovered = root.appendingPathComponent("recovered", isDirectory: true)
+        if FileManager.default.fileExists(atPath: recovered.path) {
+            return try SpecialScheduleStore(root: recovered, ownerQueue: ownerQueue)
+        }
+        do { return try SpecialScheduleStore(root: root, ownerQueue: ownerQueue) }
+        catch StoreError.invalidState {
+            guard try recoverReadableSchedules(from: root, to: recovered) else { throw StoreError.invalidState }
+            return try SpecialScheduleStore(root: recovered, ownerQueue: ownerQueue)
+        }
+    }
+
+    private static func recoverReadableSchedules(from root: URL, to recovered: URL) throws -> Bool {
+        let manager = FileManager.default
+        var config = Configuration()
+        config.readonly = true
+        config.publicStatementArguments = false
+        let original = try DatabaseQueue(path: root.appendingPathComponent("specials.sqlite").path, configuration: config)
+        defer { try? original.close() }
+        let files = root.appendingPathComponent("files", isDirectory: true)
+        let (usable, unreadable, names) = try original.read { db in
+            guard try String.fetchOne(db, sql: "PRAGMA quick_check") == "ok",
+                  try db.tableExists("specialSchedule") else {
+                throw StoreError.invalidState
+            }
+            let hasSources = try db.tableExists("specialSource")
+            var usable = Set<SpecialScheduleKind>(), unreadable = Set<SpecialScheduleKind>(), names = Set<String>()
+            for kind in SpecialScheduleKind.allCases {
+                do {
+                    let record = try readRecords(db, files: files, kind: kind)[kind]
+                    let source = hasSources ? try readSources(db, files: files, kind: kind)[kind] : nil
+                    var originals: [(String, Int, String)] = []
+                    if let record {
+                        if record.analysis.recovery != nil,
+                           try RecoveryConversion.recertifiedSpecial(record.analysis, hash: record.digest) == nil {
+                            throw StoreError.invalidState
+                        }
+                        originals.append((record.storedName, record.byteCount, record.digest))
+                    }
+                    if let source { originals.append((source.storedName, source.byteCount, source.digest)) }
+                    for (name, count, digest) in originals {
+                        guard try MaterialFileReader.matchesStoredCopy(files.appendingPathComponent(name),
+                            byteCount: count, digest: digest, isWorkbook: false) else { throw StoreError.invalidState }
+                    }
+                    if !originals.isEmpty {
+                        usable.insert(kind)
+                        names.formUnion(originals.map { $0.0 })
+                    }
+                } catch StoreError.invalidState {
+                    unreadable.insert(kind)
+                }
+            }
+            return (usable, unreadable, names)
+        }
+        guard !usable.isEmpty, !unreadable.isEmpty else { return false }
+        let pending = root.appendingPathComponent("recovery-staging", isDirectory: true)
+        if manager.fileExists(atPath: pending.path) { try manager.removeItem(at: pending) }
+        try manager.createDirectory(at: pending, withIntermediateDirectories: false)
+        defer { try? manager.removeItem(at: pending) }
+        try LocalMaterialDatabase.protect(pending)
+        let copyURL = pending.appendingPathComponent("specials.sqlite")
+        do {
+            let copy = try DatabaseQueue(path: copyURL.path)
+            defer { try? copy.close() }
+            try original.backup(to: copy)
+            try copy.write { db in
+                for kind in unreadable {
+                    for table in ["specialSource", "specialSchedule", "specialAcquisitionAttempt"] where try db.tableExists(table) {
+                        try db.execute(sql: "DELETE FROM \(table) WHERE kind = ?", arguments: [kind.rawValue])
+                    }
+                }
+            }
+        }
+        try LocalMaterialDatabase.protect(copyURL)
+        let destination = pending.appendingPathComponent("files", isDirectory: true)
+        try manager.createDirectory(at: destination, withIntermediateDirectories: false)
+        try LocalMaterialDatabase.protect(destination)
+        for name in names {
+            let target = destination.appendingPathComponent(name)
+            try manager.copyItem(at: files.appendingPathComponent(name), to: target)
+            try LocalMaterialDatabase.protect(target)
+        }
+        let checked = try SpecialScheduleStore(root: pending)
+        guard Set(checked.sources.keys) == usable else { return false }
+        try checked.queue.close()
+        try manager.moveItem(at: pending, to: recovered)
+        return true
+    }
 
     init(root: URL, ownerQueue: DispatchQueue = DispatchQueue(label: "io.github.n624dev.takupoke.special-owner", qos: .userInitiated)) throws {
         self.ownerQueue = ownerQueue
@@ -66,29 +157,10 @@ final class SpecialScheduleStore {
                         payload BLOB NOT NULL
                     )
                     """)
-                return true
             }
             return try db.tableExists("specialSource")
         }
-        records = try queue.read { db in
-            var result: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
-            for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialSchedule") {
-                let key: String = row["kind"]
-                let data: Data = row["payload"]
-                guard let kind = SpecialScheduleKind(rawValue: key),
-                      let record = try? JSONDecoder().decode(SpecialScheduleRecord.self, from: data),
-                      record.kind == kind, record.analysis.kind == kind,
-                      record.digest == record.analysis.sourceDigest,
-                      Self.valid(record.analysis),
-                      record.storedName.hasSuffix(".pdf"),
-                      UUID(uuidString: String(record.storedName.dropLast(4))) != nil,
-                      manager.fileExists(atPath: files.appendingPathComponent(record.storedName).path) else {
-                    throw StoreError.invalidState
-                }
-                result[kind] = record
-            }
-            return result
-        }
+        records = try queue.read { try Self.readRecords($0, files: files) }
         // The legacy schema had only accepted analyses. Upgrade it only when
         // those validated records account for every retained PDF copy.
         if !hasSources {
@@ -103,32 +175,77 @@ final class SpecialScheduleStore {
                     """)
             }
         }
-        sources = try queue.read { db in
-            var result: [SpecialScheduleKind: SpecialScheduleSource] = [:]
-            for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialSource") {
-                let key: String = row["kind"]
-                let data: Data = row["payload"]
-                guard let kind = SpecialScheduleKind(rawValue: key),
-                      let source = try? JSONDecoder().decode(SpecialScheduleSource.self, from: data),
-                      source.kind == kind, source.byteCount > 0,
-                      source.byteCount <= MaterialLibrary.maximumBytes,
-                      source.storedName.hasSuffix(".pdf"),
-                      UUID(uuidString: String(source.storedName.dropLast(4))) != nil,
-                      manager.fileExists(atPath: files.appendingPathComponent(source.storedName).path) else {
-                    throw StoreError.invalidState
-                }
-                result[kind] = source
-            }
-            return result
-        }
+        sources = try queue.read { try Self.readSources($0, files: files) }
         // Older installs stored the selected source together with its analysis.
         for (kind, record) in records where sources[kind] == nil {
             sources[kind] = SpecialScheduleSource(kind: kind, originalName: record.originalName,
                 storedName: record.storedName, byteCount: record.byteCount, digest: record.digest,
                 acquiredAt: record.acquiredAt, failure: nil, grant: nil)
         }
+        try queue.write { db in
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS specialAcquisitionAttempt (
+                    kind TEXT PRIMARY KEY NOT NULL CHECK (kind IN ('exam', 'examReturn')),
+                    payload BLOB NOT NULL
+                )
+                """)
+        }
+        acquisitionAttempts = (try? queue.read { db in
+            var attempts: [SpecialScheduleKind: AcquisitionAttempt] = [:]
+            for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialAcquisitionAttempt WHERE length(payload) <= 4096") {
+                let key: String = row["kind"]
+                let bytes: Data = row["payload"]
+                guard bytes.count <= 4096, let kind = SpecialScheduleKind(rawValue: key),
+                      let attempt = try? JSONDecoder().decode(AcquisitionAttempt.self, from: bytes) else { continue }
+                attempts[kind] = attempt
+            }
+            return attempts
+        }) ?? [:]
         try removeUnreferencedFiles()
         for kind in Array(records.keys) { try recertifyAccepted(kind:kind) }
+    }
+
+    private static func readRecords(_ db: Database, files: URL, kind: SpecialScheduleKind? = nil) throws -> [SpecialScheduleKind: SpecialScheduleRecord] {
+        let manager = FileManager.default
+        let verifyPresence = kind == nil
+        var result: [SpecialScheduleKind: SpecialScheduleRecord] = [:]
+        for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialSchedule WHERE ? IS NULL OR kind = ?", arguments: [kind?.rawValue, kind?.rawValue]) {
+            let key: String = row["kind"]
+            let data: Data = row["payload"]
+            guard let kind = SpecialScheduleKind(rawValue: key),
+                  let record = try? JSONDecoder().decode(SpecialScheduleRecord.self, from: data),
+                  record.kind == kind, record.analysis.kind == kind,
+                  record.digest == record.analysis.sourceDigest,
+                  Self.valid(record.analysis),
+                  record.storedName.hasSuffix(".pdf"),
+                  UUID(uuidString: String(record.storedName.dropLast(4))) != nil,
+                  !verifyPresence || manager.fileExists(atPath: files.appendingPathComponent(record.storedName).path) else {
+                throw StoreError.invalidState
+            }
+            result[kind] = record
+        }
+        return result
+    }
+
+    private static func readSources(_ db: Database, files: URL, kind: SpecialScheduleKind? = nil) throws -> [SpecialScheduleKind: SpecialScheduleSource] {
+        let manager = FileManager.default
+        let verifyPresence = kind == nil
+        var result: [SpecialScheduleKind: SpecialScheduleSource] = [:]
+        for row in try Row.fetchAll(db, sql: "SELECT kind, payload FROM specialSource WHERE ? IS NULL OR kind = ?", arguments: [kind?.rawValue, kind?.rawValue]) {
+            let key: String = row["kind"]
+            let data: Data = row["payload"]
+            guard let kind = SpecialScheduleKind(rawValue: key),
+                  let source = try? JSONDecoder().decode(SpecialScheduleSource.self, from: data),
+                  source.kind == kind, source.byteCount > 0,
+                  source.byteCount <= MaterialLibrary.maximumBytes,
+                  source.storedName.hasSuffix(".pdf"),
+                  UUID(uuidString: String(source.storedName.dropLast(4))) != nil,
+                  !verifyPresence || manager.fileExists(atPath: files.appendingPathComponent(source.storedName).path) else {
+                throw StoreError.invalidState
+            }
+            result[kind] = source
+        }
+        return result
     }
 
     func displayableRecords() -> (records: [SpecialScheduleKind: SpecialScheduleRecord], rejected: Set<SpecialScheduleKind>) {
@@ -185,6 +302,23 @@ final class SpecialScheduleStore {
         selectedURL(for: kind).map { FileManager.default.fileExists(atPath: $0.path) } == true
     }
 
+    func removeSelection(_ kind: SpecialScheduleKind) throws {
+        let names = Set([sources[kind]?.storedName, records[kind]?.storedName].compactMap { $0 })
+        try queue.write { db in
+            try db.execute(sql: "DELETE FROM specialSource WHERE kind = ?", arguments: [kind.rawValue])
+            try db.execute(sql: "DELETE FROM specialSchedule WHERE kind = ?", arguments: [kind.rawValue])
+            try Self.writeAcquisitionAttempt(nil, kind: kind, db: db)
+        }
+        sources.removeValue(forKey: kind)
+        records.removeValue(forKey: kind)
+        acquisitionAttempts.removeValue(forKey: kind)
+        pipelineEvidence.removeValue(forKey: kind)
+        let retained = Set(sources.values.map(\.storedName) + records.values.map(\.storedName))
+        for name in names.subtracting(retained) {
+            try? SavedPDFLease.retire(files.appendingPathComponent(name))
+        }
+    }
+
     func saveSelection(staged: URL, kind: SpecialScheduleKind, originalName: String,
                        byteCount: Int, digest: String, grant: SourceGrant? = nil) throws {
         guard staged.deletingLastPathComponent().standardizedFileURL == staging.standardizedFileURL,
@@ -202,21 +336,25 @@ final class SpecialScheduleStore {
             try queue.write { db in
                 try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
                                arguments: [kind.rawValue, payload])
+                try Self.writeAcquisitionAttempt(nil, kind: kind, db: db)
             }
         } catch {
             try? FileManager.default.removeItem(at: destination)
             throw error
         }
         sources[kind] = source
+        acquisitionAttempts[kind] = nil
         try? removeUnreferencedFiles()
     }
 
-    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String? = nil, checkedAt: Date = Date()) throws {
+    func recordSuccessfulCheck(_ kind: SpecialScheduleKind, digest: String, originalName: String? = nil,
+                               checkedAt: Date = Date(), renewedGrant: SourceGrant? = nil) throws {
         guard var source = sources[kind], source.digest == digest else { throw StoreError.invalidState }
         if let originalName {
             guard !originalName.isEmpty else { throw StoreError.invalidState }
             source.originalName = originalName
         }
+        if let renewedGrant { source.grant = renewedGrant }
         source.lastCheckedAt = checkedAt
         source.lastAcquiredAt = checkedAt
         source.acquisitionFailure = nil
@@ -224,13 +362,29 @@ final class SpecialScheduleStore {
         try queue.write { db in
             try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
                            arguments: [kind.rawValue, payload])
+            try Self.writeAcquisitionAttempt(nil, kind: kind, db: db)
         }
         sources[kind] = source
+        acquisitionAttempts[kind] = nil
     }
 
-    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {
+    func acceptParsedAnalysis(_ parsed: SpecialScheduleAnalysis, selectedURL: URL, check: () throws -> Void) throws {
+        guard parsed.kind == .exam, let prior = records[.exam], prior.digest == parsed.sourceDigest,
+              RecoveryValidator.previouslyAccepted(prior.analysis.recovery, hash: prior.digest) else {
+            try saveAnalysis(parsed)
+            return
+        }
+        guard let updated = try RecoveryConversion.updatingExamClocks(in: prior.analysis, from: parsed),
+              try MaterialFileReader.copy(selectedURL, to: nil, isWorkbook: false, check: check).digest == prior.digest else {
+            throw PDFParseError(code: .ambiguous)
+        }
+        try check()
+        try saveAnalysis(updated, replacing: prior)
+    }
+
+    private func saveAnalysis(_ analysis: SpecialScheduleAnalysis, replacing prior: SpecialScheduleRecord?) throws {
         guard let source = sources[analysis.kind], analysis.sourceDigest == source.digest,
-              analysis.sourceName == source.originalName,
+              analysis.sourceName == source.originalName || analysis.sourceName == prior?.analysis.sourceName,
               analysis.version == SpecialScheduleAnalysis.parserVersion, Self.valid(analysis) else {
             throw StoreError.invalidState
         }
@@ -244,7 +398,11 @@ final class SpecialScheduleStore {
         let recordPayload = try JSONEncoder().encode(record)
         let sourcePayload = try JSONEncoder().encode(cleared)
         try queue.write { db in
-            if analysis.recovery?.previousAcceptance != nil {
+            if let prior {
+                guard let payload = try Data.fetchOne(db, sql: "SELECT payload FROM specialSchedule WHERE kind = ?", arguments: [analysis.kind.rawValue]),
+                      let old = try? JSONDecoder().decode(SpecialScheduleRecord.self, from: payload),
+                      try RecoveryValidator.fingerprint(old) == RecoveryValidator.fingerprint(prior) else { throw StoreError.invalidState }
+            } else if analysis.recovery?.previousAcceptance != nil || analysis.recoveredExamClockEvidence != nil {
                 guard let payload = try Data.fetchOne(db,sql:"SELECT payload FROM specialSchedule WHERE kind = ?",arguments:[analysis.kind.rawValue]),
                       let old = try? JSONDecoder().decode(SpecialScheduleRecord.self,from:payload),
                       let proved = try RecoveryConversion.recertifiedSpecial(old.analysis,hash:source.digest),
@@ -260,13 +418,32 @@ final class SpecialScheduleStore {
         try? removeUnreferencedFiles()
     }
 
-    func recordAcquisitionFailure(kind: SpecialScheduleKind) throws {
-        guard var source = sources[kind] else { throw StoreError.invalidState }
-        source.acquisitionFailure = "更新確認できませんでした。保存済みの資料と解析状態は保持しています。"
-        let payload = try JSONEncoder().encode(source)
-        try queue.write { db in
-            try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload", arguments: [kind.rawValue, payload])
+    func saveAnalysis(_ analysis: SpecialScheduleAnalysis) throws {
+        try saveAnalysis(analysis, replacing: nil)
+    }
+
+    static func writeAcquisitionAttempt(_ attempt: AcquisitionAttempt?, kind: SpecialScheduleKind, db: Database) throws {
+        if let attempt {
+            try db.execute(sql: "INSERT INTO specialAcquisitionAttempt (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload",
+                           arguments: [kind.rawValue, try JSONEncoder().encode(attempt)])
+        } else {
+            try db.execute(sql: "DELETE FROM specialAcquisitionAttempt WHERE kind = ?", arguments: [kind.rawValue])
         }
+    }
+
+    func recordAcquisitionFailure(kind: SpecialScheduleKind, error: Error = MaterialError.unavailable) throws {
+        let problem = AcquisitionProblem(error)
+        let attempt = AcquisitionAttempt(date: Date(), failure: problem.message, problem: problem)
+        var source = sources[kind]
+        source?.acquisitionFailure = problem.message
+        try queue.write { db in
+            try Self.writeAcquisitionAttempt(attempt, kind: kind, db: db)
+            if let source {
+                let payload = try JSONEncoder().encode(source)
+                try db.execute(sql: "INSERT INTO specialSource (kind, payload) VALUES (?, ?) ON CONFLICT(kind) DO UPDATE SET payload = excluded.payload", arguments: [kind.rawValue, payload])
+            }
+        }
+        acquisitionAttempts[kind] = attempt
         sources[kind] = source
     }
 
@@ -329,7 +506,8 @@ final class SpecialScheduleStore {
         } else {
             scopeIsValid = analysis.version < 35 && analysis.coveredDates.count == 5 && analysis.coveredClasses.count == 17
         }
-        guard scopeIsValid else { return false }
+        guard scopeIsValid, analysis.hasValidConsecutiveTimes,
+              analysis.strictComparisonCoverage == nil || analysis.validStrictComparisonCoverage else { return false }
         let dates = Set(analysis.coveredDates)
         let classes = Set(analysis.coveredClasses)
         guard dates.count == analysis.coveredDates.count, classes.count == analysis.coveredClasses.count else { return false }
@@ -360,7 +538,7 @@ final class SpecialScheduleStore {
         let manager = FileManager.default
         let keep = Set(records.values.map(\.storedName) + sources.values.map(\.storedName))
         for file in try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil) where !keep.contains(file.lastPathComponent) {
-            try manager.removeItem(at: file)
+            try SavedPDFLease.retire(file)
         }
         for file in try manager.contentsOfDirectory(at: staging, includingPropertiesForKeys: nil) {
             try manager.removeItem(at: file)

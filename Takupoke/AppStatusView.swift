@@ -14,11 +14,11 @@ struct AppStatusEvidence {
     let services: ServiceStatusModel
     let application: ApplicationData
     let year: Int?
+    let selectedClasses: String
 
-    private var onlineEvents: FunctionalStatusSnapshot.EventVersion? {
-        guard let year else { return nil }
+    private func currentEventsVersion(year: Int, at now: Date) -> FunctionalStatusSnapshot.EventVersion? {
         let format = events.saved[year]?.payload.format?.rawValue ?? "v2"
-        return services.onlineEventVersion(year: year, format: format, at: Date())
+        return services.onlineEventVersion(year: year, format: format, at: now)
     }
 
     private var publisherWaiting: Bool {
@@ -39,42 +39,117 @@ struct AppStatusEvidence {
     }
 
     var eventsReview: StatusPresentation {
-        guard let version = onlineEvents, version.reviewState == "reviewed",
-              let date = version.reviewCheckedAt, date <= Date() else { return FunctionalStatusSnapshot.unknown }
+        let now = Date()
+        guard let year, let version = currentEventsVersion(year: year, at: now), version.dataVersion == events.saved[year]?.dataVersion,
+              version.reviewState == "reviewed",
+              let date = version.reviewCheckedAt, date <= now else { return FunctionalStatusSnapshot.unknown }
         return .init(title: "確認済み", tone: .good)
+    }
+
+    var eventsLastReviewedAt: Date? {
+        guard let year, let saved = events.saved[year],
+              let version = services.eventPublisher.observation(year: year, format: saved.payload.format?.rawValue ?? "v2")?.version,
+              version.dataVersion == saved.dataVersion, version.reviewState == "reviewed",
+              let date = version.reviewCheckedAt, date <= Date() else { return nil }
+        return date
     }
 
     var eventsRevision: StatusPresentation {
         guard let year, let saved = events.saved[year] else { return .init(title: "未取得", tone: .neutral) }
-        guard let version = onlineEvents, let savedVersion = saved.dataVersion else { return FunctionalStatusSnapshot.unknown }
+        guard let version = currentEventsVersion(year: year, at: Date()), let savedVersion = saved.dataVersion else { return FunctionalStatusSnapshot.unknown }
         if savedVersion == version.dataVersion { return .init(title: "配信版と一致", tone: .good) }
         if publisherWaiting { return .init(title: "保存済み", tone: .neutral) }
         return .init(title: "更新あり", tone: .attention)
     }
 
     @MainActor var linkStatus: StatusPresentation {
-        .downloaded(acquired: links.saved != nil, updateAvailable: links.updateAvailable, failed: links.failed, busy: links.busy)
+        links.acquisitionStatus
     }
     @MainActor var mappingStatus: StatusPresentation {
-        .downloaded(acquired: mappings.current != nil, updateAvailable: mappings.updateAvailable, failed: mappings.failed, busy: mappings.busy)
+        mappings.acquisitionStatus
     }
     @MainActor var timesStatus: StatusPresentation {
-        .downloaded(acquired: times.current != nil, updateAvailable: times.updateAvailable, failed: times.failed, busy: times.busy)
+        times.acquisitionStatus
     }
     @MainActor var summary: StatusPresentation {
-        var values = [eventsStatus, eventsReview, eventsRevision, linkStatus, mappingStatus, timesStatus]
-        values += [MaterialKind.timetable, .changes].map { materials.fileStatus($0) }
-        values += SpecialScheduleKind.allCases.map { specials.fileStatus($0) }
-        values += MonitoredService.allCases.map { services.cache.presentation(for: $0, at: Date()) }
-        for service in MonitoredService.allCases {
-            values += service.featureIDs.map { services.featureStatus($0, for: service, at: Date()) }
+        let missing = missingRequiredDocuments
+        return .dataSummary([
+            ("学校行事", eventsUpdateState),
+            ("リンク一覧", .distributed(acquired: links.saved != nil, updateAvailable: links.updateAvailable,
+                                  failed: links.failed, busy: links.busy || !links.ready && !links.failed,
+                                  confirmation: links.revisionConfirmation)),
+            ("名称データ", .distributed(acquired: mappings.current != nil, updateAvailable: mappings.updateAvailable,
+                                  failed: mappings.failed, busy: mappings.busy || !mappings.ready && !mappings.failed,
+                                  confirmation: mappings.revisionConfirmation)),
+            ("授業時刻", .distributed(acquired: times.current != nil, updateAvailable: times.updateAvailable,
+                                  failed: times.failed, busy: times.busy || !times.ready && !times.failed,
+                                  confirmation: times.revisionConfirmation)),
+        ] + materialUpdates(missing: missing) + specialUpdates(missing: missing))
+    }
+
+    private var eventsUpdateState: DataUpdateState {
+        guard events.ready else { return events.failed ? .unavailable : .checking }
+        let year = application.loadedPeriod?.schoolYear ?? SchoolDate.today().schoolYear
+        if events.failedCacheYears.contains(year) { return .unavailable }
+        let checkFailed = events.didFailBodyCheck(year: year) || events.sourceErrors[year] != nil
+        guard let saved = events.saved[year] else {
+            return .withoutLocalData(checking: events.isChecking(year: year), failed: checkFailed)
         }
-        values += [networkStatus, storageStatus]
-        if materials.lastOperationWasCancelled || specials.lastOperationWasCancelled {
-            values.append(.init(title: "前回の処理を中止しました", tone: .neutral))
+        let source = services.eventsPresentation(events, year: year)
+        if source?.updateWaiting == true || source?.evidence == .differs { return .updateWaiting }
+        if events.isChecking(year: year) || source?.evidence == .checking { return .checking }
+        if checkFailed { return .failed }
+        let now = Date()
+        guard let version = currentEventsVersion(year: year, at: now),
+              let savedVersion = saved.dataVersion else { return .unconfirmed }
+        guard version.dataVersion == savedVersion else { return .updateAvailable }
+        let storedSource = events.sourcePresentation(year: year)
+        guard storedSource?.evidence == .matched, storedSource?.warningMessage == nil, version.reviewState == "reviewed",
+              let reviewed = version.reviewCheckedAt, reviewed <= now else { return .unconfirmed }
+        return .confirmed
+    }
+
+    private var missingRequiredDocuments: Set<TimetableDaySchedule.RequiredDocument> {
+        let classes = TimetableView.decode(selectedClasses)
+        guard application.readyForCurrentPeriod, materials.ready, specials.ready, !classes.isEmpty else { return [] }
+        let timetable = materials.state.pdfAnalyses?[MaterialKind.timetable.rawValue]
+        let schedule = TimetableDaySchedule(timetable: timetable, changes: materials.state.changeAnalysis,
+            events: events.analysis, specials: specials.scheduleAnalyses, includesChanges: true,
+            sourceIndex: application.scheduleSourceIndex(materials: materials, specials: specials, events: events))
+        let today = SchoolDate.today()
+        return Set(classes.flatMap { schedule.missingDocuments(on: today, className: $0).map(\.document) })
+    }
+
+    private func materialUpdates(missing: Set<TimetableDaySchedule.RequiredDocument>) -> [(title: String, state: DataUpdateState)] {
+        guard materials.ready else {
+            return [("通常時間割・時間割変更", materials.failed ? .unavailable : .checking)]
         }
-        return .summary(values, checking: services.checking || materials.busy || specials.busy,
-                        paused: materials.fileRefreshQueue.suspended || specials.fileRefreshQueue.suspended)
+        return [MaterialKind.timetable, .changes].map { kind in
+            if kind == .timetable && missing.contains(.timetable) { return (kind.title, .unavailable) }
+            let state = FileStatusPresentation.material(materials.state, kind: kind, year: materials.automaticChangeSchoolYear,
+                                                        recoveryRejected: materials.rejectedRecoveryKinds.contains(kind.rawValue))
+            return (kind.title, state.applyingPipeline(FileRefreshDiagnostics.Source(rawValue: kind.rawValue)))
+        }
+    }
+
+    private func specialUpdates(missing: Set<TimetableDaySchedule.RequiredDocument>) -> [(title: String, state: DataUpdateState)] {
+        guard specials.ready else { return [("試験・返却時間割", specials.failed ? .unavailable : .checking)] }
+        return SpecialScheduleKind.allCases.map { kind in
+            if missing.contains(.special(kind)) { return (kind.title, .unavailable) }
+            let state = FileStatusPresentation.special(specials.availability, kind: kind,
+                                                       recoveryRejected: specials.rejectedRecoveryKinds.contains(kind))
+            return (kind.title, state.applyingPipeline(FileRefreshDiagnostics.Source(rawValue: kind.rawValue)))
+        }
+    }
+
+    var serviceWarnings: [MonitoredService] {
+        let now = Date()
+        return MonitoredService.allCases.filter { service in
+            let monitor = services.cache.presentation(for: service, at: now)
+            return monitor.needsAttention || service.featureIDs.contains {
+                services.featureStatus($0, for: service, at: now).needsAttention
+            }
+        }
     }
 
     var networkStatus: StatusPresentation {
@@ -102,6 +177,21 @@ struct AppStatusEvidence {
     }
 }
 
+@MainActor
+private extension FileStatusPresentation {
+    func applyingPipeline(_ source: FileRefreshDiagnostics.Source?) -> DataUpdateState {
+        guard let source, let operation = FilePipeline.shared.snapshot[source] else { return updateState }
+        switch operation.stage {
+        case .queued, .access, .acquiring, .checkingDigest, .parsing, .validating, .saving:
+            return .checking
+        case .failed, .timedOut, .recovering:
+            return hasSavedAnalysis ? .failed : .unavailable
+        case .succeeded, .unchanged, .cancelled:
+            return updateState
+        }
+    }
+}
+
 struct AppStatusSummaryRow: View {
     @ObservedObject var materials: MaterialsModel
     @ObservedObject var specialSchedules: SpecialSchedulesModel
@@ -112,14 +202,18 @@ struct AppStatusSummaryRow: View {
     @ObservedObject private var services = ApplicationData.shared.serviceStatus
     @ObservedObject private var application = ApplicationData.shared
     @AppStorage("eventsSelectedSchoolYear") private var yearValue = ""
+    @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
 
     var body: some View {
-        let value = AppStatusEvidence(materials: materials, specials: specialSchedules, events: schoolEvents,
+        let evidence = AppStatusEvidence(materials: materials, specials: specialSchedules, events: schoolEvents,
             mappings: mappings, links: links, times: times, services: services, application: application,
-            year: AppStatusEvidence.selectedYear(yearValue, today: SchoolDate.today())).summary
+            year: AppStatusEvidence.selectedYear(yearValue, today: SchoolDate.today()), selectedClasses: selectedClasses)
         VStack(alignment: .leading, spacing: 4) {
-            StatusLabel(value: value)
-            Text("データ・ファイル・サービスの状況").font(.caption).foregroundStyle(.secondary)
+            StatusLabel(value: evidence.summary)
+            Text("利用中のデータ").font(.caption).foregroundStyle(.secondary)
+            ForEach(evidence.serviceWarnings) { service in
+                Text("\(service.title)の稼働状況を確認してください。").font(.caption).foregroundStyle(.secondary)
+            }
         }
         .accessibilityElement(children: .combine)
     }
@@ -137,6 +231,7 @@ struct AppStatusView: View {
     @ObservedObject private var services = ApplicationData.shared.serviceStatus
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("eventsSelectedSchoolYear") private var yearValue = ""
+    @AppStorage("timetableSelectedClasses") private var selectedClasses = ""
     @State private var visible = false
     @State private var owner = UUID()
     @State private var copiedDiagnostic = false
@@ -144,7 +239,7 @@ struct AppStatusView: View {
     private var evidence: AppStatusEvidence {
         .init(materials: materials, specials: specialSchedules, events: schoolEvents, mappings: mappings,
               links: links, times: times, services: services, application: application,
-              year: AppStatusEvidence.selectedYear(yearValue, today: SchoolDate.today()))
+              year: AppStatusEvidence.selectedYear(yearValue, today: SchoolDate.today()), selectedClasses: selectedClasses)
     }
 
     private var canRefreshDistributedData: Bool {
@@ -154,7 +249,8 @@ struct AppStatusView: View {
     var body: some View {
         List {
             Section {
-                StatusRow(title: "現在の状態", status: evidence.summary)
+                StatusRow(title: "利用中のデータの確認状況", status: evidence.summary)
+                    .accessibilityIdentifier("status-data-summary")
                 if let checked = services.cache.checkedAt {
                     LabeledContent("稼働情報の取得・確認") { Text(checked, format: JapaneseDateDisplay.timestamp) }
                         .font(.caption)
@@ -236,7 +332,8 @@ struct AppStatusView: View {
                 StatusRow(title: "授業時刻", status: evidence.timesStatus, date: times.current?.fetchedAt, dateLabel: "最終取得")
             }.accessibilityIdentifier("status-times")
             NavigationLink("学校アカウントで取得・更新") { AccountDataSettingsView() }
-            StatusRow(title: "行事の内容レビュー", status: evidence.eventsReview)
+            StatusRow(title: "行事の内容レビュー", status: evidence.eventsReview,
+                      date: evidence.eventsLastReviewedAt, dateLabel: "最終レビュー")
             StatusRow(title: "端末に保存した行事", status: evidence.eventsRevision)
         } header: { Text("配信データ") } footer: {
             Text("元PDFとの照合、配信元のレビュー、端末保存版の確認結果をそれぞれ表示します。")
@@ -293,10 +390,40 @@ struct AppStatusView: View {
                     title: materials.fileRefreshQueue.suspended || specialSchedules.fileRefreshQueue.suspended ? "一時停止中" : "有効",
                     tone: .neutral))
             }
+            backgroundRefreshStatus
             StatusRow(title: "ローカル保存データ", status: evidence.storageStatus)
             NavigationLink { materialSettings } label: {
                 StatusRow(title: "選択ファイルへのアクセス", status: .init(title: "各ファイルの確認結果を参照", tone: .neutral))
             }
+        }
+    }
+
+    private var backgroundRefreshStatus: some View {
+        let record = BackgroundRefresh.diagnostics()
+        let title: String
+        switch record.reservation {
+        case .scheduled: title = "iPhoneが更新依頼を受付済み"
+        case .unavailable: title = "iPhoneのバックグラウンド更新を利用できません"
+        case .notPermitted, .pendingLimit, .otherFailure: title = "最新の更新依頼は受け付けられませんでした"
+        case nil: title = "更新依頼の記録なし"
+        }
+        return VStack(alignment: .leading, spacing: 5) {
+            Text("アプリを閉じている間の更新").font(.headline)
+            Text(title).font(.subheadline)
+            backgroundRefreshDate("最後に依頼", record.lastAttemptAt)
+            backgroundRefreshDate("最後に受付", record.lastScheduledAt)
+            backgroundRefreshDate("最後に実行", record.lastExecutionAt)
+            Text("実行する時刻はiPhoneが決めます。").foregroundStyle(.secondary)
+        }
+        .font(.caption)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("status-background-refresh")
+    }
+
+    private func backgroundRefreshDate(_ label: String, _ date: Date?) -> some View {
+        LabeledContent(label) {
+            if let date { Text(date, format: JapaneseDateDisplay.timestamp) }
+            else { Text("記録なし") }
         }
     }
 

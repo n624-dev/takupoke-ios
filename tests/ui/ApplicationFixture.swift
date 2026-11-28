@@ -86,6 +86,9 @@ final class FixtureNetwork: URLProtocol {
             let installed = request.value(forHTTPHeaderField: "If-None-Match")
             let changed = ProcessInfo.processInfo.arguments.contains("--updated-revisions")
             let status = installed != nil && !changed ? 304 : 200
+            if ProcessInfo.processInfo.arguments.contains("--only-distributed-data") {
+                print("TAKUPOKE_STATUS_FIXTURE revision=\(url.path) response=\(status)")
+            }
             let etag = status == 304 ? installed! : "\"" + String(repeating: "Z", count: 43) + "\""
             let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
                                            headerFields: ["ETag": etag, "Cache-Control": "no-store"])!
@@ -384,7 +387,7 @@ struct SimulatorApplication: App {
                 }
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
-            BackgroundRefresh.schedule()
+            await BackgroundRefresh.schedule()
             await ApplicationData.shared.refreshInBackground()
         }
     }
@@ -400,38 +403,43 @@ struct SimulatorApplication: App {
             if ProcessInfo.processInfo.arguments.contains("--countdown-storage-corrupt") {
                 try Data("{".utf8).write(to:countdown,options:.atomic)
             }
-            if ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
-                let fixture = base.appendingPathComponent("SchoolEventsAPI")
-                if FileManager.default.fileExists(atPath: fixture.path) { try FileManager.default.removeItem(at: fixture) }
-            }
             if let domain = Bundle.main.bundleIdentifier { defaults.removePersistentDomain(forName: domain) }
+        }
+        let clearedEvents = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: ProcessInfo.processInfo.arguments)
+        if ProcessInfo.processInfo.arguments.contains("--only-distributed-data") {
+            FixtureCITrace.mark(clearedEvents ? "status-fixture-prior-cache-cleared" : "status-fixture-no-prior-cache")
         }
         defaults.set(!ProcessInfo.processInfo.arguments.contains("--setup"), forKey: "setupPresented")
         if ProcessInfo.processInfo.arguments.contains("--empty-fixture") { return }
         if !FileManager.default.fileExists(atPath: base.appendingPathComponent("fixture-seeded").path) || ProcessInfo.processInfo.arguments.contains("--reset-fixture") {
             try SchoolDataRetention(root: base).replace(with: period)
-            defaults.set("3_IT", forKey: "timetableSelectedClasses")
+            let onlyDistributedData = ProcessInfo.processInfo.arguments.contains("--only-distributed-data")
+            if !onlyDistributedData { defaults.set("3_IT", forKey: "timetableSelectedClasses") }
             let library = try LocalMaterialDatabase.openLibrary(root: base.appendingPathComponent("SchoolMaterialsSQLite"))
             let staged = library.newStagingURL()
             let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0,y: 0,width: 200,height: 200))
             let raw = renderer.pdfData { context in context.beginPage(); ("架空の資料" as NSString).draw(at: CGPoint(x: 20,y: 20), withAttributes: nil) }
-            try raw.write(to: staged)
             let digest = SHA256.hash(data: raw).map { String(format: "%02x", $0) }.joined()
-            try library.commit(staged: staged, kind: .timetable, source: .init(grant: nil, childName: nil),
-                               originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            if !onlyDistributedData {
+                try raw.write(to: staged)
+                try library.commit(staged: staged, kind: .timetable, source: .init(grant: nil, childName: nil),
+                                   originalName: "fictional.pdf", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            }
             let analysis = PDFAnalysis(kind: .timetable, sourceDigest: digest, sourceName: "fictional.pdf", parsedAt: Date(),
                 schoolYear: period.schoolYear, term: period.half == 1 ? "前期" : "後期",
                 lessons: (1...5).flatMap { weekday in (1...8).map { number in
                     PDFLesson(className: "3_IT", weekday: weekday, period: number,
                         names: .init(subject: "架空科目\(number <= 2 ? "A" : "B")", teacher: "架空教員A", room: "架空教室A"), sourceText: "", page: 1)
                 } }, events: [], notices: [])
-            try library.savePDFAnalysis(analysis)
+            if !onlyDistributedData { try library.savePDFAnalysis(analysis) }
             let monday = day.displayWeekStart
             let changeDay = monday.addingDays(3)!
             let changeStaged = library.newStagingURL()
-            try raw.write(to: changeStaged)
-            try library.commit(staged: changeStaged, kind: .changes, source: .init(grant: nil, childName: nil),
-                originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            if !onlyDistributedData {
+                try raw.write(to: changeStaged)
+                try library.commit(staged: changeStaged, kind: .changes, source: .init(grant: nil, childName: nil),
+                    originalName: "fictional.xlsx", byteCount: raw.count, digest: digest, modifiedAt: nil)
+            }
             let change = ScheduleChange(change_date: changeDay.iso8601, class_name: "3_IT", period: "4,5",
                 before_subject: "", after_subject: "架空変更A", teacher: "架空教員B", room: "架空教室B", note: "補講", raw_text: "", canonical_text: "")
             var changeRecords = [change,
@@ -448,13 +456,13 @@ struct SimulatorApplication: App {
                     before_subject: "架空休講A", after_subject: "", teacher: "架空教員D", room: "架空教室D",
                     note: "休講", raw_text: "", canonical_text: ""))
             }
-            if !ProcessInfo.processInfo.arguments.contains("--normal-only") {
+            if !onlyDistributedData && !ProcessInfo.processInfo.arguments.contains("--normal-only") {
                 try library.saveChangeAnalysis(.init(sourceDigest: digest, sourceName: "fictional.xlsx", defaultYear: period.schoolYear,
                     parsedAt: Date(), records: changeRecords))
             }
             let specialStore = try SpecialScheduleStore(root: base.appendingPathComponent("SpecialSchedulesSQLite"))
             for (kind, offset, subject) in [(SpecialScheduleKind.exam, 1, "架空試験A"), (.examReturn, 2, "架空返却A")] {
-                if ProcessInfo.processInfo.arguments.contains("--normal-only") { continue }
+                if onlyDistributedData || ProcessInfo.processInfo.arguments.contains("--normal-only") { continue }
                 let date = monday.addingDays(offset)!.iso8601
                 let staged = specialStore.newStagingURL()
                 try raw.write(to: staged)
@@ -499,7 +507,7 @@ struct SimulatorApplication: App {
             }
             let events = SchoolEventsPayload(version: "v1", schoolYear: period.schoolYear, sourcePdfSha256: digest,
                 sourcePdfETag: "\"fictional\"", events: eventRows)
-            if !ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
+            if !onlyDistributedData && !ProcessInfo.processInfo.arguments.contains("--countdown-calendar") {
                 try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI")).save(events)
             }
 
@@ -706,7 +714,15 @@ enum SimulatorRetentionFixture {
             try manager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Data("fictional retained bytes".utf8).write(to: url)
         }
+        let staleProof = base.appendingPathComponent("school-data-period-proof.json")
+        if manager.fileExists(atPath: staleProof.path) { try manager.removeItem(at: staleProof) }
         try Data("{fictional invalid period marker".utf8).write(to: base.appendingPathComponent("school-data-period.json"))
+    }
+    private static var archivedPrivateFile: URL? {
+        let root = base.appendingPathComponent("SchoolDataUnverifiedPeriod", isDirectory: true)
+        return (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil))?.first {
+            (try? Data(contentsOf: $0.appendingPathComponent("NameMappings/fixture-retention-old"))) == Data("fictional retained bytes".utf8)
+        }?.appendingPathComponent("NameMappings/fixture-retention-old")
     }
     static var proof: String {
         let manager = FileManager.default
@@ -715,12 +731,13 @@ enum SimulatorRetentionFixture {
         let prefs = UserDefaults.standard.string(forKey: "timetableSelectedClasses") == "3_IT"
         let publicOK = (try? Data(contentsOf: base.appendingPathComponent("SchoolEventsAPI/fixture-retention-public"))) == Data("fictional retained bytes".utf8)
         let originalOK = (try? Data(contentsOf: base.appendingPathComponent("fixture-retention-original"))) == Data("fictional retained bytes".utf8)
-        return "marker=\(current ? 1 : 0);old=\(old ? 1 : 0);prefs=\(prefs ? 1 : 0);public=\(publicOK ? 1 : 0);original=\(originalOK ? 1 : 0)"
+        return "marker=\(current ? 1 : 0);old=\(old ? 1 : 0);prefs=\(prefs ? 1 : 0);public=\(publicOK ? 1 : 0);original=\(originalOK ? 1 : 0);archive=\(archivedPrivateFile == nil ? 0 : 1)"
     }
     static var fingerprints: String {
         ["school-data-period.json", "NameMappings/fixture-retention-old",
          "SchoolEventsAPI/fixture-retention-public", "fixture-retention-original"].map { path in
-            guard let bytes=try? Data(contentsOf:base.appendingPathComponent(path)) else { return "missing" }
+            let file = path == "NameMappings/fixture-retention-old" ? archivedPrivateFile ?? base.appendingPathComponent(path) : base.appendingPathComponent(path)
+            guard let bytes = try? Data(contentsOf: file) else { return "missing" }
             return SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined()
         }.joined(separator:";")
     }
@@ -741,25 +758,12 @@ final class SimulatorRetentionObservation:ObservableObject {
 
 struct SimulatorRetentionProofView:View {
     @ObservedObject private var observation=SimulatorRetentionObservation.shared
-    @State private var notificationServiceReady = false
     var body:some View {
         VStack {
             Text(observation.sample.proof).accessibilityIdentifier("fixture-retention-proof")
             Text(observation.sample.fingerprints).accessibilityIdentifier("fixture-retention-bytes")
             Text(String(observation.sample.closes)).accessibilityIdentifier("fixture-retention-closes")
-            Text(notificationServiceReady ? "通知サービス応答確認済み" : "通知サービス応答待ち")
-                .accessibilityIdentifier("fixture-retention-notice-service")
         }.font(.system(size:1)).allowsHitTesting(false)
-        .task {
-            let center = UNUserNotificationCenter.current()
-            FixtureCITrace.mark("retention-readiness-start")
-            async let pending = center.pendingNotificationRequests()
-            async let delivered = center.deliveredNotifications()
-            _ = await (pending,delivered)
-            guard !Task.isCancelled else { return }
-            notificationServiceReady = true
-            FixtureCITrace.mark("retention-readiness-complete")
-        }
     }
 }
 

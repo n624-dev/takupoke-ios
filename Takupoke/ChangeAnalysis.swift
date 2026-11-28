@@ -70,18 +70,15 @@ struct ScheduleChange: Codable, Equatable {
         return value.range(of: "^[0-9]+$", options: .regularExpression) == nil ? period : "\(value)限"
     }
 
-    /// A change remains one saved row even when it covers consecutive periods.
-    /// Unsupported or nonconsecutive notation stays visible in the change list.
-    var gridPeriods: [Int]? {
-        guard let periods = detailPeriods,
-              zip(periods, periods.dropFirst()).allSatisfy({ $0.1 == $0.0 + 1 }) else { return nil }
-        return periods
-    }
+    /// The affected periods of a single saved change. The display groups
+    /// adjacent periods after applying the change to each individual slot.
+    var detailPeriods: [Int]? { Self.periods(in: period) }
 
-    /// Detailed clock ranges may be disjoint; grid merging still requires adjacency.
-    var detailPeriods: [Int]? {
+    static func periods(in period: String) -> [Int]? {
         let value = period.precomposedStringWithCompatibilityMapping
             .replacingOccurrences(of: "〜", with: "~")
+            .replacingOccurrences(of: "・", with: ",")
+            .replacingOccurrences(of: "、", with: ",")
             .filter { !$0.isWhitespace }
         let parts: [String]
         if value.contains(",") {
@@ -94,7 +91,11 @@ struct ScheduleChange: Codable, Equatable {
         } else {
             parts = [value]
         }
-        let periods = parts.compactMap(Int.init)
+        let periods = parts.compactMap { part -> Int? in
+            let number = ChangeNormalizer.replace(part, "(時限|限目|限)$", "")
+            guard ChangeNormalizer.matches(number, "^[0-9]+$") else { return nil }
+            return Int(number)
+        }
         guard periods.count == parts.count, !periods.isEmpty,
               periods.allSatisfy({ (1...8).contains($0) }),
               Set(periods).count == periods.count else { return nil }
@@ -112,7 +113,7 @@ struct ChangeWeekdayConsent: Codable, Equatable {
 }
 
 struct ChangeAnalysis: Codable {
-    static let parserVersion = 14
+    static let parserVersion = 15
     var sourceModifiedAt: Date? = nil
     var personalEdit: Bool? = nil
     var personalSourceIdentity: String? = nil
@@ -124,6 +125,16 @@ struct ChangeAnalysis: Codable {
     var records: [ScheduleChange]
     var weekdayConsent: ChangeWeekdayConsent? = nil
     var rowSkipConsent: ChangeRowSkipConsent? = nil
+    // Only a verified editor save can certify explicitly excluded source rows.
+    var excludedSourceRowCount: Int? = nil
+
+    var hasValidRecordCount: Bool {
+        if !records.isEmpty { return excludedSourceRowCount == nil && records.count <= ChangeNormalizer.maximumRecords }
+        guard let excludedSourceRowCount, (1...ChangeNormalizer.maximumRows).contains(excludedSourceRowCount),
+              let defaultYear, (1900...9998).contains(defaultYear),
+              personalSourceIdentity?.isEmpty == false, weekdayConsent == nil, rowSkipConsent == nil else { return false }
+        return true
+    }
 
     func matches(record: MaterialRecord, defaultYear: Int?) -> Bool {
         guard let defaultYear else { return false }
@@ -263,13 +274,14 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
     enum Code: String, Codable {
         case invalidArchive, limit, invalidXML, missingSheet, unsupported, headers
         case date, defaultYear, year, classes, unknownAll, empty, cancelled, storage, staleConfirmation
-        case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType
+        case formula, formulaCache, weekdayMismatch, weekdayOnly, mergedCells, dateSystem, cellType, conflictingColumns
     }
     var code: Code
     var row: Int? = nil
     var printedWeekday: String? = nil
     var calculatedWeekday: String? = nil
     var column: Int? = nil
+    var competingColumn: Int? = nil
     var canCorrectWeekday: Bool { code == .weekdayMismatch && printedWeekday.map(ChangeNormalizer.knownWeekday) == true && calculatedWeekday != nil }
     var permitsPreview: Bool { code == .formulaCache || code == .weekdayMismatch || code == .weekdayOnly }
     var errorDescription: String? {
@@ -292,7 +304,8 @@ struct ChangeParseError: Error, Codable, LocalizedError, Equatable {
         case .defaultYear: detail = "西暦1900〜9998の学校年度を入力してください。"
         case .year: detail = "学年の指定を読み取れません。"
         case .classes: detail = "クラスの指定を読み取れません。"
-        case .unknownAll: detail = "「全」の対象クラスをファイル内の記載から確定できません。"
+        case .unknownAll: detail = "「全」の対象クラスを確認し、この行に入力してください。"
+        case .conflictingColumns: detail = "同じ項目の列に異なる値があります。元の記載を確認し、使う値を入力してください。"
         case .empty: detail = "時間割変更の行がありません。空の結果では前回の解析結果を置き換えません。"
         case .cancelled: detail = "解析を中止しました。"
         case .staleConfirmation: detail = "資料・補完年度・確認内容が変わりました。現在の資料を解析して、内容を確認し直してください。"

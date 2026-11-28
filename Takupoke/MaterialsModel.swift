@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -13,13 +14,15 @@ final class MaterialsModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var ready = false
     @Published private(set) var message: String?
+    @Published private(set) var wasPartiallyRecovered = false
     @Published private(set) var failed = false
     @Published private(set) var lastOperationUsedPipeline = false
-    private var messageOperationID: UUID?
+    private var pendingPipelineRequest: FilePipeline.Request?
     @Published private(set) var cancellationRequested = false
     @Published private(set) var lastOperationWasCancelled = false
     @Published private(set) var changePreview: ChangePreview?
     @Published private(set) var pdfURLs: [String: URL] = [:]
+    @Published private(set) var analysisPDFURLs: [String: URL] = [:]
     @Published private(set) var timetableReadReport: String?
     @Published private(set) var timetableFailure: PDFParseError?
     private var changeFailureContext: (identity: String, digest: String, year: Int)?
@@ -41,63 +44,84 @@ final class MaterialsModel: ObservableObject {
     private var control: AcquisitionControl?
     private var backgroundRefreshID: UUID?
     var pendingManualRefresh = Set<MaterialKind>()
+    var pendingManualChecks = Set<MaterialKind>()
     private var pendingSelections = PendingFileSelections<MaterialKind, ScopedMaterialSelection>()
     @Published var fileRefreshQueue = FileRefreshQueue()
-    var pipelineTimer: Timer?
+    private var pipelineEvents: AnyCancellable?
+    private var pipelineObservation: FilePipeline.Observation?
+    private static let pipelineSources: Set<FileRefreshDiagnostics.Source> = [.timetable, .changes]
     var pipelineMonitorIDs: [FileRefreshDiagnostics.Source: UUID] = [:]
-    var pipelineActive = Set<FileRefreshDiagnostics.Source>()
-    var pipelineSnapshot: [FileRefreshDiagnostics.Source: FilePipeline.Status] = [:]
     func observePipeline(_ foreground: Bool) {
-        pipelineTimer?.invalidate(); pipelineTimer = nil
-        guard foreground else { return }
-        pipelineTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                let snapshot = FilePipeline.shared.snapshot
-                let active = FilePipeline.shared.activeSources
-                if snapshot != self.pipelineSnapshot || active != self.pipelineActive {
-                    self.pipelineSnapshot = snapshot; self.pipelineActive = active; self.objectWillChange.send()
-                    self.reloadPipelineProjection()
-                    self.runPendingSelection(); self.runPendingFileRefresh()
-                }
+        guard foreground else { pipelineEvents = nil; pipelineObservation = nil; return }
+        if pipelineEvents == nil {
+            pipelineEvents = NotificationCenter.default.publisher(for: .filePipelineChanged).sink { [weak self] change in
+                guard (change.object as? FilePipeline) === FilePipeline.shared else { return }
+                Task { @MainActor [weak self] in self?.applyPipelineObservation() }
             }
         }
+        applyPipelineObservation()
     }
-    lazy var fileMonitor = SelectedFileMonitor { [weak self] id in
+
+    private func applyPipelineObservation() {
+        guard pipelineEvents != nil, !retired else { return }
+        let current = FilePipeline.shared.observation.restricting(to: Self.pipelineSources)
+        let previous = pipelineObservation
+        guard current != previous else { return }
+        pipelineObservation = current
+        objectWillChange.send()
+        if current.completed != previous?.completed { reloadPipelineProjection() }
+        runPendingSelection()
+        runPendingFileRefresh()
+    }
+    lazy var fileMonitor = SelectedFileMonitor(registrationChanged: { [weak self] in
+        guard let self, !self.retired else { return }
+        self.objectWillChange.send()
+        self.runPendingSelection()
+        self.runPendingFileRefresh()
+    }, changed: { [weak self] id in
         guard self?.cancellationRequested == false else { return }
         self?.fileRefreshQueue.request(id)
         self?.runPendingFileRefresh()
+    })
+
+    private func applyPipelineResult(_ observation: FilePipeline.Observation) {
+        guard !busy, let request = pendingPipelineRequest,
+              let result = observation.result(for: request.id, sources: request.sources) else { return }
+        pendingPipelineRequest = nil
+        switch result {
+        case .succeeded: message = request.successMessage
+        case .cancelled:
+            lastOperationWasCancelled = true
+            message = MaterialError.cancelled.localizedDescription
+        case .failed(let explanation):
+            failed = true
+            message = explanation
+        }
     }
 
     func reloadPipelineProjection() {
         guard ready, !retired else { return }
         let capturedGeneration = generation
         queue.async {
-            let outcomes = FilePipeline.shared.snapshot.filter { ["timetable", "changes"].contains($0.key.rawValue) }
+            let outcomes = FilePipeline.shared.observation.restricting(to: [.timetable, .changes]).completed
             guard let library = self.worker.library else { return }
             let display = MaterialLibrary.displayableTimetables(library.state)
             let report = self.worker.timetableReadReport, failure = self.worker.timetableFailure
             let urls = Dictionary(uniqueKeysWithValues: [MaterialKind.timetable, .events].compactMap { kind in
                 library.localURL(for: kind).map { (kind.rawValue, $0) }
             })
+            let analysisURLs = Self.analysisPDFURLs(in: library, visible: display.state)
             DispatchQueue.main.async {
                 guard !self.retired, self.generation == capturedGeneration else { return }
                 self.state = display.state; self.rejectedRecoveryKinds = display.rejected; self.pdfURLs = urls
+                self.analysisPDFURLs = analysisURLs
                 self.timetableReadReport = report; self.timetableFailure = failure
 
-                let acquired = Set<String>(outcomes.compactMap { key, value -> String? in
-                    guard value.acquiredThisAttempt, value.stage == .succeeded || value.stage == .unchanged,
-                          self.pipelineMonitorIDs[key] != value.id else { return nil }
-                    self.pipelineMonitorIDs[key] = value.id
-                    return key.rawValue
-                })
+                let latest = FilePipeline.shared.observation
+                let currentOutcomes = outcomes.filter { latest.completed[$0.key]?.id == $0.value.id }
+                let acquired = FilePipeline.claimMonitorRegistrations(in: currentOutcomes, handled: &self.pipelineMonitorIDs)
                 self.updateFileMonitoring(retryFailedFor: acquired)
-                if !self.busy, let request = self.messageOperationID {
-                    let current = outcomes.values.filter { $0.requestID == request }
-                    if current.contains(where: { $0.attempt > 0 }), current.allSatisfy({ $0.stage == .succeeded || $0.stage == .unchanged }) {
-                        self.failed = false; self.message = nil; self.lastOperationWasCancelled = false; self.messageOperationID = nil
-                    }
-                }
+                self.applyPipelineResult(latest)
             }
         }
     }
@@ -116,7 +140,7 @@ final class MaterialsModel: ObservableObject {
 
     private func runPendingSelection() {
         while !retired, let selected = pendingSelections.take(busy: busy, blocked: { kind in
-            FilePipeline.shared.isRecovering(kind.rawValue)
+            FilePipeline.shared.isRecovering(kind.rawValue) || fileMonitor.isRegistering(kind.rawValue)
         }) {
             let (kind, url) = selected
             guard acceptsChangeYear(kind) else { continue }
@@ -129,14 +153,18 @@ final class MaterialsModel: ObservableObject {
             }
             return
         }
-        if !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) }) {
+        if !busy, let kind = pendingManualRefresh.first(where: { !FilePipeline.shared.isRecovering($0.rawValue) && !fileMonitor.isRegistering($0.rawValue) }) {
             pendingManualRefresh.remove(kind); refresh(kind)
+        } else if !busy, let kind = pendingManualChecks.first(where: { !fileMonitor.isRegistering($0.rawValue) }) {
+            pendingManualChecks.remove(kind); checkForUpdates(kind)
         }
     }
 
     func refresh(_ kind: MaterialKind) {
         guard !retired else { return }
-        if busy || FilePipeline.shared.isRecovering(kind.rawValue) { pendingManualRefresh.insert(kind); return }
+        if busy || FilePipeline.shared.isRecovering(kind.rawValue) || fileMonitor.isRegistering(kind.rawValue) {
+            pendingManualRefresh.insert(kind); return
+        }
         guard acceptsChangeYear(kind) else { return }
         let year = automaticChangeSchoolYear
         perform(success: "\(kind.title)を再取得して解析しました。") { worker, control in
@@ -293,7 +321,8 @@ final class MaterialsModel: ObservableObject {
                 DispatchQueue.main.async { continuation.resume() }
             }
         }
-        state = MaterialLibraryState(); pdfURLs = [:]; changePreview = nil
+        state = MaterialLibraryState(); pdfURLs = [:]; analysisPDFURLs = [:]; changePreview = nil
+        wasPartiallyRecovered = false
         timetableReadReport = nil; timetableFailure = nil
         ready = false; busy = false; cancellationRequested = false; lastOperationWasCancelled = false; control = nil; message = nil; failed = false
         fileMonitor.update([])
@@ -321,6 +350,7 @@ final class MaterialsModel: ObservableObject {
         fileMonitor.discardPendingRefreshes()
         pendingSelections.clear()
         pendingManualRefresh.removeAll()
+        pendingManualChecks.removeAll()
         FilePipeline.shared.cancel([.timetable, .changes])
         control?.cancel()
         if busy {
@@ -329,12 +359,13 @@ final class MaterialsModel: ObservableObject {
             lastOperationWasCancelled = true
             failed = false
             message = MaterialError.cancelled.localizedDescription
-            messageOperationID = nil
+            pendingPipelineRequest = nil
         }
     }
 
     func refreshInBackground() async -> Bool {
         guard !fileRefreshQueue.suspended, !busy, !retired, !Task.isCancelled else { return false }
+        let blocked = fileMonitor.blockedSources
         let id = UUID()
         backgroundRefreshID = id
         let year = automaticChangeSchoolYear
@@ -349,7 +380,7 @@ final class MaterialsModel: ObservableObject {
                     try worker.open()
                     let requested = Set([MaterialKind.timetable, .changes].compactMap { kind in
                         worker.library?.state.record(for: kind)?.source.grant == nil ? nil : kind.rawValue
-                    })
+                    }).subtracting(blocked)
                     try Self.refreshSelectedFiles(worker, requested: requested, year: year, control: control, reason: .background)
                 }
             }
@@ -381,7 +412,7 @@ final class MaterialsModel: ObservableObject {
         let operationGeneration = generation
         let control = AcquisitionControl(intents: FilePipeline.shared.intentSnapshot)
         self.control = control
-        messageOperationID = control.operationID
+        pendingPipelineRequest = nil
         lastOperationUsedPipeline = false
         queue.async {
             let result = Result { try operation(worker, control) }
@@ -389,17 +420,28 @@ final class MaterialsModel: ObservableObject {
             worker.clearPreview()
             let display = worker.library.map { MaterialLibrary.displayableTimetables($0.state) }
             let snapshot = display?.state
+            let wasRecovered = worker.library?.wasPartiallyRecovered == true
             let timetableReport = worker.timetableReadReport
             let timetableFailure = worker.timetableFailure
             var pdfURLs: [String: URL] = [:]
             for kind in [MaterialKind.timetable, .events] { pdfURLs[kind.rawValue] = worker.pdfURL(for: kind) }
+            let analysisURLs = worker.library.flatMap { library in
+                snapshot.map { Self.analysisPDFURLs(in: library, visible: $0) }
+            } ?? [:]
             let usedPipeline = control.usedPipeline
+            let pipelineSources = control.pipelineSources
+            let outcomes = FilePipeline.shared.observation
+            let stillRunning = pipelineSources.contains {
+                outcomes.statuses[$0]?.requestID == control.operationID && outcomes.activeSources.contains($0)
+            }
             DispatchQueue.main.async {
                 guard !self.retired, operationGeneration == self.generation else { completion?(false); return }
                 self.ready = snapshot != nil
+                self.wasPartiallyRecovered = wasRecovered
                 if let snapshot = snapshot { self.state = snapshot }
                 self.rejectedRecoveryKinds = display?.rejected ?? []
                 self.pdfURLs = pdfURLs
+                self.analysisPDFURLs = analysisURLs
                 self.timetableReadReport = timetableReport
                 self.timetableFailure = timetableFailure
                 self.busy = false
@@ -409,9 +451,20 @@ final class MaterialsModel: ObservableObject {
                     self.fileRefreshQueue.discardPending()
                     self.fileMonitor.discardPendingRefreshes()
                 }
+                let cancelled = self.cancellationRequested
                 self.cancellationRequested = false
-                self.updateFileMonitoring(retryFailedFor: control.acquiredProviderSources)
+                let latest = FilePipeline.shared.observation
+                let currentOutcomes = outcomes.restricting(to: pipelineSources).completed
+                    .filter { latest.completed[$0.key]?.id == $0.value.id && $0.value.requestID == control.operationID }
+                let committed = FilePipeline.claimMonitorRegistrations(in: currentOutcomes, handled: &self.pipelineMonitorIDs)
+                let direct = control.acquiredProviderSources.subtracting(pipelineSources.map(\.rawValue))
+                self.updateFileMonitoring(retryFailedFor: committed.union(direct))
                 defer { self.runPendingSelection(); self.runPendingFileRefresh() }
+                if stillRunning, !cancelled, completion == nil {
+                    self.pendingPipelineRequest = .init(id: control.operationID, sources: pipelineSources, successMessage: success)
+                    self.applyPipelineResult(latest)
+                    return
+                }
                 switch result {
                 case .success:
                     self.message = success
@@ -428,6 +481,13 @@ final class MaterialsModel: ObservableObject {
                 if case .success = result { completion?(true) } else { completion?(false) }
             }
         }
+    }
+
+    nonisolated private static func analysisPDFURLs(in library: MaterialLibrary, visible state: MaterialLibraryState) -> [String: URL] {
+        Dictionary(uniqueKeysWithValues: [MaterialKind.timetable, .events].compactMap { kind in
+            guard state.pdfAnalyses?[kind.rawValue] != nil else { return nil }
+            return library.analysisPDFURL(for: kind).map { (kind.rawValue, $0) }
+        })
     }
 }
 

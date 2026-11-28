@@ -9,6 +9,51 @@ import CoreText
 #endif
 
 extension PDFParsingTests {
+    func testStrictReviewRoundTripKeepsOnlyProvenEmptyTimetableSlots() throws {
+        let analysis = try PDFSchoolParser.parse([timetable()], kind: .timetable, digest: "fictional", name: "fictional.pdf")
+        let encoded = try JSONEncoder().encode(analysis)
+        var restored = try JSONDecoder().decode(PDFAnalysis.self, from: encoded)
+        let previous = try XCTUnwrap(restored.strictComparisonSnapshot())
+        XCTAssertEqual(previous.scope.slots.count, 120)
+        XCTAssertTrue(previous.complete)
+        let blank = RecoveryManualComparison.Slot(className: "1_ZZ", day: "1", period: 3)
+        let filled = RecoveryManualComparison.Slot(className: "1_ZZ", day: "1", period: 1)
+        let parallel = RecoveryManualComparison.Slot(className: "2_YY", day: "1", period: 1)
+        XCTAssertEqual(previous.entries[blank], [])
+        let existing = try XCTUnwrap(previous.entries[filled]?.first)
+        XCTAssertEqual(previous.entries[parallel]?.count, 2)
+        var entries = previous.entries
+        entries[blank] = [existing]
+        entries[filled] = []
+        entries[parallel] = Array(try XCTUnwrap(previous.entries[parallel]).prefix(1))
+        let new = RecoveryManualComparison.Snapshot(scope: previous.scope, entries: entries)
+        let changes = RecoveryManualComparison.compare(new, previous: previous)
+        XCTAssertTrue(changes.available)
+        XCTAssertEqual(Set(changes.changes.map(\.slot)), Set([blank, filled, parallel]))
+        XCTAssertEqual(changes.changes.first { $0.slot == blank }?.before, [])
+        XCTAssertEqual(changes.changes.first { $0.slot == filled }?.after, [])
+        XCTAssertThrowsError(try restored.strictComparisonSnapshot { throw CancellationError() })
+
+        restored.strictTimetableSlots?.removeLast()
+        XCTAssertNil(try restored.strictComparisonSnapshot())
+        restored.strictTimetableSlots = nil
+        let old = try XCTUnwrap(restored.strictComparisonSnapshot())
+        XCTAssertNil(old.entries[blank])
+        XCTAssertFalse(RecoveryManualComparison.compare(new, previous: old).available)
+    }
+
+    func testStrictTimetableMayParseWithoutProvingAnUnsampledStripIsEmpty() throws {
+        let complete = try PDFSchoolParser.parse([timetable()], kind: .timetable, digest: "fictional", name: "fictional.pdf")
+        var separated = timetable()
+        // The strip is between the row label and the first period's center.
+        separated.lines.append(v(103, 100, 160))
+        separated.glyphs += text("未", x: 100.4, y: 112, step: 1)
+        let partial = try PDFSchoolParser.parse([separated], kind: .timetable, digest: "fictional", name: "fictional.pdf")
+        XCTAssertNotNil(complete.strictTimetableSlots)
+        XCTAssertEqual(partial.lessons, complete.lessons)
+        XCTAssertNil(partial.strictTimetableSlots)
+    }
+
     func testStrict239RetainsFirstYearMarkerAndOriginalCoordinateContract() throws {
         var page = timetable()
         page.glyphs += text("2040年度",x:500,y:20)

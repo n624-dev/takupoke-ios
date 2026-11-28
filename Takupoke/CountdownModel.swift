@@ -26,6 +26,9 @@ final class CountdownModel: ObservableObject {
     private var legacyProgressTarget: CountdownExamProgressKey?
     private var decidedLegacyProgressTarget = false
     private let center = UNUserNotificationCenter.current()
+    private let retentionRemovals = NotificationRemovalOwner()
+    private let notificationWriter = NotificationWriteOwner()
+    private var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     private var request: NoticePlan?
     private var worker: NotificationWork?
     private var applyingPlan: NoticePlan?
@@ -162,10 +165,6 @@ final class CountdownModel: ObservableObject {
 
     @discardableResult
     func save(_ automatic: CountdownAutomatic, originEdit: CountdownOriginEdit? = nil) -> Bool {
-        if case .change = originEdit, onChange?() != true {
-            message = "現在の試験を確認できません。設定を開き直してください。"
-            return false
-        }
         var next = library
         next.automatic = automatic
         next.automatic.customOrigins = library.automatic.customOrigins
@@ -175,8 +174,9 @@ final class CountdownModel: ObservableObject {
         case nil: break
         case .discardUnlinked: next.automatic.unlinkedProgressStart = nil
         case .change(let key, let date, let useUnlinked):
-            guard automatic.mode == library.automatic.mode, let current = automaticProgress, current.key == key else {
-                message = "対象の試験が変わりました。設定を開き直してください。"
+            let app = ApplicationData.shared
+            guard let current = previewAutomatic(automatic, using: app, at: Date()).progress, current.key == key else {
+                message = "対象の試験が変わりました。起点日を選び直してください。"
                 return false
             }
             guard date.map({ $0.isValidCalendarDay && $0 < current.goal }) != false else {
@@ -185,8 +185,8 @@ final class CountdownModel: ObservableObject {
             }
             if useUnlinked { next.automatic.unlinkedProgressStart = nil }
             if key.isPrivate {
-                guard var scoped = loadedClassProgress?.value else {
-                    message = "この試験の起点日を読み込めません。設定を保存する前に再試行してください。"
+                guard let period = app.loadedPeriod, let store, var scoped = classProgress(in: store, period: period) else {
+                    message = "この試験の起点日の保存先を確認できません。しばらく待って再試行してください。"
                     return false
                 }
                 // The fallback key describes just this one day. Remove it
@@ -289,15 +289,8 @@ final class CountdownModel: ObservableObject {
         let today = TimetableDaySchedule.schoolDay(at: now)
         if today != day { day = today }
         let events = app.schoolEvents
-        let nextEvents = events.saved.keys.sorted().flatMap { year in
-            (events.saved[year]?.payload.identifiedEvents ?? []).compactMap { event in
-                CountdownDates(event).map { PublicEvent(reference: .init(year: year, eventID: event.eventId), dates: $0, tag: event.tag) }
-            }
-        }.sorted { ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) }
+        let (nextEvents, completeYears) = publishedEvents(in: events)
         if publicEvents != nextEvents { publicEvents = nextEvents }
-        let completeYears = Set(events.saved.compactMap { year, snapshot in
-            snapshot.payload.identifiedEvents == nil ? nil : year
-        })
         let indexed = Dictionary(uniqueKeysWithValues: nextEvents.map { ($0.reference, $0) })
         var updated = library
         for index in updated.registrations.indices {
@@ -312,71 +305,33 @@ final class CountdownModel: ObservableObject {
                 return .init(id: registration.id, title: dates.title, dates: dates,
                              preferences: registration.preferences, availability: .available)
             case .school(let reference, let saved, let alias):
-                let availability: CountdownAvailability
+                let evidence: (availability: CountdownAvailability, freshUntil: Date?)
                 if indexed[reference] == nil {
-                    availability = events.saved[reference.year]?.payload.identifiedEvents == nil ? .missingYear : .missingEvent
+                    evidence = (events.saved[reference.year]?.payload.identifiedEvents == nil ? .missingYear : .missingEvent, nil)
                 } else if indexed[reference]?.dates != saved {
-                    availability = .sourcePending
-                } else { availability = events.countdownSourceState(year: reference.year, at: now) }
+                    evidence = (.sourcePending, nil)
+                } else { evidence = events.countdownSourceEvidence(year: reference.year, at: now) }
                 return .init(id: registration.id, title: alias ?? saved.title, dates: saved,
-                             preferences: registration.preferences, availability: availability, reference: reference)
+                             preferences: registration.preferences, availability: evidence.availability, reference: reference,
+                             publicSourceFreshUntil: evidence.freshUntil)
             }
         }
-        var schoolExams: [PublicEvent] = []
-        var automaticCards = CountdownAutomaticCards([])
-        var privateProgress: CountdownClassProgress?
         let selection = classSelection()
         let initialScope = initialClassScope
-        var loadingClassScope: String?
-        if library.automatic.enabled {
-            let automatic = library.automatic
-            switch automatic.mode {
-            case .school:
-                let candidates = nextEvents.filter { $0.tag == "テスト" && $0.dates.end >= today }.sorted {
-                    let lhs = $0.dates.phase(on: today).active, rhs = $1.dates.phase(on: today).active
-                    return lhs == rhs ? ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) : lhs
-                }
-                schoolExams = candidates
-                if candidates.isEmpty {
-                    let availability: CountdownAvailability = events.saved[today.schoolYear]?.payload.identifiedEvents == nil
-                        ? .missingYear : .noExam
-                    automaticCards = CountdownAutomaticCards([placeholder(automatic, availability)])
-                } else {
-                    let targets = candidates.map { event in
-                        CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
-                            preferences: automatic.preferences, availability: events.countdownSourceState(year: event.reference.year, at: now),
-                            reference: event.reference, examProgress: resolveProgress(key: .school(event.reference),
-                                examStart: event.dates.start, goal: event.dates.start, events: nextEvents,
-                                completeYears: completeYears, custom: automatic.customOrigins ?? [],
-                                unconfirmedYear: events.countdownAnnouncementCoverage))
-                    }
-                    automaticCards = CountdownAutomaticCards(targets, fixedReferences: Set(fixed.compactMap(\.reference)))
-                }
-            case .selectedClass:
-                if let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
-                    if let cached = loadedClassProgress, cached.file == library.classProgressFile, cached.value.period == period {
-                        privateProgress = cached.value
-                    } else {
-                        privateProgress = try? store.loadClassProgress(file: library.classProgressFile, period: period)
-                        loadedClassProgress = privateProgress.map { (library.classProgressFile, $0) }
-                    }
-                }
-                let targets = selectedClassCards(automatic, selection: selection, using: app, today: today, now: now).map { card in
-                    var card = card
-                    if let scope = card.classScope, let goal = card.dates?.start {
-                        let (key, start) = CountdownExamProgressKey.forClass(scope: scope, day: goal, events: nextEvents)
-                        card.examProgress = resolveProgress(key: key, examStart: start, goal: goal, events: nextEvents,
-                            completeYears: completeYears, custom: privateProgress?.entries ?? [],
-                            fallback: .classDay(scope: scope, day: goal), unconfirmedYear: events.countdownAnnouncementCoverage)
-                    }
-                    return card
-                }
-                automaticCards = CountdownAutomaticCards(targets)
-                if automatic.preferences.notifications, automaticCards.displayed?.availability == .loading {
-                    loadingClassScope = selection.scope
-                }
-            }
+        let automatic = library.automatic
+        var privateProgress: CountdownClassProgress?
+        if automatic.enabled, automatic.mode == .selectedClass,
+           let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
+            privateProgress = classProgress(in: store, period: period)
+            loadedClassProgress = privateProgress.map { (library.classProgressFile, $0) }
         }
+        let evaluated = evaluateAutomatic(automatic, selection: selection, using: app, today: today, now: now,
+            events: nextEvents, completeYears: completeYears, fixedReferences: Set(fixed.compactMap(\.reference)),
+            privateProgress: privateProgress)
+        let automaticCards = evaluated.cards
+        let schoolExams = evaluated.schoolExams
+        let loadingClassScope = automatic.mode == .selectedClass && automatic.preferences.notifications &&
+            automaticCards.displayed?.availability == .loading ? selection.scope : nil
         let currentExam = automaticCards.displayed
         if library.canMigrateProgress(availability: currentExam?.availability) {
             if !decidedLegacyProgressTarget {
@@ -412,11 +367,100 @@ final class CountdownModel: ObservableObject {
                           acceptsLegacyClassNotice: loadingClassScope == initialScope)
     }
 
+    private func publishedEvents(in events: SchoolEventsModel) -> ([PublicEvent], Set<Int>) {
+        let nextEvents = events.saved.keys.sorted().flatMap { year in
+            (events.saved[year]?.payload.identifiedEvents ?? []).compactMap { event in
+                CountdownDates(event).map { PublicEvent(reference: .init(year: year, eventID: event.eventId), dates: $0, tag: event.tag) }
+            }
+        }.sorted { ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) }
+        let completeYears = Set(events.saved.compactMap { year, snapshot in
+            snapshot.payload.identifiedEvents == nil ? nil : year
+        })
+        return (nextEvents, completeYears)
+    }
+
+    private func classProgress(in store: CountdownStore, period: SchoolDataPeriod) -> CountdownClassProgress? {
+        if let cached = loadedClassProgress, cached.file == library.classProgressFile, cached.value.period == period {
+            return cached.value
+        }
+        return try? store.loadClassProgress(file: library.classProgressFile, period: period)
+    }
+
+    struct AutomaticDraftPreview: Equatable {
+        let progress: CountdownExamProgress?
+        let availability: CountdownAvailability?
+        let classProgressUnavailable: Bool
+    }
+
+    func previewAutomatic(_ draft: CountdownAutomatic, using app: ApplicationData, at now: Date) -> AutomaticDraftPreview {
+        let unavailable = AutomaticDraftPreview(progress: nil, availability: nil, classProgressUnavailable: false)
+        guard draft.enabled, let store else { return unavailable }
+        let today = TimetableDaySchedule.schoolDay(at: now)
+        let (events, completeYears) = publishedEvents(in: app.schoolEvents)
+        let fixedReferences = Set(library.registrations.compactMap { item -> CountdownEventReference? in
+            guard case .school(let reference, _, _) = item.target else { return nil }
+            return reference
+        })
+        let privateProgress: CountdownClassProgress?
+        if draft.mode == .selectedClass, let period = app.loadedPeriod, period == SchoolDataPeriod(day: today) {
+            privateProgress = classProgress(in: store, period: period)
+        } else { privateProgress = nil }
+        let evaluated = evaluateAutomatic(draft, selection: classSelection(), using: app, today: today, now: now,
+            events: events, completeYears: completeYears, fixedReferences: fixedReferences, privateProgress: privateProgress)
+        let card = evaluated.cards.displayed
+        let progress = card?.availability.allowsNotification == true ? card?.examProgress : nil
+        return AutomaticDraftPreview(progress: progress, availability: card?.availability,
+            classProgressUnavailable: progress?.key.isPrivate == true && privateProgress == nil)
+    }
+
+    private func evaluateAutomatic(_ automatic: CountdownAutomatic, selection: ClassSelection, using app: ApplicationData,
+                                   today: SchoolDate, now: Date, events nextEvents: [PublicEvent], completeYears: Set<Int>,
+                                   fixedReferences: Set<CountdownEventReference>,
+                                   privateProgress: CountdownClassProgress?) -> (cards: CountdownAutomaticCards, schoolExams: [PublicEvent]) {
+        guard automatic.enabled else { return (CountdownAutomaticCards([]), []) }
+        let events = app.schoolEvents
+        switch automatic.mode {
+        case .school:
+            let candidates = nextEvents.filter { $0.tag == "テスト" && $0.dates.end >= today }.sorted {
+                let lhs = $0.dates.phase(on: today).active, rhs = $1.dates.phase(on: today).active
+                return lhs == rhs ? ($0.dates.start, $0.dates.end, $0.id) < ($1.dates.start, $1.dates.end, $1.id) : lhs
+            }
+            guard !candidates.isEmpty else {
+                let availability: CountdownAvailability = events.saved[today.schoolYear]?.payload.identifiedEvents == nil
+                    ? .missingYear : .noExam
+                return (CountdownAutomaticCards([placeholder(automatic, availability)]), [])
+            }
+            let targets = candidates.map { event in
+                let evidence = events.countdownSourceEvidence(year: event.reference.year, at: now)
+                return CountdownCard(id: automatic.id, title: event.dates.title, dates: event.dates,
+                    preferences: automatic.preferences, availability: evidence.availability,
+                    reference: event.reference, examProgress: resolveProgress(key: .school(event.reference),
+                        examStart: event.dates.start, goal: event.dates.start, events: nextEvents,
+                        completeYears: completeYears, custom: automatic.customOrigins ?? [],
+                        unconfirmedYear: events.countdownAnnouncementCoverage), publicSourceFreshUntil: evidence.freshUntil)
+            }
+            return (CountdownAutomaticCards(targets, fixedReferences: fixedReferences), candidates)
+        case .selectedClass:
+            let targets = selectedClassCards(automatic, selection: selection, using: app, today: today, now: now).map { card in
+                var card = card
+                if let scope = card.classScope, let goal = card.dates?.start {
+                    let (key, start) = CountdownExamProgressKey.forClass(scope: scope, day: goal, events: nextEvents)
+                    card.examProgress = resolveProgress(key: key, examStart: start, goal: goal, events: nextEvents,
+                        completeYears: completeYears, custom: privateProgress?.entries,
+                        fallback: .classDay(scope: scope, day: goal), unconfirmedYear: events.countdownAnnouncementCoverage)
+                }
+                return card
+            }
+            return (CountdownAutomaticCards(targets), [])
+        }
+    }
+
     private func resolveProgress(key: CountdownExamProgressKey, examStart: SchoolDate, goal: SchoolDate,
-                                 events: [PublicEvent], completeYears: Set<Int>, custom: [CountdownCustomProgress],
+                                 events: [PublicEvent], completeYears: Set<Int>, custom: [CountdownCustomProgress]?,
                                  fallback: CountdownExamProgressKey? = nil,
                                  unconfirmedYear: (Int) -> CountdownAnnouncementCoverage) -> CountdownExamProgress {
-        let saved = custom.first { $0.key == key } ?? custom.first { $0.key == fallback }
+        let entries = custom ?? []
+        let saved = entries.first { $0.key == key } ?? entries.first { $0.key == fallback }
         let origin = saved.map { CountdownProgressOrigin.custom($0.date) } ??
             CountdownProgressOrigin.announcement(before: examStart, events: events, completeYears: completeYears,
                                                  unconfirmedYear: unconfirmedYear)
@@ -498,20 +542,36 @@ final class CountdownModel: ObservableObject {
         notificationCards = notificationCards?.filter { !$0.value.isPrivate }
         // Invalidate the old plan without cancelling an in-flight add. It may
         // be a personal or public reminder that must survive private expiry.
-        revision = UUID()
-        request = nil
+        invalidatePrivateNotificationPlan()
         guard await worker?.waitForCompletion() != false, !Task.isCancelled else { return false }
+        guard await retentionRemovals.waitForCompletion() else { return false }
         let queued = await ScheduleNotifications.readPending(from:center)
         if let queued, !Task.isCancelled {
             let pending = queued.map(\.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
-            center.removePendingNotificationRequests(withIdentifiers: pending)
+            guard await retentionRemovals.run(.pending, identifiers: pending, { [center] in
+                center.removePendingNotificationRequests(withIdentifiers: pending)
+            }) else { return false }
         }
         if removeDelivered {
             guard let listed = await ScheduleNotifications.readDelivered(from:center), !Task.isCancelled else { return false }
             let delivered = listed.map(\.request.identifier).filter { $0.hasPrefix(CountdownNotice.privatePrefix) }
-            center.removeDeliveredNotifications(withIdentifiers: delivered)
+            guard await retentionRemovals.run(.delivered, identifiers: delivered, { [center] in
+                center.removeDeliveredNotifications(withIdentifiers: delivered)
+            }) else { return false }
         }
         return queued != nil && !Task.isCancelled
+    }
+
+    private func invalidatePrivateNotificationPlan() {
+        let nextRevision = UUID()
+        if let active = notificationWriter.active, !active.identifier.hasPrefix(CountdownNotice.privatePrefix),
+           active.revision == revision || (retentionPreservedWrite?.write == active && retentionPreservedWrite?.invalidation == revision) {
+            retentionPreservedWrite = (active, nextRevision)
+        } else {
+            retentionPreservedWrite = nil
+        }
+        revision = nextRevision
+        request = nil
     }
 
     private func planNotifications(for cards: [CountdownCard], at now: Date,
@@ -561,6 +621,8 @@ final class CountdownModel: ObservableObject {
     }
 
     private func reconcile(_ plan: NoticePlan) async {
+        guard await retentionRemovals.waitForCompletion() else { return reportUnconfirmedNotices(plan) }
+        guard revision == plan.revision else { return }
         let allowed: Bool
         if plan.cards.values.contains(where: { $0.preferences.notifications }) {
             let settings = await ScheduleNotifications.notificationSettings(from: center)
@@ -613,7 +675,9 @@ final class CountdownModel: ObservableObject {
             if card.availability == .loading && plan.loadingClassScope != nil {
                 statuses[target] = "資料の読み込み後に予約を確認します。"
             }
-            else if !card.availability.allowsNotification { statuses[target] = "通知は保留中です。" }
+            else if !card.availability.allowsNotification || card.publicSourceFreshUntil.map({ Date() >= $0 }) == true {
+                statuses[target] = "通知は保留中です。"
+            }
             else if !allowed { statuses[target] = "端末で通知が許可されていません。" }
             else if expected.isEmpty { statuses[target] = "これからの通知日時はありません。" }
             else {
@@ -632,56 +696,129 @@ final class CountdownModel: ObservableObject {
     }
 
     private func reserveNotifications(_ plan: NoticePlan, allowed: Bool,
-                                      startingWith known: [UNNotificationRequest]) async -> [UNNotificationRequest]? {
+                                      startingWith known: [UNNotificationRequest],
+                                      waitBeforeRetry: ((Duration) async throws -> Void)? = nil) async -> [UNNotificationRequest]? {
+        guard allowed else { return known }
         var current = known
         var remaining = plan.desired
+        var displaced = [CountdownNotice]()
+        var observedCapacity = 0
         let delays: [Duration] = [.zero,.seconds(1),.seconds(3)]
         // Read the actual pending list before retrying a rejected request. It
         // may have appeared after the error, and a newer plan takes precedence.
         for delay in delays {
             if delay != .zero {
-                do { try await Task.sleep(for:delay) } catch { return nil }
+                do {
+                    if let waitBeforeRetry { try await waitBeforeRetry(delay) }
+                    else { try await Task.sleep(for: delay) }
+                } catch { return nil }
             }
             guard !Task.isCancelled, revision == plan.revision else { return nil }
             if delay != .zero {
                 let latest = await ScheduleNotifications.readPending(from:center)
                 guard let latest, !Task.isCancelled, revision == plan.revision else { return nil }
                 current = latest
-                remaining.removeAll { notice in current.contains { matches($0,notice) } }
+                remaining = plan.desired.filter { notice in
+                    notice.canReserve(at: Date()) && !current.contains { matches($0, notice) }
+                }
                 if remaining.isEmpty { return current }
+                if delay == .seconds(3) {
+                    let now = Date()
+                    let eligible = plan.desired.filter { $0.canReserve(at: now) }
+                    let confirmed = Set(eligible.filter { notice in current.contains { matches($0, notice) } }.map(\.identifier))
+                    let moved = CountdownNotice.displacedReservations(eligible, confirmed: confirmed)
+                    if !moved.isEmpty {
+                        observedCapacity = confirmed.count
+                        displaced = eligible.filter { moved.contains($0.identifier) }
+                        center.removePendingNotificationRequests(withIdentifiers: moved.sorted())
+                        current.removeAll { moved.contains($0.identifier) }
+                        let earlier = eligible.prefix(confirmed.count)
+                        remaining = earlier.filter { notice in !current.contains { matches($0, notice) } }
+                    }
+                }
             }
-            var rejected = Set<String>()
-            for notice in remaining where allowed {
-                guard !Task.isCancelled, revision == plan.revision else { return nil }
-                guard notice.fireAt > Date(), !current.contains(where: { matches($0,notice) }) else { continue }
-                let content = UNMutableNotificationContent()
-                content.title = notice.title; content.body = "カウントダウンを確認してください。"; content.sound = .default
-                content.userInfo = ["countdownID": notice.targetID.uuidString, "targetKey": notice.targetKey,
-                                    "fireAt": notice.fireAt.timeIntervalSince1970]
-                if let scope = notice.classScope { content.userInfo["classScope"] = scope }
-                let fields = SchoolDate.japanCalendar.dateComponents([.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: notice.fireAt)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: fields, repeats: false)
-                do {
-                    try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
-                } catch { rejected.insert(notice.identifier) }
-                if revision != plan.revision && !notificationEnabled(for: notice.targetID) {
-                    removeNotices([notice.identifier])
-                    return nil
-                }
-                if Task.isCancelled {
-                    center.removePendingNotificationRequests(withIdentifiers: [notice.identifier])
-                    return nil
-                }
+            for notice in remaining where !current.contains(where: { matches($0, notice) }) {
+                guard await reserve(notice, for: plan) else { return nil }
             }
             let listed = await ScheduleNotifications.readPending(from:center)
             guard let listed, !Task.isCancelled, revision == plan.revision else { return nil }
             current = listed
-            remaining = remaining.filter { notice in
-                rejected.contains(notice.identifier) && !current.contains { matches($0,notice) }
+            if !displaced.isEmpty {
+                let count = plan.desired.filter { notice in current.contains { matches($0, notice) } }.count
+                let vacant = max(0, observedCapacity - count)
+                if vacant > 0 {
+                    for notice in displaced.prefix(vacant) {
+                        guard await reserve(notice, for: plan) else { return nil }
+                    }
+                    let supplemented = await ScheduleNotifications.readPending(from: center)
+                    guard let supplemented, !Task.isCancelled, revision == plan.revision else { return nil }
+                    current = supplemented
+                }
+            }
+            remaining = plan.desired.filter { notice in
+                notice.canReserve(at: Date()) && !current.contains { matches($0,notice) }
             }
             if remaining.isEmpty { break }
         }
         return current
+    }
+
+    private func reserve(_ notice: CountdownNotice, for plan: NoticePlan) async -> Bool {
+        guard !Task.isCancelled, revision == plan.revision else { return false }
+        guard notice.canReserve(at: Date()) else { return true }
+        let content = UNMutableNotificationContent()
+        content.title = notice.title; content.body = "カウントダウンを確認してください。"; content.sound = .default
+        content.userInfo = ["countdownID": notice.targetID.uuidString, "targetKey": notice.targetKey,
+                            "fireAt": notice.fireAt.timeIntervalSince1970]
+        if let scope = notice.classScope { content.userInfo["classScope"] = scope }
+        let fields = SchoolDate.japanCalendar.dateComponents([.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: notice.fireAt)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: fields, repeats: false)
+        do {
+            try await notificationWriter.add(identifier: notice.identifier, revision: plan.revision,
+                responseUnconfirmed: { [weak self] in
+                    guard let self, self.revision == plan.revision, self.notificationEnabled(for: notice.targetID) else { return }
+                    self.notificationStatuses[notice.target] = "予約結果を確認できません。iPhoneの応答を待っています。"
+                }) {
+                guard notice.canReserve(at: Date()) else { throw CancellationError() }
+                try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))
+            }
+        } catch {
+            // The actual pending list decides what has been reserved.
+        }
+        let exactRetainedWrite = retentionPreservedWrite?.write == notificationWriter.latestCompletion?.write
+            && retentionPreservedWrite?.write.identifier == notice.identifier
+            && retentionPreservedWrite?.write.revision == plan.revision
+        let preservingDuringRetention = exactRetainedWrite && retentionPreservedWrite?.invalidation == revision
+        if exactRetainedWrite {
+            retentionPreservedWrite = nil
+        }
+        if revision != plan.revision {
+            let stillDesired = request?.desired.contains {
+                $0.identifier == notice.identifier && $0.fireAt == notice.fireAt && $0.target == notice.target
+                    && $0.title == notice.title && $0.canReserve(at: Date())
+            } ?? (preservingDuringRetention && !Task.isCancelled)
+            if !stillDesired || !notificationEnabled(for: notice.targetID) {
+                await undoReservation(notice.identifier, includeDelivered: true)
+            }
+            return false
+        }
+        if Task.isCancelled {
+            await undoReservation(notice.identifier, includeDelivered: false)
+            return false
+        }
+        return true
+    }
+
+    private func undoReservation(_ identifier: String, includeDelivered: Bool) async {
+        // Reconciliation cancellation cannot undo the native add. Withdraw it
+        // independently, letting this worker own the withdrawal until it runs.
+        let cleanup = Task { [center, retentionRemovals] in
+            await retentionRemovals.run(includeDelivered ? .all : .pending, identifiers: [identifier], timeout: nil) {
+                center.removePendingNotificationRequests(withIdentifiers: [identifier])
+                if includeDelivered { center.removeDeliveredNotifications(withIdentifiers: [identifier]) }
+            }
+        }
+        _ = await cleanup.value
     }
 
     private func matches(_ request: UNNotificationRequest, _ notice: CountdownNotice) -> Bool {

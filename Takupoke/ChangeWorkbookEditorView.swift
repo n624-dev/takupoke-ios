@@ -13,9 +13,29 @@ struct ChangeWorkbookEditorView: View {
     @State private var savedGroups: [ChangeIssueGroup] = []
     @State private var confirming = false
     @State private var viable = false
+    @State private var recordCount: Int?
     @State private var error: String?
     @State private var headerNumber: String
+    @State private var verificationTask: Task<Void, Never>?
+    @State private var verifiedInput: VerificationInput?
     @Environment(\.dismiss) private var dismiss
+
+    private struct VerificationInput: Equatable {
+        let document: UUID
+        let headers: [String]
+        let edits: [Int: ChangeRowEdit]
+        let conflicts: Set<Int>
+        let requiresLayoutConfirmation: Bool
+    }
+
+    private var verificationInput: VerificationInput {
+        .init(document: view.id, headers: view.table.headers, edits: edits, conflicts: view.conflicts,
+              requiresLayoutConfirmation: view.requiresLayoutConfirmation)
+    }
+
+    private var canApply: Bool {
+        viable && verifiedInput == verificationInput && !view.requiresLayoutConfirmation
+    }
 
     init(model: MaterialsModel, mappings: MappingModel, preview: ChangePreview, initial: ChangeWorkbookReview) {
         self.model = model
@@ -153,26 +173,27 @@ struct ChangeWorkbookEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("反映する") { confirming = true }
                         .buttonStyle(.glassProminent)
-                        .disabled(!viable || model.busy || model.changePreviewActionFailure(preview) != nil || view.requiresLayoutConfirmation)
+                        .disabled(!canApply || model.busy || model.changePreviewActionFailure(preview) != nil)
                 }
             }
             .alert("個人修正を反映しますか？", isPresented: $confirming) {
                 Button("反映する") {
-                    verify()
-                    guard viable, !view.requiresLayoutConfirmation else { return }
+                    guard canApply else { verify(); return }
                     view.layout.headers = view.table.headers
                     error = model.savePersonalChanges(preview, view: view, edits: edits)
                 }
                 Button("キャンセル", role: .cancel) {}
             } message: {
                 let skipped = edits.keys.filter { edits[$0]?.excluded == true }
-                Text(skipped.isEmpty ? "確認した内容で時間割を更新します。" :
+                Text(recordCount == 0 ? "すべての行を除外し、時間割変更を0件として反映します。" :
+                     skipped.isEmpty ? "確認した内容で時間割を更新します。" :
                        "除外する行：" + ChangeReviewGroup.rangeLabel(skipped))
             }
             .onChange(of: view.table.headers) { _, _ in verify() }
             .onAppear { verify() }
         }
         .interactiveDismissDisabled(model.busy)
+        .onDisappear { verificationTask?.cancel(); verificationTask = nil }
     }
 
     @State private var openedLayout = false
@@ -197,44 +218,37 @@ struct ChangeWorkbookEditorView: View {
     }
 
     private func verify() {
-        savedGroups = ChangeIssueGroup.savedGroups(edits)
-        do {
-            issues = try view.table.review(edits: edits, defaultYear: preview.defaultYear ?? 0)
-            groups = ChangeIssueGroup.groups(issues, table: view.table, edits: edits, conflicts: view.conflicts, previous: view.previous)
-            suggestions = nil
-            if let weekday = view.table.headers.firstIndex(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
-                let year = preview.defaultYear ?? 0
-                let rows = view.table.rowIDs.filter { row in
-                    let edit = edits[row] ?? ChangeRowEdit()
-                    guard !edit.excluded, !edit.deriveWeekday, edit.keepPrintedWeekday != true,
-                          view.table.cellIssues[row]?[weekday] == nil, !view.conflicts.contains(row) else { return false }
-                    let values = view.table.values(at: row, edit: edit, defaultYear: year)
-                    return ChangeNormalizer.text(values[weekday]).isEmpty &&
-                        view.table.normalizedDate(values, row: row, edit: edit, defaultYear: year) != nil
-                }
-                if !rows.isEmpty { suggestions = ChangeIssueGroup(code: .weekdayMismatch, column: weekday, rows: rows, optional: true) }
+        let requested = verificationInput
+        verificationTask?.cancel()
+        if requested == verifiedInput { return }
+        let snapshot = view
+        let year = preview.defaultYear ?? 0
+        verificationTask = Task { @MainActor in
+            let worker = Task.detached(priority: .userInitiated) {
+                try ChangeWorkbookVerification.evaluate(snapshot, edits: requested.edits, year: year,
+                                                        check: { try Task.checkCancellation() })
             }
-            viable = issues.isEmpty && view.conflicts.isEmpty
-            error = nil
-            if viable && !view.requiresLayoutConfirmation {
-                // Check aggregate limits and the empty result before enabling Apply.
-                _ = try view.table.records(edits: edits, defaultYear: preview.defaultYear ?? 0)
-            }
-        } catch {
-            viable = false
-            groups = []
-            suggestions = nil
-            issues = [:]
-            self.error = error.localizedDescription
+            guard let result = try? await CancellationLinkedTask.value(of: worker),
+                  !Task.isCancelled, verificationInput == requested else { return }
+            issues = result.issues
+            groups = result.groups
+            suggestions = result.suggestions
+            savedGroups = result.savedGroups
+            viable = result.viable
+            recordCount = result.recordCount
+            error = result.error
+            verifiedInput = requested
         }
     }
 
     private func problemLabel(_ issue: ChangeParseError) -> String {
         let column = issue.column.flatMap { view.table.headers.indices.contains($0) ? view.table.headers[$0] : nil }
+        let competing = issue.competingColumn.flatMap { view.table.headers.indices.contains($0) ? view.table.headers[$0] : nil }
+        let headings = [column, competing].compactMap { $0 }.joined(separator: "・")
         var problem = issue
         problem.row = nil
         let detail = problem.localizedDescription
-        return column.map { $0 + "　" + detail } ?? detail
+        return headings.isEmpty ? detail : headings + "　" + detail
     }
 
     private func groupTitle(_ group: ChangeIssueGroup) -> String {

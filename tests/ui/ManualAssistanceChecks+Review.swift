@@ -29,14 +29,19 @@ extension ManualAssistanceChecks {
     func openReviewPreview() {
         tap("訂正と変更を確認して資料全体へ",knownID:"manual-review-submit")
     }
+    private func coordinatorState(ambiguous:inout Bool)->String? {
+        guard let root=try? app.snapshot(),let nodes=snapshotNodes(in:root) else { return nil }
+        let owners=nodes.filter { $0.elementType == .other && $0.identifier == "manual-observation" }
+        if owners.count>1 { ambiguous=true;return nil }
+        guard let owner=owners.first,let children=snapshotNodes(in:owner) else { return nil }
+        let states=children.filter { $0.elementType == .staticText && $0.identifier == "manual-coordinator-state" }
+        if states.count>1 { ambiguous=true;return nil }
+        return states.first?.label
+    }
     func requireReview(_ expected:[String],comparable:Bool) {
         var observedState="",ambiguousState=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.app.otherElements["manual-observation"].staticTexts.matching(identifier:"manual-coordinator-state")
-                .allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguousState=true;return true }
-            guard current.count==1 else { return false }
-            let label=current[0].label
+            guard let label=self.coordinatorState(ambiguous:&ambiguousState) else { return ambiguousState }
             observedState=label
             return label.contains("review=true") && label.contains("preview=false")
         },object:app)
@@ -54,7 +59,9 @@ extension ManualAssistanceChecks {
         for value in expected {
             let reviewed=list.staticTexts.matching(NSPredicate(
                 format:"identifier BEGINSWITH %@ AND label == %@","manual-reviewed-",value))
-            _=visible(reviewed.firstMatch,alternatives:reviewed)
+            _=visible(reviewed.firstMatch,alternatives:{
+                $0.identifier.hasPrefix("manual-reviewed-") && $0.label==value
+            })
         }
         if comparable {
             XCTAssertEqual(visible(recoveryList.staticTexts["manual-comparison-available"].firstMatch,knownID:"manual-comparison-available").label,"本文の変更: 1箇所")
@@ -116,13 +123,26 @@ extension ManualAssistanceChecks {
         controls.buttons["等倍"].tap();XCTAssertEqual(uniqueLabel("manual-source-scale",in:controls),scale)
         app.navigationBars["原画像の確認"].buttons["確認を終える"].tap()
     }
-    func requirePreview() {
+    func observedPreviewRevalidations() -> Int? {
+        var ambiguous = false
+        let prefix = "revalidations="
+        let values = coordinatorState(ambiguous: &ambiguous)?.split(separator: ";").filter { $0.hasPrefix(prefix) }
+        guard !ambiguous, let values, values.count == 1, let value = values.first,
+              let count = Int(value.dropFirst(prefix.count)), count >= 0 else {
+            XCTFail("Expected one preview revalidation counter for the current process"); return nil
+        }
+        return count
+    }
+
+    func requirePreview(revalidatedAfter: Int? = nil) {
         var ambiguous=false
         let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=self.observation.staticTexts.matching(identifier:"manual-coordinator-state")
-                .allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguous=true;return true }
-            return current.count==1 && current[0].label.contains("preview=true")
+            guard let state=self.coordinatorState(ambiguous:&ambiguous) else { return ambiguous }
+            let fields = state.split(separator: ";")
+            guard fields.contains("preview=true") else { return false }
+            guard let before = revalidatedAfter else { return true }
+            return fields.contains("running=false") && fields.contains("revalidation=false") &&
+                fields.contains { $0 == "revalidations=\(before + 1)" }
         },object:app)
         let outcome=XCTWaiter.wait(for:[ready],timeout:20)
         print("TAKUPOKE-MANUAL-COORDINATOR wait-outcome=\(outcome.rawValue)")

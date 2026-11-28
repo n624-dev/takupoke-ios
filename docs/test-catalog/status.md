@@ -1,7 +1,7 @@
 # ステータス・公開監視情報・取消表示
 
 対応関係・宣言名・実行方法のSHA-256：
-`cbd86c4341550b44c55787568d956bcaa457b80c2516a59effd29c0372ee5b1a`
+`90420335fd88a09ed3fef80b0edf5f15ac6785b260fa19a5ace74b6f30d33a8e`
 
 環境：Linux Swift（状態判定）／Apple iOS26/27（画面・通信）
 
@@ -26,6 +26,7 @@ bash tools/test-app-ui.sh
 - `testUnlinkedMissingDuplicateWrongTypeAndUnknownStateNeverBecomeHealthy`
 - `testHistoryKeepsUnmonitoredRecoveryAndUnknownDaysWithoutInventingDates`
 - `testResolvedIncidentWithNullEndAndUnsortedUpdatesUsesRelationships`
+- `testLargePublicPageRetainsUniqueReferencesAndRejectsAmbiguity`
 - `testCacheFailureExpiryAndClockRollbackRetainEvidenceButNotCurrentNormal`
 - `testMissingResourcesKeepTheirPreviousHistoryWithoutRevalidatingThem`
 - `testInvalidEnvelopeAndOversizedResponseAreRejected`
@@ -36,14 +37,18 @@ bash tools/test-app-ui.sh
 - `testSourceDifferenceIsPublisherUpdateWaitingEvenDuringRecheck`
 - `testCancellationIsNeutralAndKeepsTheSavedResult`
 - `testUnknownAndUnselectedDoNotBecomeFailuresOrAllNormal`
+- `testUsingOnlyConfirmedDataReachesGreenAndNamesAffectedData`
+- `testSavedFileNeedsAnActualCheckAndKeepsItAcrossCancellation`
 - `testAccountAcquisitionDoesNotAssertLatestOrAuthentication`
+- `testRevisionObservationDistinguishesUnchangedNewerAndFailedWithSavedData`
+- `testRevisionConfirmationRestoresOnlyForTheSameInstallationAndCorruptionIsIndependent`
 - `testSummaryCountsAttentionWithoutCountingNeutralCancellation`
 - `testOnlyCancellationErrorsAreNeutral`
 - `testExplicitResumeIsInSessionAndDoesNotReplayDiscardedRequests`
 
 ## [tests/ui/ApplicationChecks+Settings.swift](../../tests/ui/ApplicationChecks+Settings.swift)
 
-- `testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData`
+- `testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals`
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`

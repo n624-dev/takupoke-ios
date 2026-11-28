@@ -7,6 +7,19 @@ import Crypto
 @testable import TakupokeParsing
 
 final class RecoveryTests: XCTestCase {
+    func testRecoveryModelActionDistinguishesUnavailablePreparationAndDownload() {
+        func state(_ errors: [String], canInstall: Bool = false, localStorageBusy: Bool = false) -> RecoveryModelAction {
+            .init(errors: errors, canInstall: canInstall, localStorageBusy: localStorageBusy)
+        }
+        XCTAssertEqual(state(["noLocalProvider"]), .unavailable)
+        XCTAssertEqual(state(["unsupported"]), .unavailable)
+        XCTAssertEqual(state(["notReady"]), .preparing)
+        XCTAssertEqual(state(["disabled"]), .enableSystemModel)
+        XCTAssertEqual(state(["noLocalProvider"], canInstall: true), .installModel)
+        XCTAssertEqual(state(["noLocalProvider"], localStorageBusy: true), .waitForLocalStorage)
+        XCTAssertEqual(state(["notReady"], canInstall: true), .preparing)
+    }
+
     private func fixture() -> (RecoveryDocument, RecoveryResult) {
         let slots = (1...5).flatMap { d in (1...8).map { RecoverySlot(className: "3_CN", day: String(d), period: $0) } }
         let box = RecoveryBox(x: 110, y: 110, width: 60, height: 10)

@@ -14,10 +14,12 @@ extension MaterialsView {
                 .accessibilityLabel("\(kind.title)の詳細を見る")
                 .accessibilityValue(fileAccessibilityValue(status, name: record.originalName))
             } else {
+                let status = model.fileStatus(kind)
                 Button { fileRequest = FileSelectionRequest(target: .material(kind)) } label: {
-                    StatusRow(title: kind.title, status: model.fileStatus(kind), subtitle: "ファイルを選ぶ")
+                    StatusRow(title: kind.title, status: status, subtitle: "ファイルを選ぶ")
                 }
                 .accessibilityLabel("\(kind.title)のファイルを選ぶ")
+                .accessibilityValue(fileAccessibilityValue(status, name: nil))
                 .disabled(model.busy || !model.ready)
             }
         }
@@ -33,10 +35,12 @@ extension MaterialsView {
                 .accessibilityLabel("\(kind.title)の詳細を見る")
                 .accessibilityValue(fileAccessibilityValue(status, name: name))
             } else {
+                let status = specialSchedules.fileStatus(kind)
                 Button { fileRequest = FileSelectionRequest(target: .special(kind)) } label: {
-                    StatusRow(title: kind.title, status: specialSchedules.fileStatus(kind), subtitle: "ファイルを選ぶ")
+                    StatusRow(title: kind.title, status: status, subtitle: "ファイルを選ぶ")
                 }
                 .accessibilityLabel("\(kind.title)のファイルを選ぶ")
+                .accessibilityValue(fileAccessibilityValue(status, name: nil))
                 .disabled(specialSchedules.busy || !specialSchedules.ready)
             }
         }
@@ -53,6 +57,7 @@ extension SpecialSchedulesModel {
     }
 
     func fileStatus(_ kind: SpecialScheduleKind) -> StatusPresentation {
+        if let status = fileMonitor.timeoutStatus(kind.rawValue) { return status }
         if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue),
            let running = FilePipeline.shared.snapshot[source], running.stage != .succeeded && running.stage != .unchanged {
             return running.presentation
@@ -68,6 +73,7 @@ extension MaterialsModel {
     }
 
     func fileStatus(_ kind: MaterialKind) -> StatusPresentation {
+        if let status = fileMonitor.timeoutStatus(kind.rawValue) { return status }
         if let source = FileRefreshDiagnostics.Source(rawValue: kind.rawValue),
            let running = FilePipeline.shared.snapshot[source], running.stage != .succeeded && running.stage != .unchanged {
             return running.presentation

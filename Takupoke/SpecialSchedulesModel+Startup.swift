@@ -3,7 +3,7 @@ import SwiftUI
 
 extension SpecialSchedulesModel {
     func runPendingFileRefresh() {
-        let requested = fileRefreshQueue.take(ready: ready, busy: busy, blocked: Set(FilePipeline.shared.activeSources.map(\.rawValue)))
+        let requested = fileRefreshQueue.take(ready: ready, busy: busy, blocked: Set(FilePipeline.shared.activeSources.map(\.rawValue)).union(fileMonitor.blockedSources))
         guard !requested.isEmpty else { return }
         perform(success: nil) { store, control, _ in
             try Self.refreshSelectedFiles(store, requested: requested, control: control)
@@ -20,6 +20,8 @@ extension SpecialSchedulesModel {
                 FileRefreshDiagnostics.shared.record(.refreshStarted, source: diagnosticSource)
                 let record = store.records[kind]
                 let saved = record.flatMap { RecoveryConversion.trustsAcquisitionCache($0.analysis,hash:source.digest) ? $0:nil }
+                let needsClockValidation = kind == .exam && source.failure == nil && saved?.digest == source.digest
+                    && saved?.analysis.consecutiveTimes == nil && saved?.analysis.recoveredExamClockEvidence == nil
                 let needsAnalysis = PDFParseAttempt.needsAnalysis(digest: source.digest, parserVersion: SpecialScheduleAnalysis.parserVersion,
                     analysisDigest: saved?.digest, analysisVersion: saved?.analysis.version, attemptDigest: source.digest,
                     failure: source.failure, attemptVersion: source.attemptParserVersion)
@@ -30,19 +32,25 @@ extension SpecialSchedulesModel {
                     if let grant = source.grant {
                         let staged = store.newStagingURL()
                         defer { store.discardStaging(staged) }
-                        var stale = false
-                        let url = try URL(resolvingBookmarkData: grant.bookmark, options: [],
-                                          relativeTo: nil, bookmarkDataIsStale: &stale)
-                        guard !stale else { throw MaterialError.accessExpired }
-                        let selection = ScopedMaterialSelection(url)
-                        let (name, count, digest, receipt) = try Self.copy(selection, to: staged, kind: kind, control: control)
+                        let reference = try MaterialBookmarkResolution.resolve(grant.bookmark)
+                        let selection = ScopedMaterialSelection(reference.url)
+                        let acquired = try selection.access { _ in
+                            let copy = try Self.copy(selection, to: staged, kind: kind, control: control)
+                            guard reference.isStale else { return (copy, Optional<SourceGrant>.none) }
+                            guard let saved = store.selectedURL(for: kind) else { throw MaterialError.bookmarkStale }
+                            let renewed = try reference.renewedGrant(grant, receivedDigest: copy.digest, savedDigest: source.digest) {
+                                try MaterialFileReader.copy(saved, to: nil, isWorkbook: false, check: control.check).digest
+                            }
+                            return (copy, renewed)
+                        }
+                        let ((name, count, digest, receipt), renewed) = acquired
                         FileRefreshDiagnostics.shared.record(digest == source.digest ? .hashSame : .hashChanged,
                                                              source: diagnosticSource)
                         control.pipelineTicket?.enter(.validating)
                         try control.check()
-                        if digest == source.digest, !force, store.hasSelectedFile(kind) {
+                        if digest == source.digest, (!force || renewed != nil), store.hasSelectedFile(kind) {
                             control.pipelineTicket?.unchanged()
-                            try store.recordSuccessfulCheck(kind, digest: digest, originalName:name)
+                            try store.recordSuccessfulCheck(kind, digest: digest, originalName: name, renewedGrant: renewed)
                         } else {
                             try store.saveSelection(staged: staged, kind: kind, originalName: name,
                                                     byteCount: count, digest: digest, grant: grant)
@@ -54,7 +62,7 @@ extension SpecialSchedulesModel {
                     }
                     // Check the provider before retrying an older local parser failure.
                     // A malformed old copy must not prevent acquiring its replacement.
-                    if changed || needsAnalysis || force {
+                    if changed || needsAnalysis || needsClockValidation || force {
                         guard let selectedURL = store.selectedURL(for: kind),
                               let selectedSource = store.sources[kind] else { throw MaterialError.unavailable }
                         control.pipelineTicket?.enter(.parsing)
@@ -68,7 +76,8 @@ extension SpecialSchedulesModel {
                                                                        check: parseCheck)
                         control.pipelineTicket?.enter(.validating)
                         try parseCheck()
-                        try store.saveAnalysis(analysis); control.pipelineTicket?.parsed()
+                        try store.acceptParsedAnalysis(analysis, selectedURL: selectedURL, check: parseCheck)
+                        control.pipelineTicket?.parsed()
                     }
                     }
                 } catch {

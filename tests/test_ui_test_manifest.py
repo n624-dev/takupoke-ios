@@ -25,6 +25,126 @@ def result_line(test, status="passed"):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_material_section_order_uses_overlapping_native_scroll_search(self):
+        checks = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text()
+        details = block(checks, "func testSettingsAccountDataAndFileDetails()")
+        self.assertIn('materialSection("操作", on: title, preserveNearbySections: true)', details)
+        self.assertIn('XCTAssertEqual(sectionIDs, ["material-file-section", "material-actions-section"])', details)
+        self.assertIn("XCTAssertTrue(contained(actions, in: bodyViewport()))", details)
+        navigation = (ROOT / "tests/ui/ApplicationChecks+Navigation.swift").read_text()
+        section = block(navigation, "func materialSection(")
+        self.assertIn("preserveNearbyRows: preserveNearbySections", section)
+        self.assertIn("XCTAssertEqual(matches.count, 1", section)
+        visibility = block(navigation, "func visible(_ e:")
+        overlap = block(visibility, "if preserveNearbyRows && !usable(frame)")
+        self.assertIn("let distance = current.height / 4", overlap)
+        self.assertIn("start.press(forDuration: 0.1, thenDragTo: end", overlap)
+        self.assertIn("for _ in 0..<6", visibility)
+
+    def test_both_countdown_edit_routes_typecheck_with_the_current_initializer(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to type-check the app editor calls")
+        source = (ROOT / "Takupoke/CountdownView.swift").read_text()
+        init = block(source, "    init(automatic: CountdownAutomatic)")
+        calls = [line.strip() for line in source.splitlines() if "CountdownAutomaticEditor(" in line]
+        self.assertEqual(len(calls), 2)
+        probe = """
+struct CountdownAutomatic {
+    struct Preferences { let notifications = false }
+    let enabled = true
+    let preferences = Preferences()
+}
+@propertyWrapper struct State<Value> {
+    var wrappedValue: Value
+    init(wrappedValue: Value) { self.wrappedValue = wrappedValue }
+    init(initialValue: Value) { wrappedValue = initialValue }
+}
+struct EditorModel {
+    struct Library { let automatic = CountdownAutomatic() }
+    let library = Library()
+    var automaticProgress: (key: Int, date: Int)?
+}
+private struct CountdownAutomaticEditor {
+    @State var automatic: CountdownAutomatic
+    private let oldNotifications: Bool
+INITIALIZER
+}
+func openFromListAndDetail(model: EditorModel) {
+CALLS
+}
+""".replace("INITIALIZER", init).replace("CALLS", "\n".join("    _ = " + call for call in calls))
+        with tempfile.TemporaryDirectory(prefix="countdown-edit-routes-") as directory:
+            path = Path(directory) / "CountdownEditRoutes.swift"
+            path.write_text(probe)
+            subprocess.run([compiler, "-typecheck", str(path)], check=True, timeout=30)
+
+    def test_countdown_progress_fixture_uses_matching_confirmed_source_evidence(self):
+        fixture = (ROOT / "tests/ui/ApplicationFixture+Events.swift").read_text()
+        progress = block(fixture, "static func seedProgress(")
+        self.assertIn('arguments.contains("--countdown-progress-announced") ? 0 : 2', progress)
+        self.assertIn('today.addingDays(7)', progress)
+        self.assertIn('responseDataVersion: version, lastEventsCheckedAt: observed', progress)
+        self.assertIn('dataVersion: version,', progress)
+        self.assertIn('adoptedSourcePdfSha256: source, status: .matched, lastSuccessfulStatus: .matched', progress)
+        self.assertIn('receivedAt: observed, response: status, requestedTarget: .init(saved)', progress)
+        self.assertLess(progress.index('try store.save(saved)'), progress.index('try store.saveSourceStatus'))
+        test = block((ROOT / "tests/ui/ApplicationChecks+Events.swift").read_text(),
+                     "func testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel()")
+        self.assertIn('XCTAssertFalse(progress.exists)', test)
+        self.assertIn('contains("・自動")', test)
+        self.assertIn('card.label.contains(label)', test)
+        journey = block((ROOT / "tests/ui/ApplicationChecks+Events.swift").read_text(),
+                        "func testCountdownRegistersFollowsCalendarAndKeepsSourceWarningsConsistent()")
+        menu = block(journey, "func add(_ mode:")
+        self.assertEqual(menu.count("app.snapshot()"), 1)
+        self.assertIn('$0.elementType == .button && $0.label == mode', menu)
+        self.assertIn('choices.count > 1 { ambiguous = true; return true }', menu)
+        self.assertIn('choice.isEnabled, self.usable(choice.frame)', menu)
+        self.assertIn('root.frame.contains(choice.frame)', menu)
+        self.assertIn('timeout: 5) == .completed, !ambiguous', menu)
+        self.assertEqual(menu.count('NativeTestContacts.send('), 1)
+        self.assertLess(menu.index('NativeTestContacts.send('), menu.index('screen(destination)'))
+
+    def test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch(self):
+        source = (ROOT / "tests/ui/ApplicationChecks+Changes.swift").read_text()
+        check = block(source, "func testChangeRowsRequireSelectionAndConfirmationAndPersistAfterRelaunch()")
+        status = block(check, "func requireCompletedAnalysis()")
+        self.assertEqual(status.count("app.snapshot()"), 1)
+        self.assertIn('$0.identifier == "change-analysis-status"', status)
+        self.assertIn('statuses.count > 1 { ambiguous = true; return true }', status)
+        self.assertIn('XCTAssertFalse(ambiguous,', status)
+        self.assertIn('status.label.hasSuffix("解析済み") || (status.value as? String) == "解析済み"', status)
+        self.assertIn('timeout: 15), .completed', status)
+        before, after = check.split("launchReady()", 1)
+        for phase in (before[before.index('XCTAssertTrue(count.waitForExistence'):], after):
+            self.assertIn('requireCompletedAnalysis()', phase)
+            self.assertIn('count.label.contains("103行")', phase)
+            self.assertIn('除外した行：3〜4行目、200〜300行目', phase)
+            self.assertIn('assertRetainedChangeRows(stage:', phase)
+
+    def test_notification_navigation_can_reset_timetable_details_from_its_own_file(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the cross-file access check")
+        timetable = ROOT / "Takupoke/TimetableView.swift"
+        declaration = next(line for line in timetable.read_text().splitlines() if "func closeDetailSelections()" in line)
+        function = block(timetable.read_text(), declaration)
+        navigation = timetable.with_name("TimetableView+Navigation.swift").read_text()
+        action = block(navigation, "    func consumeUpdateRequest()")
+        call = next(line for line in action.splitlines() if "closeDetailSelections()" in line)
+        with tempfile.TemporaryDirectory(prefix="timetable-notice-access-") as directory:
+            root = Path(directory)
+            view = root / "TimetableView.swift"
+            # SwiftUI's State setters are nonmutating. The stub supplies the
+            # same property semantics independently of the view framework.
+            details = "\n".join(f"    var {name}: Int? {{ get {{ nil }} nonmutating set {{}} }}"
+                                for name in ("selectedLesson", "selectedSpecial", "selectedChange"))
+            view.write_text("struct TimetableView {\n" + details + "\n" + function + "\n}\n")
+            route = root / "TimetableView+Navigation.swift"
+            route.write_text("extension TimetableView {\n    func clearDetailsForNotification() {\n" + call + "\n    }\n}\n")
+            subprocess.run([compiler, "-typecheck", str(view), str(route)], check=True, timeout=30)
+
     def test_countdown_os_trace_adds_only_fixed_stage_observation(self):
         source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
         observed = app_test_project.instrument_countdown_notification_center(source)
@@ -146,6 +266,7 @@ OBSERVE
         self.assertEqual(contacts.count("try deliver(record)"), 1)
         generated_grid = app_test_project.instrument_week_motion(source)
         promotion = generated_grid.split("private func promote(", 1)[1].split("private func finishHeight(", 1)[0]
+        self.assertLess(promotion.index("releaseHeldScroll()"), promotion.index('checkpoint("scroll-restored")'))
         self.assertLess(promotion.index("transition = nil"), promotion.index("signalHeightWindow()"))
         self.assertIn("if heightAdjustment != nil", promotion)
         swift = (ROOT / "tests/ui/ApplicationChecks+WeekAppearance.swift").read_text()
@@ -306,6 +427,148 @@ precondition(views[2].position == CGPoint(x:5,y:29))
             executable = path.with_suffix("")
             subprocess.run([compiler, "-module-cache-path", scratch, str(path), "-o", str(executable)],
                            check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=10)
+
+    def test_native_motion_only_invalidates_the_footer_for_horizontal_changes(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify week motion observation")
+        grid = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text(encoding="utf-8")
+        week_model = (ROOT / "Takupoke/TimetableSchedule+Weeks.swift").read_text(encoding="utf-8")
+        attrs = grid.split("private final class WeekPageMotion", 1)[0].rstrip().splitlines()[-1]
+        state = "\n".join(line for line in grid.splitlines() if "var transition: Transition?" in line
+                          or "var reservedHeight: CGFloat?" in line)
+        update = block(grid, "private func advanceFrame(")
+        setup = '''import Foundation
+import Observation
+typealias SchoolDate = Int
+struct CADisplayLink { let timestamp: Double; let targetTimestamp: Double }
+struct Transaction { var disablesAnimations = false }
+func withTransaction(_ transaction: Transaction, _ work: () -> Void) {
+    precondition(transaction.disablesAnimations); work()
+}
+final class Counter: @unchecked Sendable { var value = 0 }
+'''
+        probe = '''
+    var reduceMotion = false
+    var slideClock = WeekSlideClock()
+    var lastSlideProgress: CGFloat?
+    var arrivals = 0
+    func adjustHeight(_ link: CADisplayLink) {}
+    func settle(id: UUID) {
+        precondition(transition?.id == id)
+        lastSlideProgress = transition?.slideProgress
+        arrivals += 1
+        transition = nil
+    }
+    func run(reducing: Bool, direction: CGFloat) {
+        reduceMotion = reducing
+        let source = 2, destination = direction == 1 ? 3 : 1
+        transition = Transition(source: source, destination: destination, rubber: -direction * 30,
+            width: 360, direction: direction, targetHeight: 240)
+        let release = transition!.rubber
+        precondition(offset(for: source, selected: source, viewportWidth: 360) == 0)
+        precondition(offset(for: destination, selected: source, viewportWidth: 360) == (reducing ? 0 : direction * 360 + release))
+        let footer = Counter(), row = Counter()
+        withObservationTracking { _ = transition } onChange: { footer.value += 1 }
+        withObservationTracking { _ = reservedHeight } onChange: { row.value += 1 }
+        reservedHeight = 300
+        precondition(footer.value == 0 && row.value == 1)
+        for frame in 0..<30 where arrivals == 0 {
+            let time = Double(frame) / 60
+            advanceFrame(CADisplayLink(timestamp: time, targetTimestamp: time + 1.0 / 60))
+            if let moving = transition {
+                let oldOffset = offset(for: source, selected: source, viewportWidth: 360)
+                let newOffset = offset(for: destination, selected: source, viewportWidth: 360)
+                if reducing {
+                    precondition(oldOffset == 0 && newOffset == 0)
+                } else {
+                    precondition(abs(newOffset - (oldOffset + release) - direction * 360) < 0.001)
+                    precondition(abs(oldOffset + release * moving.slideProgress + direction * 360 * moving.slideProgress) < 0.001)
+                }
+            }
+        }
+        precondition(arrivals == 1 && footer.value == 1 && transition == nil)
+        precondition(lastSlideProgress.map { $0 > 0 && $0 < 1 } == true)
+        precondition(offset(for: destination, selected: destination, viewportWidth: 360) == 0)
+        precondition(opacity(for: source, selected: destination) == 0)
+        precondition(opacity(for: destination, selected: destination) == 1)
+    }
+}
+@main struct Probe {
+    @MainActor static func main() {
+        for reducing in [false, true] {
+            for direction: CGFloat in [-1, 1] { Motion().run(reducing: reducing, direction: direction) }
+        }
+    }
+}
+'''
+        begin = block(grid, "private func begin(from week:")
+        restore = block(grid, "private func releaseHeldScroll()")
+        self.assertIn("scroll.setContentOffset(CGPoint(x: releasedOffset, y: scroll.contentOffset.y)", begin)
+        self.assertIn("heldScrollEdge = releasedOffset + rubber", begin)
+        self.assertNotIn("x: heldScrollEdge", begin)
+        self.assertIn("scroll.setContentOffset(CGPoint(x: heldScrollEdge, y: scroll.contentOffset.y)", restore)
+        for name in ("private func promote(", "func cancel()"):
+            self.assertIn("releaseHeldScroll()", block(grid, name))
+        motion_methods = "\n".join(block(grid, name) for name in ("func offset(for week:", "func opacity(for week:"))
+        program = "\n".join((setup, block(week_model, "struct WeekSlideClock"), attrs + " final class Motion: NSObject {",
+                             block(grid, "struct Transition"), state, update, motion_methods, probe))
+        with tempfile.TemporaryDirectory(prefix="takupoke-week-landing-") as scratch:
+            path = Path(scratch) / "check.swift"
+            path.write_text(program, encoding="utf-8")
+            executable = path.with_suffix("")
+            # Swift 6.1.2's Linux Observation dylib references a private Core symbol.
+            linker = ["-static-stdlib"] if sys.platform == "linux" else []
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", *linker, str(path), "-o", str(executable)],
+                           check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=10)
+
+    def test_week_height_changes_reuse_equal_positioned_pages(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify reuse of positioned pages")
+        grid = (ROOT / "Takupoke/TimetableView+Grid.swift").read_text()
+        declaration = grid.split("private struct PositionedWeekPage:", 1)[1].split("    var body:", 1)[0]
+        page = "private struct PositionedWeekPage:" + declaration.replace("View, Equatable", "Equatable", 1) + "}"
+        canvas = block(grid, "private struct WeekPagesCanvas: View")
+        self.assertIn("WeekPagesLayout(currentIndex: currentIndex, reservedHeight: motion.reservedHeight)", canvas)
+        self.assertIn("acceptsTouches: isDisplayed && motion.transition == nil)\n                    .equatable()", canvas)
+        timetable = (ROOT / "Takupoke/TimetableView.swift").read_text()
+        main_body = block(timetable, "var body: some View")
+        self.assertEqual(main_body.count("weekBounds"), 1)
+        self.assertIn("weekSection(within: bounds)", main_body)
+        controls_source = (ROOT / "Takupoke/TimetableView+WeekSection.swift").read_text()
+        self.assertNotIn("weekBounds", controls_source)
+        controls = block(controls_source, "fileprivate func weekControls(")
+        self.assertEqual(controls.count("weekStart"), 1)
+        self.assertEqual(controls.count("bounds.contains("), 2)
+        self.assertIn("bounds: bounds, revision: revision", block(grid, "func weekGrid("))
+        self.assertIn("weekBounds.contains(target)", block(grid, "func weekGrid("))
+        program = """import Foundation
+struct WeekPage: Equatable { let date: Int; let revision: Int }
+final class WeekPageMotion { var reservedHeight: CGFloat = 240 }
+PAGE
+private let motion = WeekPageMotion()
+private func rendered(date: Int = 3, revision: Int = 1, offset: CGFloat = 0, opacity: Double = 1,
+                      displayed: Bool = true, acceptsTouches: Bool = true,
+                      using owner: WeekPageMotion = motion) -> PositionedWeekPage {
+    PositionedWeekPage(page: WeekPage(date: date, revision: revision), motion: owner,
+                       horizontalOffset: offset, opacity: opacity, isDisplayed: displayed, acceptsTouches: acceptsTouches)
+}
+private let landed = rendered()
+motion.reservedHeight = 315
+precondition(landed == rendered())
+precondition(landed != rendered(date: 4) && landed != rendered(revision: 2))
+precondition(landed != rendered(offset: -50) && landed != rendered(opacity: 0.5))
+precondition(landed != rendered(displayed: false) && landed != rendered(acceptsTouches: false))
+precondition(landed != rendered(using: WeekPageMotion()))
+""".replace("PAGE", page)
+        with tempfile.TemporaryDirectory(prefix="takupoke-positioned-week-") as scratch:
+            source = Path(scratch) / "main.swift"
+            source.write_text(program, encoding="utf-8")
+            executable = source.with_suffix("")
+            subprocess.run([compiler, str(source), "-o", str(executable)], check=True, timeout=30)
             subprocess.run([str(executable)], check=True, timeout=10)
 
     def test_generated_week_selection_initialization_respects_actor_isolation(self):
@@ -583,6 +846,51 @@ enum SimulatorEventsYearFixture {
             with self.assertRaises(AssertionError):
                 app_test_project.instrument_service_status_endpoint(invalid)
         self.assertEqual(len(re.findall(r'\b(?:let|var) \w+ = URLSessionConfiguration\.(?:ephemeral|default)', generated)), 1)
+
+    def test_status_launch_does_not_inherit_a_previous_events_fixture(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the real fixture storage reset")
+        source = (ROOT / "tests/ui/ApplicationFixture+Events.swift").read_text(encoding="utf-8")
+        app = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
+        seed = app.split("private static func seed()", 1)[1]
+        self.assertLess(seed.index("SimulatorEventsCacheFixture.resetForIsolatedLaunch"), seed.index("let onlyDistributedData"))
+        self.assertIn('FixtureCITrace.mark(clearedEvents ? "status-fixture-prior-cache-cleared" : "status-fixture-no-prior-cache")', seed)
+        checks = '''
+let base = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+let cache = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
+let previous = cache.appendingPathComponent("events-2032.json")
+let other = base.appendingPathComponent("kept.json")
+let bytes = Data("entirely fictional".utf8)
+try bytes.write(to: other)
+let launches: [([String], Bool)] = [
+    (["--reset-fixture"], true),
+    (["--only-distributed-data"], true),
+    (["--countdown-calendar"], true),
+    (["--only-distributed-data", "--reset-fixture"], false),
+    (["--countdown-calendar", "--reset-fixture"], false),
+]
+for (arguments, keepsPublicEvents) in launches {
+    try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
+    try bytes.write(to: previous)
+    let removed = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: arguments)
+    precondition(removed != keepsPublicEvents)
+    precondition(FileManager.default.fileExists(atPath: previous.path) == keepsPublicEvents)
+    let unrelated = try Data(contentsOf: other)
+    precondition(unrelated == bytes)
+}
+let absent = try SimulatorEventsCacheFixture.resetForIsolatedLaunch(base, arguments: ["--only-distributed-data", "--reset-fixture"])
+precondition(!absent)
+'''
+        with tempfile.TemporaryDirectory(prefix="takupoke-status-fixture-") as scratch:
+            root = Path(scratch)
+            swift = root / "reset.swift"
+            swift.write_text("import Foundation\nenum SimulatorEventsCacheFixture {\n"
+                             + block(source, "static func resetForIsolatedLaunch(") + "\n}\n" + checks, encoding="utf-8")
+            executable = root / "reset"
+            subprocess.run([compiler, "-swift-version", "5", str(swift), "-o", str(executable)],
+                           check=True, timeout=30)
+            subprocess.run([str(executable), scratch], check=True, timeout=10)
 
     def test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift(self):
         launch = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
@@ -1100,46 +1408,55 @@ METHOD
                             "-o", str(path / "probe")], check=True)
             subprocess.run([str(path / "probe")], check=True)
 
-    def test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy(self):
+    def test_retention_observation_preserves_the_real_automatic_recovery(self):
         source = (ROOT / "Takupoke/ContentView.swift").read_text(encoding="utf-8")
         self.assertNotIn("FixtureLaunchDiagnostics", source)
         generated = app_test_project.instrument_retention_recovery(source)
-        self.assertEqual(generated.count(app_test_project.RETENTION_ACTION_TRACE), 1)
-        self.assertEqual(generated.count(app_test_project.RETENTION_DIALOG_TRACE), 1)
-        self.assertEqual(generated.replace(app_test_project.RETENTION_ACTION_TRACE, "", 1)
-                         .replace(app_test_project.RETENTION_DIALOG_TRACE, "", 1), source)
-        for changed in (source.replace('confirmingRetentionRecovery = true', 'confirmingRetentionRecovery = false'),
-                        source.replace('.onChange(of: dataReady)', '.onChange(of: retentionFailure)'),
-                        source + source):
+        self.assertEqual(generated.count(app_test_project.RETENTION_RECOVERY_TRACE), 1)
+        self.assertEqual(generated.replace(app_test_project.RETENTION_RECOVERY_TRACE, "", 1), source)
+        for changed in (source.replace('.onChange(of: dataReady)', '.onChange(of: retentionFailure)'), source + source):
             with self.assertRaises(AssertionError):
                 app_test_project.instrument_retention_recovery(changed)
 
         notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
-        generated = app_test_project.instrument_retention_notification_reads(notifications)
+        generated = app_test_project.instrument_retention_notifications(notifications)
         for stage in ("pending", "delivered"):
             for phase in ("request", "callback"):
                 self.assertEqual(generated.count(f'FixtureCITrace.mark("retention-notice-{stage}-{phase}-\\(fixtureRetentionRead)")'), 1)
-        for original, observed in app_test_project.retention_notice_read_insertions():
-            self.assertEqual(generated.count(observed), 1)
+            for phase in ("start", "end"):
+                self.assertEqual(generated.count(f'FixtureCITrace.mark("retention-update-{stage}-removal-{phase}")'), 1)
+        reads = list(app_test_project.retention_notice_read_insertions())
+        removals = list(app_test_project.retention_notice_removal_insertions())
+        for _, observed in reads:
             self.assertIn('callback(requests)', observed)
+        for original, observed in removals:
+            self.assertEqual(observed.count(original), 1)
+            self.assertLess(observed.index('-removal-start'), observed.index(original))
+            self.assertLess(observed.index(original), observed.index('-removal-end'))
+        for original, observed in reads + removals:
+            self.assertEqual(generated.count(observed), 1)
             generated = generated.replace(observed, original, 1)
             for changed in (notifications.replace(original, ""), notifications + original):
                 with self.assertRaises(AssertionError):
-                    app_test_project.instrument_retention_notification_reads(changed)
+                    app_test_project.instrument_retention_notifications(changed)
         self.assertEqual(generated, notifications)
         fixture = (ROOT / "tests/ui/ApplicationFixture.swift").read_text(encoding="utf-8")
         readiness = fixture.split("struct SimulatorRetentionProofView:", 1)[1].split("private final class FixtureYearInputObservation", 1)[0]
-        self.assertIn("center.pendingNotificationRequests()", readiness)
-        self.assertIn("center.deliveredNotifications()", readiness)
-        self.assertLess(readiness.index("await (pending,delivered)"), readiness.index("notificationServiceReady = true"))
-        self.assertNotRegex(readiness, r"requestAuthorization|removePending|removeDelivered|Task\.sleep")
+        self.assertIn('accessibilityIdentifier("fixture-retention-proof")', readiness)
+        self.assertIn('accessibilityIdentifier("fixture-retention-bytes")', readiness)
+        self.assertNotRegex(readiness, r"UNUserNotificationCenter|pendingNotificationRequests|deliveredNotifications|requestAuthorization|removePending|removeDelivered|Task\.sleep")
+        launcher = (ROOT / "tests/ui/ApplicationChecks.swift").read_text(encoding="utf-8")
+        setup = launcher.split('if name.contains("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals")', 1)[1].split('override func tearDown', 1)[0]
+        self.assertLess(setup.index('launchReady(waitForReadyMarker: false)'), setup.index('launchReady()'))
+        self.assertNotIn('保存期間の管理情報を復旧', launcher)
         case = (ROOT / "tests/ui/ApplicationChecks+Settings.swift").read_text(encoding="utf-8")
-        recovery = case.split("func testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
-        self.assertLess(recovery.index("XCTWaiter.wait(for:[dismissed,observed],timeout:10)"),
-                        recovery.index("XCTWaiter.wait(for:[serviceReady],timeout:90)"))
-        self.assertLess(recovery.index("XCTWaiter.wait(for:[serviceReady],timeout:90)"), recovery.index("let currentBounds=recovery.frame"))
-        self.assertRegex(recovery, r'guard XCTWaiter\.wait\(for:\[serviceReady\],timeout:90\) == \.completed else \{\s+XCTFail\([^\n]+\)\s+return\s+\}')
-        self.assertIn("notice.waitForExistence(timeout: 30)", recovery)
+        recovery = case.split("func testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals()", 1)[1].split("func testSettingsAccountDataAndFileDetails()", 1)[0]
+        self.assertIn('notice.waitForExistence(timeout: 45)', recovery)
+        self.assertLess(recovery.index('notice.buttons["閉じる"].tap()'), recovery.index('notice.waitForNonExistence(timeout: 10)'))
+        self.assertLess(recovery.index('notice.waitForNonExistence(timeout: 10)'), recovery.index('app.staticTexts["fixture-ready"]'))
+        self.assertIn('marker=1;old=0;prefs=1;public=1;original=1;archive=1', recovery)
+        self.assertLess(recovery.index('let fingerprints'), recovery.index('app.terminate()'))
+        self.assertIn('XCTAssertFalse(app.alerts["保存期間の復旧"].exists)', recovery)
 
     def test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files(self):
         runner = (ROOT / "tools/test-app-ui.sh").read_text(encoding="utf-8")
@@ -1295,7 +1612,7 @@ METHOD
         self.assertIn("testConsecutiveWeekPullsTrackOverlappingContactsWithoutRepeating",
                       manifest.PROBE_GROUPS["week-navigation-and-yellow"])
         self.assertIn("testChangedRoomInHomeWeekAndList", manifest.SHARDS["A"])
-        self.assertIn("testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData", manifest.SHARDS["A"])
+        self.assertIn("testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals", manifest.SHARDS["A"])
         self.assertIn("testFirstFailedSpecialDocumentsWarnOnHomeAndWeekAndOpenTheirDetails", manifest.SHARDS["A"])
         self.assertIn("testAuxiliaryReadFailuresKeepLessonsAndWarnUntilFilesRecover", manifest.SHARDS["A"])
         self.assertTrue(all(manifest.SHARDS[shard] for shard in ("A", "B")))

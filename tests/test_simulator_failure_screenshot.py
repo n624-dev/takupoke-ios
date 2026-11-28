@@ -2,12 +2,17 @@ import base64
 from contextlib import redirect_stdout
 import hashlib
 import io
+import os
 from pathlib import Path
+import shutil
+import struct
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import zlib
+from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -18,6 +23,51 @@ IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQV
 
 
 class SimulatorFailureScreenshotTests(unittest.TestCase):
+    def test_xctest_warning_does_not_consume_the_single_failure_capture(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the shared screenshot hook")
+        source = (ROOT / "tests/Support/SimulatorIdentityTestCase.swift").read_text(encoding="utf-8")
+        # Supply the native severity and screenshot boundaries. The real
+        # XCTest override decides whether to attempt a capture and still
+        # reports every issue to its superclass.
+        program = '''import Foundation
+struct XCTIssue { let isFailure: Bool }
+class Base {
+    var received: [Bool] = []
+    func record(_ issue: XCTIssue) { received.append(issue.isFailure) }
+}
+final class Hook: Base {
+    private static var captured = 0
+    private static var attempted = false
+    @MainActor private static func recordFailureScreenshot() {
+        if !attempted { captured += 1; attempted = true }
+    }
+    @MainActor static func run() {
+        let probe = Hook()
+        probe.record(XCTIssue(isFailure: false))
+        precondition(captured == 0)
+        probe.record(XCTIssue(isFailure: true))
+        probe.record(XCTIssue(isFailure: false))
+        probe.record(XCTIssue(isFailure: true))
+        precondition(captured == 1)
+        precondition(probe.received == [false, true, false, true])
+    }
+HOOK
+}
+@main struct Probe {
+    @MainActor static func main() { Hook.run() }
+}
+'''.replace("HOOK", block(source, "override func record(_ issue: XCTIssue)"))
+        with tempfile.TemporaryDirectory(prefix="takupoke-screenshot-issue-") as scratch:
+            root = Path(scratch)
+            swift = root / "hook.swift"
+            swift.write_text(program, encoding="utf-8")
+            binary = root / "hook"
+            subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", str(swift), "-o", str(binary)],
+                           check=True, timeout=30)
+            subprocess.run([str(binary)], check=True, timeout=10)
+
     def test_fallback_skips_a_complete_native_capture_and_keeps_once_limit(self):
         script = r'''
 source tools/simulator-ci-trace.sh
@@ -97,22 +147,34 @@ capture_failed_simulator_screen 143 "$1" "$2"
                     self.assertEqual(list(Path(scratch).iterdir()), [])
 
     def test_normalizes_unusable_native_output_to_a_bounded_png(self):
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+        height = screenshot.MAX_IMAGE_EDGE + 1
+        tall_image = (
+            screenshot.PNG_START + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, height, 8, 0, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"\0\0" * height)) + screenshot.PNG_END
+        )
+        self.assertLess(len(tall_image), screenshot.MAX_IMAGE_BYTES)
+
         def run(args, **kwargs):
             if args[0] == "xcrun":
-                Path(args[-1]).write_bytes(b"foreign image format")
+                Path(args[-1]).write_bytes(original)
             else:
                 self.assertEqual(args[:6], ["sips", "-s", "format", "png", "-Z", "1024"])
                 self.assertEqual(kwargs["timeout"], 5)
-                self.assertEqual(Path(args[6]).read_bytes(), b"foreign image format")
+                self.assertEqual(Path(args[6]).read_bytes(), original)
                 Path(args[-1]).write_bytes(IMAGE)
             return subprocess.CompletedProcess(args, 0)
 
-        with tempfile.TemporaryDirectory() as scratch, patch.object(screenshot.subprocess, "run", side_effect=run) as command:
-            output = io.StringIO()
-            with redirect_stdout(output):
-                screenshot.capture(DEVICE, scratch)
-            self.assertEqual(command.call_count, 2)
-            self.assertEqual(list(Path(scratch).iterdir()), [])
-        lines = output.getvalue().splitlines()
-        self.assertEqual(lines[0], "TAKUPOKE_SIMULATOR_FAILURE_SCREEN normalize reason=invalid-png")
-        self.assertEqual(base64.b64decode(lines[2].split()[-1], validate=True), IMAGE)
+        for original, reason in ((b"foreign image format", "invalid-png"), (tall_image, "dimensions")):
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as scratch, \
+                    patch.object(screenshot.subprocess, "run", side_effect=run) as command:
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    screenshot.capture(DEVICE, scratch)
+                self.assertEqual(command.call_count, 2)
+                self.assertEqual(list(Path(scratch).iterdir()), [])
+                lines = output.getvalue().splitlines()
+                self.assertEqual(lines[0], f"TAKUPOKE_SIMULATOR_FAILURE_SCREEN normalize reason={reason}")
+                self.assertEqual(base64.b64decode(lines[2].split()[-1], validate=True), IMAGE)

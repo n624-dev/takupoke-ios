@@ -37,6 +37,7 @@ final class ApplicationData: ObservableObject {
     var readyForCurrentPeriod: Bool { ready && loadedPeriod == SchoolDataPeriod.current() }
     @Published private(set) var retentionFailure = false
     @Published var retentionNotice = false
+    @Published var recoveredRetention: String?
     @Published private(set) var retentionFailureReason: SchoolDataRetention.Failure?
     var canRecoverRetention: Bool {
         retentionFailureReason == .invalidMarker || retentionFailureReason == .notificationCleanup(recoveringInvalidMarker:true)
@@ -61,25 +62,36 @@ final class ApplicationData: ObservableObject {
             }
         }
         eventsNetwork.start(queue: DispatchQueue(label: "jp.n624.takupoke.events-network"))
-        countdown.onChange = { [weak self] in self?.updateCountdown() == true }
+        countdown.onChange = { [weak self] in
+            guard let self else { return false }
+            return self.retentionFailure ? self.updatePublicCountdown() : self.updateCountdown()
+        }
         schoolEvents.$saved.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         schoolEvents.$sourcePresentationRevision.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$state.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         materials.$failed.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$ready.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        specialSchedules.$failed.removeDuplicates().sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$records.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         specialSchedules.$sources.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
-        mappings.$current.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+        mappings.$current.sink { [weak self] _ in
+            self?.checkCountdownWhenActive()
+            self?.checkNotificationsWhenActive()
+        }.store(in: &observations)
         homeClock.$epoch.sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
             .receive(on: RunLoop.main)
             .map { _ in
                 let defaults = UserDefaults.standard
                 return [defaults.string(forKey: "timetableSelectedClasses") ?? "", String(defaults.bool(forKey: "timetableInternationalStudent")),
-                        defaults.string(forKey: ChangeNormalizer.schoolYearSettingKey) ?? ""]
+                        defaults.string(forKey: ChangeNormalizer.schoolYearSettingKey) ?? "",
+                        String(defaults.object(forKey: "timetableIncludesChanges") as? Bool ?? true)]
             }.removeDuplicates()
-            .sink { [weak self] _ in self?.checkCountdownWhenActive() }.store(in: &observations)
+            .sink { [weak self] _ in
+                self?.checkCountdownWhenActive()
+                self?.checkNotificationsWhenActive()
+            }.store(in: &observations)
     }
 
     private var countdownUpdateScheduled = false
@@ -90,7 +102,9 @@ final class ApplicationData: ObservableObject {
         Task { @MainActor [weak self] in
             guard let self else { return }
             self.countdownUpdateScheduled = false
-            if UIApplication.shared.applicationState == .active { self.updateCountdown() }
+            guard UIApplication.shared.applicationState == .active, !self.preparing else { return }
+            if self.retentionFailure { self.updatePublicCountdown() }
+            else { self.updateCountdown() }
         }
     }
 
@@ -101,13 +115,21 @@ final class ApplicationData: ObservableObject {
         return true
     }
 
+    @discardableResult
+    func updatePublicCountdown() -> Bool {
+        guard retentionFailure, loadedPeriod == nil, UIApplication.shared.isProtectedDataAvailable else { return false }
+        countdown.update(using: self, at: Date())
+        return true
+    }
+
     private func checkNotificationsWhenActive() {
         Task { @MainActor [weak self] in
             guard let self, self.readyForCurrentPeriod, UIApplication.shared.applicationState == .active,
                   let period = self.loadedPeriod else { return }
             await self.notifications.reconcile(state: self.materials.state, records: self.specialSchedules.records,
                                                 sources: self.specialSchedules.sources, period: period,
-                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
+                                                materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready,
+                                                mapping: { self.mappings.current })
         }
     }
 
@@ -122,10 +144,12 @@ final class ApplicationData: ObservableObject {
             let retention = SchoolDataRetention(root: base)
             let period = SchoolDataPeriod.current()
             let installed: SchoolDataPeriod?
-            do { installed = try retention.installedPeriod() }
-            catch SchoolDataRetention.Failure.invalidMarker {
-                guard recoverInvalidMarker else { throw SchoolDataRetention.Failure.invalidMarker }
-                installed = nil
+            let invalid: Bool
+            do { installed = try retention.installedPeriod(); invalid = false }
+            catch SchoolDataRetention.Failure.invalidMarker { installed = nil; invalid = true }
+            if installed == period {
+                try retention.finalizeUnverifiedArchive()
+                try retention.saveProofForInstalledPeriod(period)
             }
             if installed != period {
                 let hadPrivateData = SchoolDataRetention.privatePaths.contains {
@@ -134,22 +158,25 @@ final class ApplicationData: ObservableObject {
                 ready = false
                 guard await stopPrivateWork(resetNotifications: true) else {
                     retentionFailure = !Task.isCancelled
-                    retentionFailureReason = retentionFailure ? .notificationCleanup(recoveringInvalidMarker:recoverInvalidMarker) : nil
+                    retentionFailureReason = retentionFailure ? .notificationCleanup(recoveringInvalidMarker: invalid || recoverInvalidMarker) : nil
                     loadedPeriod = nil
                     return false
                 }
                 try Task.checkCancellation()
                 // Protected data can become unavailable while workers unwind.
                 guard UIApplication.shared.isProtectedDataAvailable else { return false }
-                if recoverInvalidMarker {
-                    do { _ = try retention.installedPeriod() }
-                    catch SchoolDataRetention.Failure.invalidMarker { try retention.quarantineInvalidMarker() }
+                if invalid {
+                    let keptCurrent = try retention.restoreInvalidPeriod(period)
+                    retentionNotice = false
+                    recoveredRetention = keptCurrent ? "保存期間の記録を復旧しました。" :
+                        "保存期間の記録を復旧しました。期間を確認できない資料は端末に保全しています。"
+                } else {
+                    try retention.replace(with: period)
+                    retentionNotice = hadPrivateData
                 }
-                try retention.replace(with: period)
                 FileRefreshDiagnostics.shared.clear()
                 materials.resumeAfterRetention()
                 specialSchedules.resumeAfterRetention()
-                retentionNotice = hadPrivateData
             }
             try retention.finishRecovery()
             materials.resumeAfterRetention()
@@ -231,6 +258,7 @@ final class ApplicationData: ObservableObject {
         guard backgroundRefresh == nil,
               UIApplication.shared.applicationState == .background,
               UIApplication.shared.isProtectedDataAvailable else { return }
+        BackgroundRefresh.recordExecution()
         let task = Task { @MainActor in
             guard await self.prepare(), !Task.isCancelled else { return }
             self.setFileMonitoring(false)
@@ -245,7 +273,8 @@ final class ApplicationData: ObservableObject {
                 self.updateCountdown()
                 async let scheduleNotices: Void = self.notifications.reconcile(state: self.materials.state,
                     records: self.specialSchedules.records, sources: self.specialSchedules.sources, period: period,
-                    materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready)
+                    materialsReady: self.materials.ready, specialsReady: self.specialSchedules.ready,
+                    mapping: { self.mappings.current })
                 await self.countdown.waitForNotificationReconciliation()
                 await scheduleNotices
             }

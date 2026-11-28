@@ -5,15 +5,20 @@ from pathlib import Path
 import unittest
 import re
 import os
+import shutil
 import subprocess
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
+from app_test_project import instrument_recovery_fixture
 from ui_test_manifest import manual_check_source
 
 spec=importlib.util.spec_from_file_location("manual_ui_project",ROOT/"tools/manual_ui_project.py")
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+
+def generated_manual_coordinator(source):
+    return module.coordinator(instrument_recovery_fixture(source))
 
 class ManualUIProjectTests(unittest.TestCase):
     def test_missing_or_duplicate_anchor_fails_closed(self):
@@ -72,19 +77,21 @@ class ManualUIProjectTests(unittest.TestCase):
             self.assertNotIn(query,background)
         self.assertNotIn('visible(e).tap()',edit)
         self.assertIn('TAKUPOKE-MANUAL-EDIT stage=',checks)
-        self.assertIn('navigation.buttons.matching(identifier:"manual-edit-done")',edit)
-        self.assertIn('let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)',edit)
-        self.assertIn('guard !ambiguous,result == .completed,let done=readyButton',edit)
-        self.assertNotIn('buttons.firstMatch.waitForExistence',edit)
-        self.assertIn('let current=buttons.allElementsBoundByAccessibilityElement',edit)
-        self.assertIn('let done=current[0]',edit)
-        completion=edit.split('let buttons=navigation.buttons.matching',1)[1]
-        self.assertIn('guard current.count==1',completion)
-        self.assertIn('navigationFrame.contains(doneFrame) && done.isEnabled && done.isHittable',edit)
-        self.assertEqual(edit.count('done.frame'),1)
-        self.assertEqual(edit.count('done.isEnabled'),1)
-        self.assertEqual(edit.count('done.isHittable'),1)
-        self.assertEqual(edit.count('done.tap()'),1)
+        self.assertLess(edit.index('e.typeText(value)'), edit.index('guard finishManualEditing()'))
+        self.assertLess(edit.index('guard finishManualEditing()'),edit.index('manual-fixture-completed-edits'))
+        self.assertLess(edit.index('completedManualEdits = expectedCompletions'),edit.index('let completed=self.recoveryList'))
+        self.assertIn('actions == expectedCompletions && !nodes.contains { $0.elementType == .keyboard }', edit)
+        self.assertIn('if actions > expectedCompletions { invalid = true; return true }', edit)
+        self.assertIn('completedManualEdits = 0\n        app.launchArguments', checks)
+        completion=edit.split('    private func finishManualEditing()',1)[1].split('    private func observeManualEditCompletion(',1)[0]
+        self.assertIn('systemUptime + nativeStateTimeout', completion)
+        self.assertIn('XCTWaiter.wait(for: [ready], timeout: remaining)', completion)
+        self.assertIn('app.state == .runningForeground', completion)
+        self.assertIn('return ambiguous || targetFrame != nil', completion)
+        self.assertIn('!ambiguous, let targetFrame', completion)
+        self.assertEqual(completion.count('NativeTestContacts.send('), 1)
+        self.assertIn('start: center, end: center, duration: 0.1, pauseAfterLift: 0', completion)
+        self.assertNotIn('.tap()', completion)
         view=(ROOT/'Takupoke/PDFRecoveryView.swift').read_text(encoding='utf-8')
         toolbar=view.split('            .toolbar {',1)[1].split('            .sheet(',1)[0]
         self.assertIn('if editingManualField != nil',toolbar)
@@ -92,6 +99,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('Button("完了") { editingManualField = nil }',toolbar)
         self.assertNotIn('placement:.keyboard',toolbar)
         self.assertNotIn('manualAcknowledged',toolbar)
+        generated = module.view(view)
+        self.assertEqual(generated.count('manualQACompletedEdits += 1'), 1)
+        self.assertIn('Button("完了") { editingManualField = nil; manualQACompletedEdits += 1 }', generated)
+        self.assertRegex(generated, r'Text\(String\(manualQACompletedEdits\)\)\s*\.font\(\.system\(size:1\)\)\.accessibilityIdentifier\("manual-fixture-completed-edits"\)\.allowsHitTesting\(false\)')
 
     def test_manual_case_filter_is_exact_and_default_keeps_whole_suite(self):
         runner=(ROOT/"tools/test-manual-ui.sh").read_text(encoding="utf-8")
@@ -147,13 +158,14 @@ class ManualUIProjectTests(unittest.TestCase):
 
     def test_coordinator_preserves_actual_submit_adopt_and_source_guards(self):
         original=(ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
-        changed=module.coordinator(original)
+        changed=generated_manual_coordinator(original)
         self.assertIn('try RecoveryConversion.verifyFile(source',changed)
         self.assertIn('acknowledged == Set(draft.fields.map',changed)
         self.assertIn('selectedSourceIsCurrent',changed)
         self.assertIn('ApplicationData.shared.materials.adoptRecovery(preview)',changed)
-        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),4)
-        self.assertEqual(changed.count('            cancel(); failure = nil; running = true'),1)
+        self.assertEqual(changed.count('if SimulatorManualFixture.enabled'),5)
+        self.assertEqual(changed.count('            cancel(); running = true'),2)
+        self.assertIn('func cancel() {\n        fixtureFailure = nil',changed)
         submit=changed.split('func submitManual(',1)[1].split('func selectManualCorrection(',1)[0]
         self.assertLess(submit.index('manual-submit-rejected'),submit.index('manual-submit-accepted'))
         self.assertLess(submit.index('manual-submit-accepted'),submit.index('running = true'))
@@ -201,15 +213,225 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('.overlay(alignment: .topLeading) {\n                if SimulatorManualFixture.enabled',changed)
         self.assertIn('.accessibilityElement(children:.contain)\n                    .accessibilityIdentifier("manual-observation")\n                    .allowsHitTesting(false)',changed)
         checks=manual_check_source()
+        coordinator=checks.split('    private func coordinatorState(',1)[1].split('    func requireReview(',1)[0]
+        self.assertEqual(coordinator.count('app.snapshot()'),1)
+        self.assertIn('$0.elementType == .other && $0.identifier == "manual-observation"',coordinator)
+        self.assertIn('$0.elementType == .staticText && $0.identifier == "manual-coordinator-state"',coordinator)
+        self.assertNotIn('allElementsBoundByAccessibilityElement',coordinator)
+        self.assertEqual(checks.count('self.coordinatorState(ambiguous:'),2)
         scoped='.otherElements["manual-observation"].staticTexts'
-        self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-coordinator-state")'),1)
-        self.assertEqual(checks.count('self.observation.staticTexts.matching(identifier:"manual-coordinator-state")'),1)
         self.assertEqual(checks.count(scoped+'.matching(identifier:"manual-input-state")'),1)
         self.assertNotIn('app.staticTexts["manual-input-state"]',checks)
         state=next(line for line in changed.splitlines() if 'Text("preview=' in line)
         self.assertIn('review=\\(coordinator.manualReview != nil)',state)
         self.assertIn('preview=\\(coordinator.preview != nil)',state)
         self.assertEqual(changed.count('accessibilityIdentifier("manual-coordinator-state")'),1)
+
+    def test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks(self):
+        source = (ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8")
+        generated = generated_manual_coordinator(source)
+        self.assertNotIn('manualQAPreviewRevalidations', source)
+        self.assertIn('running = false; fixtureFailure = "架空資料', generated)
+        resume = generated.split('    func resumeAfterInactivity()', 1)[1].split('    func invalidateManualIfSourceChanged()', 1)[0]
+        before = 'guard preview?.id == candidate.id else { throw CancellationError() }'
+        self.assertLess(resume.index('try RecoveryConversion.verifyFile('), resume.index(before))
+        self.assertLess(resume.index(before), resume.index('manualQAPreviewRevalidations += 1'))
+        self.assertEqual(generated.count('manualQAPreviewRevalidations += 1'), 1)
+        checks = manual_check_source()
+        case = checks.split('measuredStep("preview-background"', 1)[1].split('measuredStep("save-and-relaunch"', 1)[0]
+        self.assertLess(case.index('observedPreviewRevalidations()'), case.index('enterBackground()'))
+        self.assertIn('requirePreview(revalidatedAfter: revalidations)', case)
+
+    def test_composed_recovery_fixtures_write_only_the_generated_failure_property(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to verify generated failure assignments")
+        original = (ROOT / "Takupoke/PDFRecoveryCoordinator.swift").read_text()
+        general = instrument_recovery_fixture(original)
+        manual = generated_manual_coordinator(original)
+        self.assertNotIn("fixtureFailure", original)
+        for source, writers in [(general, 1), (manual, 2)]:
+            self.assertNotRegex(source, r"(?m)(?:;|^\s*)(?:self\.)?failure\s*=")
+            declaration = next(line for line in source.splitlines() if "@Published private var fixtureFailure" in line)
+            reader = next(line for line in source.splitlines() if "var failure: String?" in line)
+            clearer = source.split("    func cancel() {\n", 1)[1].splitlines()[0]
+            assignments = [line for line in source.splitlines() if "running = false; fixtureFailure = " in line]
+            self.assertEqual(len(assignments), writers)
+            methods = "\n".join(f"    func probe{index}(_ error: Error) {{\n{line}\n    }}"
+                                for index, line in enumerate(assignments))
+            stub = f"""import Foundation
+@propertyWrapper struct Published<Value> {{ var wrappedValue: Value }}
+struct RecoveryFailure {{ let message: String }}
+final class Generated {{
+    var failureReason: RecoveryFailure?
+    var running = true
+{declaration}
+{reader}
+    func cancel() {{
+{clearer}
+    }}
+{methods}
+}}
+"""
+            with tempfile.TemporaryDirectory(prefix="takupoke-recovery-generation-") as scratch:
+                path = Path(scratch)
+                (path / "GeneratedCoordinator.swift").write_text(source)
+                (path / "GeneratedAssignments.swift").write_text(stub)
+                subprocess.run([compiler, "-frontend", "-parse", str(path / "GeneratedCoordinator.swift")],
+                               check=True, timeout=30)
+                subprocess.run([compiler, "-typecheck", "-module-cache-path", str(path / "modules"),
+                                str(path / "GeneratedAssignments.swift")], check=True, timeout=30)
+
+    def test_manual_submit_sends_one_contact_to_the_observed_button(self):
+        source = manual_check_source()
+        submit = source.split("    func tapSubmit()", 1)[1].split("    func assertSubmitEnabled", 1)[0]
+        self.assertIn('knownID: "manual-submit", buttonLabel: "訂正箇所と前回からの変更を確認"', submit)
+        self.assertIn("appFrame.contains(observed.frame)", submit)
+        self.assertIn("app.state == .runningForeground", submit)
+        self.assertIn("CGPoint(x: observed.frame.midX, y: observed.frame.midY)", submit)
+        self.assertEqual(submit.count("NativeTestContacts.send("), 1)
+        self.assertIn("start: center, end: center, duration: 0.1, pauseAfterLift: 0", submit)
+        self.assertNotIn(".tap()", submit)
+        self.assertEqual(submit.count("app.snapshot()"), 1)
+
+    def test_manual_snapshots_require_unique_visible_enabled_native_buttons(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required for the native control geometry probe")
+        source = manual_check_source()
+        start = "    private func observeVisibleManualSubmit("
+        helper = start + source.split(start, 1)[1].split("    func assertSubmitEnabled", 1)[0]
+        finish_start = "    private func observeManualEditCompletion("
+        finish = finish_start + source.split(finish_start, 1)[1].split("\n}", 1)[0]
+        program = r'''
+import Foundation
+enum Element { case application, collectionView, navigationBar, keyboard, button, other }
+struct Node {
+    let elementType: Element
+    let identifier: String
+    var frame: CGRect
+    var label = ""
+    var isEnabled = true
+    var isSelected = false
+    var children: [Node] = []
+}
+struct ManualButtonObservation { let frame: CGRect; let viewport: CGRect; let isSelected: Bool }
+struct ManualScrollNavigation { static func usable(_ rect: CGRect) -> Bool { !rect.isEmpty && !rect.isInfinite } }
+var failures = 0
+func XCTFail(_ reason: String) { failures += 1 }
+struct App {
+    let root: Node
+    var navigationBars = NavigationQuery(byTitle: [:])
+    func snapshot() throws -> Node { root }
+}
+struct Control { let node: Node; var isHittable = true; func snapshot() throws -> Node { node } }
+struct ControlQuery {
+    let allElementsBoundByAccessibilityElement: [Control]
+    func matching(identifier: String) -> ControlQuery {
+        .init(allElementsBoundByAccessibilityElement: allElementsBoundByAccessibilityElement.filter { $0.node.identifier == identifier })
+    }
+}
+struct List { let buttons: ControlQuery }
+struct NavigationQuery {
+    let byTitle: [String: [Control]]
+    var selected: String? = nil
+    func matching(identifier: String) -> NavigationQuery { .init(byTitle: byTitle, selected: identifier) }
+    func descendants(matching type: Element) -> ControlQuery {
+        let matches = selected.flatMap { byTitle[$0] } ?? []
+        return .init(allElementsBoundByAccessibilityElement: matches.filter { $0.node.elementType == type })
+    }
+}
+struct Test {
+    let app: App
+    let recoveryList: List
+    func snapshotNodes(in root: Node) -> [Node]? { [root] + root.children.flatMap { snapshotNodes(in: $0) ?? [] } }
+    func observed() -> ManualButtonObservation? {
+        var appFrame = CGRect.null
+        let result = observeVisibleManualSubmit(appFrame: &appFrame)
+        precondition(result == nil || appFrame == app.root.frame)
+        return result
+    }
+    func editCompletion(ambiguous expectedAmbiguity: Bool = false) -> CGRect? {
+        var ambiguous = false
+        var observation = ""
+        let frame = observeManualEditCompletion(ambiguous: &ambiguous, observation: &observation)
+        precondition(ambiguous == expectedAmbiguity)
+        return frame
+    }
+HELPER
+FINISH
+}
+let appFrame = CGRect(x: 0, y: 0, width: 393, height: 852)
+let button = Node(elementType: .button, identifier: "manual-submit", frame: .init(x: 16, y: 700, width: 360, height: 100),
+                  label: "訂正箇所と前回からの変更を確認")
+func view(_ buttons: [Node], keyboard: CGRect? = nil, hittable: Bool = true, moved: Bool = false) -> Test {
+    let list = Node(elementType: .collectionView, identifier: "manual-recovery-list", frame: appFrame, children: buttons)
+    let bar = Node(elementType: .navigationBar, identifier: "時間割の復旧", frame: .init(x: 0, y: 50, width: 393, height: 79))
+    var screens = [list, bar]
+    if let keyboard { screens.append(Node(elementType: .keyboard, identifier: "fictional-keyboard", frame: keyboard)) }
+    let bound = buttons.map { button -> Control in
+        var node = button
+        if moved { node.frame = node.frame.offsetBy(dx: 0, dy: 5) }
+        return Control(node: node, isHittable: hittable)
+    }
+    return Test(app: App(root: Node(elementType: .application, identifier: "fictional", frame: appFrame, children: screens)),
+                recoveryList: List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: bound)))
+}
+precondition(view([button]).observed()?.frame == button.frame)
+precondition(view([button], keyboard: .init(x: 0, y: 600, width: 393, height: 252)).observed() == nil)
+precondition(view([button], keyboard: .init(x: 0, y: 850, width: 0, height: 0)).observed() == nil && failures == 1)
+precondition(view([button], hittable: false).observed() == nil)
+precondition(view([button], moved: true).observed() == nil)
+var disabled = button
+disabled.isEnabled = false
+precondition(view([disabled]).observed() == nil)
+disabled.isEnabled = true
+disabled.label = "架空の別操作"
+precondition(view([disabled]).observed() == nil)
+precondition(view([button, button]).observed() == nil && failures == 2)
+var done = Node(elementType: .button, identifier: "manual-edit-done",
+                frame: .init(x: 320, y: 60, width: 48, height: 44), label: "完了")
+func editor(_ candidates: [Node], live: [Control], extraBar: [Node]? = nil, foreign: [Control] = []) -> Test {
+    let title = "時間割の復旧"
+    func bar(_ children: [Node]) -> Node {
+        Node(elementType: .navigationBar, identifier: title, frame: .init(x: 0, y: 50, width: 393, height: 79), children: children)
+    }
+    let list = List(buttons: ControlQuery(allElementsBoundByAccessibilityElement: live))
+    let bars = [bar(candidates)] + (extraBar.map { [bar($0)] } ?? [])
+    let root = Node(elementType: .application, identifier: "fictional", frame: appFrame, children: bars)
+    return Test(app: App(root: root, navigationBars: NavigationQuery(byTitle: [title: live, "別の画面": foreign])),
+                recoveryList: list)
+}
+let live = Control(node: done)
+let wrapper = Node(elementType: .other, identifier: "manual-edit-done", frame: done.frame, children: [done])
+precondition(editor([done], live: [live]).editCompletion() == done.frame)
+precondition(editor([wrapper], live: [live], extraBar: []).editCompletion() == done.frame)
+precondition(editor([done], live: [], foreign: [live]).editCompletion() == nil)
+precondition(editor([], live: [live]).editCompletion() == nil)
+precondition(editor([done], live: []).editCompletion() == nil)
+precondition(editor([done], live: [Control(node: done, isHittable: false)]).editCompletion() == nil)
+precondition(editor([done, done], live: [live]).editCompletion(ambiguous: true) == nil)
+precondition(editor([done], live: [live, live]).editCompletion(ambiguous: true) == nil)
+precondition(editor([done], live: [live], extraBar: [done]).editCompletion(ambiguous: true) == nil)
+done.frame.origin.x -= 5
+precondition(editor([done], live: [live]).editCompletion() == nil)
+done.frame = live.node.frame
+done.frame.origin.y = 95
+precondition(editor([done], live: [live]).editCompletion() == nil)
+done.frame = live.node.frame
+done.isEnabled = false
+precondition(editor([done], live: [live]).editCompletion() == nil)
+done.isEnabled = true
+done.label = "架空の別操作"
+precondition(editor([done], live: [live]).editCompletion() == nil)
+precondition(editor([live.node], live: [Control(node: done)]).editCompletion() == nil)
+precondition(editor([live.node], live: [live, Control(node: done)]).editCompletion(ambiguous: true) == nil)
+'''.replace("HELPER", helper).replace("FINISH", finish)
+        with tempfile.TemporaryDirectory(prefix="manual-submit-snapshot-") as directory:
+            path = Path(directory) / "main.swift"
+            path.write_text(program, encoding="utf-8")
+            subprocess.run([compiler, str(path), "-o", str(path.with_suffix(""))], check=True, timeout=30)
+            subprocess.run([str(path.with_suffix(""))], check=True, timeout=10)
 
     def test_comparable_prior_defers_actual_builder_until_qa_window_exists(self):
         fixture=(ROOT/"tests/ui/ManualAssistanceFixture.swift").read_text(encoding="utf-8")
@@ -285,7 +507,7 @@ class ManualUIProjectTests(unittest.TestCase):
             self.assertIn(expected,source)
         self.assertEqual(source.count('width:1480,height:960'),2)
         self.assertIn('trace("stage=attach")',source)
-        generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
+        generated=generated_manual_coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
         self.assertIn('SimulatorManualFixture.failed(error)',generated)
 
     def test_actual_qa_failure_stage_and_bitmap_extent_are_observable_in_accessibility_tree(self):
@@ -295,7 +517,7 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertIn('accessibilityIdentifier("manual-qa-diagnostic")',source)
         self.assertIn('String(reflecting:error)',source)
         self.assertIn('raster.grayscale[y*width+x] < 200',source)
-        generated=module.coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
+        generated=generated_manual_coordinator((ROOT/"Takupoke/PDFRecoveryCoordinator.swift").read_text(encoding="utf-8"))
         self.assertIn('SimulatorManualFixture.failed(error)',generated)
         self.assertIn('架空資料の補助入力を拒否しました。前回の正常結果を保持しています。',generated)
 
@@ -363,6 +585,10 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotIn('tap()',invalid)
         self.assertNotIn('press(',invalid)
         self.assertIn('manualPassiveCell(cells:cells',checks)
+        self.assertIn('if inRecovery && texts.contains(where: { $0.identifier.hasPrefix("manual-reviewed-") }) { return false }', checks)
+        review_source = (ROOT / 'Takupoke/PDFRecoveryView.swift').read_text(encoding='utf-8')
+        review = module.view(review_source).split('if let review = coordinator.manualReview', 1)[1]
+        self.assertRegex(review, r'accessibilityIdentifier\("manual-reviewed-" \+ field.id\)\s*\.fixedSize\(horizontal:false,vertical:true\)\.textSelection\(\.enabled\)')
         self.assertIn('list.cells.allElementsBoundByIndex',checks)
         self.assertIn('cell.buttons.count==0 && cell.switches.count==0',checks)
         self.assertIn('cell.textFields.count==0 && cell.textViews.count==0',checks)
@@ -416,15 +642,24 @@ class ManualUIProjectTests(unittest.TestCase):
         self.assertNotRegex(acknowledgement_code,r'\bfor\s')
         self.assertIn('XCTNSPredicateExpectation',acknowledge)
         opening=checks.split('    func chooseFixtureMenuAction(',1)[1].split('    private func tapFixtureDialogAction(',1)[0]
-        self.assertIn('guard current.count==1',opening)
-        self.assertLess(opening.index('let barFrame=bar.frame'),opening.index('.allElementsBoundByAccessibilityElement'))
-        self.assertEqual(opening.count('NativeTestContacts.send('),1)
-        self.assertIn('let center = CGPoint(x: frame.midX, y: frame.midY)',opening)
-        self.assertIn('NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)]',opening)
-        self.assertNotIn('.coordinate(',opening)
-        self.assertNotIn('.tap()',opening)
-        self.assertIn('barFrame.contains(frame),button.isEnabled,button.isHittable,app.state == .runningForeground',opening)
-        self.assertIn('Button("架空検証") { manualQAActionsPresented = true }',generated)
+        self.assertIn('let root = try? self.app.snapshot()',opening)
+        self.assertIn('let identifier = "manual-fixture-menu"',opening)
+        self.assertIn('$0.elementType == .navigationBar && $0.identifier == barTitle',opening)
+        self.assertIn('if bars.count > 1 { ambiguous = true; return true }',opening)
+        self.assertIn('if candidates.count > 1 { ambiguous = true; return true }',opening)
+        self.assertIn('if live.count > 1 { ambiguous = true; return true }',opening)
+        self.assertIn('root.frame.contains(bar.frame)',opening)
+        self.assertIn('bar.frame.contains(candidate.frame)',opening)
+        self.assertIn('bound.label == title, bound.frame == candidate.frame, bound.isEnabled, button.isHittable',opening)
+        self.assertIn('timeout: nativeStateTimeout',opening)
+        self.assertIn('!ambiguous, let visible, app.state == .runningForeground',opening)
+        self.assertEqual(opening.count('.tap()'),1)
+        self.assertIn('app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))',opening)
+        self.assertIn('CGVector(dx: frame.midX - screenFrame.minX, dy: frame.midY - screenFrame.minY)',opening)
+        self.assertIn('origin.withOffset(target).tap()',opening)
+        self.assertIn('.accessibilityIdentifier("manual-fixture-menu")',generated)
+        self.assertIn('FixtureCITrace.mark("manual-fixture-menu-action")\n                    manualQAActionsPresented = true',generated)
+        self.assertIn('"manual-fixture-menu-presented" : "manual-fixture-menu-dismissed"',generated)
         self.assertIn('.confirmationDialog("架空検証", isPresented: $manualQAActionsPresented)',generated)
         for action in ('表示サイズを変更','同じ原本の状態を再確認','架空原本のハッシュを変更'):
             self.assertIn(f'"{action}"',opening)

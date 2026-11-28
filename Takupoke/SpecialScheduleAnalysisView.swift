@@ -6,7 +6,8 @@ struct SpecialScheduleAnalysisView: View {
     @AppStorage(LocalAIFeaturePolicy.storageKey) private var useAiFeatures = false
     @ObservedObject var model: SpecialSchedulesModel
     let kind: SpecialScheduleKind
-    @State private var showingSource = false
+    @State private var sourceLease: SavedPDFLease?
+    @State private var confirmingRemoval = false
     @State private var showingRecovery = false
     @State private var copiedReport: String?
     @State private var positionsLesson: SpecialScheduleLesson?
@@ -15,6 +16,12 @@ struct SpecialScheduleAnalysisView: View {
 
     private var source: SpecialScheduleSource? { model.sources[kind] }
     private var record: SpecialScheduleRecord? { model.records[kind] }
+    private var selectedPDF: URL? { model.urls[kind] }
+    private var analysisPDF: URL? { model.analysisPDFURLs[kind] }
+    private var separateAnalysisPDF: Bool {
+        guard analysisPDF != nil else { return false }
+        return selectedPDF == nil || record?.digest != source?.digest
+    }
 
     var body: some View {
         List {
@@ -65,11 +72,16 @@ struct SpecialScheduleAnalysisView: View {
                     .disabled(model.busy || !model.ready || source?.grant == nil)
                 Button("同じファイルを再取得") { model.refresh(kind) }
                     .disabled(model.busy || !model.ready || source?.grant == nil)
-                Button("保存済みのPDFを見る") { showingSource = true }
-                    .disabled(model.busy || model.urls[kind] == nil)
+                Button(separateAnalysisPDF ? "選択中のPDFを見る" : "保存済みのPDFを見る") {
+                    sourceLease = selectedPDF.flatMap(SavedPDFLease.open)
+                }.disabled(!model.ready || selectedPDF == nil)
                 Button("ファイルを選び直す") { fileRequest = FileSelectionRequest(target: .special(kind)) }
                     .disabled(model.busy || !model.ready)
                     .accessibilityLabel("\(kind.title)のファイルを選び直す")
+                if source != nil {
+                    Button("選択を解除", role: .destructive) { confirmingRemoval = true }
+                        .disabled(!model.canRemoveSelection(kind))
+                }
             } header: { Text("操作").accessibilityIdentifier("material-actions-section") }
             if let record {
                 Section {
@@ -77,6 +89,11 @@ struct SpecialScheduleAnalysisView: View {
                     LabeledContent("件数", value: "\(record.analysis.lessons.count)件")
                     LabeledContent("最終解析成功") {
                         Text(record.analysis.parsedAt, format: JapaneseDateDisplay.timestamp)
+                    }
+                    if separateAnalysisPDF {
+                        Button("この解析結果の元PDFを見る") {
+                            sourceLease = analysisPDF.flatMap(SavedPDFLease.open)
+                        }.disabled(!model.ready)
                     }
                     if source?.digest != record.digest || record.analysis.version != SpecialScheduleAnalysis.parserVersion {
                         InlineWarning("前回の解析結果です。現在のファイルを解析してください。")
@@ -141,8 +158,13 @@ struct SpecialScheduleAnalysisView: View {
         .toolbar { ToolbarItem(placement: .primaryAction) { parseButton } }
         .onChange(of: model.busy) { busy in if busy { copiedReport = nil } }
         .sheet(isPresented:$showingRecovery,onDismiss:{ ApplicationData.shared.recovery.cancel() }) { PDFRecoveryView(kind:kind == .exam ? .exam : .return) }
-        .sheet(isPresented: $showingSource) {
-            if let url = model.urls[kind] { SavedPDFView(url: url, title: kind.title) }
+        .sheet(item: $sourceLease) { lease in SavedPDFView(url: lease.url, title: kind.title) }
+        .onChange(of: model.ready) { ready in if !ready { sourceLease = nil } }
+        .alert("\(kind.title)の選択を解除しますか？", isPresented: $confirmingRemoval) {
+            Button("キャンセル", role: .cancel) {}
+            Button("選択を解除", role: .destructive) { model.removeSelection(kind) }
+        } message: {
+            Text("端末に保存したこの資料のPDF、解析結果、訂正内容、関連する通知が削除されます。OneDriveなどの元ファイルは残ります。")
         }
         .background(
             MaterialDocumentPicker(item: $fileRequest, requestID: fileRequest?.id,

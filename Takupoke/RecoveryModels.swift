@@ -5,6 +5,29 @@ enum RecoveryValueState: String, Codable, Sendable { case present, empty, unread
 enum RecoveryInputState: String, Codable, Sendable { case complete, partial, rasterOnly }
 enum RecoveryJobState: String, Codable, Sendable { case pending, preparing, awaitingModel, running, awaitingConfirmation, adopted, failed, superseded }
 enum LocalProviderState: String, Codable, Sendable { case ready, notReady, disabled, unsupported, downloadRequired, insufficientMemory }
+
+enum RecoveryModelAction: Equatable {
+    case preparing, enableSystemModel, installModel, waitForLocalStorage, unavailable
+
+    init(errors: [String], canInstall: Bool, localStorageBusy: Bool) {
+        let reported = errors.compactMap(LocalProviderState.init(rawValue:))
+        if reported.contains(.notReady) { self = .preparing }
+        else if reported.contains(.disabled) { self = .enableSystemModel }
+        else if localStorageBusy { self = .waitForLocalStorage }
+        else if canInstall { self = .installModel }
+        else { self = .unavailable }
+    }
+
+    var message: String {
+        switch self {
+        case .preparing: return "OSのAIモデルが準備中です。準備が完了してから再試行してください。"
+        case .enableSystemModel: return "端末の設定でApple Intelligenceを有効にしてから再確認してください。"
+        case .installModel: return "この資料の復旧には、提供済みの追加AIモデルを取得してください。"
+        case .waitForLocalStorage: return "保存済みAIモデルを確認しています。完了してから再確認してください。"
+        case .unavailable: return "この端末で利用できる復旧用AIモデルはありません。元のPDFは確認できます。"
+        }
+    }
+}
 struct RecoveryBox: Codable, Equatable, Sendable {
     var x: Double; var y: Double; var width: Double; var height: Double
     var valid: Bool { [x, y, width, height, x + width, y + height].allSatisfy(\.isFinite) && x >= 0 && y >= 0 && width > 0 && height > 0 }
@@ -96,6 +119,9 @@ struct RecoveryDocument: Codable, Equatable, Sendable {
     var times: [String: String]; var timeEvidence: [String]; var normalTimeNoteEvidence: [String]
     var clockEvidence: [String: [String]] = [:]
     var spanTimes: [String: String] = [:]
+    /// Complete chart-backed ranges, independent of physical multi-slot cells.
+    /// Nil preserves the signed bytes of legacy recovery documents.
+    var explicitSpanTimeKeys: [String]? = nil
     var clockBindings: [String: RecoveryClockBinding] = [:]
     var clockReplicas: [String: [RecoveryClockBinding]] = [:]
     var annotations: [RecoveryAnnotation] = []
@@ -194,6 +220,7 @@ extension RecoveryDocument {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(pdfHash: try c.decode(String.self, forKey: .pdfHash), kind: try c.decode(RecoveryDocumentKind.self, forKey: .kind), schoolYear: try c.decode(Int.self, forKey: .schoolYear), term: try c.decodeIfPresent(String.self, forKey: .term), classes: try c.decode([String].self, forKey: .classes), days: try c.decode([String].self, forKey: .days), requiredSlots: try c.decode([RecoverySlot].self, forKey: .requiredSlots), cells: try c.decode([RecoveryCell].self, forKey: .cells), sources: try c.decode([RecoverySource].self, forKey: .sources), complete: try c.decode(Bool.self, forKey: .complete), yearEvidence: try c.decode([String].self, forKey: .yearEvidence), termEvidence: try c.decode([String].self, forKey: .termEvidence), dayEvidence: try c.decode([String: [String]].self, forKey: .dayEvidence), classEvidence: try c.decode([String: [String]].self, forKey: .classEvidence), periodEvidence: try c.decode([String: [String]].self, forKey: .periodEvidence), times: try c.decode([String: String].self, forKey: .times), timeEvidence: try c.decode([String].self, forKey: .timeEvidence), normalTimeNoteEvidence: try c.decode([String].self, forKey: .normalTimeNoteEvidence), clockEvidence: try c.decodeIfPresent([String: [String]].self, forKey: .clockEvidence) ?? [:], spanTimes: try c.decodeIfPresent([String: String].self, forKey: .spanTimes) ?? [:], clockBindings: try c.decodeIfPresent([String: RecoveryClockBinding].self, forKey: .clockBindings) ?? [:], clockReplicas: try c.decodeIfPresent([String: [RecoveryClockBinding]].self, forKey: .clockReplicas) ?? [:], annotations: try c.decodeIfPresent([RecoveryAnnotation].self, forKey: .annotations) ?? [], commonClockEvidence: try c.decodeIfPresent([String].self, forKey: .commonClockEvidence) ?? [], commonClockRegions: try c.decodeIfPresent([String: RecoveryHeaderRegion].self, forKey: .commonClockRegions) ?? [:], structureMetadata:try c.decodeIfPresent(RecoveryMetadata.self,forKey:.structureMetadata), ocrCoverageProof:try c.decodeIfPresent(RecoveryOCRCoverageProof.self,forKey:.ocrCoverageProof), nativeCapture:try c.decodeIfPresent(RecoveryOCRAcquisitionDraft.self,forKey:.nativeCapture),ocrLineAtomSourceIds:try c.decodeIfPresent([String].self,forKey:.ocrLineAtomSourceIds))
+        explicitSpanTimeKeys = try c.decodeIfPresent([String].self, forKey: .explicitSpanTimeKeys)
     }
 }
 

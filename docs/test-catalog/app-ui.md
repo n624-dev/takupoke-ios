@@ -1,7 +1,7 @@
 # 通常画面・設定・実Switch・UI fixture・登録一覧
 
 対応関係・宣言名・実行方法のSHA-256：
-`f0e30a97631892e39e177659586e9654e7282f29b30939e207d292c49af83e2f`
+`a3d5f49ef8da4b7e8c9a594b2f0a1bdf9e320451d1af9e01b666424ba31c5247`
 
 環境：Apple iOS26/27。LinuxはPython契約検査のみ
 
@@ -91,12 +91,19 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_ui_test_manifest.py](../../tests/test_ui_test_manifest.py)
 
+- `test_material_section_order_uses_overlapping_native_scroll_search`
+- `test_both_countdown_edit_routes_typecheck_with_the_current_initializer`
+- `test_countdown_progress_fixture_uses_matching_confirmed_source_evidence`
+- `test_change_workbook_checks_one_completed_analysis_both_before_and_after_relaunch`
+- `test_notification_navigation_can_reset_timetable_details_from_its_own_file`
 - `test_countdown_os_trace_adds_only_fixed_stage_observation`
 - `test_countdown_reservation_observer_forwards_exact_requests_and_only_safe_stages`
 - `test_week_motion_observation_keeps_real_release_layout_and_animation_unchanged`
 - `test_motion_fixture_leaves_detailed_geometry_to_the_sizing_checks`
 - `test_prepared_week_content_is_lazy_and_expires_with_its_window_or_revision`
 - `test_week_column_placement_reuses_only_the_matching_size_measurement`
+- `test_native_motion_only_invalidates_the_footer_for_horizontal_changes`
+- `test_week_height_changes_reuse_equal_positioned_pages`
 - `test_generated_week_selection_initialization_respects_actor_isolation`
 - `test_phases_partition_every_shard_and_focused_selection_without_duplicates`
 - `test_merged_card_probe_starts_with_only_the_original_case`
@@ -110,13 +117,14 @@ bash tools/test-app-ui.sh
 - `test_manual_split_registers_all_helpers_and_refuses_unknown_files`
 - `test_network_rewrite_preserves_standard_xlsx_identifiers_only`
 - `test_service_status_fixture_changes_only_the_network_endpoint`
+- `test_status_launch_does_not_inherit_a_previous_events_fixture`
 - `test_ai_switch_probe_preserves_production_setter_and_rejects_marker_drift`
 - `test_notification_switch_trace_preserves_setters_and_rejects_marker_drift`
 - `test_notification_readiness_probe_observes_os_without_granting_or_saving`
 - `test_actual_loopback_browser_input_serves_only_fictional_page_and_closes`
 - `test_browser_fixture_changes_only_native_network_input_and_rejects_other_urls`
 - `test_link_menu_observes_one_press_before_diagnostics_and_never_accepts_timeout`
-- `test_retention_observation_preserves_the_real_action_and_dialog_in_isolated_copy`
+- `test_retention_observation_preserves_the_real_automatic_recovery`
 - `test_owned_launch_trace_filters_other_content_and_refuses_symlinks_and_large_files`
 - `test_picker_completion_rejects_missing_failed_skipped_duplicate_and_unknown_cases`
 - `test_event_cache_probe_changes_only_automatic_startup_in_isolated_copy`
@@ -159,7 +167,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/ui/ApplicationChecks+Settings.swift](../../tests/ui/ApplicationChecks+Settings.swift)
 
-- `testRetentionMarkerRecoveryRequiresConfirmationAndPreservesPublicData`
+- `testRetentionMarkerRecoversAutomaticallyAndPreservesOriginals`
 - `testSettingsAccountDataAndFileDetails`
 - `testUsageHelpIsOrganizedByTask`
 - `testSettingsGroupsAndCompactDataOverviews`
@@ -219,6 +227,10 @@ bash tools/test-app-ui.sh
 - `test_coordinator_preserves_actual_submit_adopt_and_source_guards`
 - `test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate`
 - `test_review_readiness_measures_actual_coordinator_state`
+- `test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks`
+- `test_composed_recovery_fixtures_write_only_the_generated_failure_property`
+- `test_manual_submit_sends_one_contact_to_the_observed_button`
+- `test_manual_snapshots_require_unique_visible_enabled_native_buttons`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
 - `test_existing_app_generator_raster_anchor_matches_current_acquisition`
@@ -337,6 +349,7 @@ bash tools/test-app-ui.sh
 
 ## [tests/test_picker_ui_runner.py](../../tests/test_picker_ui_runner.py)
 
+- `test_picker_viewport_uses_one_complete_current_snapshot`
 - `test_picker_lease_typechecks_with_only_picker_dependencies`
 - `test_preparation_order_exact_completions_failures_and_owned_cleanup`
 

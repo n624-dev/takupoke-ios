@@ -95,6 +95,35 @@ enum ChangeNormalizer {
         func index(in headerTokens: [String]) -> Int? {
             headerTokens.firstIndex(where: aliases.contains)
         }
+
+        static func columns(in headers: [String]) -> [Self: [Int]] {
+            let tokens = headers.map(ChangeNormalizer.token)
+            return Dictionary(uniqueKeysWithValues: allCases.map { field in
+                (field, field.aliases.flatMap { alias in tokens.indices.filter { tokens[$0] == alias } })
+            })
+        }
+
+        func resolve(columns: [Int], cells: [String], row: Int,
+                     timestamp: (Int) -> ChangeTimestamp?) throws -> Int? {
+            let filled = columns.filter { !ChangeNormalizer.text(cells[$0]).isEmpty }
+            guard let first = filled.first else { return nil }
+            func comparableValue(at column: Int) -> String {
+                let value = ChangeNormalizer.number(cells[column])
+                switch self {
+                case .period:
+                    let period = ChangeNormalizer.number(ChangeNormalizer.replace(value, "(時限|限目|限)$", ""))
+                    return ScheduleChange.periods(in: period)?.sorted().map(String.init).joined(separator: ",") ?? period
+                case .updated:
+                    if let date = timestamp(column) { return "date/" + date.display }
+                default: break
+                }
+                return value
+            }
+            if let conflict = filled.dropFirst().first(where: { comparableValue(at: $0) != comparableValue(at: first) }) {
+                throw ChangeParseError(code: .conflictingColumns, row: row, column: first, competingColumn: conflict)
+            }
+            return first
+        }
     }
 
     static func headerIndex(_ rows: [[String]]) throws -> Int {
@@ -119,12 +148,8 @@ enum ChangeNormalizer {
         let dateIndex = headers.firstIndex(of: "月日")!
         let yearIndex = headers.firstIndex(of: "学 年")!
         let classIndex = headers.firstIndex(of: "学科・クラス")!
-        let headerTokens = headers.map(token)
-        let columns = Dictionary(uniqueKeysWithValues: OptionalColumn.allCases.compactMap { field in
-            field.index(in: headerTokens).map { (field, $0) }
-        })
+        let candidateColumns = OptionalColumn.columns(in: headers)
         var table: [(row: Int, cells: [String], years: [String], classes: [String])] = []
-        var known: [String: Set<String>] = [:]
         for i in (index + 1)..<rows.count {
             try check()
             // Do not silently truncate nonempty cells beyond the header.
@@ -137,7 +162,7 @@ enum ChangeNormalizer {
             do {
                 cells[dateIndex] = try serialDate(cells[dateIndex])
                 let ys = try years(cells[yearIndex]), cs = try classes(cells[classIndex])
-                for y in ys { known[y, default: []].formUnion(cs) }
+                guard !cs.isEmpty else { throw ChangeParseError(code: .unknownAll, column: classIndex) }
                 table.append((i + 1, cells, ys, cs))
             } catch var error as ChangeParseError { error.row = i + 1; throw error }
         }
@@ -145,6 +170,16 @@ enum ChangeNormalizer {
         var textBytes = 0
         for item in table {
             try check()
+            let edit = edits[item.row] ?? ChangeRowEdit()
+            func timestamp(_ column: Int) -> ChangeTimestamp? {
+                if let workbook { return workbook.timestamp(row: item.row, column: column, edit: edit) }
+                return ChangeTimestamp.parse(item.cells[column])
+            }
+            var columns: [OptionalColumn: Int] = [:]
+            for field in OptionalColumn.allCases {
+                columns[field] = try field.resolve(columns: candidateColumns[field, default: []], cells: item.cells,
+                                                   row: item.row, timestamp: timestamp)
+            }
             func value(_ field: OptionalColumn) -> String {
                 columns[field].map { item.cells[$0] } ?? ""
             }
@@ -170,7 +205,6 @@ enum ChangeNormalizer {
                 let title = labels.indices.contains(column) && !labels[column].isEmpty ? labels[column] : "列\(column + 1)"
                 return "\(title):\(value)"
             }.joined(separator: " | ")
-            let edit = edits[item.row] ?? ChangeRowEdit()
             let originalDate: String?
             if let workbook, let year = defaultYear {
                 originalDate = workbook.displayCell(row: item.row, column: dateIndex, year: year)
@@ -184,17 +218,10 @@ enum ChangeNormalizer {
             }.joined(separator: " | ")
             let dedicated = value(.reason)
             let reasonInfo = ChangeNormalizer.reason(dedicated: dedicated, note: value(.note))
-            let updated = columns[.updated].flatMap { column -> ChangeTimestamp? in
-                if let workbook {
-                    return workbook.timestamp(row: item.row, column: column, edit: edit)
-                }
-                return ChangeTimestamp.parse(value(.updated))
-            }
+            let updated = columns[.updated].flatMap(timestamp)
             let reasonColumn = dedicated.isEmpty ? columns[.note] : columns[.reason]
             for year in item.years {
-                let cs = token(item.cells[classIndex]) == "全" ? (known[year] ?? []).filter { $0 != "AI" }.sorted() : item.classes
-                guard !cs.isEmpty else { throw ChangeParseError(code: .unknownAll, row: item.row) }
-                for cls in cs {
+                for cls in item.classes {
                     let name = canonicalClassName("\(year)_\(cls)")
                     let fields = [normalizedDate, name, period, before, after, teacher, room, note, raw]
                     let canonical = fields.map(text).filter { !$0.isEmpty }.joined(separator: " | ")
@@ -328,8 +355,8 @@ extension ChangeEditTable {
         let ids = rowIDs
         guard Set(edits.keys).isSubset(of: Set(ids)) else { throw ChangeParseError(code: .staleConfirmation) }
         let weekday = weekdayColumn
-        var issues: [Int: [ChangeParseError]] = [:], explicit: [String: Set<String>] = [:]
-        var allRows: [(row: Int, years: [String])] = []
+        let aliases = ChangeNormalizer.OptionalColumn.columns(in: names)
+        var issues: [Int: [ChangeParseError]] = [:]
         for number in ids {
             try check()
             let edit = edits[number] ?? ChangeRowEdit()
@@ -377,16 +404,18 @@ extension ChangeEditTable {
             let classes = try? ChangeNormalizer.classes(ChangeNormalizer.number(v[classroom]))
             if years == nil { report(.year, grade) }
             if classes == nil { report(.classes, classroom) }
-            if let years, let classes {
-                if ChangeNormalizer.token(v[classroom]) == "全" { allRows.append((number, years)) }
-                else { for year in years { explicit[year, default: []].formUnion(classes.filter { $0 != "AI" }) } }
+            if classes?.isEmpty == true { report(.unknownAll, classroom) }
+            for field in ChangeNormalizer.OptionalColumn.allCases where aliases[field, default: []].count > 1 {
+                do {
+                    _ = try field.resolve(columns: aliases[field, default: []], cells: v, row: number,
+                                          timestamp: { timestamp(row: number, column: $0, edit: edit) })
+                } catch let conflict as ChangeParseError {
+                    issues[number, default: []].append(conflict)
+                }
             }
             if let outside = v.indices.first(where: { $0 >= headers.count && !ChangeNormalizer.text(v[$0]).isEmpty }) {
                 report(.headers, outside)
             }
-        }
-        for item in allRows where item.years.contains(where: { explicit[$0]?.isEmpty != false }) {
-            issues[item.row, default: []].append(ChangeParseError(code: .unknownAll, row: item.row, column: classroom))
         }
         return issues
     }
@@ -394,10 +423,16 @@ extension ChangeEditTable {
     func records(edits: [Int: ChangeRowEdit], defaultYear: Int, check: () throws -> Void = {}) throws -> [ScheduleChange] {
         let issues = try review(edits: edits, defaultYear: defaultYear, check: check)
         if let number = issues.keys.min(), let issue = issues[number]?.first { throw issue }
+        return try recordsAfterReview(edits: edits, defaultYear: defaultYear, check: check)
+    }
+
+    fileprivate func recordsAfterReview(edits: [Int: ChangeRowEdit], defaultYear: Int,
+                                        check: () throws -> Void) throws -> [ScheduleChange] {
         var table = Array(repeating: [String](), count: rows.count)
         table[headerRow - 1] = headers
         guard let date = headers.firstIndex(where: { ChangeNormalizer.text($0) == "月日" }) else { throw ChangeParseError(code: .headers) }
-        for row in rowIDs {
+        let sourceRows = rowIDs
+        for row in sourceRows {
             try check()
             let edit = edits[row] ?? ChangeRowEdit()
             if !edit.excluded {
@@ -406,8 +441,55 @@ extension ChangeEditTable {
                 table[row - 1] = effective
             }
         }
-        return try ChangeNormalizer.parse(table, defaultYear: defaultYear, check: check,
+        let allExcluded = !sourceRows.isEmpty && sourceRows.allSatisfy { edits[$0]?.excluded == true }
+        return try ChangeNormalizer.parse(table, defaultYear: defaultYear, check: check, allowEmptyPreview: allExcluded,
                                           sourceRows: rows, sourceHeaders: originalHeaders ?? headers, workbook: self, edits: edits)
+    }
+}
+
+struct ChangeWorkbookVerification {
+    var issues: [Int: [ChangeParseError]] = [:]
+    var groups: [ChangeIssueGroup] = []
+    var suggestions: ChangeIssueGroup?
+    var savedGroups: [ChangeIssueGroup] = []
+    var viable = false
+    var recordCount: Int?
+    var error: String?
+
+    static func evaluate(_ view: ChangeWorkbookReview, edits: [Int: ChangeRowEdit], year: Int,
+                         check: () throws -> Void) throws -> Self {
+        try check()
+        var result = Self(savedGroups: ChangeIssueGroup.savedGroups(edits))
+        let table = view.table
+        do {
+            result.issues = try table.review(edits: edits, defaultYear: year, check: check)
+            result.groups = ChangeIssueGroup.groups(result.issues, table: table, edits: edits,
+                                                    conflicts: view.conflicts, previous: view.previous)
+            if let weekday = table.headers.firstIndex(where: { ["曜日", "曜"].contains(ChangeNormalizer.token($0)) }) {
+                let rows = try table.rowIDs.filter { row in
+                    try check()
+                    let edit = edits[row] ?? ChangeRowEdit()
+                    guard !edit.excluded, !edit.deriveWeekday, edit.keepPrintedWeekday != true,
+                          table.cellIssues[row]?[weekday] == nil, !view.conflicts.contains(row) else { return false }
+                    let values = table.values(at: row, edit: edit, defaultYear: year)
+                    return ChangeNormalizer.text(values[weekday]).isEmpty &&
+                        table.normalizedDate(values, row: row, edit: edit, defaultYear: year) != nil
+                }
+                if !rows.isEmpty {
+                    result.suggestions = ChangeIssueGroup(code: .weekdayMismatch, column: weekday, rows: rows, optional: true)
+                }
+            }
+            result.viable = result.issues.isEmpty && view.conflicts.isEmpty
+            if result.viable && !view.requiresLayoutConfirmation {
+                // The same frozen input already passed review. Check only the final model here.
+                result.recordCount = try table.recordsAfterReview(edits: edits, defaultYear: year, check: check).count
+            }
+        } catch {
+            try check()
+            return .init(savedGroups: result.savedGroups, error: error.localizedDescription)
+        }
+        try check()
+        return result
     }
 }
 

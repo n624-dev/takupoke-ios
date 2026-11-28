@@ -5,6 +5,90 @@ import GRDB
 @testable import TakupokeParsing
 
 extension SpecialScheduleTests {
+    func testSpecialStoreRecoversOtherPDFWhenOneSavedPayloadIsUnreadable() throws {
+        for legacy in [false, true] {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: root) }
+            let ownerQueue = DispatchQueue(label: "fictional-special-recovery")
+            let store = try SpecialScheduleStore(root: root, ownerQueue: ownerQueue)
+            for kind in SpecialScheduleKind.allCases {
+                let bytes = Data("%PDF-fictional-\(kind.rawValue)".utf8)
+                let staged = store.newStagingURL()
+                try bytes.write(to: staged)
+                let snapshot = try MaterialFileReader.copy(staged, to: nil, isWorkbook: false, check: {})
+                let pages = kind == .exam ? [flexibleExamPage(["2-CN"], days: [1, 2])] : [returnPageWithSplitCell()]
+                let analysis = try SpecialScheduleParser.parse(pages, kind: kind, digest: snapshot.digest, name: "fictional.pdf")
+                try store.save(staged: staged, analysis: analysis, originalName: analysis.sourceName,
+                               byteCount: snapshot.count, digest: snapshot.digest)
+            }
+            let savedExam = try XCTUnwrap(store.savedURL(for: .exam))
+            let savedReturn = try XCTUnwrap(store.savedURL(for: .examReturn))
+            try store.queue.write { db in
+                try db.execute(sql: "UPDATE specialSchedule SET payload = ? WHERE kind = 'examReturn'", arguments: [Data([0x7B])])
+                if legacy { try db.execute(sql: "DROP TABLE specialSource; DROP TABLE specialAcquisitionAttempt") }
+            }
+            try store.queue.close()
+            let database = root.appendingPathComponent("specials.sqlite")
+            let original = try Data(contentsOf: database)
+            let recovered = try SpecialScheduleStore.openRecovering(root: root, ownerQueue: ownerQueue)
+            XCTAssertTrue(recovered.wasPartiallyRecovered)
+            XCTAssertEqual(recovered.records[.exam]?.analysis, store.records[.exam]?.analysis)
+            XCTAssertNil(recovered.sources[.examReturn])
+            XCTAssertNil(recovered.records[.examReturn])
+            XCTAssertEqual(try Data(contentsOf: database), original)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: savedExam.path))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: savedReturn.path))
+            let reopened = try SpecialScheduleStore.openRecovering(root: root, ownerQueue: ownerQueue)
+            XCTAssertEqual(try Data(contentsOf: XCTUnwrap(reopened.savedURL(for: .exam))), Data("%PDF-fictional-exam".utf8))
+        }
+    }
+
+    func testRemovingSelectedExamRollsBackOnFailureAndKeepsReturnAcrossRestart() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try SpecialScheduleStore(root: root)
+        let exam = try SpecialScheduleParser.parse([flexibleExamPage(["2-CN"], days: [1, 2])], kind: .exam,
+                                                    digest: "fictional-exam", name: "exam.pdf")
+        let returned = try SpecialScheduleParser.parse([returnPageWithSplitCell()], kind: .examReturn,
+                                                        digest: "fictional-return", name: "return.pdf")
+        for analysis in [exam, returned] {
+            let bytes = Data("%PDF-fictional-\(analysis.kind.rawValue)".utf8)
+            let staged = store.newStagingURL()
+            try bytes.write(to: staged)
+            try store.save(staged: staged, analysis: analysis, originalName: analysis.sourceName,
+                           byteCount: bytes.count, digest: analysis.sourceDigest)
+        }
+        let savedExam = try XCTUnwrap(store.savedURL(for: .exam))
+        let staged = store.newStagingURL(), newer = Data("%PDF-fictional-new".utf8)
+        try newer.write(to: staged)
+        try store.saveSelection(staged: staged, kind: .exam, originalName: "new.pdf",
+                                byteCount: newer.count, digest: "fictional-new")
+        let selectedExam = try XCTUnwrap(store.selectedURL(for: .exam))
+        let savedReturn = try XCTUnwrap(store.savedURL(for: .examReturn))
+
+        try store.queue.write { db in
+            try db.execute(sql: """
+                CREATE TRIGGER testAbortRemove BEFORE DELETE ON specialSchedule
+                BEGIN SELECT RAISE(ABORT, 'fictional failure'); END
+                """)
+        }
+        XCTAssertThrowsError(try store.removeSelection(.exam))
+        let unchanged = try SpecialScheduleStore(root: root)
+        XCTAssertEqual(unchanged.selectedURL(for: .exam), selectedExam)
+        XCTAssertEqual(unchanged.savedURL(for: .exam), savedExam)
+        try store.queue.write { db in try db.execute(sql: "DROP TRIGGER testAbortRemove") }
+
+        try store.removeSelection(.exam)
+        let reopened = try SpecialScheduleStore(root: root)
+        XCTAssertNil(reopened.sources[.exam])
+        XCTAssertNil(reopened.records[.exam])
+        XCTAssertNil(reopened.acquisitionAttempts[.exam])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: savedExam.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: selectedExam.path))
+        XCTAssertEqual(reopened.savedURL(for: .examReturn), savedReturn)
+        XCTAssertEqual(reopened.records[.examReturn]?.analysis, returned)
+    }
+
     func testScopedReturnSubsetCannotReplaceFullReturnAfterRestart() throws {
         let root=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at:root) }
@@ -180,6 +264,39 @@ extension SpecialScheduleTests {
         try reopened.recordSuccessfulCheck(.exam, digest: analysis.sourceDigest)
         XCTAssertEqual(try status(SpecialScheduleStore(root: root)), "解析済み")
         XCTAssertEqual(reopened.records[.exam]?.analysis.sourceDigest, analysis.sourceDigest)
+    }
+
+    func testFirstAcquisitionFailuresReopenWithoutInventingASelectedPDF() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let live = try SpecialScheduleStore(root: root.appendingPathComponent("live"))
+        let failures: [(MaterialError, AcquisitionProblem)] = [(.tooLarge, .sizeLimit), (.invalidFile, .invalidFormat),
+            (.accessExpired, .permission), (.providerReadFailed, .temporary)]
+        for (index, failure) in failures.enumerated() {
+            let kind = SpecialScheduleKind.allCases[index % 2]
+            let identity = try live.pipelineIdentity(kind)
+            let copy = try live.pipelineSnapshot(kind).open(at: root.appendingPathComponent("isolated-\(index)"))
+            try copy.recordAcquisitionFailure(kind: kind, error: failure.0)
+            let source = try XCTUnwrap(FileRefreshDiagnostics.Source(rawValue: kind.rawValue))
+            let ticket = FilePipeline.Ticket(source: source, reason: .selection, period: .current(), limits: .init(), now: { 0 })
+            try live.acceptPipeline(copy, kind: kind, expected: identity, ticket: ticket)
+            let reopened = try SpecialScheduleStore(root: root.appendingPathComponent("live"))
+            XCTAssertTrue(reopened.sources.isEmpty)
+            XCTAssertTrue(reopened.records.isEmpty)
+            XCTAssertEqual(reopened.acquisitionAttempts[kind]?.problem, failure.1)
+            let availability = SpecialScheduleAvailability(ready: true, busy: false, failed: false,
+                sources: reopened.sources, records: reopened.records, acquisitionAttempts: reopened.acquisitionAttempts)
+            let row = FileStatusPresentation.special(availability, kind: kind)
+            XCTAssertEqual(row.updateState, .unavailable)
+            XCTAssertEqual(row.status.detail, failure.1.message)
+        }
+        let staged = live.newStagingURL()
+        let bytes = Data("%PDF-fictional-file".utf8)
+        try bytes.write(to: staged)
+        try live.saveSelection(staged: staged, kind: .exam, originalName: "fictional.pdf", byteCount: bytes.count, digest: "fictional")
+        let reopened = try SpecialScheduleStore(root: root.appendingPathComponent("live"))
+        XCTAssertNil(reopened.acquisitionAttempts[.exam])
+        XCTAssertEqual(reopened.acquisitionAttempts[.examReturn]?.problem, .temporary)
     }
 
     func testCancellingSpecialReanalysisKeepsOnlyTheSameOriginalRecoveryJob() throws {

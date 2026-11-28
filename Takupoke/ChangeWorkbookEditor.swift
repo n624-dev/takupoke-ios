@@ -138,12 +138,21 @@ extension MaterialLibrary {
               !view.requiresLayoutConfirmation, view.conflicts.isEmpty,
               !manual || view.baseline == ChangeEditBaseline(source: record.source) else { throw ChangeParseError(code: .staleConfirmation) }
         let records = try view.table.records(edits: edits, defaultYear: year, check: check)
+        if records.isEmpty, !manual, record.source.personalChanges?.reviewedDigest != expectedDigest {
+            throw ChangeParseError(code: .staleConfirmation)
+        }
         let rows = try view.table.savedEdits(sourceIdentity: expectedIdentity, digest: expectedDigest, defaultYear: year, edits: edits, check: check)
         let personal = PersonalChangeSettings(year: year, layout: view.layout, rows: rows, history: view.previous, reviewedDigest: record.digest)
         var analysis = ChangeAnalysis(sourceDigest: record.digest, sourceName: record.originalName, defaultYear: year, parsedAt: Date(), records: records)
         analysis.sourceModifiedAt = record.sourceModifiedAt
         analysis.personalEdit = manual
         analysis.personalSourceIdentity = expectedIdentity
+        if records.isEmpty {
+            let originalRows = view.table.rowIDs
+            guard let rows, rows.entries.count == originalRows.count,
+                  rows.entries.allSatisfy({ $0.edit.excluded }) else { throw ChangeParseError(code: .storage) }
+            analysis.excludedSourceRowCount = originalRows.count
+        }
         try check()
         var next = state
         guard let i = next.records.firstIndex(where: { $0.kind == .changes }) else { throw ChangeParseError(code: .staleConfirmation) }

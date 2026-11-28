@@ -42,6 +42,19 @@ final class ServiceStatusTests: XCTestCase {
         XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2"))
         publisher.accept(updated, at: now)
         XCTAssertFalse(publisher.isWaiting(year: 2032, format: "v2"))
+        let observation = try XCTUnwrap(publisher.observation(year: 2032, format: "v2"))
+        XCTAssertEqual(observation.version.reviewState, "reviewed")
+        XCTAssertEqual(observation.observedAt, snapshot.checkedAt)
+        XCTAssertNil(updated.eventVersion(year: 2032, format: "v2", at: snapshot.validUntil))
+        XCTAssertEqual(publisher.observation(year: 2032, format: "v2"), observation)
+        XCTAssertNil(publisher.observation(year: 2032, format: "v1"))
+        var omission = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(reviewed.utf8)) as? [String: Any])
+        omission["data"] = ["events": ["checkedAt": "2032-04-01T00:00:01Z",
+                                           "validUntil": "2032-04-01T00:03:00Z", "versions": []]]
+        let currentWithoutEdition = try FunctionalStatusSnapshot.decode(JSONSerialization.data(withJSONObject: omission), service: .api)
+        publisher.accept(currentWithoutEdition, at: now)
+        XCTAssertNil(currentWithoutEdition.eventVersion(year: 2032, format: "v2", at: now))
+        XCTAssertEqual(publisher.observation(year: 2032, format: "v2"), observation)
         let matchedAt = try XCTUnwrap(updated.eventVersion(year: 2032, format: "v2", at: now)?.sourceCheckedAt)
         XCTAssertFalse(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(-1)))
         XCTAssertTrue(publisher.isWaiting(year: 2032, format: "v2", earlierDifference: matchedAt.addingTimeInterval(1)))
@@ -148,6 +161,40 @@ final class ServiceStatusTests: XCTestCase {
             reports: [reference("report", "status_report")]))
         XCTAssertEqual(conflicted.resources[.api]?.incidents.first?.state, "unknown")
         XCTAssertFalse(try XCTUnwrap(conflicted.resources[.api]?.incidents.first).resolved)
+    }
+
+    func testLargePublicPageRetainsUniqueReferencesAndRejectsAmbiguity() throws {
+        let updateType = "status_update"
+        let reportType = "status_report"
+        let affected = [["status_page_resource_id": "9028864", "status": "resolved"]]
+        let reportCount = 160
+        var reports = [[String: String]]()
+        var nodes = [resource("9028864"), resource("9028865")]
+        for index in 0..<reportCount {
+            let id = "fictional-report-\(index)"
+            let updateIDs = (0..<6).map { "\(id)-\($0)" }
+            var report = node(id, reportType, ["title": "架空障害", "affected_resources": affected,
+                                               "starts_at": "2032-04-01T00:00:00Z"])
+            report["relationships"] = ["status_updates": ["data": updateIDs.map { reference($0, updateType) }]]
+            reports.append(reference(id, reportType))
+            nodes.append(report)
+            for (number, updateID) in updateIDs.enumerated() {
+                let update = node(updateID, updateType, ["message": "架空の経過",
+                    "published_at": number == 5 ? "invalid" : "2032-04-01T00:00:00.123Z",
+                    "affected_resources": affected])
+                nodes.append(update)
+                if index == 0 && number == 0 { nodes.append(update) }
+                if index == 0 && number == 1 { nodes.append(node(updateID, ["status": "downtime"])) }
+            }
+        }
+        let data = try payload(nodes, reports: reports)
+        XCTAssertLessThan(data.count, ServiceStatusSnapshot.maximumBytes)
+        let snapshot = try ServiceStatusSnapshot.decode(data)
+        let incidents = try XCTUnwrap(snapshot.resources[.api]?.incidents)
+        XCTAssertEqual(incidents.count, reportCount)
+        XCTAssertEqual(incidents.first?.updates.map(\.id), (1...4).map { "fictional-report-0-\($0)" })
+        XCTAssertTrue(incidents.dropFirst().allSatisfy { $0.updates.count == 5 })
+        XCTAssertEqual(snapshot.resources[.authentication]?.incidents, [])
     }
 
     func testCacheFailureExpiryAndClockRollbackRetainEvidenceButNotCurrentNormal() throws {

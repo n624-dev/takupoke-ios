@@ -42,7 +42,7 @@ struct CountdownManagementView: View {
             if model.storageState == .ready {
                 Section {
                     NavigationLink {
-                        CountdownAutomaticEditor(automatic: model.library.automatic, target: model.automaticProgress?.key)
+                        CountdownAutomaticEditor(automatic: model.library.automatic)
                     } label: {
                         LabeledContent("試験の自動表示",
                             value: model.library.automatic.enabled ? model.library.automatic.mode.label : "オフ")
@@ -272,7 +272,7 @@ private struct CountdownDetail: View {
                 } else if id == CountdownAutomatic.identity {
                     Section {
                         NavigationLink("自動表示を設定") {
-                            CountdownAutomaticEditor(automatic: model.library.automatic, target: model.automaticProgress?.key)
+                            CountdownAutomaticEditor(automatic: model.library.automatic)
                         }
                         if card.availability == .missingYear {
                             Button("学校行事を取得") { events.fetch(year: model.day.schoolYear) }.disabled(events.busy)
@@ -485,13 +485,16 @@ private struct CountdownAutomaticEditor: View {
     @State var automatic: CountdownAutomatic
     @State private var reminderDays = CountdownReminderDayEdits()
     @State private var originEdit: CountdownOriginEdit?
-    @State private var openedTarget: CountdownExamProgressKey?
+    @State private var changedTarget = false
+    @ObservedObject private var app = ApplicationData.shared
+    @ObservedObject private var events = ApplicationData.shared.schoolEvents
+    @ObservedObject private var specials = ApplicationData.shared.specialSchedules
+    @ObservedObject private var materials = ApplicationData.shared.materials
     private let oldNotifications: Bool
 
-    init(automatic: CountdownAutomatic, target: CountdownExamProgressKey?) {
+    init(automatic: CountdownAutomatic) {
         _automatic = State(initialValue: automatic)
         oldNotifications = automatic.enabled && automatic.preferences.notifications
-        _openedTarget = State(initialValue: target)
     }
 
     private var canSave: Bool {
@@ -500,15 +503,15 @@ private struct CountdownAutomaticEditor: View {
             (!automatic.enabled || !automatic.preferences.notifications || !reminderDays.hasInvalidInput)
     }
 
-    private var context: CountdownExamProgress? {
-        guard automatic.mode == model.library.automatic.mode,
-              let current = model.automaticProgress, current.key == openedTarget else { return nil }
-        return current
+    private var preview: CountdownModel.AutomaticDraftPreview {
+        model.previewAutomatic(automatic, using: app, at: Date())
     }
+
+    private var context: CountdownExamProgress? { preview.progress }
 
     private var canSaveOrigin: Bool {
         guard case .change(let key, let day, _) = originEdit else { return true }
-        guard let context, context.key == key, !(key.isPrivate && model.classProgressUnavailable) else { return false }
+        guard let context, context.key == key, !(key.isPrivate && preview.classProgressUnavailable) else { return false }
         return day.map { $0 < context.goal } != false
     }
 
@@ -526,7 +529,7 @@ private struct CountdownAutomaticEditor: View {
                     LabeledContent("進捗の起点日", value: "自動に戻す")
                 }
             } else {
-                InlineWarning("対象の試験が変わりました。設定を開き直すか、起点日の変更を取り消してください。")
+                InlineWarning("対象の試験が変わりました。起点日を選び直してください。")
             }
             Button("起点日の変更を取り消す") { originEdit = nil }
         } else if let context {
@@ -534,8 +537,8 @@ private struct CountdownAutomaticEditor: View {
             if context.origin.date.map({ $0 >= context.goal }) == true {
                 InlineWarning("進捗の起点日は、目標日より前に設定してください。")
             }
-            if context.key.isPrivate && model.classProgressUnavailable {
-                InlineWarning("この試験の起点日を読み込めません。設定を開き直して再試行してください。")
+            if context.key.isPrivate && preview.classProgressUnavailable {
+                InlineWarning("保存した起点日を読み込めないため、確認できる試験情報から自動で計算しています。")
             } else {
                 Button(context.origin.date == nil ? "起点日を設定" : "この試験だけ起点日を変更") {
                     let suggested = context.origin.date ?? min(model.day, context.goal.addingDays(-1) ?? model.day)
@@ -553,7 +556,7 @@ private struct CountdownAutomaticEditor: View {
         }
         if let legacy = model.library.automatic.unlinkedProgressStart, originEdit == nil {
             LabeledContent("以前の起点日（未紐付け）", value: legacy.iso8601)
-            if let context, !(context.key.isPrivate && model.classProgressUnavailable) {
+            if let context, !(context.key.isPrivate && preview.classProgressUnavailable) {
                 Button("以前の起点日をこの試験に適用") {
                     originEdit = .change(context.key, date: legacy, useUnlinked: true)
                 }
@@ -582,7 +585,17 @@ private struct CountdownAutomaticEditor: View {
                     Button("起点日の変更を取り消す") { originEdit = nil }
                 }
             }
+            if changedTarget { InlineWarning("対象の試験が変わりました。起点日を選び直してください。他の編集中の設定は保持しています。") }
             if let message = model.message { InlineWarning(message) }
+        }
+        .onChange(of: context?.key) { _, key in
+            if case .change(let previous, _, _) = originEdit, previous != key {
+                originEdit = nil
+                changedTarget = true
+            }
+        }
+        .onChange(of: originEdit) { _, edit in
+            if case .change = edit { changedTarget = false }
         }
         .environment(\.calendar, SchoolDate.japanCalendar)
         .environment(\.timeZone, SchoolDate.japanCalendar.timeZone)

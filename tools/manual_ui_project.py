@@ -19,10 +19,20 @@ def once(text, marker, replacement):
 
 
 def coordinator(text):
+    fixture_failure = '    @Published private var fixtureFailure: String?'
+    text = once(text, fixture_failure, fixture_failure + '\n    @Published private(set) var manualQAPreviewRevalidations = 0')
+    verified = """                guard preview?.id == candidate.id else { throw CancellationError() }
+                previewNeedsRevalidation = false
+                running = false"""
+    text = once(text, verified, verified + '''
+                if SimulatorManualFixture.enabled {
+                    manualQAPreviewRevalidations += 1
+                    FixtureCITrace.mark("manual-preview-revalidation-complete")
+                }''')
     marker = "    func start(_ kind: RecoveryDocumentKind) {"
     text = once(text, marker, marker + '''
         if SimulatorManualFixture.enabled {
-            cancel(); failure = nil; running = true
+            cancel(); running = true
             let fixtureOperation = self.operation
             task = Task { @MainActor in
                 do {
@@ -41,7 +51,7 @@ def coordinator(text):
                 } catch {
                     SimulatorManualFixture.failed(error)
                     guard self.operation == fixtureOperation else { return }
-                    running = false; failure = "架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"
+                    running = false; fixtureFailure = "架空資料の補助入力を拒否しました。前回の正常結果を保持しています。"
                 }
             }
             return
@@ -70,15 +80,25 @@ def view(text):
     @State private var manualQATypeSize:DynamicTypeSize = .large
     @State private var manualQAActionsPresented = false
     @State private var manualQARevalidationCount = 0
+    @State private var manualQACompletedEdits = 0
     @AppStorage("fixture.manualMutationComplete") private var manualQAMutationComplete = false''')
+    text = once(text, 'Button("完了") { editingManualField = nil }',
+                'Button("完了") { editingManualField = nil; manualQACompletedEdits += 1 }')
     text = once(text, '.navigationTitle(title)', '''.accessibilityIdentifier("manual-recovery-list")
             .navigationTitle(title)
             .onAppear { FixtureCITrace.mark("manual-screen-appeared") }
             .onDisappear { FixtureCITrace.mark("manual-screen-disappeared") }
             .dynamicTypeSize(manualQATypeSize)
             .toolbar { ToolbarItem(placement:.topBarTrailing) {
-                Button("架空検証") { manualQAActionsPresented = true }
+                Button("架空検証") {
+                    FixtureCITrace.mark("manual-fixture-menu-action")
+                    manualQAActionsPresented = true
+                }
+                .accessibilityIdentifier("manual-fixture-menu")
             } }
+            .onChange(of: manualQAActionsPresented) { _, presented in
+                FixtureCITrace.mark(presented ? "manual-fixture-menu-presented" : "manual-fixture-menu-dismissed")
+            }
             .confirmationDialog("架空検証", isPresented: $manualQAActionsPresented) {
                 Button("表示サイズを変更") { manualQATypeSize = manualQATypeSize == .large ? .xxxLarge : .large }
                 Button("同じ原本の状態を再確認") {
@@ -96,7 +116,9 @@ def view(text):
                             .font(.system(size:1)).accessibilityIdentifier("manual-fixture-type-size").allowsHitTesting(false)
                         Text(String(manualQARevalidationCount))
                             .font(.system(size:1)).accessibilityIdentifier("manual-fixture-revalidations").allowsHitTesting(false)
-                        Text("preview=\\(coordinator.preview != nil);review=\\(coordinator.manualReview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");failure=\\(coordinator.failure ?? "none")")
+                        Text(String(manualQACompletedEdits))
+                            .font(.system(size:1)).accessibilityIdentifier("manual-fixture-completed-edits").allowsHitTesting(false)
+                        Text("preview=\\(coordinator.preview != nil);review=\\(coordinator.manualReview != nil);running=\\(coordinator.running);draft=\\(coordinator.manualDraft?.id ?? "nil");revalidation=\\(coordinator.previewNeedsRevalidation);revalidations=\\(coordinator.manualQAPreviewRevalidations);failure=\\(coordinator.failure ?? "none")")
                             .font(.system(size:1)).accessibilityIdentifier("manual-coordinator-state").allowsHitTesting(false)
                         if manualQAMutationComplete { Text("変更完了").accessibilityIdentifier("manual-mutation-complete").allowsHitTesting(false) }
                         if let draft = coordinator.manualDraft {

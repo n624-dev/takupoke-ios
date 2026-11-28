@@ -11,8 +11,7 @@ struct MappingService {
             revision.utf8.count == 43 && MappingPackage.validRevision(revision) ? "\"\(revision)\"" : nil
         }
         request.setValue(requestedTag, forHTTPHeaderField: "If-None-Match")
-        let (data, rawResponse) = try await network.data(for: request)
-        guard let response = rawResponse as? HTTPURLResponse, data.isEmpty else { throw MappingError.invalidResponse }
+        let (_, response) = try await BoundedHTTPResponse.read(request, using: network, maximum: 0)
         switch response.statusCode {
         case 304:
             guard let requestedTag, let receivedTag = response.value(forHTTPHeaderField: "ETag"),
@@ -36,9 +35,7 @@ struct MappingService {
         var request = URLRequest(url: baseURL.appendingPathComponent("mappings").appendingPathComponent("current"))
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/zip", forHTTPHeaderField: "Accept")
-        let (temporary, rawResponse) = try await network.download(for: request)
-        defer { try? FileManager.default.removeItem(at: temporary) }
-        guard let response = rawResponse as? HTTPURLResponse else { throw MappingError.invalidResponse }
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: network, maximum: 8 * 1024 * 1024)
         if response.statusCode == 401 || response.statusCode == 403 { throw MappingError.authentication }
         guard response.statusCode == 200,
               response.value(forHTTPHeaderField: "Content-Type")?.lowercased().hasPrefix("application/zip") == true,
@@ -46,9 +43,6 @@ struct MappingService {
               let revision = response.value(forHTTPHeaderField: "X-Mapping-Revision"),
               let archiveETag = response.value(forHTTPHeaderField: "ETag") else { throw MappingError.unavailable }
         guard revision == expectedRevision else { throw MappingError.changedDuringDownload }
-        guard let size = try temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize,
-              size > 0, size <= 8 * 1024 * 1024 else { throw MappingError.invalidPackage }
-        let data = try Data(contentsOf: temporary, options: .mappedIfSafe)
         return try MappingPackage.decode(data, version: version, revision: revision, archiveETag: archiveETag)
     }
 }

@@ -260,6 +260,8 @@ final class TimetableModelTests: XCTestCase {
             XCTAssertFalse(current.failed); XCTAssertFalse(current.updateAvailable)
             let reopened = model(root); reopened.loadIfNeeded()
             XCTAssertFalse(reopened.failed); XCTAssertEqual(reopened.current?.revision, revision)
+            XCTAssertEqual(reopened.revisionConfirmation?.outcome, .adopted)
+            XCTAssertEqual(reopened.revisionConfirmation, current.revisionConfirmation)
             XCTAssertEqual(reopened.current?.data, TimetableTimes(schemaVersion: 1, days: []))
         }
     }
@@ -319,7 +321,7 @@ final class TimetableModelTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: sentinel), bytes)
     }
 
-    func testDisjointChangeDetailsFindOriginalsAndRelatedChangesWithoutChangingGrid() throws {
+    func testDisjointChangeDetailsAndGridAgreeOnAffectedPeriods() throws {
         let day = SchoolDate(iso8601: "2032-04-05")!
         func change(_ periods: String, date: String = "2032-04-05", cls: String = "2_IT", before: String = "") -> ScheduleChange {
             ScheduleChange(change_date: date, class_name: cls, period: periods, before_subject: before,
@@ -340,11 +342,29 @@ final class TimetableModelTests: XCTestCase {
         XCTAssertEqual(selection.comparison.groups.map(\.periods), [[1], [3]])
         XCTAssertEqual(selection.relatedChanges, [overlap, disjointOverlap])
         XCTAssertEqual(presentation.changeSelection(for: change("1,3", before: "架空明記科目A")).comparison.groups.first?.pairs.first?.before, "架空明記科目A")
-        XCTAssertNil(target.gridPeriods)
-        for period in [1, 3] {
-            let slot = TimetableSchedule.slot(on: day, period: period, className: "2_IT", timetable: timetable,
-                changes: ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx", defaultYear: 2032, parsedAt: Date(), records: [target]), includesChanges: true, events: nil, specials: [])
-            XCTAssertTrue(slot.changes.isEmpty)
+        for notation in ["1,3", "3,1", "1・3限", "確認が必要"] {
+            let row = change(notation)
+            let changes = ChangeAnalysis(sourceDigest: "fictional", sourceName: "fictional.xlsx",
+                defaultYear: 2032, parsedAt: Date(), records: [row])
+            let schedule = TimetableDaySchedule(timetable: timetable, changes: changes,
+                events: nil, specials: [], includesChanges: true)
+            let changedPeriods = notation == "確認が必要" ? [] : [1, 3]
+            for period in 1...3 {
+                let expected = changedPeriods.contains(period) ? [row] : []
+                let slot = TimetableSchedule.slot(on: day, period: period, className: "2_IT", timetable: timetable,
+                    changes: changes, includesChanges: true)
+                XCTAssertEqual(slot.changes, expected)
+                XCTAssertEqual(schedule.sourceIndex.slot(on: day, period: period, className: "2_IT",
+                    includesChanges: true), slot)
+            }
+            let blocks = schedule.blocks(on: day, className: "2_IT", international: false)
+            let changed = blocks.filter { if case .change = $0.content { true } else { false } }
+            XCTAssertEqual(changed.map(\.startPeriod), changedPeriods)
+            XCTAssertEqual(changed.map(\.endPeriod), changedPeriods)
+            XCTAssertTrue(blocks.contains { block in
+                guard case .normal(let lesson) = block.content else { return false }
+                return lesson.names.subject == "架空科目2" && block.startPeriod == 2 && block.endPeriod == 2
+            })
         }
         for kind in SpecialScheduleKind.allCases {
             let special = SpecialScheduleAnalysis(kind: kind, sourceDigest: "fictional", sourceName: "fictional.pdf",

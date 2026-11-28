@@ -6,24 +6,12 @@ extension MappingRules {
             schoolYear: schoolYear).subject, className: className)
     }
 
-    private func contextualTeacher(_ alias: String, subject: String, className: String,
-                                   schoolYear: Int?) -> String? {
-        guard let schoolYear, let canonical = canonicalSubject(subject, className: className) else { return nil }
-        let candidates = teacherContexts.filter {
-            Self.comparable($0.alias) == Self.comparable(alias) && $0.className == className &&
-                $0.schoolYear == schoolYear && Self.comparable($0.subject) == canonical
-        }
-        let exact = candidates.filter { $0.alias == alias }
-        let names = Set((exact.isEmpty ? candidates : exact).map(\.fullName))
-        return names.count == 1 ? names.first : nil
-    }
-
     private func presenting(_ names: TimetableLessonNames, className: String,
                             schoolYear: Int?) -> TimetableLessonNames {
         let standard = applying(to: names, className: className)
         return TimetableLessonNames(subject: names.subject, teacher: names.teacher, room: names.room,
             subjectFullName: standard.subjectFullName,
-            teacherFullName: metadataName(names.teacher, in: teachers, contextual: {
+            teacherFullName: metadataName(names.teacher, in: .teacher, contextual: {
                 contextualTeacher($0, subject: names.subject, className: className, schoolYear: schoolYear)
             }) ?? standard.teacherFullName,
             roomFullName: standard.roomFullName)
@@ -51,8 +39,8 @@ extension MappingRules {
         }
         func contextualSubject(_ subject: String) -> String {
             guard let className, canonicalSubject(subject, className: className) == nil,
-                  let tail = suffix(subject), confirmsMetadata(tail.token, in: rooms),
-                  !confirmsMetadata(tail.token, in: teachers, contextual: {
+                  let tail = suffix(subject), confirmsMetadata(tail.token, in: .room),
+                  !confirmsMetadata(tail.token, in: .teacher, contextual: {
                       contextualTeacher($0, subject: tail.subject, className: className, schoolYear: schoolYear)
                   }), canonicalSubject(tail.subject, className: className) != nil else { return subject }
             return tail.subject
@@ -63,11 +51,11 @@ extension MappingRules {
         while let tail = suffix(remaining) {
             let token = tail.token
             let subject = tail.subject
-            let isTeacher = confirmsMetadata(token, in: teachers, contextual: { alias in
+            let isTeacher = confirmsMetadata(token, in: .teacher, contextual: { alias in
                 className.flatMap { contextualTeacher(alias, subject: contextualSubject(subject),
                     className: $0, schoolYear: schoolYear) }
             })
-            let isRoom = confirmsMetadata(token, in: rooms)
+            let isRoom = confirmsMetadata(token, in: .room)
             guard isTeacher != isRoom else { break }
             if isTeacher {
                 guard teacher.isEmpty else { break }

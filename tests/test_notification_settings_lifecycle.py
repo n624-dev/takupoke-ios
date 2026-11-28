@@ -13,6 +13,112 @@ from test_manual_input_lifecycle import block
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+class CountdownInputObservationTests(unittest.TestCase):
+    def test_countdown_observers_refresh_available_data_and_hold_during_cleanup(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift is required to execute the countdown observation")
+        application = (ROOT / "Takupoke/ApplicationData.swift").read_text(encoding="utf-8")
+        subscriptions = "\n".join(
+            line for line in application.splitlines()
+            if ("specialSchedules.$" in line or "schoolEvents.$" in line) and "checkCountdownWhenActive" in line
+        )
+        source = r'''import Foundation
+struct Token: Hashable {
+    let id = UUID()
+    func store(in tokens: inout Set<Self>) { tokens.insert(self) }
+}
+@propertyWrapper final class Published<Value: Equatable> {
+    private var value: Value
+    private var callbacks = [(Value) -> Void]()
+    init(wrappedValue: Value) { value = wrappedValue }
+    var projectedValue: Published<Value> { self }
+    var wrappedValue: Value {
+        get { value }
+        set {
+            for callback in callbacks { callback(newValue) }
+            value = newValue
+        }
+    }
+    func removeDuplicates() -> Self { self }
+    func sink(_ receive: @escaping (Value) -> Void) -> Token {
+        callbacks.append(receive); receive(value); return Token()
+    }
+}
+final class Sources {
+    @Published var ready = false
+    @Published var failed = false
+    @Published var records = 0
+    @Published var sources = 0
+}
+final class PublicEvents {
+    @Published var saved = 0
+    @Published var sourcePresentationRevision = 0
+}
+struct UIApplication {
+    static let shared = UIApplication()
+    enum State { case active }
+    var applicationState: State { .active }
+}
+@MainActor final class Application {
+    let specialSchedules = Sources()
+    let schoolEvents = PublicEvents()
+    var observations = Set<Token>()
+    var countdownUpdateScheduled = false
+    var preparing = false
+    var retentionFailure = false
+    var evaluatedFailures = [Bool]()
+    var publicSnapshots = [[Int]]()
+    func updateCountdown() { evaluatedFailures.append(specialSchedules.failed) }
+    func updatePublicCountdown() {
+        publicSnapshots.append([schoolEvents.saved, schoolEvents.sourcePresentationRevision])
+    }
+    init() {
+''' + subscriptions + '''
+    }
+''' + block(application, "    private func checkCountdownWhenActive()") + r'''
+}
+@main struct Probe {
+    @MainActor static func flush(_ app: Application) async {
+        while app.countdownUpdateScheduled { await Task.yield() }
+    }
+    @MainActor static func main() async {
+        let app = Application()
+        await flush(app)
+        precondition(app.evaluatedFailures == [false]) // Other inputs already showed a loading state.
+        app.specialSchedules.failed = true
+        await flush(app)
+        precondition(app.evaluatedFailures == [false, true]) // No other publisher or clock changed.
+        precondition(!app.specialSchedules.ready)
+        app.specialSchedules.ready = true
+        app.specialSchedules.failed = false
+        await flush(app)
+        precondition(app.evaluatedFailures == [false, true, false])
+
+        app.retentionFailure = true
+        app.schoolEvents.saved = 8
+        await flush(app)
+        precondition(app.publicSnapshots == [[8, 0]], "Public event changes must refresh the recovery screen")
+        app.schoolEvents.sourcePresentationRevision = 3
+        await flush(app)
+        precondition(app.publicSnapshots == [[8, 0], [8, 3]])
+        precondition(app.evaluatedFailures == [false, true, false])
+
+        app.preparing = true
+        app.schoolEvents.sourcePresentationRevision = 4
+        await flush(app)
+        precondition(app.publicSnapshots == [[8, 0], [8, 3]], "Do not start countdown reconciliation during recovery cleanup")
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="countdown-special-load-") as scratch:
+            path = Path(scratch)
+            (path / "probe.swift").write_text(source, encoding="utf-8")
+            subprocess.run([compiler, "-parse-as-library", str(path / "probe.swift"), "-o", str(path / "probe")],
+                           check=True, timeout=60)
+            subprocess.run([str(path / "probe")], check=True, timeout=10)
+
 COUNTDOWN_EXPIRY_STATE = r'''
     struct ProgressKey { let isPrivate: Bool }
     struct Progress { let key: ProgressKey }
@@ -23,13 +129,94 @@ COUNTDOWN_EXPIRY_STATE = r'''
 
 
 class NotificationSettingsLifecycleTests(unittest.TestCase):
+    def test_background_reservation_and_execution_preserve_separate_diagnostics(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to exercise the actual reservation diagnostic")
+        source = (ROOT / "Takupoke/BackgroundRefresh.swift").read_text(encoding="utf-8")
+        boundary = r'''
+import Foundation
+final class BGAppRefreshTaskRequest {
+    let identifier: String
+    var earliestBeginDate: Date?
+    init(identifier: String) { self.identifier = identifier }
+}
+@MainActor final class BGTaskScheduler {
+    struct Error: Swift.Error {
+        enum Code { case unavailable, notPermitted, tooManyPendingTaskRequests }
+        let code: Code
+    }
+    static let shared = BGTaskScheduler()
+    func submit(_ request: BGAppRefreshTaskRequest) throws { }
+}
+'''
+        probe = r'''
+enum FictionalServerError: Error { case unexpected }
+@main struct Probe {
+    @MainActor static func main() {
+        let suite = "fictional-refresh-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let t = Date(timeIntervalSince1970: 5000)
+        precondition(BackgroundRefresh.diagnostics(defaults: defaults) == BackgroundRefreshDiagnostics())
+        var pending = [String: Date]()
+        let submit: (BGAppRefreshTaskRequest) throws -> Void = { request in
+            let date = request.earliestBeginDate!
+            precondition(request.identifier == BackgroundRefresh.identifier)
+            pending[request.identifier] = date
+        }
+        BackgroundRefresh.schedule(at: t, defaults: defaults, submit: submit)
+        precondition(BackgroundRefresh.diagnostics(defaults: defaults) == .init(
+            reservation: .scheduled, lastAttemptAt: t, lastScheduledAt: t, lastExecutionAt: nil))
+        let replacement = t.addingTimeInterval(5)
+        BackgroundRefresh.schedule(at: replacement, defaults: defaults, submit: submit)
+        precondition(pending == [BackgroundRefresh.identifier: replacement.addingTimeInterval(3600)])
+
+        let errors: [(Error, BackgroundRefreshDiagnostics.Reservation)] = [
+            (BGTaskScheduler.Error(code: .unavailable), .unavailable),
+            (BGTaskScheduler.Error(code: .notPermitted), .notPermitted),
+            (BGTaskScheduler.Error(code: .tooManyPendingTaskRequests), .pendingLimit),
+            (FictionalServerError.unexpected, .otherFailure)
+        ]
+        for (offset, failure) in errors.enumerated() {
+            let date = t.addingTimeInterval(Double(10 + offset))
+            BackgroundRefresh.schedule(at: date, defaults: defaults) { _ in throw failure.0 }
+            let reopened = UserDefaults(suiteName: suite)!
+            precondition(BackgroundRefresh.diagnostics(defaults: reopened) == .init(
+                reservation: failure.1, lastAttemptAt: date, lastScheduledAt: replacement, lastExecutionAt: nil))
+            precondition(pending.count == 1)
+        }
+        let run = t.addingTimeInterval(600)
+        BackgroundRefresh.recordExecution(at: run, defaults: defaults)
+        let reopened = UserDefaults(suiteName: suite)!
+        precondition(BackgroundRefresh.diagnostics(defaults: reopened) == .init(
+            reservation: .otherFailure, lastAttemptAt: t.addingTimeInterval(13),
+            lastScheduledAt: replacement, lastExecutionAt: run))
+        BackgroundRefresh.schedule(at: run, defaults: defaults, submit: submit)
+        precondition(BackgroundRefresh.diagnostics(defaults: reopened) == .init(
+            reservation: .scheduled, lastAttemptAt: run, lastScheduledAt: run, lastExecutionAt: run))
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix="background-reservation-") as directory:
+            root = Path(directory)
+            swift = root / "probe.swift"
+            binary = root / "probe"
+            swift.write_text(boundary + source.replace("import BackgroundTasks\n", "") + probe, encoding="utf-8")
+            compiled = subprocess.run([compiler, "-swift-version", "5", "-parse-as-library", str(swift), "-o", str(binary)],
+                                      capture_output=True, text=True, timeout=60)
+            self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+            actual = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
+            self.assertEqual(actual.returncode, 0, actual.stdout + actual.stderr)
+
     def test_disabling_update_notices_removes_owned_ids_now_and_after_a_late_write(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required to execute the actual update notice settings and worker")
         source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
         methods = "\n".join(block(source, name) for name in (
-            "func setEnabled(", "func disableNotifications(", "func finishDeferredNotificationRemovals(",
+            "func setEnabled(", "func applyPreference(", "func confirmAuthorization()",
+            "func disableNotifications(", "func finishDeferredNotificationRemovals(",
             "func clearDisabledNotifications(", "func removeUpdateNotifications(", "func drainPending()"))
         declarations = "\n".join(line for line in source.splitlines()
             if "static let updateIdentifiers" in line or "static let notificationStopPending" in line)
@@ -158,6 +345,7 @@ enum CountdownExamProgressKey: Codable, Hashable {
     var isPrivate: Bool { if case .school = self { return false }; return true }
     var valid: Bool { true }
 }
+@MainActor final class ApplicationData { static let shared = ApplicationData(); var loadedPeriod: Int? = 1 }
 struct CountdownExamProgress { let key: CountdownExamProgressKey; let goal: SchoolDate }
 struct CountdownClassProgress { var entries: [CountdownCustomProgress] = [] }
 PROGRESS
@@ -214,6 +402,11 @@ struct CountdownCard { let id: UUID; let noticeTarget: CountdownNoticeTarget; le
     var library: CountdownLibrary
     var message: String?, onChange: (() -> Bool)?
     var automaticProgress: CountdownExamProgress?
+    var previewReady = true
+    func previewAutomatic(_ draft: CountdownAutomatic, using app: ApplicationData, at now: Date) -> (progress: CountdownExamProgress?, available: Bool) {
+        (previewReady && draft.enabled ? automaticProgress : nil, previewReady)
+    }
+    func classProgress(in store: Store, period: Int) -> CountdownClassProgress? { loadedClassProgress?.value }
     var loadedClassProgress: (file: UUID?, value: CountdownClassProgress)?
     var notificationCards: [CountdownNoticeTarget:CountdownCard]?
     var notificationStatuses = [CountdownNoticeTarget:String]()
@@ -271,17 +464,16 @@ METHODS
         let origin = SchoolDate(day: 10), goal = SchoolDate(day: 20)
         let firstExam = CountdownExamProgressKey.school("fictional-first")
         originEdit.automaticProgress = .init(key: firstExam, goal: goal)
-        originEdit.onChange = { false }
+        originEdit.previewReady = false
         let change = CountdownOriginEdit.change(firstExam, date: origin, useUnlinked: false)
         precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
-        originEdit.onChange = { true }
-        precondition(originEdit.save(originEdit.library.automatic, originEdit: change))
+        originEdit.previewReady = true
+        var draft = originEdit.library.automatic
+        draft.mode = "changed-mode"
+        precondition(originEdit.save(draft, originEdit: change))
+        precondition(originEdit.library.automatic.mode == "changed-mode")
         precondition(originEdit.library.automatic.customOrigins?.first?.date == origin)
-        originEdit.onChange = { [weak originEdit] in
-            precondition(originEdit?.automaticProgress?.key == firstExam)
-            originEdit?.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
-            return true
-        }
+        originEdit.automaticProgress = .init(key: .school("fictional-next"), goal: goal)
         precondition(!originEdit.save(originEdit.library.automatic, originEdit: change))
         precondition(originEdit.library.automatic.customOrigins?.first?.key == firstExam && originEdit.store!.saves == 1)
 
@@ -302,12 +494,18 @@ METHODS
            .replace("METHODS", methods)
         self.run_probe(compiler, program)
 
-    def test_countdown_retries_only_rejected_missing_reservations_while_plan_is_current(self):
+    def test_countdown_retries_missing_reservations_and_prioritizes_confirmed_capacity(self):
         compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
         if not compiler:
             self.skipTest("Swift required to execute the production reservation loop")
         source = (ROOT / "Takupoke/CountdownModel.swift").read_text(encoding="utf-8")
+        notice_plan = (ROOT / "Takupoke/Countdown.swift").read_text(encoding="utf-8")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text()
+        owners = "\n@MainActor\n".join(block(notifications, f"final class {name} {{") for name in (
+            "NotificationWriteOwner", "NotificationWork", "NotificationRemovalOwner"))
         program = r'''import Foundation
+@MainActor
+NOTIFICATION_OWNERS
 enum SchoolDate {
     static var japanCalendar: Calendar {
         var calendar = Calendar(identifier:.gregorian)
@@ -325,9 +523,11 @@ struct FixtureCard {
     let preferences = Preferences()
     let availability = Availability.available
     let dates: Dates? = Dates()
+    let publicSourceFreshUntil: Date? = nil
 }
 struct CountdownNotice {
     static let prefix = "takupoke.countdown."
+    static let privatePrefix = "fictional.private."
     let identifier: String
     let title = "架空通知"
     let fireAt: Date
@@ -335,12 +535,16 @@ struct CountdownNotice {
     let targetKey = "fictional"
     var target: CountdownNoticeTarget { .init(id:targetID,key:targetKey) }
     let classScope: String? = nil
-    init(_ id: String, fromNow interval: TimeInterval = 3600) {
+    let publicSourceFreshUntil: Date?
+    init(_ id: String, fromNow interval: TimeInterval = 3600, freshUntil: Date? = nil) {
         identifier = id
         fireAt = Date().addingTimeInterval(interval)
+        publicSourceFreshUntil = freshUntil
     }
     static func holdsWhileLoading(identifier:String, storedScope:String?, currentScope:String,
                                   activeReminderKeys:Set<String>, acceptsLegacy:Bool) -> Bool { false }
+CAN_RESERVE
+DISPLACED
 }
 struct UNCalendarNotificationTrigger {
     let dateMatching: DateComponents
@@ -363,27 +567,28 @@ struct Settings {
     let authorizationStatus = Status.authorized
 }
 @MainActor final class Center {
-    var requests = [String:UNNotificationRequest]()
-    var delivered = [Delivered]()
+    nonisolated(unsafe) var requests = [String:UNNotificationRequest]()
+    nonisolated(unsafe) var delivered = [Delivered]()
     var canReadDelivered = true
-    var called = [String](), removals = [String]()
-    var deliveredRemovals = [String]()
+    var called = [String]()
+    nonisolated(unsafe) var removals = [String](), deliveredRemovals = [String]()
     var failOnce = Set<String>(), failPermanently = Set<String>()
     var rejectedButAppearsLater: UNNotificationRequest?
     var withheldRead: Int?
     var pausesAdd = false
     var unfinishedAdd: CheckedContinuation<Void, Never>?
     var reads = 0
+    var measuredLimit: Int?
     func pendingNotificationRequests() async -> [UNNotificationRequest]? {
         reads += 1
         if reads == withheldRead { return nil }
         if reads == 2, let rejectedButAppearsLater { requests[rejectedButAppearsLater.identifier] = rejectedButAppearsLater }
         return Array(requests.values)
     }
-    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+    nonisolated func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
         for id in identifiers { requests.removeValue(forKey:id); removals.append(id) }
     }
-    func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+    nonisolated func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
         deliveredRemovals += identifiers
         delivered.removeAll { identifiers.contains($0.request.identifier) }
     }
@@ -394,6 +599,7 @@ struct Settings {
         if id == "late" { rejectedButAppearsLater = request; throw CocoaError(.fileReadUnknown) }
         if failOnce.remove(id) != nil || failPermanently.contains(id) { throw CocoaError(.fileReadUnknown) }
         if pausesAdd { await withCheckedContinuation { unfinishedAdd = $0 } }
+        if let measuredLimit, requests[id] == nil, requests.count >= measuredLimit { return }
         requests[id] = request
     }
 }
@@ -414,13 +620,23 @@ struct Settings {
         let acceptsLegacyClassNotice = false
     }
     var revision = UUID()
+    var request: NoticePlan?
     var disabledTargets = Set<UUID>()
+    var waits = [Duration]()
     var notificationStatuses = [CountdownNoticeTarget:String]()
     let center = Center()
+    let notificationWriter: NotificationWriteOwner
+    let retentionRemovals = NotificationRemovalOwner()
+    var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
+    init(writer: NotificationWriteOwner? = nil) { notificationWriter = writer ?? NotificationWriteOwner() }
     func notificationEnabled(for id: UUID) -> Bool { !disabledTargets.contains(id) }
     func apply(_ desired: [CountdownNotice], allowed: Bool = true) async -> [String]? {
         let known = Array(center.requests.values)
-        return await reserveNotifications(.init(revision:revision,desired:desired),allowed:allowed,startingWith:known)?.map(\.identifier).sorted()
+        return await reserveNotifications(.init(revision:revision,desired:desired),allowed:allowed,startingWith:known,
+            waitBeforeRetry: { delay in
+                self.waits.append(delay)
+                try await Task.sleep(for: .milliseconds(30))
+            })?.map(\.identifier).sorted()
     }
     func reconcile(_ notice: CountdownNotice) async {
         await reconcile(.init(revision:revision,desired:[notice],cards:[notice.target:FixtureCard()]))
@@ -428,8 +644,10 @@ struct Settings {
 RECONCILE
 REPORT
 RESERVE
+RESERVE_ONE
 MATCH
-REMOVE
+UNDO_RESERVATION
+RETENTION_INVALIDATE
 }
 @main struct Probe {
     @MainActor static func waitForRead(_ center: Center) async {
@@ -447,9 +665,20 @@ REMOVE
         let result = await h.apply([confirmed,.init("ordinary"),.init("transient"),.init("persistent"),.init("expired",fromNow:-1)])
         precondition(result == ["already-confirmed","ordinary","transient"] && h.center.reads == 5)
         precondition(h.center.called == ["ordinary","transient","persistent","transient","persistent","persistent"])
-        precondition(h.center.removals.isEmpty)
+        precondition(h.center.removals.isEmpty && h.waits == [.seconds(1), .seconds(3)])
         let disabled = await h.apply([.init("disabled")],allowed:false)
         precondition(disabled == result && !h.center.called.contains("disabled"))
+
+        let limited = Harness()
+        limited.center.measuredLimit = 2
+        let soon = CountdownNotice("soon", fromNow: 3600)
+        let mid = CountdownNotice("middle", fromNow: 7200)
+        let far = CountdownNotice("far", fromNow: 10800)
+        let initial = await limited.apply([mid, far])
+        precondition(initial == ["far", "middle"])
+        let reordered = await limited.apply([soon, mid, far, .init("expired-proof", fromNow: 14400, freshUntil: Date())])
+        precondition(reordered == ["middle", "soon"])
+        precondition(limited.center.removals == ["far"] && !limited.center.called.contains("expired-proof"))
 
         let late = Harness()
         let revealed = await late.apply([.init("late")])
@@ -473,6 +702,28 @@ REMOVE
             precondition(stopped == nil && stale.center.called == ["rejected"] && stale.center.reads == 1)
         }
 
+        var timeElapsed: CheckedContinuation<Void, Never>?
+        let unconfirmed = Harness(writer: NotificationWriteOwner(waitForResponse: {
+            await withCheckedContinuation { timeElapsed = $0 }
+        }))
+        unconfirmed.center.pausesAdd = true
+        let heldNotice = CountdownNotice("fictional.slow-response")
+        let unconfirmedWrite = Task { await unconfirmed.apply([heldNotice]) }
+        let responseDeadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while timeElapsed == nil || unconfirmed.center.unfinishedAdd == nil {
+            precondition(ContinuousClock.now < responseDeadline); await Task.yield()
+        }
+        timeElapsed?.resume(); timeElapsed = nil
+        while unconfirmed.notificationStatuses[heldNotice.target] == nil {
+            precondition(ContinuousClock.now < responseDeadline); await Task.yield()
+        }
+        precondition(unconfirmed.notificationStatuses[heldNotice.target]?.contains("予約結果を確認できません") == true)
+        precondition(unconfirmed.notificationWriter.active?.identifier == heldNotice.identifier)
+        precondition(unconfirmed.center.called == [heldNotice.identifier])
+        unconfirmed.center.unfinishedAdd?.resume(); unconfirmed.center.unfinishedAdd = nil
+        _ = await unconfirmedWrite.value
+        precondition(unconfirmed.notificationWriter.active == nil)
+
         for cancel in [false,true] {
             let stale = Harness()
             stale.center.pausesAdd = true
@@ -483,13 +734,26 @@ REMOVE
             while stale.center.unfinishedAdd == nil {
                 precondition(ContinuousClock.now < deadline); await Task.yield()
             }
+            let active = stale.notificationWriter.active
+            precondition(active?.identifier == personal.identifier && active?.revision == stale.revision)
+            precondition(stale.notificationWriter.latestCompletion == nil)
             stale.revision = UUID()
             if cancel { task.cancel() }
+            do {
+                try await stale.notificationWriter.add(identifier: personal.identifier, revision: stale.revision) {
+                    preconditionFailure("A competing OS write crossed the ownership boundary")
+                }
+                preconditionFailure("A competing OS write was allowed")
+            } catch NotificationWriteOwner.Failure.alreadyWriting {}
+            catch { preconditionFailure("Unexpected duplicate write failure") }
+            precondition(stale.notificationWriter.active == active && stale.notificationWriter.latestCompletion == nil)
             stale.center.unfinishedAdd?.resume(); stale.center.unfinishedAdd = nil
             let stopped = await task.value
             precondition(stopped == nil && stale.center.called == [personal.identifier])
-            precondition((stale.center.requests[personal.identifier] == nil) == cancel)
-            precondition(stale.center.removals == (cancel ? [personal.identifier] : []))
+            precondition(stale.notificationWriter.active == nil && stale.notificationWriter.latestCompletion?.write == active)
+            precondition(stale.notificationWriter.latestCompletion?.result == .acknowledged)
+            precondition(stale.center.requests[personal.identifier] == nil)
+            precondition(stale.center.removals == [personal.identifier])
         }
 
         for reenabled in [false,true] {
@@ -505,7 +769,10 @@ REMOVE
             }
             stopped.revision = UUID()
             stopped.disabledTargets.insert(acceptedLate.targetID)
-            if reenabled { stopped.disabledTargets.remove(acceptedLate.targetID) }
+            if reenabled {
+                stopped.disabledTargets.remove(acceptedLate.targetID)
+                stopped.request = .init(revision: stopped.revision, desired: [acceptedLate])
+            }
             stopped.center.unfinishedAdd?.resume(); stopped.center.unfinishedAdd = nil
             let result = await task.value
             precondition(result == nil)
@@ -513,6 +780,33 @@ REMOVE
             let removed = reenabled ? [] : [acceptedLate.identifier]
             precondition(stopped.center.removals == removed && stopped.center.deliveredRemovals == removed)
             precondition((stopped.center.requests[acceptedLate.identifier] != nil) == reenabled)
+        }
+
+        for (identifier, disabled, hasReplacement, wasStale, keep) in [
+            ("fictional.public", false, false, false, true),
+            ("fictional.public", true, false, false, false),
+            ("fictional.public", false, true, false, false),
+            ("fictional.public", false, false, true, false),
+            ("fictional.private.1", false, false, false, false)
+        ] {
+            let expiring = Harness()
+            expiring.center.pausesAdd = true
+            let notice = CountdownNotice(identifier)
+            let task = Task { await expiring.apply([notice, .init("must-not-be-added")]) }
+            let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+            while expiring.center.unfinishedAdd == nil {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            if wasStale { expiring.revision = UUID() }
+            expiring.invalidateForTest()
+            expiring.invalidateForTest()
+            if disabled { expiring.disabledTargets.insert(notice.targetID) }
+            if hasReplacement { expiring.request = .init(revision: expiring.revision, desired: [.init("new")]) }
+            expiring.center.unfinishedAdd?.resume(); expiring.center.unfinishedAdd = nil
+            let result = await task.value
+            precondition(result == nil && expiring.center.called == [identifier])
+            precondition((expiring.center.requests[identifier] != nil) == keep, "Keep only an enabled public reservation during retention")
+            precondition(expiring.center.removals == (keep ? [] : [identifier]))
         }
 
         for (canReadPending, canReadDelivered) in [(true,true),(true,false),(false,true)] {
@@ -537,10 +831,87 @@ REMOVE
         }
     }
 }
-'''.replace("RESERVE", block(source, "private func reserveNotifications(")).replace(
-    "MATCH", block(source, "private func matches(")).replace("REMOVE", block(source, "private func removeNotices(")).replace(
+'''.replace("NOTIFICATION_OWNERS", owners).replace("RESERVE_ONE", block(source, "private func reserve(_ notice:")).replace(
+    "RETENTION_INVALIDATE", block(source, "private func invalidatePrivateNotificationPlan(").replace("private func", "func").replace(
+        "invalidatePrivateNotificationPlan", "invalidateForTest")).replace(
+    "CAN_RESERVE", block(notice_plan, "func canReserve(at")).replace(
+    "DISPLACED", block(notice_plan, "static func displacedReservations(")).replace(
+    "RESERVE", block(source, "private func reserveNotifications(")).replace(
+    "MATCH", block(source, "private func matches(")).replace("UNDO_RESERVATION", block(source, "private func undoReservation(")).replace(
     "RECONCILE", block(source, "private func reconcile(_ plan:")).replace(
     "REPORT", block(source, "private func reportUnconfirmedNotices("))
+        self.run_probe(compiler, program)
+
+    def test_setup_uses_one_actual_permission_result_for_both_notification_types(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production setup permission owner")
+        source = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        methods = "\n".join(block(source, name) for name in (
+            "func enableFromSetup()", "func applyPreference(", "func confirmAuthorization()"))
+        program = r'''import Foundation
+@MainActor final class UserDefaults {
+    static let standard = UserDefaults()
+    var values = [String:Bool]()
+    func set(_ value: Bool, forKey key: String) { values[key] = value }
+    func bool(forKey key: String) -> Bool { values[key] == true }
+}
+@MainActor final class Schedule {
+    let center = Center()
+    var changesEnabled = false, specialsEnabled = false, requestingPermission = false
+    var message: String?, permissionMessage: String?
+    var lastAppliedPermissionSequence = 0, permissionReadSequence = 0
+    final class Center {
+        var requests = 0
+        var callback: CheckedContinuation<Bool, any Error>?
+    }
+    static func requestAuthorization(from center: Center) async throws -> Bool {
+        center.requests += 1
+        return try await withCheckedThrowingContinuation { center.callback = $0 }
+    }
+METHODS
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        for answer: Result<Bool,CocoaError> in [.success(true), .success(false), .failure(CocoaError(.fileReadUnknown))] {
+            UserDefaults.standard.values = [:]
+            let schedule = Schedule()
+            let first = Task { await schedule.enableFromSetup() }
+            let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+            while schedule.center.callback == nil {
+                precondition(ContinuousClock.now < deadline); await Task.yield()
+            }
+            await schedule.enableFromSetup()
+            precondition(schedule.center.requests == 1 && schedule.requestingPermission)
+            precondition(!schedule.changesEnabled && !schedule.specialsEnabled && UserDefaults.standard.values.isEmpty)
+            guard let callback = schedule.center.callback else { preconditionFailure() }
+            schedule.center.callback = nil
+            callback.resume(with: answer.mapError { $0 as any Error })
+            await first.value
+            let granted = (try? answer.get()) == true
+            precondition(schedule.changesEnabled == granted && schedule.specialsEnabled == granted)
+            precondition(!schedule.requestingPermission && schedule.center.requests == 1)
+            precondition((schedule.permissionMessage == nil) == granted)
+            precondition(UserDefaults.standard.bool(forKey:"notificationsSetupCompleted"))
+            await schedule.enableFromSetup()
+            precondition(schedule.center.requests == 1)
+        }
+        UserDefaults.standard.values = [:]
+        let skipped = Schedule()
+        let pending = Task { await skipped.enableFromSetup() }
+        let deadline = ContinuousClock.now.advanced(by:.seconds(3))
+        while skipped.center.callback == nil {
+            precondition(ContinuousClock.now < deadline); await Task.yield()
+        }
+        pending.cancel()
+        skipped.center.callback?.resume(returning: true)
+        skipped.center.callback = nil
+        await pending.value
+        precondition(!skipped.requestingPermission && !skipped.changesEnabled && !skipped.specialsEnabled)
+        precondition(UserDefaults.standard.values.isEmpty && skipped.center.requests == 1)
+    }
+}
+'''.replace("METHODS", methods)
         self.run_probe(compiler, program)
 
     def test_explicit_countdown_authorization_starts_without_a_settings_read(self):
@@ -1040,6 +1411,7 @@ PERMISSION
         observed = block(source, "    private func readCurrentNotificationSettings(")
         gate_start = source.index("    private func deliveryAllowed() async -> Bool? {")
         methods = source[gate_start:source.index("    private func changeNotice(", gate_start)]
+        methods += "\n" + block(source, "func removeSpecialSchedule(_ kind:")
         program = r'''import Foundation
 enum Authorization { case denied, authorized, provisional, ephemeral }
 final class UNNotificationSettings: @unchecked Sendable { let authorizationStatus:Authorization; init(_ status:Authorization){authorizationStatus=status} }
@@ -1059,34 +1431,42 @@ struct UNNotificationRequest { let identifier:String; let content:Content }
 struct Content { let userInfo:[AnyHashable:Any] }
 struct UNNotification { let request:UNNotificationRequest }
 struct SchoolDate { static func today()->Self{Self()} }
+enum SpecialScheduleKind: String, CaseIterable { case exam, examReturn }
+struct ScheduleUpdateNotice { let kind: SpecialScheduleKind }
 struct SchoolDataPeriod:Equatable { static func current()->Self{Self()} }
 struct ChangeNormalizer { static func canonicalClassName(_ value:String)->String{value} }
 final class UIApplication { static let shared=UIApplication();var isProtectedDataAvailable=true }
 struct ScheduleNotificationSnapshot:Codable,Equatable {
- struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{}
+ struct Change:Codable,Hashable{};struct ChangeTarget:Codable,Equatable{};struct ChangeScope{}
  struct Pending:Codable,Equatable { var fingerprint="fictional";var changeTargets:[ChangeTarget]? }
  enum State {case available,unavailable}
+ enum ReadError: Error {case invalidStructure, unsupportedFormat}
  struct Availability {
   var available = Set<String>()
+  var changes: State { state(for: "changes") }
   func state(for kind:String)->State{available.contains(kind) ? .available : .unavailable}
  }
  var revision=0;var pending=[String:Pending]()
+ static func restoreKnownStructure(at file:URL,with baseline:Self)throws{}
  static func load(from file:URL)throws->Self{preconditionFailure("This permission probe starts with an already loaded baseline")}
- func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool)throws->Self{var next=self;next.revision+=1;return next}
- func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>)->[ChangeTarget]{targets}
+ func reconciling(changes:Set<Change>?,specials:[String:String],availability:Availability,today:SchoolDate,classes:Set<String>,changesEnabled:Bool,specialsEnabled:Bool,changeDocument:String?,personalEdit:Bool,scope:ChangeScope?)throws->Self{var next=self;next.revision+=1;return next}
+ func validTargets(_ targets:[ChangeTarget],in changes:Set<Change>,today:SchoolDate,classes:Set<String>,scope:ChangeScope?)->[ChangeTarget]{targets}
+ mutating func removeSpecialSchedule(_ kind:SpecialScheduleKind){pending.removeValue(forKey:kind.rawValue)}
 }
 @MainActor final class Harness {
  var changesEnabled=true,specialsEnabled=true,message:String?,permissionMessage:String?
  private var permissionReadSequence=0,lastAppliedPermissionSequence=0
  let center=UNUserNotificationCenter();var generation=UUID(),latestRevision=UUID(),loaded=true
  var baseline:ScheduleNotificationSnapshot?=ScheduleNotificationSnapshot();var failSave=false,saves=0
+ var lastSpecialRemoval=[String:UUID](),specialComparisonsToReset=Set<String>()
+ var pending:Input?,openedUpdate:ScheduleUpdateNotice?
  var attempted=[String](), removed=[String](), rejected:String?, duringSend:((String)->Void)?
  let root:URL
  init(_ root:URL){self.root=root}
- struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
+ struct Input {var changeDocument:String? = nil;var personalEdit=false;var revision:UUID;var period=SchoolDataPeriod.current();var changes:Set<ScheduleNotificationSnapshot.Change>?;var changeScope:()->ScheduleNotificationSnapshot.ChangeScope? = { nil };var specials=[String:String]();var availability=ScheduleNotificationSnapshot.Availability()}
  func storageFile()throws->URL{root.appendingPathComponent("fictional-baseline.json")}
  func save(_ value:ScheduleNotificationSnapshot,to file:URL)throws{saves+=1;if failSave{throw CocoaError(.fileWriteNoPermission)};baseline=value}
- func send(kind:String,notice:ScheduleNotificationSnapshot.Pending)async throws{
+ func send(kind:String,notice:ScheduleNotificationSnapshot.Pending,revision:UUID)async throws{
   attempted.append(kind)
   duringSend?(kind)
   if kind==rejected{throw CocoaError(.fileWriteUnknown)}
@@ -1157,6 +1537,14 @@ METHODS
   superseded.duringSend={ [weak superseded] _ in superseded?.latestRevision=UUID() }
   await superseded.update(["examReturn"])
   precondition(superseded.message=="current notice status" && superseded.baseline?.pending["examReturn"] != nil)
+
+  let removed=Harness(root)
+  removed.center.response=UNNotificationSettings(.authorized)
+  removed.baseline?.pending=["exam":.init(),"examReturn":.init()]
+  removed.duringSend={ [weak removed] kind in if kind=="exam" { removed?.removeSpecialSchedule(.exam) } }
+  await removed.update(["exam","examReturn"])
+  precondition(removed.attempted==["exam"] && removed.removed==["takupoke.exam","takupoke.exam"])
+  precondition(removed.baseline?.pending["exam"]==nil && removed.baseline?.pending["examReturn"] != nil)
   print("Actual permission/apply: denial survives reconcile, storage failure coexists, authorization recovers independently, and disabled settings do not read the OS.")
  }
 }
@@ -1183,7 +1571,7 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
     var settingsCallback: (@Sendable (UNNotificationSettings) -> Void)?
     var pending: (@Sendable ([UNNotificationRequest]) -> Void)?
     var delivered: (@Sendable ([UNNotification]) -> Void)?
-    var removed = [String](), removedDelivered = [String]()
+    nonisolated(unsafe) var removed = [String](), removedDelivered = [String]()
     nonisolated func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {
         Task { @MainActor in reads[0] += 1; settingsCallback = completionHandler }
     }
@@ -1201,8 +1589,8 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
             else { delivered = completionHandler }
         }
     }
-    func removePendingNotificationRequests(withIdentifiers ids: [String]) { removed += ids }
-    func removeDeliveredNotifications(withIdentifiers ids: [String]) { removedDelivered += ids }
+    nonisolated func removePendingNotificationRequests(withIdentifiers ids: [String]) { removed += ids }
+    nonisolated func removeDeliveredNotifications(withIdentifiers ids: [String]) { removedDelivered += ids }
 }
 enum ScheduleNotifications {
 BRIDGES
@@ -1210,6 +1598,9 @@ BRIDGES
 struct Card { let isPrivate: Bool }
 @MainActor final class Harness {
     let center = UNUserNotificationCenter()
+    let retentionRemovals = NotificationRemovalOwner()
+    let notificationWriter = NotificationWriteOwner()
+    var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
 EXPIRY_STATE
@@ -1224,6 +1615,7 @@ EXPIRY_STATE
         }
     }
 EXPIRY
+RETENTION_INVALIDATE
 }
 @main struct Probe {
     @MainActor static func waitUntil(_ condition: () -> Bool) async {
@@ -1270,8 +1662,81 @@ EXPIRY
     }
 }
 '''.replace("BRIDGES", bridges).replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE).replace(
-            "EXPIRY", block(model, "func expirePrivateNotices(")) + "\n@MainActor\n" + block(
+            "EXPIRY", block(model, "func expirePrivateNotices(")).replace(
+            "RETENTION_INVALIDATE", block(model, "private func invalidatePrivateNotificationPlan(")) + "\n@MainActor\n" + block(
             notifications, "final class NotificationWork {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationRemovalOwner {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationWriteOwner {")
+        self.run_probe(compiler, program)
+
+    def test_retention_notification_removal_keeps_the_main_actor_and_preserves_ownership(self):
+        compiler = os.environ.get("SWIFTC") or shutil.which("swiftc")
+        if not compiler:
+            self.skipTest("Swift required to execute the production removal owner")
+        notifications = (ROOT / "Takupoke/ScheduleNotifications.swift").read_text(encoding="utf-8")
+        program = r'''import Foundation
+final class Gate: @unchecked Sendable {
+    let release = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var calls = 0
+    var count: Int { lock.withLock { calls } }
+    func blockedRemoval() {
+        lock.withLock { calls += 1 }
+        precondition(release.wait(timeout: .now() + 4) == .success)
+    }
+    func removal() { lock.withLock { calls += 1 } }
+}
+@main struct Probe {
+    @MainActor static func main() async {
+        let owner = NotificationRemovalOwner(), gate = Gate()
+        let pending = Task { await owner.run(.pending, identifiers: ["b", "a"], timeout: .milliseconds(200)) {
+            gate.blockedRemoval()
+        } }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while gate.count == 0 {
+            precondition(ContinuousClock.now < deadline)
+            await Task.yield()
+        }
+        let first = await pending.value
+        precondition(!first && gate.count == 1, "The main actor can observe the deadline while iOS is still blocked")
+        let same = await owner.run(.pending, identifiers: ["a", "b"], timeout: .milliseconds(20)) { gate.removal() }
+        let different = await owner.run(.delivered, identifiers: ["c"], timeout: .milliseconds(20)) { gate.removal() }
+        precondition(!same && !different && gate.count == 1, "Recovery must not issue a second operation while one is blocked")
+        let cancelled = Task { await owner.run(.pending, identifiers: ["a", "b"]) { gate.removal() } }
+        cancelled.cancel()
+        let cancelledResult = await cancelled.value
+        precondition(!cancelledResult && gate.count == 1)
+        let blocked = await owner.waitForCompletion(timeout: .milliseconds(20))
+        precondition(!blocked && gate.count == 1, "Restoration and reservation must wait for the old removal")
+        gate.release.signal()
+        let settled = await owner.run(.pending, identifiers: ["a", "b"]) { gate.removal() }
+        precondition(settled && gate.count == 1, "The original operation finished; no second removal is necessary")
+        let canContinue = await owner.waitForCompletion()
+        precondition(canContinue)
+        let next = await owner.run(.delivered, identifiers: ["c"]) { gate.removal() }
+        precondition(next && gate.count == 2)
+
+        let prior = Task { await owner.run(.pending, identifiers: ["old"], timeout: .milliseconds(200)) {
+            gate.blockedRemoval()
+        } }
+        let queuedDeadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while gate.count == 2 {
+            precondition(ContinuousClock.now < queuedDeadline)
+            await Task.yield()
+        }
+        let withdrawal = Task { await owner.run(.all, identifiers: ["late"], timeout: nil) { gate.removal() } }
+        let priorResult = await prior.value
+        precondition(!priorResult && gate.count == 3)
+        let stillBlocked = await owner.waitForCompletion(timeout: .milliseconds(20))
+        precondition(!stillBlocked && gate.count == 3)
+        gate.release.signal()
+        let withdrawn = await withdrawal.value
+        precondition(withdrawn && gate.count == 4, "The late withdrawal must run even after the earlier caller timed out")
+    }
+}
+'''
+        for name in ("NotificationWork", "NotificationRemovalOwner"):
+            program += "\n@MainActor\n" + block(notifications, f"final class {name} {{")
         self.run_probe(compiler, program)
 
     def test_retention_does_not_wait_indefinitely_or_clean_up_before_a_notification_write_finishes(self):
@@ -1284,16 +1749,16 @@ EXPIRY
 struct Request { let identifier: String; var request: Self { self } }
 struct Card { let isPrivate: Bool }
 enum CountdownNotice { static let privatePrefix = "fictional.private." }
-@MainActor final class Center {
+final class Center: @unchecked Sendable {
     var commit: CheckedContinuation<Void, Never>?
     var saved = ["fictional.personal", "fictional.school", "unrelated"]
     var pendingReads = 0
     var removedPending = [String](), removedDelivered = [String]()
-    func write(_ identifier: String) async {
+    @MainActor func write(_ identifier: String) async {
         await withCheckedContinuation { commit = $0 }
         saved.append(identifier)
     }
-    func finishWrite() { let continuation = commit; commit = nil; continuation?.resume() }
+    @MainActor func finishWrite() { let continuation = commit; commit = nil; continuation?.resume() }
     func removePendingNotificationRequests(withIdentifiers ids: [String]) {
         removedPending += ids
         saved.removeAll { ids.contains($0) }
@@ -1303,6 +1768,7 @@ enum CountdownNotice { static let privatePrefix = "fictional.private." }
 @MainActor final class ScheduleNotifications {
     static let updateIdentifiers = ["fictional.changes", "fictional.exam", "fictional.examReturn"]
     let center = Center()
+    let retentionRemovals = NotificationRemovalOwner()
     var generation = UUID()
     var pending: Int? = 1, baseline: Int? = 1
     var loaded = true
@@ -1323,6 +1789,9 @@ RESET_UPDATES
 }
 @MainActor final class Countdown {
     let center = Center()
+    let retentionRemovals = NotificationRemovalOwner()
+    let notificationWriter = NotificationWriteOwner()
+    var retentionPreservedWrite: (write: NotificationWriteOwner.Active, invalidation: UUID)?
     var cards = [Card(isPrivate:true),Card(isPrivate:false)]
     var notificationCards: [Int:Card]? = [0:Card(isPrivate:true),1:Card(isPrivate:false)]
 EXPIRY_STATE
@@ -1335,6 +1804,7 @@ EXPIRY_STATE
         }
     }
 EXPIRE
+RETENTION_INVALIDATE
 }
 @main struct Probe {
     @MainActor static func main() async {
@@ -1389,7 +1859,10 @@ EXPIRE
         program = program.replace("RESET_UPDATES", block(notifications, "func resetForRetention("))
         program = program.replace("EXPIRY_STATE", COUNTDOWN_EXPIRY_STATE)
         program = program.replace("EXPIRE", block(countdown, "func expirePrivateNotices("))
+        program = program.replace("RETENTION_INVALIDATE", block(countdown, "private func invalidatePrivateNotificationPlan("))
         program += "\n@MainActor\n" + block(notifications, "final class NotificationWork {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationRemovalOwner {")
+        program += "\n@MainActor\n" + block(notifications, "final class NotificationWriteOwner {")
         self.run_probe(compiler, program)
 
     def test_background_refresh_waits_for_countdown_and_cancels_its_owned_plan(self):
@@ -1414,10 +1887,14 @@ EXPIRE
     enum State { case active, background }
     static let shared = UIApplication()
     var applicationState = State.background
-    let isProtectedDataAvailable = true
+    var isProtectedDataAvailable = true
+}
+@MainActor enum BackgroundRefresh {
+    static var executions = 0
+    static func recordExecution() { executions += 1 }
 }
 @MainActor final class Material {
-    let state = 0, records = 0, sources = 0, ready = true
+    let state = 0, records = 0, sources = 0, current = 0, ready = true
     let busy = false
     func setSourceChecksActive(_ active: Bool) {}
     func loadIfNeeded() {}
@@ -1434,7 +1911,7 @@ EXPIRE
     var reconcileTask: NotificationWork?
     var waiting: CheckedContinuation<Void, Never>?
     func reconcile(state: Int, records: Int, sources: Int, period: Int,
-                   materialsReady: Bool, specialsReady: Bool) async {
+                   materialsReady: Bool, specialsReady: Bool, mapping: () -> Int) async {
         pending = 1
         await drainPending()
         finished = true
@@ -1503,11 +1980,19 @@ ACTIVATION
         while !condition() { precondition(ContinuousClock.now < deadline); await Task.yield() }
     }
     @MainActor static func main() async {
+        let rejected = App()
+        UIApplication.shared.isProtectedDataAvailable = false
+        await rejected.refreshInBackground()
+        UIApplication.shared.isProtectedDataAvailable = true
+        precondition(BackgroundRefresh.executions == 0 && rejected.prepareCalls == 0)
         for cancel in [false, true] {
             let app = App()
+            let previousExecutions = BackgroundRefresh.executions
             let task = app.start()
             await observe { app.countdown.waiting != nil && app.notifications.finished }
             precondition(!app.finished && app.backgroundRefresh != nil)
+            await app.refreshInBackground()
+            precondition(BackgroundRefresh.executions == previousExecutions + 1)
             let token = app.countdown.revision
             if cancel {
                 task.cancel()

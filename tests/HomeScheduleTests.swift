@@ -240,7 +240,7 @@ final class HomeScheduleTests: XCTestCase {
             specials: [], includesChanges: true)
         var disjoint = change()
         disjoint.period = "1,3"
-        XCTAssertNil(disjoint.gridPeriods)
+        XCTAssertEqual(disjoint.detailPeriods, [1, 3])
         XCTAssertEqual(schedule.changeTimeRanges(disjoint), ["08:50〜09:35", "10:30〜11:15"])
         disjoint.period = "1,1"
         XCTAssertTrue(schedule.changeTimeRanges(disjoint).isEmpty)
@@ -322,6 +322,8 @@ final class HomeScheduleTests: XCTestCase {
             XCTAssertFalse(schedule.isInProgress(block, on: day, className: fixtureClass,
                                                 now: date("2032-04-05T09:00:00+09:00")))
             XCTAssertEqual(schedule.missingMessages(on: day, className: fixtureClass).count, 1)
+            let kind: SpecialScheduleKind = tag == "テスト" ? .exam : .examReturn
+            XCTAssertEqual(schedule.missingDocuments(on: day, className: fixtureClass).map(\.document), [.special(kind)])
         }
     }
 
@@ -330,6 +332,7 @@ final class HomeScheduleTests: XCTestCase {
             let schedule = TimetableDaySchedule(timetable: source, changes: changes([]), events: nil,
                                                 specials: [], includesChanges: true)
             XCTAssertFalse(schedule.missingMessages(on: day, className: fixtureClass).isEmpty)
+            XCTAssertEqual(schedule.missingDocuments(on: day, className: fixtureClass).map(\.document), [.timetable])
         }
         let schedule = TimetableDaySchedule(timetable: timetable(), changes: changes([]), events: nil,
                                             specials: [], includesChanges: true)
@@ -337,6 +340,7 @@ final class HomeScheduleTests: XCTestCase {
         let holiday = TimetableDaySchedule(timetable: nil, changes: changes([]), events: events("授業なし"),
                                            specials: [], includesChanges: true)
         XCTAssertTrue(holiday.missingMessages(on: day, className: fixtureClass).isEmpty)
+        XCTAssertTrue(holiday.missingDocuments(on: day, className: fixtureClass).isEmpty)
         XCTAssertTrue(holiday.blocks(on: day, className: fixtureClass, international: false).isEmpty)
     }
 

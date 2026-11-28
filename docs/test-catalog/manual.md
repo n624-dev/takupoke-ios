@@ -1,7 +1,7 @@
 # 確認訂正・画像比較・入力変更・実操作
 
 対応関係・宣言名・実行方法のSHA-256：
-`3defe564235579bd6a4ae0d71ef96d2c3d4720dcc58ad52eaa26583ffa4624fe`
+`670c9563b162a6fe25bd6202657895b2a8700c029292e37d8e072fe311ba4ced`
 
 環境：Apple iOS26/27＋Linux契約検査。実機・モデル品質は別確認
 
@@ -44,8 +44,10 @@ bash tools/test-manual-ui.sh
 - `testLegacyOCRCoverageHoldsTheProjectionAndPreservesOriginalAndManualCorrection`
 - `testManualOneTwoThreeFieldsReachFormalConversionWithSeparateHumanProvenance`
 - `testManualFourthFieldAndAnyHeaderUncertaintyAreTerminal`
+- `testRecoveryFailureKeepsSafeStageAndRetryActionWithoutPrintingExternalValues`
 - `testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault`
 - `testCorrectionMenuEligibilityUsesEachFieldsOCRSources`
+- `testWithdrawingOptionalOCRTargetRestoresOriginalAndRetainsRequiredProof`
 - `testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit`
 - `testSelectedCorrectionUsesOnlyHashMatchedOriginalRasterAndNativeCapture`
 - `testExplicitHighConfidenceSelectionStillRefusesUnownedOrAlteredNativeCharacters`
@@ -79,6 +81,7 @@ bash tools/test-manual-ui.sh
 
 - `test_actual_activation_does_not_resume_source_checks_after_backgrounding_during_awaits`
 - `test_actual_background_methods_preserve_idle_draft_and_cancel_heavy_work`
+- `test_actual_preview_resume_checks_in_place_file_changes_before_adoption`
 - `test_actual_field_callbacks_reject_replaced_missing_and_reviewed_drafts`
 - `test_retention_route_keeps_explicit_draft_cancellation`
 - `test_retention_waits_for_confirmed_notifications_before_advancing_or_resetting_marker`
@@ -92,6 +95,7 @@ bash tools/test-manual-ui.sh
 
 - `test_actual_navigation_state_on_offscreen_virtualized_and_keyboard_frames`
 - `test_qa_only_owner_resolution_and_existing_caps_are_preserved`
+- `test_alternative_rows_reach_native_binding_only_after_snapshot_geometry`
 
 ## [tests/test_manual_ui_diagnostics.py](../../tests/test_manual_ui_diagnostics.py)
 
@@ -119,6 +123,10 @@ bash tools/test-manual-ui.sh
 - `test_coordinator_preserves_actual_submit_adopt_and_source_guards`
 - `test_view_identifiers_do_not_precheck_or_bypass_existing_disabled_gate`
 - `test_review_readiness_measures_actual_coordinator_state`
+- `test_background_revalidation_proof_is_generated_after_the_real_file_and_identity_checks`
+- `test_composed_recovery_fixtures_write_only_the_generated_failure_property`
+- `test_manual_submit_sends_one_contact_to_the_observed_button`
+- `test_manual_snapshots_require_unique_visible_enabled_native_buttons`
 - `test_comparable_prior_defers_actual_builder_until_qa_window_exists`
 - `test_review_uses_production_japan_timestamp_without_device_timezone`
 - `test_existing_app_generator_raster_anchor_matches_current_acquisition`

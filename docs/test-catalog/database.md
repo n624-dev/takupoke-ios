@@ -1,7 +1,7 @@
 # ローカルDB・移行・半期削除
 
 対応関係・宣言名・実行方法のSHA-256：
-`2995f4635441d68d078d3b737e90460054f6bc9be8900eca401adc53353b1aa0`
+`431bfcdf5454cdfb108ee0c045a5ef7806f829aa21afbc656e6594ea37c12020`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -23,6 +23,10 @@ bash tools/test-parsing.sh
 
 ## [tests/LocalDatabaseTests+Current.swift](../../tests/LocalDatabaseTests+Current.swift)
 
+- `testOpeningLibraryRecoversVerifiedCopiesAndPreservesOriginalStore`
+- `testAnalysisPDFURLUsesTheOriginalActuallyReferencedByTheSavedAnalysis`
+- `testUnchangedAcquisitionOnlyReadsItsMetadataAndKeepsRollbackAndGenerationChecks`
+- `testUnchangedPipelineCommitsOnlyAcquisitionMetadataOnTheLiveDatabase`
 - `testCancellingTimetableReanalysisKeepsTheSameOriginalRecoveryJob`
 - `testRowSkipConsentAndResultRollbackTogetherAndOldPayloadRemainsReadable`
 - `testWeekdayConsentAndResultCommitTogetherAndRollbackTogether`
@@ -64,6 +68,7 @@ bash tools/test-parsing.sh
 - `testJapanBoundariesIncludeOctoberAndAprilButNotJanuary`
 - `testDeletesOnlyOwnedPrivateDataAndCommitsPeriodAfterCleanup`
 - `testFailureDoesNotCommitNewPeriodAndRetryCompletes`
+- `testAutomaticMarkerRecoveryKeepsCurrentDataOrArchivesUnverifiedDataAndRetries`
 - `testHalfYearDeletionPreservesPreferencesPublicEventsAndExternalOriginal`
 
 ## [tests/SchoolDataRecoveryTests.swift](../../tests/SchoolDataRecoveryTests.swift)

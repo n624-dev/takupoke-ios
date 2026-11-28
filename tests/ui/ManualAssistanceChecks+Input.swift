@@ -52,8 +52,69 @@ extension ManualAssistanceChecks {
         print("TAKUPOKE-MANUAL-INPUT id=\(id);state=\(detail)")
     }
     func tapSubmit() {
-        visible(submit,knownID:"manual-submit",buttonLabel:"訂正箇所と前回からの変更を確認").tap()
+        var appFrame = CGRect.null
+        var observed = observeVisibleManualSubmit(appFrame: &appFrame)
+        if observed == nil {
+            appFrame = app.frame
+            _ = visible(submit, knownID: "manual-submit", buttonLabel: "訂正箇所と前回からの変更を確認") {
+                observed = $0
+            }
+        }
+        guard let observed, ManualScrollNavigation.usable(appFrame), appFrame.contains(observed.frame),
+              app.state == .runningForeground else {
+            XCTFail("The manual submit button must be visible on the active recovery screen"); return
+        }
+        let center = CGPoint(x: observed.frame.midX, y: observed.frame.midY)
+        print("TAKUPOKE-MANUAL-SUBMIT frame=\(observed.frame);viewport=\(observed.viewport);duration=0.1")
+        do {
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Manual correction submission")
+        } catch {
+            XCTFail("Native correction submission contact failed: \(error)")
+        }
     }
+
+    private func observeVisibleManualSubmit(appFrame: inout CGRect) -> ManualButtonObservation? {
+        guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root) else { return nil }
+        let lists = nodes.filter { $0.elementType == .collectionView && $0.identifier == "manual-recovery-list" }
+        let bars = nodes.filter { $0.elementType == .navigationBar && $0.identifier == "時間割の復旧" }
+        let keyboards = nodes.filter { $0.elementType == .keyboard }
+        guard lists.count <= 1, bars.count <= 1, keyboards.count <= 1 else {
+            XCTFail("The recovery screen must have a unique List, navigation bar and keyboard")
+            return nil
+        }
+        guard let list = lists.first, let bar = bars.first,
+              ManualScrollNavigation.usable(list.frame), ManualScrollNavigation.usable(bar.frame),
+              let children = snapshotNodes(in: list) else { return nil }
+        if let keyboard = keyboards.first, !ManualScrollNavigation.usable(keyboard.frame) {
+            XCTFail("A present keyboard must have finite positive geometry")
+            return nil
+        }
+        let candidates = children.filter { $0.identifier == "manual-submit" }
+        guard candidates.count <= 1 else {
+            XCTFail("The visible recovery List must have a unique submit control")
+            return nil
+        }
+        guard let target = candidates.first, target.elementType == .button,
+              target.label == "訂正箇所と前回からの変更を確認", target.isEnabled else { return nil }
+        let top = max(list.frame.minY, bar.frame.maxY) + 12
+        let bottom = min(list.frame.maxY, keyboards.first.map { $0.frame.minY - 45 } ?? list.frame.maxY) - 12
+        let viewport = CGRect(x: list.frame.minX, y: top, width: list.frame.width, height: max(0, bottom - top))
+        guard ManualScrollNavigation.usable(viewport), viewport.height > 36,
+              ManualScrollNavigation.usable(root.frame), ManualScrollNavigation.usable(target.frame),
+              viewport.contains(target.frame), root.frame.contains(target.frame) else { return nil }
+        let controls = recoveryList.buttons.matching(identifier: target.identifier).allElementsBoundByAccessibilityElement
+        guard controls.count <= 1 else {
+            XCTFail("The recovery submit Button must have one current native identity")
+            return nil
+        }
+        guard let control = controls.first, let bound = try? control.snapshot(),
+              bound.elementType == target.elementType, bound.identifier == target.identifier, bound.label == target.label,
+              bound.frame == target.frame, bound.isEnabled, control.isHittable else { return nil }
+        appFrame = root.frame
+        return .init(frame: target.frame, viewport: viewport, isSelected: target.isSelected)
+    }
+
     func assertSubmitEnabled(_ expected:Bool) {
         let button=visible(submit,knownID:"manual-submit")
         let changed=XCTNSPredicateExpectation(predicate:NSPredicate(format:"enabled == %@",NSNumber(value:expected)),object:button)
@@ -108,30 +169,84 @@ extension ManualAssistanceChecks {
         // End the native editor before the independent acknowledgement tap.
         // The product commits text and dismisses the keyboard; it never checks
         // acknowledgement on the user's behalf.
-        let navigation=app.navigationBars["時間割の復旧"]
-        let buttons=navigation.buttons.matching(identifier:"manual-edit-done")
-        var readyButton:XCUIElement?,ambiguous=false
-        let ready=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            let current=buttons.allElementsBoundByAccessibilityElement
-            if current.count>1 { ambiguous=true;return true }
-            guard current.count==1 else { return false }
-            let done=current[0]
-            let navigationFrame=navigation.frame,doneFrame=done.frame
-            guard ManualScrollNavigation.usable(navigationFrame) && ManualScrollNavigation.usable(doneFrame)
-                  && navigationFrame.contains(doneFrame) && done.isEnabled && done.isHittable else { return false }
-            readyButton=done;return true
-        },object:app)
-        let result=XCTWaiter.wait(for:[ready],timeout:nativeStateTimeout)
-        guard !ambiguous,result == .completed,let done=readyButton else {
-            XCTFail("The native completion button must be unique, visible and operable within the original deadline: "+app.debugDescription);return
-        }
-        done.tap()
+        guard finishManualEditing() else { return }
+        let expectedCompletions = completedManualEdits + 1
+        var invalid = false
         let dismissed=XCTNSPredicateExpectation(predicate:NSPredicate { _,_ in
-            self.app.keyboards.allElementsBoundByIndex.isEmpty
-        },object:app)
-        XCTAssertEqual(XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout),.completed,app.debugDescription)
+            guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root) else { return false }
+            let counters = nodes.filter {
+                $0.elementType == .staticText && $0.identifier == "manual-fixture-completed-edits"
+            }
+            guard counters.count <= 1 else { invalid = true; return true }
+            guard let counter = counters.first, let actions = Int(counter.label) else { return false }
+            if actions > expectedCompletions { invalid = true; return true }
+            return actions == expectedCompletions && !nodes.contains { $0.elementType == .keyboard }
+        },object:nil)
+        guard XCTWaiter.wait(for:[dismissed],timeout:nativeStateTimeout) == .completed, !invalid else {
+            XCTFail("One actual Done action must dismiss the keyboard"); return
+        }
+        completedManualEdits = expectedCompletions
         let completed=self.recoveryList.descendants(matching:.any).matching(identifier:"manual-value-"+id).allElementsBoundByIndex
         guard completed.count==1 else { XCTFail("Completed input must remain unique");return }
         XCTAssertEqual(completed[0].value as? String,value,"The physical edit must replace the full previous input before acknowledgement")
+    }
+
+    private func finishManualEditing() -> Bool {
+        let deadline = ProcessInfo.processInfo.systemUptime + nativeStateTimeout
+        var targetFrame: CGRect?
+        var ambiguous = false
+        var observation = "not-read"
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            guard ProcessInfo.processInfo.systemUptime < deadline else { return false }
+            targetFrame = self.observeManualEditCompletion(ambiguous: &ambiguous, observation: &observation)
+            return ambiguous || targetFrame != nil
+        }, object: nil)
+        let remaining = max(0, deadline - ProcessInfo.processInfo.systemUptime)
+        let outcome = XCTWaiter.wait(for: [ready], timeout: remaining)
+        guard outcome == .completed,
+              !ambiguous, let targetFrame, app.state == .runningForeground,
+              ProcessInfo.processInfo.systemUptime < deadline else {
+            print("TAKUPOKE-MANUAL-EDIT-DONE wait=\(outcome.rawValue);ambiguous=\(ambiguous);\(observation)")
+            XCTFail("The native completion button must be unique, visible and operable within the original deadline")
+            return false
+        }
+        let center = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
+        print("TAKUPOKE-MANUAL-EDIT-DONE frame=\(targetFrame);duration=0.1")
+        do {
+            try NativeTestContacts.send([.init(start: center, end: center, duration: 0.1, pauseAfterLift: 0)],
+                                        named: "Manual edit completion button")
+            return true
+        } catch {
+            XCTFail("Native edit completion contact failed: \(error)")
+            return false
+        }
+    }
+
+    private func observeManualEditCompletion(ambiguous: inout Bool, observation: inout String) -> CGRect? {
+        let title = "時間割の復旧"
+        let identifier = "manual-edit-done"
+        let label = "完了"
+        observation = "snapshot-unavailable"
+        guard let root = try? app.snapshot(), let nodes = snapshotNodes(in: root),
+              ManualScrollNavigation.usable(root.frame) else { return nil }
+        let bars = nodes.filter { $0.elementType == .navigationBar && $0.identifier == title }
+        let scopes = bars.compactMap { bar in snapshotNodes(in: bar).map { (bar, $0) } }
+        guard scopes.count == bars.count else { return nil }
+        let candidates = scopes.flatMap { bar, controls in
+            controls.filter { $0.elementType == .button && $0.identifier == identifier }.map { (bar: bar, button: $0) }
+        }
+        observation = "bars=\(bars.count);snapshot-buttons=\(candidates.count)"
+        guard candidates.count <= 1 else { ambiguous = true; return nil }
+        guard let (bar, target) = candidates.first, target.label == label, target.isEnabled,
+              ManualScrollNavigation.usable(bar.frame), ManualScrollNavigation.usable(target.frame),
+              bar.frame.contains(target.frame), root.frame.contains(target.frame) else { return nil }
+        let live = app.navigationBars.matching(identifier: title).descendants(matching: .button)
+            .matching(identifier: identifier).allElementsBoundByAccessibilityElement
+        observation += ";live-buttons=\(live.count)"
+        guard live.count <= 1 else { ambiguous = true; return nil }
+        guard let button = live.first, let bound = try? button.snapshot(),
+              bound.elementType == target.elementType, bound.identifier == identifier, bound.label == label,
+              bound.frame == target.frame, bound.isEnabled, button.isHittable else { return nil }
+        return target.frame
     }
 }

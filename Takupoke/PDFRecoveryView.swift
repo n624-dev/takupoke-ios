@@ -21,7 +21,9 @@ struct PDFRecoveryView: View {
                 Section {
                     Text("学校の資料・OCR文字・授業情報は端末内で処理され、外部のAIへ送信されません。")
                         .font(.subheadline).foregroundStyle(.secondary)
-                    if coordinator.running { LoadingRow(title:coordinator.status,cancel:{ coordinator.cancel() }) }
+                    if coordinator.endingRecovery.contains(kind) {
+                        Text("中止しました。端末内復旧の終了を待っています。")
+                    } else if coordinator.running { LoadingRow(title:coordinator.status,cancel:{ coordinator.cancel() }) }
                     else if let failure = coordinator.failure { InlineWarning(failure) }
                     else { Text(coordinator.status) }
                 }
@@ -126,6 +128,13 @@ struct PDFRecoveryView: View {
                             .buttonStyle(.borderless)
                             .accessibilityAddTraits(acknowledged ? .isSelected : [])
                             .disabled(!useAiFeatures || coordinator.running)
+                            if draft.optionalTargets.contains(field.target) {
+                                Button("訂正対象から外す", systemImage: "minus.circle") {
+                                    coordinator.removeOptionalCorrection(field, values: manualValues,
+                                        acknowledged: Set(manualAcknowledged.filter(\.value).keys))
+                                }
+                                .disabled(!useAiFeatures || coordinator.running)
+                            }
                         }
                     }
                     Section {
@@ -134,13 +143,34 @@ struct PDFRecoveryView: View {
                         }.buttonStyle(.glassProminent)
                             .disabled(!useAiFeatures || coordinator.running || draft.fields.contains { !(manualAcknowledged[$0.id] ?? false) || (manualValues[$0.id] ?? $0.originalText).trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || (manualValues[$0.id] ?? $0.originalText).utf16.count > RecoveryManualAssistance.maximumCorrectedUTF16 })
                     }
-                } else if coordinator.awaitingModel {
+                } else if let action = coordinator.modelAction {
                     Section("端末内AI") {
-                        Text(coordinator.status)
-                        Button("準備状況を再確認") { coordinator.retryModel() }.disabled(!useAiFeatures || models.busy)
+                        if action == .installModel {
+                            Button("復旧を続ける") { coordinator.retryModel() }
+                                .disabled(!useAiFeatures || models.busy || !models.installableCatalog.contains { models.installed[$0.runtime] == $0 })
+                        } else if action != .unavailable {
+                            Button("準備状況を再確認") { coordinator.retryModel() }.disabled(!useAiFeatures || models.busy)
+                        }
+                        if coordinator.modelSourceURL != nil {
+                            Button("元のPDFを確認", systemImage: "doc.richtext") { showSource() }
+                        }
                     }
-                    modelSection
-                } else if !coordinator.running {
+                    if action == .installModel { modelSection }
+                } else if !coordinator.running, let failure = coordinator.failureReason,
+                          failure.canRetrySameInput || failure.canRestartRecovery || coordinator.failedSourceURL != nil {
+                    Section {
+                        if failure.canRetrySameInput {
+                            Button("復旧を再試行", systemImage: "arrow.clockwise") { coordinator.retryModel() }
+                                .disabled(!useAiFeatures)
+                        } else if failure.canRestartRecovery {
+                            Button("復旧を最初からやり直す", systemImage: "arrow.clockwise") { coordinator.start(kind) }
+                                .disabled(!useAiFeatures)
+                        }
+                        if coordinator.failedSourceURL != nil {
+                            Button("元のPDFを確認", systemImage: "doc.richtext") { showSource() }
+                        }
+                    }
+                } else if !coordinator.running, !coordinator.endingRecovery.contains(kind), coordinator.failureReason == nil {
                     Section { Button("端末内で復旧を開始",systemImage:"doc.text.magnifyingglass") { coordinator.start(kind) }.buttonStyle(.glassProminent).disabled(!useAiFeatures) }
                 }
             }
@@ -165,11 +195,12 @@ struct PDFRecoveryView: View {
             .onChange(of:coordinator.preview?.id) { _,_ in sourcePage = nil; selectedClass = coordinator.preview?.document.classes.first ?? "" }
             .onChange(of:coordinator.manualDraft?.id) { _,_ in
                 manualValues = Dictionary(uniqueKeysWithValues:coordinator.manualDraft?.fields.map { ($0.id,coordinator.manualInitialValues[$0.id] ?? $0.originalText) } ?? [])
-                manualAcknowledged = [:]; zoomedField = nil; editingManualField = nil; sourcePage = nil
+                manualAcknowledged = Dictionary(uniqueKeysWithValues: coordinator.manualInitialAcknowledged.map { ($0, true) })
+                zoomedField = nil; editingManualField = nil; sourcePage = nil
             }
             .onChange(of:phase) { _,phase in
                 if phase != .active { sourcePage = nil; coordinator.suspendForInactivity(); models.cancel() }
-                else { coordinator.invalidateManualIfSourceChanged() }
+                else { coordinator.resumeAfterInactivity() }
             }
             .onReceive(ApplicationData.shared.materials.$state) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
             .onReceive(ApplicationData.shared.specialSchedules.$sources) { _ in Task { @MainActor in coordinator.invalidateManualIfSourceChanged() } }
@@ -178,7 +209,8 @@ struct PDFRecoveryView: View {
         }
     }
     private func showSource() {
-        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL else { return }
+        guard let url = coordinator.preview?.source.url ?? coordinator.manualSourceURL ??
+            coordinator.modelSourceURL ?? coordinator.failedSourceURL else { return }
         sourcePage = SourcePage(url:url)
     }
     @ViewBuilder private func previewSections(_ preview:RecoveryPreview) -> some View {
@@ -233,7 +265,7 @@ struct PDFRecoveryView: View {
         }
         Section {
             Button("この資料全体の結果を使用",systemImage:"checkmark.circle") { coordinator.adopt() }
-                .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running)
+                .buttonStyle(.glassProminent).disabled(!useAiFeatures || coordinator.running || coordinator.previewNeedsRevalidation)
         }
     }
     private var modelSection: some View { RecoveryModelControls(models:models) }
@@ -248,7 +280,7 @@ struct PDFRecoveryView: View {
     }
     private func manualCorrectionButton(_ target:RecoveryManualTarget,field:RecoveryField) -> some View {
         Button("\(role(target.role))を訂正") { coordinator.selectManualCorrection(target) }
-            .disabled(!useAiFeatures || coordinator.running || field.state != .present)
+            .disabled(!useAiFeatures || coordinator.running || coordinator.previewNeedsRevalidation || field.state != .present)
             .accessibilityIdentifier("recovery-select-"+target.key)
     }
     @ViewBuilder private func fieldLocation(_ field:RecoveryManualField,draft:RecoveryManualDraft) -> some View {
@@ -277,7 +309,10 @@ struct RecoveryModelControls: View {
             else if let failure = models.failure { InlineWarning(failure) }
             else if let message = models.message { Text(message) }
             if models.catalog.isEmpty { Text("追加モデルは品質評価後に提供します。OSの端末内AIが利用可能な端末では追加ダウンロードは不要です。") }
-            ForEach(models.catalog,id:\.sha256) { manifest in
+            if !models.catalog.isEmpty && models.installableCatalog.isEmpty {
+                Text("この端末で取得できる追加モデルはありません。")
+            }
+            ForEach(models.installableCatalog,id:\.sha256) { manifest in
                 VStack(alignment:.leading,spacing:5) {
                     Text(manifest.modelId)
                     Text("約\(ByteCountFormatter.string(fromByteCount:manifest.size,countStyle:.file))のAIモデルをダウンロードします。学校の資料は外部へ送信されません。")

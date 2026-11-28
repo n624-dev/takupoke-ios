@@ -5,11 +5,18 @@ import Foundation
 final class MaterialLibrary {
     static let maximumBytes = 50 * 1024 * 1024
     private let root: URL
+    var wasPartiallyRecovered: Bool { root.lastPathComponent == "recovered" }
     let files: URL
     private let staging: URL
     private let manifest: URL
     private let persistence: MaterialLibraryPersistence?
     private let writeManifest: (Data, URL) throws -> Void
+    private enum Writes { case none, acquisition(MaterialKind), full }
+    private var writes = Writes.none
+    var metadataOnlyAcquisition: MaterialKind? {
+        if case .acquisition(let kind) = writes { return kind }
+        return nil
+    }
     var state: MaterialLibraryState
 
     init(root: URL, persistence: MaterialLibraryPersistence? = nil, writeManifest: @escaping (Data, URL) throws -> Void = {
@@ -47,6 +54,11 @@ final class MaterialLibrary {
         for record in state.records {
             let copy = files.appendingPathComponent(record.storedName)
             guard manager.fileExists(atPath: copy.path) else { throw MaterialError.invalidState }
+        }
+        if let persistence {
+            for name in try persistence.retainedStoredNames() {
+                guard manager.fileExists(atPath: files.appendingPathComponent(name).path) else { throw MaterialError.invalidState }
+            }
         }
         try manager.createDirectory(at: files, withIntermediateDirectories: true)
         try manager.createDirectory(at: staging, withIntermediateDirectories: true)
@@ -87,12 +99,37 @@ final class MaterialLibrary {
         if let persistence { try persistence.save(next) }
         else { try writeManifest(data, manifest) }
         state = next
+        writes = .full
     }
 
-    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil) throws {
-        let attempt = AcquisitionAttempt(date: Date(), failure: message, cancelled: cancelled)
-        // Cancelling a retry leaves a failed first Changes import unresolved.
-        if kind == .changes, !attempt.failedToAcquire, state.record(for:kind) == nil,
+    func seedPipelineSnapshot(_ snapshot: MaterialLibraryState) throws {
+        guard persistence == nil, state.records.isEmpty else { throw MaterialError.invalidState }
+        try persist(snapshot)
+        writes = .none
+    }
+
+    func persistUnchangedAcquisition(_ next: MaterialLibraryState, kind: MaterialKind, moveToEnd: Bool = false) throws {
+        let previousWrites = writes
+        if let persistence {
+            guard let previous = state.record(for: kind), let record = next.record(for: kind),
+                  let attempt = next.attempts[kind.rawValue] else { throw MaterialError.invalidState }
+            try persistence.saveAcquisition(record, replacing: previous, attempt: attempt, moveToEnd: moveToEnd)
+            state = next
+        } else {
+            try persist(next)
+        }
+        switch previousWrites {
+        case .none: writes = .acquisition(kind)
+        case .acquisition(let earlierKind) where earlierKind == kind: writes = .acquisition(kind)
+        default: writes = .full
+        }
+    }
+
+    func recordFailure(_ kind: MaterialKind, message: String, cancelled: Bool? = nil,
+                       problem: AcquisitionProblem? = nil) throws {
+        let attempt = AcquisitionAttempt(date: Date(), failure: message, cancelled: cancelled, problem: problem)
+        // Cancelling a retry leaves the previous failed first import unresolved.
+        if kind != .events, !attempt.failedToAcquire, state.record(for:kind) == nil,
            state.attempts[kind.rawValue]?.failedToAcquire == true { return }
         var next = state
         next.attempts[kind.rawValue] = attempt
@@ -109,7 +146,7 @@ final class MaterialLibrary {
         next.records[index].source = source
         next.records[index].lastCheckedAt = now
         next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
-        try persist(next)
+        try persistUnchangedAcquisition(next, kind: kind)
     }
 
     func commit(staged: URL, kind: MaterialKind, source: MaterialSource,
@@ -140,7 +177,7 @@ final class MaterialLibrary {
             next.records[index].lastCheckedAt = now
             next.records[index].lastAcquiredAt = now
             next.attempts[kind.rawValue] = AcquisitionAttempt(date: now, failure: nil)
-            try persist(next)
+            try persistUnchangedAcquisition(next, kind: kind)
             return
         }
         let name = UUID().uuidString + "." + kind.fileExtension
@@ -176,6 +213,17 @@ final class MaterialLibrary {
         state.record(for: kind).map { files.appendingPathComponent($0.storedName) }
     }
 
+    func analysisPDFURL(for kind: MaterialKind) -> URL? {
+        guard let digest = state.pdfAnalyses?[kind.rawValue]?.sourceDigest else { return nil }
+        if let persistence {
+            guard let name = try? persistence.storedNameForAnalysis(kind, digest: digest) else { return nil }
+            let url = files.appendingPathComponent(name)
+            return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        }
+        guard state.record(for: kind)?.digest == digest else { return nil }
+        return localURL(for: kind)
+    }
+
 
     func retirePipelineFiles(_ names: Set<String>) {
         guard !names.isEmpty, let database = persistence as? LocalMaterialDatabase else { return }
@@ -184,7 +232,7 @@ final class MaterialLibrary {
             // GRDB serializes this read. Failure conservatively retains originals.
             guard let keep = try? database.retainedStoredNames() else { return }
             for name in names where !keep.contains(name) {
-                try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
+                try? SavedPDFLease.retire(directory.appendingPathComponent(name))
             }
         }
     }
@@ -197,7 +245,7 @@ final class MaterialLibrary {
         }
         for url in try manager.contentsOfDirectory(at: files, includingPropertiesForKeys: nil)
             where !keep.contains(url.lastPathComponent) {
-            try manager.removeItem(at: url)
+            try SavedPDFLease.retire(url)
         }
     }
 }

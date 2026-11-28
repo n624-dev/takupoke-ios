@@ -236,7 +236,12 @@ extension ApplicationChecks {
         XCTAssertEqual(previous, "設定期間の経過率")
         field.tap()
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: previous.count) + label)
-        XCTAssertEqual(field.value as? String, label)
+        let entered = expectation(
+            for: NSPredicate(format: "value == %@", label), evaluatedWith: field)
+        guard XCTWaiter.wait(for: [entered], timeout: 10) == .completed else {
+            XCTFail("The progress label field must show the complete edited text before saving. \(field.debugDescription)")
+            return
+        }
         tapToolbar("countdown-save", bar: settings)
         screen("カウントダウン")
 
@@ -272,25 +277,34 @@ extension ApplicationChecks {
             XCTAssertTrue(menu.waitForExistence(timeout: 10), app.debugDescription)
             XCTAssertTrue(menu.isEnabled && menu.isHittable, app.debugDescription)
             menu.tap()
-            let items = app.buttons.matching(NSPredicate(format: "label == %@", mode))
-            var selected: (frame: CGRect, origin: CGPoint)?
-            let available = expectation(for: NSPredicate { _, _ in
-                let bounds = self.app.frame
-                let visible = items.allElementsBoundByAccessibilityElement
-                guard visible.count == 1, let item = visible.first, let snapshot = try? item.snapshot(),
-                      snapshot.elementType == .button, snapshot.label == mode, snapshot.isEnabled,
-                      self.usable(snapshot.frame), bounds.contains(snapshot.frame) else { return false }
-                selected = (snapshot.frame, bounds.origin)
+            var selected: CGRect?
+            var ambiguous = false
+            let available = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                guard let root = try? self.app.snapshot(), let nodes = self.snapshotNodes(in: root),
+                      self.usable(root.frame) else { return false }
+                let choices = nodes.filter { $0.elementType == .button && $0.label == mode }
+                if choices.count > 1 { ambiguous = true; return true }
+                guard let choice = choices.first, choice.isEnabled, self.usable(choice.frame),
+                      root.frame.contains(choice.frame) else { return false }
+                selected = choice.frame
                 return true
-            }, evaluatedWith: items)
-            XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 5), .completed, app.debugDescription)
-            guard let selected else { return }
-            print("UI_COUNTDOWN_MENU label=\(mode) frame=\(selected.frame)")
-            let origin = app.coordinate(withNormalizedOffset: .zero)
+            }, object: nil)
+            guard XCTWaiter.wait(for: [available], timeout: 5) == .completed, !ambiguous, let selected,
+                  app.state == .runningForeground else {
+                XCTFail("The countdown menu must expose one enabled action for \(mode)")
+                return
+            }
+            print("UI_COUNTDOWN_MENU label=\(mode) frame=\(selected)")
             // The popup's synthesized accessibility activation point can be invalid.
             // Deliver one physical contact to its observed frame and require its actual destination.
-            origin.withOffset(CGVector(dx: selected.frame.midX - selected.origin.x,
-                                       dy: selected.frame.midY - selected.origin.y)).press(forDuration: 0.1)
+            let point = CGPoint(x: selected.midX, y: selected.midY)
+            do {
+                try NativeTestContacts.send([.init(start: point, end: point, duration: 0.1, pauseAfterLift: 0)],
+                                            named: "Countdown menu action")
+            } catch {
+                XCTFail("Countdown menu contact failed: \(error)")
+                return
+            }
             screen(destination)
         }
         func saveNamed(_ name: String) {

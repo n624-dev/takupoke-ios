@@ -5,6 +5,7 @@ extension SpecialScheduleStore {
     struct PipelineSnapshot {
         let sources: [SpecialScheduleKind: SpecialScheduleSource]
         let records: [SpecialScheduleKind: SpecialScheduleRecord]
+        let acquisitionAttempts: [SpecialScheduleKind: AcquisitionAttempt]
         let inputs: [(URL, String)]
         func open(at root: URL) throws -> SpecialScheduleStore {
             let copy = try SpecialScheduleStore(root: root)
@@ -16,16 +17,21 @@ extension SpecialScheduleStore {
                 for (kind, record) in records {
                     try db.execute(sql: "INSERT INTO specialSchedule (kind,payload) VALUES (?,?)", arguments: [kind.rawValue, try JSONEncoder().encode(record)])
                 }
+                for (kind, attempt) in acquisitionAttempts {
+                    try SpecialScheduleStore.writeAcquisitionAttempt(attempt, kind: kind, db: db)
+                }
             }
-            copy.sources = sources; copy.records = records
+            copy.sources = sources; copy.records = records; copy.acquisitionAttempts = acquisitionAttempts
             return copy
         }
     }
     func pipelineSnapshot(_ kind: SpecialScheduleKind? = nil) -> PipelineSnapshot {
         let sources = self.sources.filter { kind == nil || $0.key == kind }
         let records = self.records.filter { kind == nil || $0.key == kind }
+        let attempts = acquisitionAttempts.filter { kind == nil || $0.key == kind }
         let names = Set(sources.values.map(\.storedName) + records.values.map(\.storedName))
-        return PipelineSnapshot(sources: sources, records: records, inputs: names.map { (files.appendingPathComponent($0), $0) })
+        return PipelineSnapshot(sources: sources, records: records, acquisitionAttempts: attempts,
+                                inputs: names.map { (files.appendingPathComponent($0), $0) })
     }
     func isolatedCopy(at root: URL) throws -> SpecialScheduleStore { try pipelineSnapshot().open(at: root) }
     func pipelineIdentity(_ kind: SpecialScheduleKind) throws -> Data {
@@ -57,16 +63,18 @@ extension SpecialScheduleStore {
                 if let record {
                     try db.execute(sql: "INSERT INTO specialSchedule(kind,payload) VALUES (?,?) ON CONFLICT(kind) DO UPDATE SET payload=excluded.payload", arguments: [kind.rawValue, try JSONEncoder().encode(record)])
                 }
+                try Self.writeAcquisitionAttempt(copy.acquisitionAttempts[kind], kind: kind, db: db)
             }
             if sources[kind]?.storedName != source?.storedName { pipelineEvidence.removeValue(forKey: kind) }
             if let source { sources[kind] = source }
             if let record { records[kind] = record }
+            acquisitionAttempts[kind] = copy.acquisitionAttempts[kind]
             if let evidence = copy.pipelineEvidence[kind] { pipelineEvidence[kind] = evidence }
             ticket.didCommit()
             let retired = oldNames.subtracting(Set(sources.values.map(\.storedName) + records.values.map(\.storedName)))
             let directory = files
             DispatchQueue.global(qos: .utility).async {
-                for name in retired { try? FileManager.default.removeItem(at: directory.appendingPathComponent(name)) }
+                for name in retired { try? SavedPDFLease.retire(directory.appendingPathComponent(name)) }
             }
         } catch {
             for url in imported { try? FileManager.default.removeItem(at: url) }

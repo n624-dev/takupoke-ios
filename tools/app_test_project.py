@@ -31,7 +31,7 @@ WEEK_MOTION_INSERTIONS = (
      '\n        FixtureWeekMotionRecorder.shared.checkpoint("promotion-begin")'),
     ('            arrive?(value.source, value.destination)',
      '\n            FixtureWeekMotionRecorder.shared.checkpoint("arrival-callback-returned")'),
-    ('            heldScroll?.isScrollEnabled = true\n            heldScroll = nil',
+    ('            releaseHeldScroll()',
      '\n            FixtureWeekMotionRecorder.shared.checkpoint("scroll-restored")'
      '\n            if heightAdjustment != nil { FixtureWeekSequenceRecorder.shared.signalHeightWindow() }'),
     ('    private func configure(_ weeks: [SchoolDate]) {',
@@ -76,20 +76,16 @@ def add_swift_sources(project, target, paths, prefix):
         phases[0]['files'].append(build_file)
         group['children'].append(reference)
 
-RETENTION_ACTION_TRACE = '; FixtureLaunchDiagnostics.record("retention-recovery-action"); SimulatorRetentionObservation.shared.capture()'
-RETENTION_DIALOG_TRACE = '''        .onChange(of: confirmingRetentionRecovery) { presented in
-            FixtureLaunchDiagnostics.record(presented ? "retention-dialog-on" : "retention-dialog-off")
-            SimulatorRetentionObservation.shared.capture(closed: !presented)
+RETENTION_RECOVERY_TRACE = '''        .onChange(of: application.recoveredRetention) { _, result in
+            if result != nil { SimulatorRetentionObservation.shared.capture() }
         }
 '''
 
 
 def instrument_retention_recovery(text):
-    action = 'Button("保存期間の管理情報を復旧") { confirmingRetentionRecovery = true }'
     observer = '        .onChange(of: dataReady) { ready in'
-    assert text.count(action) == 1 and text.count(observer) == 1, 'Retention observation insertion point missing'
-    return text.replace(action, action[:-2] + RETENTION_ACTION_TRACE + ' }').replace(
-        observer, RETENTION_DIALOG_TRACE + observer)
+    assert text.count(observer) == 1, 'Retention observation insertion point missing'
+    return text.replace(observer, RETENTION_RECOVERY_TRACE + observer)
 
 
 def instrument_events_cache(text):
@@ -337,17 +333,26 @@ def retention_notice_read_insertions():
                     '            }\n')
         yield original, observed
 
-def instrument_retention_notification_reads(text):
+def retention_notice_removal_insertions():
+    for operation, stage in (('removePendingNotificationRequests', 'pending'),
+                             ('removeDeliveredNotifications', 'delivered')):
+        original = f'            center.{operation}(withIdentifiers: identifiers)\n'
+        flag = 'ProcessInfo.processInfo.arguments.contains("--retention-corrupt")'
+        start = f'            if {flag} {{ FixtureCITrace.mark("retention-update-{stage}-removal-start") }}\n'
+        end = f'            if {flag} {{ FixtureCITrace.mark("retention-update-{stage}-removal-end") }}\n'
+        yield original, start + original + end
+
+def instrument_retention_notifications(text):
     # Preserve real requests and callbacks, including callbacks after a timeout.
-    for original, observed in retention_notice_read_insertions():
+    for original, observed in (*retention_notice_read_insertions(), *retention_notice_removal_insertions()):
         assert text.count(original) == 1, 'Retention notification insertion point missing'
         text = text.replace(original, observed)
     return text
 
-COUNTDOWN_NATIVE_ADD = '                    try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))'
-COUNTDOWN_OBSERVED_ADD = ('                    try await SimulatorCountdownEventsFixture.observeNativeReservation(center,\n'
-                          '                        request: UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger),\n'
-                          '                        expected: notice.fireAt)')
+COUNTDOWN_NATIVE_ADD = '                try await center.add(UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger))'
+COUNTDOWN_OBSERVED_ADD = ('                try await SimulatorCountdownEventsFixture.observeNativeReservation(center,\n'
+                          '                    request: UNNotificationRequest(identifier: notice.identifier, content: content, trigger: trigger),\n'
+                          '                    expected: notice.fireAt)')
 
 def instrument_countdown_notification_center(text):
     # Keep the actual permission, OS reads, and pending writes unchanged.
@@ -398,6 +403,33 @@ def instrument_countdown_notification_draft(text):
     assert text.count(COUNTDOWN_TOGGLE) == 1, 'Countdown notification toggle insertion point missing'
     return text.replace(COUNTDOWN_TOGGLE, COUNTDOWN_TOGGLE + COUNTDOWN_TOGGLE_TRACE)
 
+def instrument_recovery_fixture(text):
+    failure = '    var failure: String? { failureReason?.message }'
+    cancel = '    func cancel() {'
+    start = '    func start(_ kind: RecoveryDocumentKind) {'
+    for marker in (failure, cancel, start):
+        assert text.count(marker) == 1, 'Recovery UI fixture insertion point missing or duplicated'
+    text = text.replace(failure, '''    @Published private var fixtureFailure: String?
+    var failure: String? { fixtureFailure ?? failureReason?.message }''')
+    text = text.replace(cancel, cancel + '\n        fixtureFailure = nil')
+    return text.replace(start, start + """
+        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
+            cancel(); running = true
+            let fixtureOperation = self.operation
+            task = Task { @MainActor in
+                do {
+                    let prepared = try await SimulatorRecoveryFixture.preview(kind)
+                    guard self.operation == fixtureOperation, !Task.isCancelled else { return }
+                    source = prepared.source; preview = prepared; running = false; status = "採用前に元のPDFと内容を確認してください。"
+                } catch {
+                    guard self.operation == fixtureOperation else { return }
+                    running = false; fixtureFailure = "架空復旧fixtureを準備できませんでした: " + String(describing: error)
+                }
+            }
+            return
+        }
+""")
+
 def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
     repo = Path(__file__).resolve().parents[1]
     check_root = repo if check_root is None else Path(check_root)
@@ -427,7 +459,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
             text = instrument_notification_switch(text)
         if path.name == 'ScheduleNotifications.swift':
             text = instrument_notification_permission(text)
-            text = instrument_retention_notification_reads(text)
+            text = instrument_retention_notifications(text)
         if path.name == 'CountdownModel.swift':
             text = instrument_countdown_notification_center(text)
         if path.name == 'CountdownView.swift':
@@ -499,25 +531,7 @@ def generate(destination, check_sources=CHECK_SOURCES, check_root=None):
         }
 ''')
         if path.name == 'PDFRecoveryCoordinator.swift':
-            marker = '    func start(_ kind: RecoveryDocumentKind) {'
-            assert marker in text, 'Recovery UI fixture insertion point missing'
-            text = text.replace(marker, marker + '\n' + """
-        if ProcessInfo.processInfo.arguments.contains("--recovery-preview") {
-            cancel(); failure = nil; running = true
-            let fixtureOperation = self.operation
-            task = Task { @MainActor in
-                do {
-                    let prepared = try await SimulatorRecoveryFixture.preview(kind)
-                    guard self.operation == fixtureOperation, !Task.isCancelled else { return }
-                    source = prepared.source; preview = prepared; running = false; status = "採用前に元のPDFと内容を確認してください。"
-                } catch {
-                    guard self.operation == fixtureOperation else { return }
-                    running = false; failure = "架空復旧fixtureを準備できませんでした: " + String(describing: error)
-                }
-            }
-            return
-        }
-""")
+            text = instrument_recovery_fixture(text)
         if path.name == 'PDFRecoveryView.swift':
             marker = '.navigationTitle(title)'
             assert marker in text, 'Recovery preview probe insertion point missing'

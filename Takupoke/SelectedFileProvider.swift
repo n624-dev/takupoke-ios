@@ -14,6 +14,10 @@ final class AcquisitionControl: @unchecked Sendable {
     private var ticket: FilePipeline.Ticket?
     private var cancellationTargets: [FilePipeline.Ticket] = []
     var usedPipeline: Bool { lock.lock(); defer { lock.unlock() }; return !cancellationTargets.isEmpty }
+    var pipelineSources: Set<FileRefreshDiagnostics.Source> {
+        lock.lock(); defer { lock.unlock() }
+        return Set(cancellationTargets.map(\.source))
+    }
     func registerCancellationTarget(_ target: FilePipeline.Ticket) {
         lock.lock(); cancellationTargets.append(target); let stop = cancelled; lock.unlock()
         if stop { target.cancel() }

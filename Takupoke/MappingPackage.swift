@@ -12,7 +12,7 @@ enum MappingPackage {
     }
 
     static func validRevision(_ value: String) -> Bool {
-        value.range(of: "^[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil
+        MappingRevisionResult.isValidRevision(value)
     }
 
     static func decode(_ zip: Data, version: String, revision: String, archiveETag: String,
@@ -84,7 +84,7 @@ enum MappingPackage {
 
     static func validate(_ rules: MappingRules, schemaVersion: Int) throws {
         guard [1, 2].contains(schemaVersion), (schemaVersion == 2 || rules.teacherContexts.isEmpty),
-              rules.subjects.count + rules.teachers.count + rules.rooms.count + rules.teacherContexts.count <= 10_000 else {
+              rules.subjects.count + rules.teachers.count + rules.rooms.count + rules.teacherContexts.count <= MappingRules.maximumRuleCount else {
             throw MappingError.invalidPackage
         }
         for (kind, group) in [("subject", rules.subjects), ("teacher", rules.teachers), ("room", rules.rooms)] {

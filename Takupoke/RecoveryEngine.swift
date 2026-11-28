@@ -112,6 +112,90 @@ protocol LocalRecoveryProvider: Sendable {
     func recoverCell(_ cell: RecoveryPromptCell) async throws -> [RecoveryLesson]
 }
 enum RecoveryProviderError: Error { case invalidOutput }
+
+enum RecoveryFailure: Error, Equatable {
+    case sourceNeedsAnalysis, selectionChanged, originalRevalidation, cancelled, settingsDisabled
+    case differentPeriod, tooManyRequiredCorrections, processingLimit
+    case unreadable(PDFParseError.Stage?), unsupported(PDFParseError.Stage?), ambiguous(PDFParseError.Stage?)
+    case providerOutputRejected, providerRuntimeFailure, resultUnverified, storage
+    case manualInputUnverified, correctionTargetUnverified, adoptionTargetChanged, adoptionCancelled, adoptionStorageFailure
+
+    init(_ error: any Error) {
+        if let known = error as? Self { self = known; return }
+        if error is CancellationError { self = .cancelled; return }
+        guard let pdf = error as? PDFParseError else { self = .unreadable(nil); return }
+        switch pdf.code {
+        case .unreadable: self = .unreadable(pdf.stage)
+        case .unsupported: self = .unsupported(pdf.stage)
+        case .ambiguous: self = .ambiguous(pdf.stage)
+        case .limit: self = .processingLimit
+        case .cancelled: self = .cancelled
+        case .storage: self = .storage
+        }
+    }
+
+    init(validationCodes: [String], providerResult: Bool) {
+        let codes = Set(validationCodes)
+        if !codes.isDisjoint(with: ["inputLimit", "validationLimit", "sourceLimit", "fieldLimit", "promptLimit"]) {
+            self = .processingLimit
+        } else if codes.contains("runtimeFailure") {
+            self = .providerRuntimeFailure
+        } else if codes.contains("invalidOutput") {
+            self = .providerOutputRejected
+        } else if !codes.isDisjoint(with: ["yearTerm", "yearEvidence", "yearEvidenceText", "termEvidence"]) {
+            self = .ambiguous(.yearHeading)
+        } else if providerResult {
+            self = .resultUnverified
+        } else if !codes.isDisjoint(with: ["cellOverlap", "sourcePosition", "duplicateCells"]) {
+            self = .ambiguous(.gridCell)
+        } else {
+            self = .ambiguous(nil)
+        }
+    }
+
+    var canRetrySameInput: Bool { self == .providerRuntimeFailure || self == .adoptionStorageFailure }
+
+    var canRestartRecovery: Bool {
+        switch self {
+        case .selectionChanged, .originalRevalidation, .cancelled, .adoptionTargetChanged: return true
+        default: return false
+        }
+    }
+
+    var message: String {
+        let preserved = "前回の正常結果を保持しています。"
+        switch self {
+        case .sourceNeedsAnalysis:
+            return "最新の通常解析の失敗を確認できませんでした。この画面を閉じ、資料の解析画面で再解析してから復旧を開始してください。" + preserved
+        case .selectionChanged: return "資料の選択や保存状態が変わりました。元のPDFから再試行してください。" + preserved
+        case .originalRevalidation: return "元のPDFを再確認できませんでした。" + preserved
+        case .cancelled: return "復旧を中止しました。" + preserved
+        case .settingsDisabled: return "復旧はOFFです。"
+        case .differentPeriod: return "PDFの年度・学期とアプリの対象期間が一致しません。対象期間の資料を確認してください。" + preserved
+        case .tooManyRequiredCorrections:
+            return "確認が必要な項目が上限の\(RecoveryManualAssistance.maximumFields)件を超えています。元のPDFを確認してください。" + preserved
+        case .processingLimit: return "資料の読み取りが処理上限を超えました。元のPDFを確認してください。" + preserved
+        case .unreadable(let stage): return "PDFを読み取れませんでした。" + detail(stage) + "元のPDFを確認してください。" + preserved
+        case .unsupported(let stage): return "対応していないPDFの構造です。" + detail(stage) + "元のPDFを確認してください。" + preserved
+        case .ambiguous(let stage): return "資料の内容と位置を安全に確認できませんでした。" + detail(stage) + preserved
+        case .providerOutputRejected: return "端末内AIの出力を原本で確認できませんでした。元のPDFを確認してください。" + preserved
+        case .providerRuntimeFailure: return "端末内AIの実行に一時的な問題が発生しました。時間をおいて再試行してください。" + preserved
+        case .resultUnverified: return "原文に基づいて結果を確認できませんでした。" + preserved
+        case .storage: return "端末に保存された原本を確認できませんでした。資料の解析画面で状態を確認してください。" + preserved
+        case .manualInputUnverified: return "原本または入力内容を確認できませんでした。" + preserved
+        case .correctionTargetUnverified: return "訂正する本文と元のPDFを確認できませんでした。" + preserved
+        case .adoptionTargetChanged: return "資料の選択や保存状態が変わったため採用できませんでした。元のPDFから再試行してください。"
+        case .adoptionCancelled: return "採用を中止しました。"
+        case .adoptionStorageFailure: return "復旧結果を保存できませんでした。確認済みの内容を保持しています。もう一度採用をお試しください。"
+        }
+    }
+
+    private func detail(_ stage: PDFParseError.Stage?) -> String {
+        guard let stage else { return "" }
+        return "確認できなかった箇所は\(stage.label)です。"
+    }
+}
+
 struct RecoveryRun: Sendable { var state: RecoveryJobState; var result: RecoveryResult?; var errors: [String] }
 enum RecoveryRules {
     static func recover(_ doc: RecoveryDocument, _ cell: RecoveryCell) -> RecoveredCell? {

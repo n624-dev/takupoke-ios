@@ -90,7 +90,7 @@ final class SchoolEventsModel: ObservableObject {
     func sourcePresentation(year: Int) -> SchoolEventsSourcePresentation? {
         guard let current = saved[year] else { return nil }
         let state = states[year]
-        let retry = state?.targetMismatch == true ? Self.mismatchMessage : state?.source.retryAt != nil && state?.followUpAt == nil
+        let retry = state?.targetMismatch == true ? Self.mismatchMessage : isAutomaticRefreshEnabled(year: year) && state?.source.retryAt != nil && state?.followUpAt == nil
             ? "元PDFの状態を確認できません。後で自動確認します。" : nil
         return .make(saved: current, cached: sourceStatuses[year], error: sourceErrors[year] ?? retry, now: now(),
                      firstFailureAt: state?.source.firstFailureAt, checking: isChecking(year: year))
@@ -98,25 +98,49 @@ final class SchoolEventsModel: ObservableObject {
 
     func isChecking(year: Int) -> Bool { runningRequest(year: year) != nil }
 
+    func isAutomaticRefreshEnabled(year: Int) -> Bool {
+        year >= SchoolDataPeriod.current(at: now()).schoolYear
+    }
+
+    func didFailBodyCheck(year: Int) -> Bool {
+        failedBodyYears.contains(year) || states[year]?.body.firstFailureAt != nil
+    }
+
     private func runningRequest(year: Int) -> Request? {
         guard let request = requests[year], !request.task.isCancelled else { return nil }
         return request
     }
 
     func countdownSourceState(year: Int, at date: Date) -> CountdownAvailability {
+        countdownSourceEvidence(year: year, at: date).availability
+    }
+
+    func countdownSourceEvidence(year: Int, at date: Date) -> (availability: CountdownAvailability, freshUntil: Date?) {
         guard let current = saved[year], let cached = sourceStatuses[year], cached.matches(current),
               let observation = cached.successfulResponse,
-              let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= cached.receivedAt else { return .sourcePending }
-        if observation.lastSuccessfulStatus == .source_differs { return .sourceDifference }
+              let time = SchoolEventsSourceStatus.date(observation.lastSuccessAt), time <= cached.receivedAt else {
+            return (countdownUnconfirmedSource(year: year), nil)
+        }
+        if observation.lastSuccessfulStatus == .source_differs { return (.sourceDifference, nil) }
+        let freshUntil = time.addingTimeInterval(86_400)
         guard states[year]?.targetMismatch != true, observation.lastSuccessfulStatus == .matched,
-              !cached.response.stale, time <= date, date.timeIntervalSince(time) < 86_400 else { return .sourcePending }
-        return .available
+              !cached.response.stale, time <= date, date < freshUntil else {
+            return (countdownUnconfirmedSource(year: year), nil)
+        }
+        return (.available, freshUntil)
+    }
+
+    private func countdownUnconfirmedSource(year: Int) -> CountdownAvailability {
+        if runningRequest(year: year)?.checksSource == true || sourcePresentation(year: year)?.evidence == .checking {
+            return .sourceChecking
+        }
+        if sourceErrors[year] != nil { return .sourceCheckFailed }
+        return .sourcePending
     }
 
     func countdownAnnouncementCoverage(year: Int) -> CountdownAnnouncementCoverage {
         if runningRequest(year: year)?.checksBody == true || (!ready && !failed) { return .checking }
-        if failedCacheYears.contains(year) || failedBodyYears.contains(year) ||
-            states[year]?.body.firstFailureAt != nil || (!ready && failed) { return .unavailable }
+        if failedCacheYears.contains(year) || didFailBodyCheck(year: year) || (!ready && failed) { return .unavailable }
         return .missing
     }
 
@@ -311,7 +335,7 @@ final class SchoolEventsModel: ObservableObject {
         guard active, ready else { cancelWakeup(); return }
         let date = now()
         var candidates: [(Date, Bool)] = []
-        for (year, current) in saved {
+        for (year, current) in saved where isAutomaticRefreshEnabled(year: year) {
             guard let state = states[year] else { continue }
             if !pausedYears.contains(year) && !isChecking(year: year) && reachable && canAccessData() {
                 if automaticEnabled {
@@ -352,7 +376,8 @@ final class SchoolEventsModel: ObservableObject {
     private func start(year: Int, demand: Demand, background: Bool = false) -> Request? {
         let explicit = demand == .manual || demand == .forcedSource
         guard ready, (active || background), reachable, canAccessData(),
-              demand == .manual || saved[year] != nil, explicit || !pausedYears.contains(year) else { return nil }
+              demand == .manual || saved[year] != nil,
+              explicit || isAutomaticRefreshEnabled(year: year) && !pausedYears.contains(year) else { return nil }
         if explicit { pausedYears.remove(year) }
         if let request = runningRequest(year: year) { return request }
         let date = now()
@@ -392,18 +417,22 @@ final class SchoolEventsModel: ObservableObject {
     }
 
     private func refresh(year: Int, body: Bool, source: Bool, demand: Demand, background: Bool) async -> Bool {
+        let explicit = demand == .manual || demand == .forcedSource
+        func current() -> Bool { explicit || isAutomaticRefreshEnabled(year: year) }
+        guard current() else { return false }
         var checkedBody = false
         var bodySucceeded = true
         let retryAllowsReconciliation = states[year]?.body.retryAt.map { $0 <= now() } ?? true
         if body || (source && states[year]?.deferredReconciliation == true && retryAllowsReconciliation) {
             checkedBody = true
-            bodySucceeded = await confirmBody(year: year, manual: demand == .manual)
+            bodySucceeded = await confirmBody(year: year, manual: demand == .manual, explicit: explicit)
         }
-        guard !Task.isCancelled, canAccessData(), let current = saved[year], var state = states[year] else {
+        guard current() else { return false }
+        guard !Task.isCancelled, canAccessData(), let savedEvents = saved[year], var state = states[year] else {
             return bodySucceeded && !Task.isCancelled
         }
         if checkedBody && state.deferredReconciliation { state.deferredReconciliation = false; record(state) }
-        guard source || checkedBody && nextSourceCheck(current, state: state, at: now()) <= now() else { return bodySucceeded }
+        guard source || checkedBody && nextSourceCheck(savedEvents, state: state, at: now()) <= now() else { return bodySucceeded }
 
         if state.followUpAt != nil {
             if let remaining = state.followUpsRemaining, remaining > 0 {
@@ -422,11 +451,11 @@ final class SchoolEventsModel: ObservableObject {
 
         do {
             let status = try await readSource(year: year, format: state.target.format ?? .v1)
-            guard !Task.isCancelled, canAccessData() else { return false }
-            let differs = status.matches(current) && status.lastSuccessfulStatus == .source_differs &&
+            guard !Task.isCancelled, current(), canAccessData() else { return false }
+            let differs = status.matches(savedEvents) && status.lastSuccessfulStatus == .source_differs &&
                 SchoolEventsSourceStatus.date(status.lastSuccessAt).map { $0 <= now() && $0 > (state.differenceCheckedAt ?? .distantPast) } == true
-            if status.matches(current) {
-                try acceptSource(status, targeted: current)
+            if status.matches(savedEvents) {
+                try acceptSource(status, targeted: savedEvents)
                 if differs, var updated = states[year] {
                     updated.differenceCheckedAt = SchoolEventsSourceStatus.date(status.lastSuccessAt)
                     record(updated)
@@ -435,33 +464,33 @@ final class SchoolEventsModel: ObservableObject {
                 updated.targetMismatch = true
                 record(updated)
             }
-            guard !status.matches(current) || differs else { return bodySucceeded }
+            guard !status.matches(savedEvents) || differs else { return bodySucceeded }
             if background {
                 if !checkedBody, var updated = states[year] {
                     updated.deferredReconciliation = true
                     record(updated)
                 }
-                if !status.matches(current), let updated = states[year] { recordSourceFailure(updated, message: Self.mismatchMessage) }
-                return bodySucceeded && status.matches(current)
+                if !status.matches(savedEvents), let updated = states[year] { recordSourceFailure(updated, message: Self.mismatchMessage) }
+                return bodySucceeded && status.matches(savedEvents)
             }
 
             if !checkedBody && !retryAllowsReconciliation {
                 if var updated = states[year] {
                     updated.deferredReconciliation = true
                     record(updated)
-                    if !status.matches(current) { recordSourceFailure(updated, message: Self.mismatchMessage) }
+                    if !status.matches(savedEvents) { recordSourceFailure(updated, message: Self.mismatchMessage) }
                 }
                 return false
             }
-            if !checkedBody { bodySucceeded = await confirmBody(year: year, manual: false) }
-            guard !Task.isCancelled, canAccessData(), let updated = saved[year] else { return false }
-            if current.payload.format == updated.payload.format, status.matches(updated) {
-                if !status.matches(current) { try acceptSource(status, targeted: updated) }
+            if !checkedBody { bodySucceeded = await confirmBody(year: year, manual: false, explicit: explicit) }
+            guard !Task.isCancelled, current(), canAccessData(), let updated = saved[year] else { return false }
+            if savedEvents.payload.format == updated.payload.format, status.matches(updated) {
+                if !status.matches(savedEvents) { try acceptSource(status, targeted: updated) }
                 return bodySucceeded
             }
             // One recheck after the body recovery. Never re-enter this path for its response.
             let rechecked = try await readSource(year: year, format: SchoolEventsSourceTarget(updated).format ?? .v1)
-            guard !Task.isCancelled, canAccessData() else { return false }
+            guard !Task.isCancelled, current(), canAccessData() else { return false }
             guard rechecked.matches(updated) else {
                 if let state = states[year] { recordSourceFailure(state, message: Self.mismatchMessage) }
                 return false
@@ -469,8 +498,10 @@ final class SchoolEventsModel: ObservableObject {
             try acceptSource(rechecked, targeted: updated)
             return bodySucceeded
         } catch {
-            guard !Task.isCancelled, canAccessData(), let latest = states[year] else { return false }
-            recordSourceFailure(latest, message: "元PDFの状態を確認できません。後で自動確認します。保存済みの結果を表示しています。")
+            guard !Task.isCancelled, current(), canAccessData(), let latest = states[year] else { return false }
+            let information = (error as? BoundedHTTPResponse.Failure)?.localizedDescription ?? "元PDFの状態を確認できません。"
+            let retry = isAutomaticRefreshEnabled(year: year) ? "後で自動確認します。" : ""
+            recordSourceFailure(latest, message: information + retry + "保存済みの結果を表示しています。")
             return false
         }
     }
@@ -527,16 +558,15 @@ final class SchoolEventsModel: ObservableObject {
         var request = URLRequest(url: components.url!)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: session, maximum: 16_384)
         try Task.checkCancellation()
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200,
-              response.expectedContentLength <= 16_384 else { throw SchoolEventsError.unavailable }
+        guard response.statusCode == 200 else { throw SchoolEventsError.unavailable }
         return try SchoolEventsSourceStatus.decode(data, year: year)
     }
 
-    private func confirmBody(year: Int, manual: Bool) async -> Bool {
+    private func confirmBody(year: Int, manual: Bool, explicit: Bool) async -> Bool {
         do {
-            let changed = try await fetchOne(year: year)
+            let changed = try await fetchOne(year: year, explicit: explicit)
             failedBodyYears.remove(year)
             if var state = states[year] { state.body = SchoolEventsRetry(); record(state) }
             if manualYear == year || manual {
@@ -544,12 +574,13 @@ final class SchoolEventsModel: ObservableObject {
             }
             return true
         } catch {
-            guard !Task.isCancelled, canAccessData() else { return false }
+            guard !Task.isCancelled, canAccessData(), explicit || isAutomaticRefreshEnabled(year: year) else { return false }
             failedBodyYears.insert(year)
             if var state = states[year] { state.body.fail(at: now()); record(state) }
             if manualYear == year || manual {
                 failed = true
-                message = (error as? SchoolEventsError)?.localizedDescription ?? SchoolEventsError.unavailable.localizedDescription
+                message = (error as? BoundedHTTPResponse.Failure)?.localizedDescription ??
+                    (error as? SchoolEventsError)?.localizedDescription ?? SchoolEventsError.unavailable.localizedDescription
             }
             return false
         }
@@ -584,7 +615,7 @@ final class SchoolEventsModel: ObservableObject {
         return items
     }
 
-    private func fetchOne(year: Int) async throws -> Bool {
+    private func fetchOne(year: Int, explicit: Bool) async throws -> Bool {
         let session = makeSession()
         defer { session.invalidateAndCancel() }
         var components = URLComponents(url:eventsEndpoint,resolvingAgainstBaseURL:false)!
@@ -595,10 +626,10 @@ final class SchoolEventsModel: ObservableObject {
         let stored = saved[year].flatMap { $0.payload.format == preferredFormat ? $0 : nil }
         let sentETag = stored?.apiETag
         if let sentETag { request.setValue(sentETag, forHTTPHeaderField: "If-None-Match") }
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: session, maximum: 1_000_000)
         try Task.checkCancellation()
         guard canAccessData(), let store else { throw SchoolEventsError.unavailable }
-        guard let response = response as? HTTPURLResponse else { throw SchoolEventsError.unavailable }
+        guard explicit || isAutomaticRefreshEnabled(year: year) else { throw CancellationError() }
         let receivedETag = response.value(forHTTPHeaderField: "ETag")
         let date = now()
         if try SchoolEventsResponse.isNotModified(status: response.statusCode, data: data,
@@ -612,9 +643,7 @@ final class SchoolEventsModel: ObservableObject {
             return false
         }
         if response.statusCode == 404 { throw SchoolEventsError.unsupportedYear }
-        guard response.statusCode == 200,
-              response.expectedContentLength <= 1_000_000,
-              data.count <= 1_000_000 else { throw SchoolEventsError.unavailable }
+        guard response.statusCode == 200 else { throw SchoolEventsError.unavailable }
         guard receivedETag == nil || SchoolEventsResponse.validETag(receivedETag!) else {
             throw SchoolEventsError.invalidResponse
         }

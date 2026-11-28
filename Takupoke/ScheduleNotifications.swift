@@ -12,6 +12,8 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         var id: CountdownNoticeTarget { target }
     }
     @Published var openedCountdown: CountdownDestination?
+    @Published var openedUpdate: ScheduleUpdateNotice?
+
     @Published private(set) var changesEnabled = UserDefaults.standard.bool(forKey: "notifyScheduleChanges")
     @Published private(set) var specialsEnabled = UserDefaults.standard.bool(forKey: "notifySpecialSchedules")
     @Published private(set) var requestingPermission = false
@@ -19,10 +21,14 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     @Published private(set) var permissionMessage: String?
 
     private let center = UNUserNotificationCenter.current()
+    private let notificationWriter = NotificationWriteOwner()
+    private let retentionRemovals = NotificationRemovalOwner()
     private var baseline: ScheduleNotificationSnapshot?
     private var loaded = false
     private var reconcileTask: NotificationWork?
     private var disabledNotificationsAwaitingWrite = Set<String>()
+    private var lastSpecialRemoval: [String: UUID] = [:]
+    private var specialComparisonsToReset = Set<String>()
     private var pending: Input?
     private var generation = UUID()
     private var latestRevision = UUID()
@@ -34,6 +40,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         let personalEdit: Bool
         let revision: UUID
         let changes: Set<ScheduleNotificationSnapshot.Change>?
+        let changeScope: @MainActor () -> ScheduleNotificationSnapshot.ChangeScope?
         let specials: [String: String]
         let availability: ScheduleNotificationSnapshot.Availability
         let period: SchoolDataPeriod
@@ -52,6 +59,17 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
                                           didReceive response: UNNotificationResponse) async {
         let request = response.notification.request
+        if let update = ScheduleUpdateNotice(identifier: request.identifier,
+            revision: request.content.userInfo["revision"] as? String,
+            documentRevision: request.content.userInfo["document"] as? String,
+            classRevision: request.content.userInfo["selectedClassesVersion"] as? String,
+            days: request.content.userInfo["targetDays"] as? [String] ?? []) {
+            await MainActor.run {
+                guard self.openedUpdate != update else { return }
+                self.openedUpdate = update
+            }
+            return
+        }
         guard request.identifier.hasPrefix(CountdownNotice.prefix),
               let idValue = request.content.userInfo["countdownID"] as? String, let id = UUID(uuidString: idValue),
               let target = request.content.userInfo["targetKey"] as? String else { return }
@@ -65,17 +83,13 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         if value {
             requestingPermission = true
             defer { requestingPermission = false }
-            do {
-                guard try await Self.requestAuthorization(from: center) else {
-                    lastAppliedPermissionSequence = permissionReadSequence
-                    permissionMessage = "iPhoneの設定で通知を許可してください。"
-                    return
-                }
-            } catch {
-                permissionMessage = "通知の許可を確認できませんでした。"
-                return
-            }
+            guard await confirmAuthorization() else { return }
         }
+        applyPreference(changes: changes, value: value)
+        if !value { await disableNotifications(changes: changes) }
+    }
+
+    private func applyPreference(changes: Bool, value: Bool) {
         if changes {
             changesEnabled = value
             UserDefaults.standard.set(value, forKey: "notifyScheduleChanges")
@@ -91,7 +105,6 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             lastAppliedPermissionSequence = permissionReadSequence
             permissionMessage = nil
         }
-        if !value { await disableNotifications(changes:changes) }
     }
 
     private func disableNotifications(changes: Bool) async {
@@ -133,6 +146,26 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         center.removeDeliveredNotifications(withIdentifiers: ids)
     }
 
+    func removeSpecialSchedule(_ kind: SpecialScheduleKind) {
+        let key = kind.rawValue, identifier = "takupoke." + key
+        latestRevision = UUID()
+        pending = nil
+        lastSpecialRemoval[key] = latestRevision
+        specialComparisonsToReset.insert(key)
+        removeUpdateNotifications([identifier])
+        if openedUpdate?.kind.rawValue == key { openedUpdate = nil }
+        do {
+            let file = try storageFile()
+            var value = try baseline ?? ScheduleNotificationSnapshot.load(from: file)
+            value.removeSpecialSchedule(kind)
+            try save(value, to: file)
+            specialComparisonsToReset.remove(key)
+        } catch {
+            // Keep the removal pending if the comparison store could not be read.
+            message = "通知の更新確認を保存できませんでした。"
+        }
+    }
+
     // Start the permission UI on this object's MainActor, then transport the
     // actual callback result. A nonisolated async entry would leave that actor.
     // Denial and errors never enable or persist a notification setting.
@@ -148,10 +181,31 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
     }
 
     func enableFromSetup() async {
-        guard !UserDefaults.standard.bool(forKey: "notificationsSetupCompleted") else { return }
-        await setEnabled(changes: true, value: true)
-        if changesEnabled { await setEnabled(changes: false, value: true) }
+        guard !Task.isCancelled, !requestingPermission,
+              !UserDefaults.standard.bool(forKey: "notificationsSetupCompleted") else { return }
+        requestingPermission = true
+        defer { requestingPermission = false }
+        let allowed = await confirmAuthorization()
+        guard !Task.isCancelled else { return }
+        if allowed {
+            applyPreference(changes: true, value: true)
+            applyPreference(changes: false, value: true)
+        }
         UserDefaults.standard.set(true, forKey: "notificationsSetupCompleted")
+    }
+
+    private func confirmAuthorization() async -> Bool {
+        do {
+            guard try await Self.requestAuthorization(from: center) else {
+                lastAppliedPermissionSequence = permissionReadSequence
+                permissionMessage = "iPhoneの設定で通知を許可してください。"
+                return false
+            }
+            return true
+        } catch {
+            permissionMessage = "通知の許可を確認できませんでした。"
+            return false
+        }
     }
 
     func checkPermission() async {
@@ -243,32 +297,32 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     func resetForRetention() async -> Bool {
         guard await suspendForUnavailableData() else { return false }
-        center.removePendingNotificationRequests(withIdentifiers: Self.updateIdentifiers)
-        center.removeDeliveredNotifications(withIdentifiers: Self.updateIdentifiers)
-        return true
+        let identifiers = Self.updateIdentifiers
+        return await retentionRemovals.run(.all, identifiers: identifiers) { [center] in
+            center.removePendingNotificationRequests(withIdentifiers: identifiers)
+            center.removeDeliveredNotifications(withIdentifiers: identifiers)
+        }
     }
 
     func reconcile(state: MaterialLibraryState, records: [SpecialScheduleKind: SpecialScheduleRecord],
                    sources: [SpecialScheduleKind: SpecialScheduleSource], period: SchoolDataPeriod,
-                   materialsReady: Bool = true, specialsReady: Bool = true) async {
+                   materialsReady: Bool = true, specialsReady: Bool = true,
+                   mapping: @escaping @MainActor () -> SavedMapping? = { nil }) async {
         guard !Task.isCancelled, UIApplication.shared.isProtectedDataAvailable,
               period == SchoolDataPeriod.current() else { return }
-        var changes: Set<ScheduleNotificationSnapshot.Change>?
+        var rows: [ScheduleNotificationSnapshot.Change: ScheduleChange]?
         let year = ChangeNormalizer.effectiveSchoolYear(configured: UserDefaults.standard.string(forKey: ChangeNormalizer.schoolYearSettingKey), today: .today())
         if let source = state.record(for: .changes), state.changeAnalysis?.matches(record: source, defaultYear: year) == true,
            let accepted = ScheduleNotificationSnapshot.acceptedChanges(in: state) {
-            changes = Set(accepted.map { row in
-                let period = row.detailPeriods?.map(String.init).joined(separator: ",") ?? row.period
-                var fields = [row.change_date, row.displayClassName, period,
-                              row.before_subject, row.after_subject, row.teacher, row.room, row.note]
-                let legacy = row.note.precomposedStringWithCompatibilityMapping.trimmingCharacters(in: .whitespacesAndNewlines)
-                let oldKind = legacy == "休講" || legacy == "補講" ? legacy : "変更"
-                if row.cardKindLabel != oldKind { fields.append(row.cardKindLabel) }
-                let data = (try? JSONEncoder().encode(fields)) ?? Data()
-                let hash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-                return ScheduleNotificationSnapshot.Change(date: row.change_date,
-                    className: row.displayClassName, period: period, fingerprint: hash)
-            })
+            rows = Dictionary(accepted.map { (ScheduleNotificationSnapshot.Change.from($0), $0) },
+                              uniquingKeysWith: { first, _ in first })
+        }
+        let changes = rows.map { Set($0.keys) }
+        let scope: @MainActor () -> ScheduleNotificationSnapshot.ChangeScope? = { [rows] in
+            guard let rows else { return nil }
+            return .init(visibility: .init(rows: rows, mapping: mapping()),
+                         international: UserDefaults.standard.bool(forKey: "timetableInternationalStudent"),
+                         showsChanges: UserDefaults.standard.object(forKey: "timetableIncludesChanges") as? Bool ?? true)
         }
         let specials = ScheduleNotificationSnapshot.acceptedSpecialDigests(records: records, sources: sources)
         latestRevision = UUID()
@@ -276,7 +330,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             state: state, records: records, sources: sources)
         if changes == nil && availability.changes == .available { availability.changes = .unavailable }
         let document = state.record(for: .changes).map { ($0.source.selectionID ?? $0.storedName) + "/" + $0.digest }
-        pending = Input(changeDocument: document, personalEdit: state.changeAnalysis?.personalEdit == true, revision:latestRevision,changes: changes, specials: specials, availability: availability, period: period)
+        pending = Input(changeDocument: document, personalEdit: state.changeAnalysis?.personalEdit == true, revision:latestRevision,changes: changes, changeScope: scope, specials: specials, availability: availability, period: period)
         await drainPending()
     }
 
@@ -324,23 +378,46 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     private func apply(_ input: Input) async {
         let operation = generation
+        let removals = lastSpecialRemoval
         do {
             try Task.checkCancellation()
             guard UIApplication.shared.isProtectedDataAvailable, input.period == SchoolDataPeriod.current() else { return }
             let file = try storageFile()
             if !loaded {
-                baseline = try ScheduleNotificationSnapshot.load(from:file)
+                do { baseline = try ScheduleNotificationSnapshot.load(from: file) }
+                catch ScheduleNotificationSnapshot.ReadError.invalidStructure {
+                    guard input.availability.changes != .unavailable ||
+                          SpecialScheduleKind.allCases.contains(where: { input.availability.state(for: $0.rawValue) != .unavailable }) else {
+                        message = "現在の資料が準備できたら、通知の比較データを復旧します。"
+                        return
+                    }
+                    let current = try ScheduleNotificationSnapshot().reconciling(changes: input.changes,
+                        specials: input.specials, availability: input.availability, today: .today(), classes: [],
+                        changesEnabled: false, specialsEnabled: false, changeDocument: input.changeDocument,
+                        personalEdit: input.personalEdit, scope: input.changeScope())
+                    try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current)
+                    baseline = current
+                } catch ScheduleNotificationSnapshot.ReadError.unsupportedFormat {
+                    message = "この版では通知の比較データを読み込めません。保存したデータは保持しています。"
+                    return
+                } catch {
+                    message = "通知の比較データを読み込めませんでした。次の更新確認で再試行します。"
+                    return
+                }
                 loaded = true
             }
             guard var next = baseline else { return }
             guard let allowed = await deliveryAllowed() else { return }
-            guard operation == generation, input.period == SchoolDataPeriod.current(),
+            guard operation == generation, removals == lastSpecialRemoval, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
+            for kind in SpecialScheduleKind.allCases where specialComparisonsToReset.contains(kind.rawValue) {
+                next.removeSpecialSchedule(kind)
+            }
             let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
                 .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
             next = try next.reconciling(changes: input.changes, specials: input.specials, availability: input.availability,
                 today: .today(), classes: classes, changesEnabled: changesEnabled && allowed, specialsEnabled: specialsEnabled && allowed,
-                changeDocument: input.changeDocument, personalEdit: input.personalEdit)
+                changeDocument: input.changeDocument, personalEdit: input.personalEdit, scope: input.changeScope())
             guard operation == generation, input.period == SchoolDataPeriod.current(),
                   UIApplication.shared.isProtectedDataAvailable else { return }
             try Task.checkCancellation()
@@ -348,6 +425,7 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
             // before yielding to the notification service. An interrupted send
             // can be retried without recomputing or losing the data difference.
             if next != baseline { try save(next, to: file) }
+            specialComparisonsToReset.removeAll()
             func enabled(_ kind: String) -> Bool { kind == "changes" ? changesEnabled : specialsEnabled }
             var failedKinds: [String] = []
             for kind in ["changes", "exam", "examReturn"] {
@@ -366,7 +444,9 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 if kind == "changes" {
                     let currentClasses = Set((UserDefaults.standard.string(forKey:"timetableSelectedClasses") ?? "")
                         .split(separator:"|").map { ChangeNormalizer.canonicalClassName(String($0)) })
-                    let targets = next.validTargets(notice.changeTargets ?? [],in:input.changes ?? [],today:.today(),classes:currentClasses)
+                    guard latestRevision == input.revision else { return }
+                    let targets = next.validTargets(notice.changeTargets ?? [], in: input.changes ?? [], today: .today(),
+                                                    classes: currentClasses, scope: input.changeScope())
                     if targets.isEmpty { next.pending.removeValue(forKey:kind); try save(next,to:file); continue }
                     notice = try changeNotice(targets); next.pending[kind] = notice; try save(next,to:file)
                 }
@@ -380,15 +460,20 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
                 if !alreadySent {
                     // A setting may change while this write is in the OS.
                     // Clean up this identifier before the next kind can wait.
-                    defer { if !enabled(kind) { removeUpdateNotifications([identifier]) } }
-                    do { try await send(kind: kind, notice: notice) }
+                    let previousRemoval = lastSpecialRemoval[kind]
+                    defer {
+                        if !enabled(kind) || lastSpecialRemoval[kind] != previousRemoval {
+                            removeUpdateNotifications([identifier])
+                        }
+                    }
+                    do { try await send(kind: kind, notice: notice, revision: input.revision) }
                     catch {
                         try Task.checkCancellation()
                         failedKinds.append(kind)
                         continue
                     }
                 }
-                guard operation == generation, input.period == SchoolDataPeriod.current(),
+                guard operation == generation, removals == lastSpecialRemoval, input.period == SchoolDataPeriod.current(),
                       UIApplication.shared.isProtectedDataAvailable else { return }
                 // Acknowledge an accepted notice even if cancellation arrived
                 // while add() was completing. Do not deliver it again on return.
@@ -413,16 +498,32 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         baseline = value
     }
 
-    private func send(kind: String, notice: ScheduleNotificationSnapshot.Pending) async throws {
+    private func send(kind: String, notice: ScheduleNotificationSnapshot.Pending, revision: UUID) async throws {
         try Task.checkCancellation()
         let content = UNMutableNotificationContent()
         content.title = kind == "changes" ? "時間割変更があります" :
             "\(kind == "exam" ? SpecialScheduleKind.exam.title : SpecialScheduleKind.examReturn.title)が更新されました"
         content.body = kind == "changes" ? "\(notice.count)件の時間割変更を確認してください。" :
             "時間割で更新内容を確認してください。"
-        content.userInfo = ["revision": notice.fingerprint]
+        var information: [String: Any] = ["revision": notice.fingerprint]
+        if kind == "changes", let targets = notice.changeTargets, let document = baseline?.changeDocument {
+            information["document"] = ScheduleUpdateNotice.digest(document)
+            let classes = Set((UserDefaults.standard.string(forKey: "timetableSelectedClasses") ?? "")
+                .split(separator: "|").map { ChangeNormalizer.canonicalClassName(String($0)) })
+            information["selectedClassesVersion"] = ScheduleUpdateNotice.selectedClassesRevision(classes,
+                international: UserDefaults.standard.bool(forKey: "timetableInternationalStudent"),
+                mappingRevision: baseline?.changeVisibility?.mappingRevision ?? "no-mapping")
+            information["targetDays"] = Array(Set(targets.map(\.date)).sorted().prefix(366))
+        }
+        content.userInfo = information
         content.sound = .default
-        try await center.add(UNNotificationRequest(identifier: "takupoke." + kind, content: content, trigger: nil))
+        let identifier = "takupoke." + kind
+        try await notificationWriter.add(identifier: identifier, revision: revision, responseUnconfirmed: { [weak self] in
+            guard let self, kind == "changes" ? self.changesEnabled : self.specialsEnabled else { return }
+            self.message = "通知の送信結果を確認できません。iPhoneの応答を待っています。"
+        }) {
+            try await center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: nil))
+        }
     }
 
     private func storageFile() throws -> URL {
@@ -436,6 +537,95 @@ final class ScheduleNotifications: NSObject, ObservableObject, UNUserNotificatio
         values.isExcludedFromBackup = true
         try directory.setResourceValues(values)
         return root.appendingPathComponent("baseline.json")
+    }
+}
+
+@MainActor
+final class NotificationWriteOwner {
+    struct Active: Equatable {
+        let identifier: String
+        let revision: UUID
+        let startedAt: ContinuousClock.Instant
+    }
+
+    struct Completion: Equatable {
+        let write: Active
+        let endedAt: ContinuousClock.Instant
+        let result: Result
+
+        enum Result { case acknowledged, failed }
+    }
+
+    enum Failure: Error { case alreadyWriting }
+
+    private let now: () -> ContinuousClock.Instant
+    private let waitForResponse: @MainActor () async throws -> Void
+    private(set) var active: Active?
+    private(set) var latestCompletion: Completion?
+
+    init(now: @escaping () -> ContinuousClock.Instant = { ContinuousClock.now },
+         waitForResponse: @escaping @MainActor () async throws -> Void = { try await Task.sleep(for: .seconds(30)) }) {
+        self.now = now
+        self.waitForResponse = waitForResponse
+    }
+
+    func add(identifier: String, revision: UUID, responseUnconfirmed: @escaping @MainActor () -> Void = {},
+             writeToCenter: () async throws -> Void) async throws {
+        try Task.checkCancellation()
+        guard active == nil else { throw Failure.alreadyWriting }
+        let write = Active(identifier: identifier, revision: revision, startedAt: now())
+        active = write
+        let timer = Task { @MainActor in
+            do { try await waitForResponse() } catch { return }
+            guard !Task.isCancelled, active == write else { return }
+            responseUnconfirmed()
+        }
+        var result = Completion.Result.failed
+        defer {
+            timer.cancel()
+            latestCompletion = Completion(write: write, endedAt: now(), result: result)
+            active = nil
+        }
+        try await writeToCenter()
+        result = .acknowledged
+    }
+}
+
+@MainActor
+final class NotificationRemovalOwner {
+    enum Kind: Equatable { case pending, delivered, all }
+
+    private let queue = DispatchQueue(label: "jp.n624.takupoke.retention-notice-removal")
+    private var active: (kind: Kind, identifiers: [String], work: NotificationWork)?
+
+    func waitForCompletion(timeout: Duration = .seconds(6)) async -> Bool {
+        await active?.work.waitForCompletion(timeout: timeout) != false && !Task.isCancelled
+    }
+
+    func run(_ kind: Kind, identifiers: [String], timeout: Duration? = .seconds(6),
+             _ remove: @escaping @Sendable () -> Void) async -> Bool {
+        guard !Task.isCancelled else { return false }
+        let identifiers = identifiers.sorted()
+        // A synchronous system call can outlive its waiter. Keep its owner
+        // until it actually returns, including across another recovery attempt.
+        while let active {
+            guard await active.work.waitForCompletion(timeout: timeout) else { return false }
+            if self.active?.work === active.work { self.active = nil }
+            if active.kind == kind, active.identifiers == identifiers { return true }
+        }
+        guard !identifiers.isEmpty else { return true }
+        let work = NotificationWork { [queue] in
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                queue.async {
+                    remove()
+                    continuation.resume()
+                }
+            }
+        }
+        active = (kind, identifiers, work)
+        guard await work.waitForCompletion(timeout: timeout) else { return false }
+        if active?.work === work { active = nil }
+        return true
     }
 }
 

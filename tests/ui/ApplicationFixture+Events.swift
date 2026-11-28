@@ -35,6 +35,15 @@ import ZIPFoundation
 // Seed actual event files; user actions still run production fetch/decode/save.
 // The separate probe launch omits this mutation to verify persisted repair.
 enum SimulatorEventsCacheFixture {
+    static func resetForIsolatedLaunch(_ base: URL, arguments: [String]) throws -> Bool {
+        guard arguments.contains("--reset-fixture"),
+              arguments.contains("--countdown-calendar") || arguments.contains("--only-distributed-data") else { return false }
+        let directory = base.appendingPathComponent("SchoolEventsAPI", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: directory.path) else { return false }
+        try FileManager.default.removeItem(at: directory)
+        return true
+    }
+
     static func payload(year: Int, title: String) -> SchoolEventsPayload {
         SchoolEventsPayload(
             version: "v1", schoolYear: year, sourcePdfSha256: String(repeating: "c", count: 64),
@@ -196,14 +205,27 @@ enum SimulatorCountdownEventsFixture {
         let announcement = today.addingDays(arguments.contains("--countdown-progress-announced") ? 0 : 2)!
         let exam = today.addingDays(7)!
         let store = try SchoolEventsStore(root: base.appendingPathComponent("SchoolEventsAPI"))
+        let observed = Date().addingTimeInterval(-5)
+        let timestamp = ISO8601DateFormatter().string(from: observed)
+        let source = String(repeating: "a", count: 64)
         let entries = [(announcement, "fictional-progress-announcement", "試験発表", "行事メモ"),
                        (exam, "fictional-progress-exam", "架空の進捗試験", "テスト")]
         for (year, events) in Dictionary(grouping: entries, by: { $0.0.schoolYear }) {
-            try store.save(SchoolEventsPayload(schoolYear: year, sourcePdfSha256: String(repeating: "a", count: 64),
+            let payload = SchoolEventsPayload(schoolYear: year, sourcePdfSha256: source,
                 sourcePdfETag: nil, identifiedEvents: events.map { date, id, title, tag in
                     .init(eventId: id, title: title, tag: tag,
                           ranges: [.init(startDate: date.iso8601, endDate: date.iso8601)])
-                }))
+                })
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            let version = "sha256-" + (try SHA256.hash(data: encoder.encode(payload))).map { String(format: "%02x", $0) }.joined()
+            let saved = SavedSchoolEvents(fetchedAt: observed, payload: payload, apiETag: nil,
+                                         responseDataVersion: version, lastEventsCheckedAt: observed)
+            try store.save(saved)
+            let status = SchoolEventsSourceStatus(version: "v1", schoolYear: year, dataVersion: version,
+                adoptedSourcePdfSha256: source, status: .matched, lastSuccessfulStatus: .matched,
+                lastSuccessAt: timestamp, lastAttemptAt: timestamp, nextAttemptAt: nil, checking: false, stale: false)
+            try store.saveSourceStatus(.init(receivedAt: observed, response: status, requestedTarget: .init(saved)))
         }
         if arguments.contains("--reset-fixture") {
             var automatic = CountdownAutomatic(enabled: true)

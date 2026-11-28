@@ -42,6 +42,7 @@ struct RecoveryManualDraft: Identifiable, Sendable {
     let acquisitionHash: String
     let snapshotHash: String
     var selectedTargets: Set<RecoveryManualTarget> = []
+    var optionalTargets: Set<RecoveryManualTarget> = []
     var id: String { selectedTargets.isEmpty ? snapshotHash : snapshotHash+":"+fields.map(\.id).joined(separator:";") }
 }
 
@@ -291,7 +292,8 @@ enum RecoveryManualAssistance {
         }
         try work.finish()
         guard provenAtomIds == requiredAtomIds else { throw PDFParseError(code:.ambiguous,stage:.characterMapping) }
-        guard targets.count <= maximumFields, selected.isSubset(of:Set(targets.keys)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
+        guard targets.count <= maximumFields else { throw RecoveryFailure.tooManyRequiredCorrections }
+        guard selected.isSubset(of:Set(targets.keys)) else { throw PDFParseError(code:.ambiguous,stage:.rasterInput) }
         return targets.values.sorted { $0.id < $1.id }
     }
 
@@ -317,7 +319,8 @@ enum RecoveryManualAssistance {
         else { fields = try self.fields(document,selected:selected,check:check,work:work) }
         guard !fields.isEmpty else { return nil }
         return RecoveryManualDraft(document:document,originalResult:result,fields:fields,
-                                   acquisitionHash:try fingerprint(document.nativeCapture!),snapshotHash:try fingerprint(document),selectedTargets:selected)
+                                   acquisitionHash:try fingerprint(document.nativeCapture!),snapshotHash:try fingerprint(document),
+                                   selectedTargets:selected,optionalTargets:selected.subtracting(proof.fields.map(\.target)))
     }
 
     static func complete(_ draft: RecoveryManualDraft, values: [String:String], now: Date = Date(),
@@ -346,6 +349,28 @@ enum RecoveryManualAssistance {
         result.humanCorrections = corrections
         guard try RecoveryValidator.validate(draft.document,result,check:check).canAdopt else { throw PDFParseError(code:.ambiguous) }
         return result
+    }
+
+    enum OptionalWithdrawal: Sendable {
+        case edit(RecoveryManualDraft)
+        case preview(RecoveryResult)
+    }
+
+    static func withdrawingOptionalTarget(_ field: RecoveryManualField, from draft: RecoveryManualDraft, os: String,
+                                          check: @escaping () throws -> Void = {}) throws -> OptionalWithdrawal {
+        try check()
+        guard draft.fields.contains(field), draft.optionalTargets.contains(field.target),
+              !(try fields(draft.document, check: check).map(\.target).contains(field.target)) else {
+            throw PDFParseError(code: .ambiguous, stage: .rasterInput)
+        }
+        let remaining = draft.selectedTargets.subtracting([field.target])
+        if let revised = try prepare(draft.document, os: os, selected: remaining, check: check) {
+            return .edit(revised)
+        }
+        guard try RecoveryValidator.validate(draft.document, draft.originalResult, check: check).canAdopt else {
+            throw PDFParseError(code: .ambiguous, stage: .rasterInput)
+        }
+        return .preview(draft.originalResult)
     }
 
     /// Reuse only the original in-memory acquisition pixels. Selecting a field

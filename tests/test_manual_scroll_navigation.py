@@ -218,6 +218,8 @@ final class GeometryControls:XCTestCase {
     def test_qa_only_owner_resolution_and_existing_caps_are_preserved(self):
         source = manual_check_source()
         visible = source.split("func visible(", 1)[1].split("func tap(", 1)[0]
+        self.assertLess(visible.index("guard !knownID.isEmpty || alternatives != nil || buttonLabel != nil"),
+                        visible.index("for attempt in 0..<16"))
         self.assertIn("list.cells.containing(.any,identifier:targetID)", visible)
         self.assertIn("owners.count==1", visible)
         self.assertIn("for attempt in 0..<16", visible)
@@ -238,6 +240,19 @@ final class GeometryControls:XCTestCase {
         self.assertNotIn("typeText(", visible)
         self.assertNotIn(".tap()", visible)
         self.assertEqual(source.count("func test"), 4)
+
+    def test_alternative_rows_reach_native_binding_only_after_snapshot_geometry(self):
+        source = manual_check_source()
+        visible = source.split("func visible(", 1)[1].split("func tap(", 1)[0]
+        alternatives = visible.split("// Read candidate geometry from one List snapshot.", 1)[1]
+        alternatives = alternatives.split("let exists = !matches.isEmpty", 1)[0]
+        self.assertIn("try? list.snapshot()", alternatives)
+        self.assertIn("$0.elementType == .staticText && alternatives($0)", alternatives)
+        self.assertLess(alternatives.index("manualVisibleCandidate"), alternatives.index(".allElementsBoundByAccessibilityElement"))
+        self.assertIn("matching(identifier:candidate.identifier)", alternatives)
+        self.assertIn("matching.count==1", alternatives)
+        self.assertIn("bound.frame==candidate.frame", alternatives)
+        self.assertIn("element.isHittable", alternatives)
 
 
 if __name__ == "__main__":

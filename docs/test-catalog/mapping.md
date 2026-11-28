@@ -1,7 +1,7 @@
 # 名称対応・パッケージ・認証取得
 
 対応関係・宣言名・実行方法のSHA-256：
-`07acf1970eaee85d999e06262626871ff9d09ec5d564e06a0c94fef0c1abbfe0`
+`ad600b6446400c26cbd5361896c33936d18f9f27da83c93f18a4855fe8f092d1`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -12,6 +12,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 
 ## 変更時に確認するソース
 
+- [Takupoke/MappingIDTokenVerification.swift](../../Takupoke/MappingIDTokenVerification.swift)
 - [Takupoke/MappingModel.swift](../../Takupoke/MappingModel.swift)
 - [Takupoke/MappingModels.swift](../../Takupoke/MappingModels.swift)
 - [Takupoke/MappingOIDC.swift](../../Takupoke/MappingOIDC.swift)
@@ -21,6 +22,16 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - [Takupoke/MappingService.swift](../../Takupoke/MappingService.swift)
 - [Takupoke/MappingSettingsView.swift](../../Takupoke/MappingSettingsView.swift)
 - [Takupoke/MappingStore.swift](../../Takupoke/MappingStore.swift)
+
+## [tests/BoundedHTTPResponseTests.swift](../../tests/BoundedHTTPResponseTests.swift)
+
+- `testRejectsExcessiveDeclaredLengthBeforeReadingAnyBytes`
+- `testUnknownAndUnderstatedLengthsBothStopAtFirstExcessByte`
+- `testExactLimitAndEmptyRevisionResponsesRemainUsable`
+- `testCancelledReaderDoesNotConsumeAnyPartOfTheResponse`
+- `testAccountCommunicationBudgetCountsRequestsAndExcludesTimeBetweenThem`
+- `testDeadlineEndsAnIntermittentTransferBeforeItsLateCompletion`
+- `testExplicitCancellationRemainsDistinctFromDeadlineAndAllowsAnotherRead`
 
 ## [tests/MappingPackageTests.swift](../../tests/MappingPackageTests.swift)
 
@@ -42,6 +53,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 
 - `testExactSubjectSpellingResolvesContextDespiteAnotherWidthEquivalentAlias`
 - `testExplicitOrdinarySubjectIsNeverHiddenByAnOmittedInternationalPrefix`
+- `testLargeMappingKeepsOnlyRawRulesInStorageAndRebuildsForReplacedData`
 - `testConditionalTeacherUsesExactThenUniqueWidthMatchWithinItsContext`
 - `testOmittedInternationalShortSubjectStillResolvesItsConditionalTeacher`
 - `testContextualInternationalChangesUseTheirOwnClassAndSchoolYearBeforeReplacement`
@@ -69,6 +81,7 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 ## [tests/LinksTests.swift](../../tests/LinksTests.swift)
 
 - `testRevisionWorkCoalescesForcedCallerAndCancelsOnlyItsOwnWait`
+- `testCancellingTheLaterWaiterStillLetsTheFirstAcceptItsResponse`
 - `testRevisionTTLForceFailureAndInstalledRevisionUseTheSameCoordinator`
 - `testLastRevisionWaiterCancellationCancelsOwnerAndCannotInstallLateSuccess`
 - `testRevisionResetRejectsOldGenerationWhileNewOwnerCompletes`
@@ -76,6 +89,8 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - `testLateSearchTermsRemainMatchesWithExactPrefixAndSubstringPriority`
 - `testPreparedSearchPreservesRankingOrderAndCurrentVisibilityAcrossQueries`
 - `testAllPrivateResourceCombinationsUseOneAppropriateAuthentication`
+- `testMappingIDTokenChecksClaimsClockAndRealSignatureSeparately`
+- `testMappingAccessTokenCacheKeepsScopeAndExpirySeparate`
 - `testSyllabusDepartmentOnlyResolvesKnownLinkAndUsesCalendarYear`
 - `testLinkOpeningModeUsesHTTPSOnlyAndKeepsOverrideTemporary`
 - `testRecommendationsRespectVisibilityAndAstroOrdering`
@@ -83,10 +98,13 @@ python3 -B -m unittest discover -s tests -p test_mapping_oidc_form.py -v
 - `testWeakETagComparisonPreservesOpaqueEmbeddedMarker`
 - `test200304AndFailureKeepPreviousResult`
 - `testCacheReplacementOnlyAfterValidSave`
+- `testUnknownLinkColorUsesTheStandardColorAndKeepsTheExactPublishedValue`
 - `testAcceptedLinkResponseWithUnescapedSlashesSurvivesReload`
 - `testPreferencesFollowIDAndRetainMissingItems`
+- `testDamagedLinkPreferencesRestoreEachReadableValueAndKeepTheOriginal`
 - `testSearchMatchesKanaRomajiAndRanking`
 
 ## [tests/test_mapping_oidc_form.py](../../tests/test_mapping_oidc_form.py)
 
+- `test_browser_cancellation_authentication_and_transport_are_distinct`
 - `test_exchange_preserves_opaque_code_in_form_body`

@@ -105,7 +105,10 @@ extension SpecialSchedulesModel {
                 control.pipelineTicket?.enter(.validating)
                 try parseCheck()
                 diagnostics.record(.save)
-                do { try store.saveAnalysis(analysis); control.pipelineTicket?.parsed() }
+                do {
+                    try store.acceptParsedAnalysis(analysis, selectedURL: selectedURL, check: parseCheck)
+                    control.pipelineTicket?.parsed()
+                } catch let error as PDFParseError { throw error }
                 catch { throw PDFParseError(code: .storage) }
                 diagnostics.record(.saveComplete)
                 succeeded = true

@@ -13,6 +13,16 @@ enum MaterialFileReader {
         let digest: String
     }
 
+    static func matchesStoredCopy(_ url: URL, byteCount: Int, digest: String, isWorkbook: Bool) throws -> Bool {
+        let values: URLResourceValues
+        do { values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey]) }
+        catch let error as CocoaError where [.fileNoSuchFile, .fileReadNoSuchFile].contains(error.code) { return false }
+        guard values.isRegularFile == true, values.isSymbolicLink != true, values.fileSize == byteCount else { return false }
+        do { return try copy(url, to: nil, isWorkbook: isWorkbook, check: {}).digest == digest }
+        catch MaterialError.invalidFile { return false }
+        catch MaterialError.tooLarge { return false }
+    }
+
     static func copy(_ file: URL, to staged: URL?, isWorkbook: Bool,
                      check: () throws -> Void, progress: () -> Void = {}, digesting: () -> Void = {}) throws -> Receipt {
         try check()

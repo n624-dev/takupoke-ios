@@ -29,6 +29,22 @@ final class LocalRecoveryModelManager: ObservableObject {
     // Candidate quality measurements must pass before a release adds a model
     // here. Never download an unreviewed "latest" model from a remote catalog.
     let catalog: [RecoveryModelManifest] = []
+    var installableCatalog: [RecoveryModelManifest] {
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        let version = "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+        let memory = Self.availableMemory()
+        var runtimes = Set<String>()
+        #if canImport(CLlamaRecovery)
+        runtimes.insert("llamaCpp")
+        #endif
+        #if canImport(CCoreAIRecovery)
+        if os.majorVersion >= 27 { runtimes.insert("coreAI") }
+        #endif
+        return catalog.filter {
+            runtimes.contains($0.runtime) && $0.supportsOs(version) &&
+                $0.isUsable(runtime: $0.runtime, availableMemory: memory)
+        }
+    }
     private var root: URL {
         FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("LocalRecoveryModels",isDirectory:true)
     }
@@ -63,7 +79,7 @@ final class LocalRecoveryModelManager: ObservableObject {
     }
     func release(lease: UUID) { leases.remove(lease); isInUse = !leases.isEmpty }
     func install(_ manifest: RecoveryModelManifest) {
-        guard LocalAIFeaturePolicy.enabled, !busy, leases.isEmpty, catalog.contains(manifest), manifest.validated,
+        guard LocalAIFeaturePolicy.enabled, !busy, leases.isEmpty, installableCatalog.contains(manifest),
               UIApplication.shared.applicationState == .active else { return }
         let ticket = LocalAIFeaturePolicy.capture()
         let control = AcquisitionControl(); self.control = control; busy = true; failure = nil; message = "AIモデルをダウンロードしています⋯"

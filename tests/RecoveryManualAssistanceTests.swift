@@ -389,8 +389,33 @@ extension PDFParsingTests {
         }
     }
     func testManualFourthFieldAndAnyHeaderUncertaintyAreTerminal() throws {
-        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowCount:4),os:"test"))
-        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowHeader:true),os:"test"))
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowCount:4),os:"test")) {
+            XCTAssertEqual(RecoveryFailure($0), .tooManyRequiredCorrections)
+        }
+        XCTAssertThrowsError(try RecoveryManualAssistance.prepare(manualFixture(lowHeader:true),os:"test")) {
+            XCTAssertNotEqual(RecoveryFailure($0), .tooManyRequiredCorrections)
+        }
+    }
+
+    func testRecoveryFailureKeepsSafeStageAndRetryActionWithoutPrintingExternalValues() {
+        let source = PDFParseError(code: .ambiguous, stage: .gridCell)
+        XCTAssertEqual(RecoveryFailure(source), .ambiguous(.gridCell))
+        XCTAssertTrue(RecoveryFailure(source).message.contains("P08"))
+        XCTAssertFalse(RecoveryFailure(source).canRetrySameInput)
+        XCTAssertEqual(RecoveryFailure(CancellationError()), .cancelled)
+        XCTAssertEqual(RecoveryFailure(validationCodes: ["yearEvidence"], providerResult: false), .ambiguous(.yearHeading))
+        XCTAssertEqual(RecoveryFailure(validationCodes: ["validationLimit"], providerResult: false), .processingLimit)
+        XCTAssertEqual(RecoveryFailure(validationCodes: ["invalidOutput"], providerResult: true), .providerOutputRejected)
+        let unexpected = "fictional-document-content-never-shown"
+        XCTAssertFalse(RecoveryFailure(validationCodes: [unexpected], providerResult: true).message.contains(unexpected))
+        XCTAssertFalse(RecoveryFailure(validationCodes: ["invalidOutput"], providerResult: true).canRetrySameInput)
+        XCTAssertTrue(RecoveryFailure(validationCodes: ["runtimeFailure"], providerResult: true).canRetrySameInput)
+        XCTAssertTrue(RecoveryFailure.adoptionStorageFailure.canRetrySameInput)
+        XCTAssertTrue(RecoveryFailure.originalRevalidation.canRestartRecovery)
+        XCTAssertTrue(RecoveryFailure.selectionChanged.canRestartRecovery)
+        XCTAssertTrue(RecoveryFailure.cancelled.canRestartRecovery)
+        XCTAssertTrue(RecoveryFailure.adoptionTargetChanged.canRestartRecovery)
+        XCTAssertFalse(RecoveryFailure.processingLimit.canRestartRecovery)
     }
 
     func testExplicitHighConfidenceBodySelectionPreservesNativeCaptureAndLegacyDefault() throws {
@@ -457,6 +482,43 @@ extension PDFParsingTests {
             unbound.cells[output].lessons[0].room.evidence = ["fictional-unbound-source"]
             XCTAssertFalse(RecoveryManualAssistance.selectableTargets(document,unbound).contains(room))
         }
+    }
+
+    func testWithdrawingOptionalOCRTargetRestoresOriginalAndRetainsRequiredProof() throws {
+        let document = try manualFixture(lowCount: 1)
+        let cell = try XCTUnwrap(document.cells.first { !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+        let subject = RecoveryManualTarget(cellId: cell.id, lessonIndex: 0, role: .subject)
+        let room = RecoveryManualTarget(cellId: cell.id, lessonIndex: 0, role: .room)
+        let teacher = RecoveryManualTarget(cellId: cell.id, lessonIndex: 0, role: .teacher)
+        let draft = try XCTUnwrap(RecoveryManualAssistance.prepare(document, os: "test", selected: [subject, room, teacher]))
+        XCTAssertEqual(draft.optionalTargets, [room, teacher])
+        let required = try XCTUnwrap(draft.fields.first { $0.target == subject })
+        let removed = try XCTUnwrap(draft.fields.first { $0.target == room })
+        XCTAssertThrowsError(try RecoveryManualAssistance.withdrawingOptionalTarget(required, from: draft, os: "test"))
+        guard case .edit(let remaining) = try RecoveryManualAssistance.withdrawingOptionalTarget(removed, from: draft, os: "test") else {
+            return XCTFail("The required correction must remain")
+        }
+        XCTAssertEqual(Set(remaining.fields.map(\.target)), [subject, teacher])
+        XCTAssertEqual(remaining.fields, draft.fields.filter { $0 != removed })
+        let saved = try RecoveryManualAssistance.complete(remaining, values: [subject.key: "架空必須", teacher.key: "架空任意教員"])
+        XCTAssertEqual(Set(saved.humanCorrections?.map(\.target) ?? []), [subject, teacher])
+        XCTAssertEqual(saved.cells.first { $0.cellId == cell.id }?.lessons.first?.room.value, removed.originalText)
+        XCTAssertTrue(RecoveryValidator.validate(document, saved).canAdopt)
+        let replacement = try XCTUnwrap(RecoveryManualAssistance.selectableTargets(document, saved)
+            .first { $0 != subject && $0 != teacher && $0 != room })
+        let next = try XCTUnwrap(RecoveryManualAssistance.prepare(document, os: "test", selected: remaining.selectedTargets.union([replacement])))
+        XCTAssertEqual(Set(next.fields.map(\.target)), [subject, teacher, replacement])
+
+        let complete = try manualFixture(lowCount: 0)
+        let first = try XCTUnwrap(complete.cells.first { !$0.confirmedEmpty && !$0.lessonBindings.isEmpty })
+        let only = RecoveryManualTarget(cellId: first.id, lessonIndex: 0, role: .subject)
+        let optional = try XCTUnwrap(RecoveryManualAssistance.prepare(complete, os: "test", selected: [only]))
+        guard case .preview(let restored) = try RecoveryManualAssistance.withdrawingOptionalTarget(try XCTUnwrap(optional.fields.first),
+                                                                                                    from: optional, os: "test") else {
+            return XCTFail("Withdrawing the last optional correction must return the validated preview")
+        }
+        XCTAssertTrue(RecoveryValidator.validate(complete, restored).canAdopt)
+        XCTAssertNil(restored.humanCorrections)
     }
 
     func testExplicitSelectionRetainsAllMandatoryFieldsAndThreeFieldUnionLimit() throws {

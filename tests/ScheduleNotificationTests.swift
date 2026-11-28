@@ -2,11 +2,108 @@ import XCTest
 @testable import TakupokeParsing
 
 final class ScheduleNotificationTests: XCTestCase {
+    func testRemovingExamResetsOnlyItsComparisonAndFirstReselectionIsQuiet() throws {
+        var snapshot = ScheduleNotificationSnapshot()
+        snapshot.specialDigests = ["exam": "exam-old", "examReturn": "return-old"]
+        snapshot.pending["exam"] = .init(fingerprint: "exam-old", count: 1)
+        snapshot.pending["examReturn"] = .init(fingerprint: "return-old", count: 1)
+        snapshot.removeSpecialSchedule(.exam)
+        let result = try snapshot.reconciling(changes: nil, specials: ["exam": "exam-new", "examReturn": "return-old"],
+            availability: .init(changes: .unavailable, specials: ["exam": .available, "examReturn": .available]),
+            today: .today(), classes: [], changesEnabled: true, specialsEnabled: true)
+        XCTAssertNil(result.pending["exam"])
+        XCTAssertEqual(result.specialDigests["exam"], "exam-new")
+        XCTAssertEqual(result.pending["examReturn"], snapshot.pending["examReturn"])
+        XCTAssertEqual(result.specialDigests["examReturn"], "return-old")
+    }
+
     private let today = SchoolDate(iso8601: "2032-10-15")!
 
     private func change(_ fingerprint: String, date: String = "2032-10-15", className: String = "3_XY",
                         period: String = "1") -> ScheduleNotificationSnapshot.Change {
         .init(date: date, className: className, period: period, fingerprint: fingerprint)
+    }
+
+    func testNoticesUseVisibleChangedRowsAndRecheckBeforeSending() throws {
+        typealias Snapshot = ScheduleNotificationSnapshot
+        let rules = try JSONDecoder().decode(MappingRules.self, from: JSONSerialization.data(withJSONObject: [
+            "subjects": [["alias": "留 架空略号B", "fullName": "架空科目B", "classes": ["3_XY"], "internationalStudent": true]],
+            "teachers": [], "rooms": [], "teacherContexts": []]))
+        let mapping = SavedMapping(revision: "fictional", version: "v1", schemaVersion: 1,
+            archiveETag: "", archiveSHA256: "fictional-rules", publishedAt: "", fetchedAt: Date(), rules: rules)
+        let available = Snapshot.Availability(changes: .available, specials: [:])
+        func row(_ subject: String, period: String = "1") -> ScheduleChange {
+            .init(change_date: today.iso8601, class_name: "3_XY", period: period, before_subject: "",
+                  after_subject: subject, teacher: "", room: "", note: "", raw_text: "", canonical_text: "")
+        }
+        func state(_ rows: [ScheduleChange], international: Bool, mapping: SavedMapping?) -> (Set<Snapshot.Change>, Snapshot.ChangeScope) {
+            let values = Dictionary(uniqueKeysWithValues: rows.map { (Snapshot.Change.from($0), $0) })
+            return (Set(values.keys), .init(visibility: .init(rows: values, mapping: mapping), international: international))
+        }
+        func reconcile(_ previous: Snapshot, _ rows: [ScheduleChange], international: Bool = false,
+                       using mapping: SavedMapping? = nil) throws -> Snapshot {
+            let (rows, scope) = state(rows, international: international, mapping: mapping)
+            return try previous.reconciling(changes: rows, specials: [:], availability: available, today: today,
+                classes: ["3_XY"], changesEnabled: true, specialsEnabled: false, scope: scope)
+        }
+        let ordinary = row("架空科目A")
+        let prefixed = row("留架空科目C")
+        let mapped = row("架空科目B", period: "2")
+        let unknown = row("架空科目D", period: "未確定")
+        let baseline = try reconcile(Snapshot(), [ordinary], using: mapping)
+        let hidden = try reconcile(baseline, [ordinary, prefixed, mapped, unknown], using: mapping)
+        XCTAssertNil(hidden.pending["changes"])
+        XCTAssertEqual(hidden.changes?.count, 4)
+        XCTAssertNil(try reconcile(hidden, [ordinary, prefixed, mapped, unknown], international: true, using: mapping).pending["changes"])
+        XCTAssertNil(try reconcile(hidden, [ordinary, prefixed, mapped, unknown]).pending["changes"])
+
+        let visible = try reconcile(baseline, [ordinary, prefixed, mapped, unknown], international: true, using: mapping)
+        let notice = try XCTUnwrap(visible.pending["changes"])
+        XCTAssertEqual(notice.changeTargets?.map(\.period), ["1", "2"])
+        let (current, hiddenScope) = state([ordinary, prefixed, mapped, unknown], international: false, mapping: mapping)
+        XCTAssertTrue(visible.validTargets(notice.changeTargets ?? [], in: current, today: today,
+            classes: ["3_XY"], scope: hiddenScope).isEmpty)
+        XCTAssertNil(try reconcile(visible, [ordinary, prefixed, mapped, unknown], using: mapping).pending["changes"])
+
+        let removed = try reconcile(hidden, [prefixed, mapped, unknown], using: mapping)
+        XCTAssertEqual(removed.pending["changes"]?.changeTargets?.map(\.period), ["1"])
+        let roundTrip = try JSONDecoder().decode(Snapshot.self, from: JSONEncoder().encode(removed))
+        XCTAssertEqual(roundTrip, removed)
+        let replaced = try reconcile(hidden, [row("架空科目E"), prefixed, mapped, unknown], using: mapping)
+        XCTAssertEqual(replaced.pending["changes"]?.count, 1)
+    }
+
+    func testUpdateNoticeSelectsNearestCurrentDateOrMatchingRememberedDate() throws {
+        let next = try XCTUnwrap(today.addingDays(2))
+        let later = try XCTUnwrap(today.addingDays(4))
+        let past = try XCTUnwrap(today.addingDays(-1))
+        let classes: Set<String> = ["2_IT", "1_ES"]
+        let digest = ScheduleUpdateNotice.digest("fictional-document")
+        let notice = try XCTUnwrap(ScheduleUpdateNotice(identifier: "takupoke.changes", revision: digest,
+            documentRevision: digest, classRevision: ScheduleUpdateNotice.selectedClassesRevision(classes),
+            days: [later.iso8601, past.iso8601, next.iso8601, next.iso8601, "invalid"]))
+        XCTAssertEqual(notice.days, [past, next, later])
+        XCTAssertEqual(notice.edition(currentRevision: digest), .same)
+        XCTAssertEqual(notice.date(today: today, upcoming: [today, later], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: true), next)
+        XCTAssertEqual(notice.date(today: today, upcoming: [past, later], edition: .replaced,
+            selectedClasses: classes, allowsRememberedDates: true), later)
+        XCTAssertNil(notice.date(today: today, upcoming: [past], edition: .same,
+            selectedClasses: ["3_IT"], allowsRememberedDates: true))
+        XCTAssertNil(notice.date(today: today, upcoming: [past], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: false))
+        XCTAssertEqual(notice.date(today: today, upcoming: [today, later], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: true, international: true), today)
+        XCTAssertEqual(notice.date(today: today, upcoming: [today, later], edition: .same,
+            selectedClasses: classes, allowsRememberedDates: true, mappingRevision: "different-rules"), today)
+        XCTAssertNil(ScheduleUpdateNotice(identifier: "unrelated", revision: digest))
+        for (kind, id) in [(ScheduleUpdateNotice.Kind.exam, "takupoke.exam"), (.examReturn, "takupoke.examReturn")] {
+            let update = try XCTUnwrap(ScheduleUpdateNotice(identifier: id, revision: digest))
+            XCTAssertEqual(update.kind, kind)
+            XCTAssertEqual(update.edition(currentRevision: digest), .same)
+            XCTAssertEqual(update.date(today: today, upcoming: [later, next], edition: .same,
+                selectedClasses: classes, allowsRememberedDates: false), next)
+        }
     }
 
     func testPersonalEditRebasesSameDocumentAndLaterSchoolUpdateNotifies() throws {
@@ -150,6 +247,53 @@ final class ScheduleNotificationTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.destinationOfSymbolicLink(atPath:link.path),target.path)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath:root.path).sorted(),
                        ["baseline.json","link.json","valid-snapshot.json"])
+    }
+
+    func testKnownInvalidNotificationBaselineCanBeRebuiltWithoutReplayingCurrentData() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("baseline.json")
+        let availability = ScheduleNotificationSnapshot.Availability(changes: .available,
+            specials: ["exam": .available, "examReturn": .available])
+        let current = try ScheduleNotificationSnapshot().reconciling(changes: [change("current")],
+            specials: ["exam": "fictional-current-exam", "examReturn": "fictional-current-return"], availability: availability,
+            today: today, classes: ["3_XY"], changesEnabled: true, specialsEnabled: true)
+        XCTAssertTrue(current.pending.isEmpty)
+
+        let legacy = Data("{\"specialDigests\":{},\"pending\":{}}".utf8)
+        try legacy.write(to: file)
+        XCTAssertEqual(try ScheduleNotificationSnapshot.load(from: file), ScheduleNotificationSnapshot())
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current))
+        XCTAssertEqual(try Data(contentsOf: file), legacy)
+
+        let unsupported = Data("{\"formatVersion\":2,\"specialDigests\":{},\"pending\":{}}".utf8)
+        try unsupported.write(to: file)
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from: file)) {
+            XCTAssertEqual($0 as? ScheduleNotificationSnapshot.ReadError, .unsupportedFormat)
+        }
+        XCTAssertThrowsError(try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current))
+        XCTAssertEqual(try Data(contentsOf: file), unsupported)
+
+        let corrupt = [Data("{}".utf8), Data("{\"formatVersion\":1,\"pending\":[]}".utf8)]
+        for bytes in corrupt {
+            try bytes.write(to: file)
+            XCTAssertThrowsError(try ScheduleNotificationSnapshot.load(from: file)) {
+                XCTAssertEqual($0 as? ScheduleNotificationSnapshot.ReadError, .invalidStructure)
+            }
+            XCTAssertEqual(try Data(contentsOf: file), bytes)
+            try ScheduleNotificationSnapshot.restoreKnownStructure(at: file, with: current)
+            let restored = try ScheduleNotificationSnapshot.load(from: file)
+            XCTAssertEqual(restored, current)
+            XCTAssertTrue(restored.pending.isEmpty)
+            let change = try restored.reconciling(changes: [self.change("actual-update")],
+                specials: current.specialDigests, availability: availability, today: today, classes: ["3_XY"],
+                changesEnabled: true, specialsEnabled: true)
+            XCTAssertEqual(Set(change.pending.keys), ["changes"])
+        }
+        let retained = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix("baseline-invalid-") }
+        XCTAssertEqual(Set(try retained.map { try Data(contentsOf: $0) }), Set(corrupt))
     }
 
     func testFailedChangeSendCannotSurviveClassSwitchTargetExpiryOrChangedContent() throws {

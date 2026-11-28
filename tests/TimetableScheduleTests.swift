@@ -273,6 +273,36 @@ final class TimetableScheduleTests: XCTestCase {
         remapped = normal; remapped.notices.append("架空読み込み状態")
         XCTAssertTrue(TimetableSchedule.sameProjection(normal,remapped))
     }
+
+    @MainActor func testReachableWeekCacheUsesCurrentSourcesAndDisplayScope() async throws {
+        let cache = TimetableProjectionCache()
+        let start = try XCTUnwrap(SchoolDate(iso8601: "2032-04-05"))
+        let other = try XCTUnwrap(start.addingDays(7))
+        let normal = timetable(term: "前期")
+        let original = TimetableProjectionCache.Key(materials: UUID(), specials: UUID(), events: UUID())
+        let key = TimetableProjectionCache.WeekBoundsKey(anchor: start, classes: ["1_A"], includesChanges: true)
+        func build() -> TimetableSchedule.SourceIndex { .init(timetable: normal, changes: nil, events: nil, specials: []) }
+        let firstIndex = cache.sourceIndex(for: original, make: build)
+        let first = cache.reachableWeeks(for: key, index: firstIndex) { start...start }
+        XCTAssertEqual(cache.reachableWeeks(for: key, index: firstIndex) { other...other }, first)
+        for distinct in [
+            TimetableProjectionCache.WeekBoundsKey(anchor: other, classes: key.classes, includesChanges: true),
+            TimetableProjectionCache.WeekBoundsKey(anchor: start, classes: ["1_B"], includesChanges: true),
+            TimetableProjectionCache.WeekBoundsKey(anchor: start, classes: key.classes, includesChanges: false)
+        ] {
+            XCTAssertEqual(cache.reachableWeeks(for: distinct, index: firstIndex) { other...other }, other...other)
+        }
+        let changed = TimetableProjectionCache.Key(materials: original.materials, specials: original.specials, events: UUID())
+        let currentIndex = cache.sourceIndex(for: changed, make: build)
+        XCTAssertEqual(cache.reachableWeeks(for: key, index: currentIndex) { other...other }, other...other)
+        XCTAssertEqual(cache.reachableWeeks(for: key, index: firstIndex) { start...start }, start...start)
+        XCTAssertEqual(cache.reachableWeeks(for: key, index: currentIndex) { start...start }, other...other)
+        cache.suspend()
+        XCTAssertEqual(cache.reachableWeeks(for: key, index: currentIndex) { start...start }, start...start)
+        cache.resume()
+        let newPeriodIndex = cache.sourceIndex(for: changed, make: build)
+        XCTAssertEqual(cache.reachableWeeks(for: key, index: newPeriodIndex) { start...start }, start...start)
+    }
     func timetable(term: String?) -> PDFAnalysis {
         PDFAnalysis(kind: .timetable, sourceDigest: "fictional", sourceName: "fictional.pdf",
                     parsedAt: Date(timeIntervalSince1970: 0), schoolYear: 2032, term: term,

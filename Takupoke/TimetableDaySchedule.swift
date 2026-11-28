@@ -18,20 +18,40 @@ final class TimetableProjectionCache {
         let mappingRevision:String
         let timesRevision:String
     }
+    struct WeekBoundsKey: Hashable {
+        let anchor: SchoolDate
+        let classes: [String]
+        let includesChanges: Bool
+    }
     private let clocks = TimetableBoundedMemo<ClockKey,String?>(limit:512)
+    private let weekBounds = TimetableBoundedMemo<WeekBoundsKey, ClosedRange<SchoolDate>>(limit: 8)
     private let empty = TimetableSchedule.SourceIndex(timetable:nil,changes:nil,events:nil,specials:[])
     private var suspended: Bool
     init(suspended:Bool = false) { self.suspended = suspended }
     func sourceIndex(for key:Key,make:() -> TimetableSchedule.SourceIndex) -> TimetableSchedule.SourceIndex {
         guard !suspended else { return empty }
         if let stored, stored.0 == key { return stored.1 }
-        let value = make(); clocks.removeAll(); stored = (key,value); return value
+        let value = make()
+        clocks.removeAll()
+        weekBounds.removeAll()
+        stored = (key, value)
+        return value
     }
     func periodTime(for key:ClockKey,index:TimetableSchedule.SourceIndex,make:() -> String?) -> String? {
         guard !suspended, stored?.1 === index else { return nil }
         return clocks.value(for:key,make:make)
     }
-    func suspend() { stored = nil; clocks.removeAll(); suspended = true }
+    func reachableWeeks(for key: WeekBoundsKey, index: TimetableSchedule.SourceIndex,
+                        make: () -> ClosedRange<SchoolDate>) -> ClosedRange<SchoolDate> {
+        guard !suspended, stored?.1 === index else { return make() }
+        return weekBounds.value(for: key, make: make)
+    }
+    func suspend() {
+        stored = nil
+        clocks.removeAll()
+        weekBounds.removeAll()
+        suspended = true
+    }
     func resume() { suspended = false }
 }
 
@@ -146,8 +166,13 @@ struct TimetableDaySchedule {
         return confirmed.count == ranges.count && Set(confirmed).count == 1 ? confirmed.first : nil
     }
 
-    func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
-                          className: String) -> String? {
+    func cardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate, className: String) -> String? {
+        if let clock = explicitSpecialClock(block, on: day, className: className) { return clock }
+        return ordinaryCardTime(block, on: day, className: className)
+    }
+
+    private func ordinaryCardTime(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                                  className: String) -> String? {
         if case .special(let item) = block.content {
             if block.startPeriod == block.endPeriod && item.lesson.spanStart == item.lesson.spanEnd { return item.timeRange }
             let sources = specials.filter { $0.kind == item.kind && $0.lessons.contains(item.lesson) }
@@ -197,7 +222,7 @@ struct TimetableDaySchedule {
         guard let day = SchoolDate(iso8601: change.change_date),
               let periods = change.detailPeriods else { return [] }
         var ranges: [ClosedRange<Int>] = []
-        for period in periods {
+        for period in periods.sorted() {
             if let last = ranges.last, last.upperBound + 1 == period {
                 ranges[ranges.count - 1] = last.lowerBound...period
             } else { ranges.append(period...period) }
@@ -261,6 +286,25 @@ extension TimetableDaySchedule {
         return subjects
     }
 
+    private func explicitSpecialClock(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
+                                      className: String) -> String? {
+        let periods = block.startPeriod...block.endPeriod
+        guard periods.count > 1 else { return nil }
+        let anchor: SpecialScheduleLesson?
+        switch block.content {
+        case .normal: return nil
+        case .special(let item): anchor = item.lesson
+        case .change(let change):
+            guard !change.isCancellation, hasRequiredSpecialSources(on: day, className: className) else { return nil }
+            anchor = nil
+        }
+        let sources = sourceIndex.applicableSpecials(on: day, className: className)
+        let clocks = sources.compactMap { $0.independentContinuousClock(on: day.iso8601, className: className,
+                                                                      periods: periods, matching: anchor) }
+        guard clocks.count == sources.count, Set(clocks).count == 1 else { return nil }
+        return clocks.first
+    }
+
     /// A visual merge does not prove continuous activity. Retain a source's
     /// explicit merged clock only when the entire original span is represented.
     private func activityTimes(_ block: TimetableSchedule.GridBlock, on day: SchoolDate,
@@ -312,8 +356,10 @@ extension TimetableDaySchedule {
             clocks = (block.startPeriod...block.endPeriod).map { period in
                 customTimes?.time(on: day, period: period) ?? TimetableSchedule.normalPeriodTimes[period - 1]
             }
+        } else if let explicit = explicitSpecialClock(block, on: day, className: className) {
+            clocks = [explicit]
         } else {
-            guard cardTime(block, on: day, className: className) != nil else { return [] }
+            guard ordinaryCardTime(block, on: day, className: className) != nil else { return [] }
             clocks = activityTimes(block, on: day, className: className).map { Optional($0) }
         }
         return clocks.compactMap { clock in
@@ -340,12 +386,22 @@ extension TimetableDaySchedule {
 
     /// Missing input must not be presented as a confirmed day without lessons.
     func missingMessages(on day: SchoolDate, className: String) -> [String] {
-        let plan = sourceIndex.plan(on:day)
-        var messages: [String] = plan.weekdayOverrideWarning.map { [$0] } ?? []
+        let warning = sourceIndex.plan(on: day).weekdayOverrideWarning.map { [$0] } ?? []
+        return warning + missingDocuments(on: day, className: className).map(\.message)
+    }
+
+    enum RequiredDocument: Hashable {
+        case timetable
+        case special(SpecialScheduleKind)
+    }
+
+    func missingDocuments(on day: SchoolDate, className: String) -> [(document: RequiredDocument, message: String)] {
+        let plan = sourceIndex.plan(on: day)
+        var missing: [(document: RequiredDocument, message: String)] = []
         for kind in SpecialScheduleKind.allCases {
             let expected = kind == .exam ? plan.apiTest : plan.apiTestReturn
             if expected && !specials.contains(where: { $0.kind == kind && $0.applies(date: day.iso8601, className: className) }) {
-                messages.append("\(kind.title)：未公開または未解析です")
+                missing.append((.special(kind), "\(kind.title)：未公開または未解析です"))
             }
         }
         let hasSpecial = specials.contains { $0.applies(date: day.iso8601, className: className) }
@@ -353,13 +409,13 @@ extension TimetableDaySchedule {
             if let timetable {
                 if let range = TimetableSchedule.termRange(for: timetable) {
                     if !range.contains(day) {
-                        messages.append("今日に適用できる通常時間割がありません。")
+                        missing.append((.timetable, "今日に適用できる通常時間割がありません。"))
                     } else if !timetable.lessons.contains(where: { $0.className == className }) {
-                        messages.append("このクラスの通常時間割がありません。")
+                        missing.append((.timetable, "このクラスの通常時間割がありません。"))
                     }
-                } else { messages.append("通常時間割の学期を確認できません。再解析してください。") }
-            } else { messages.append("通常時間割の解析結果がありません。") }
+                } else { missing.append((.timetable, "通常時間割の学期を確認できません。再解析してください。")) }
+            } else { missing.append((.timetable, "通常時間割の解析結果がありません。")) }
         }
-        return messages
+        return missing
     }
 }

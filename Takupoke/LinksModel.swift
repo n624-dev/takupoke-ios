@@ -18,12 +18,13 @@ final class LinksModel: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var failed = false
     @Published private(set) var message: String?
+    @Published private(set) var revisionConfirmation: DistributedRevisionConfirmation?
 
     private var store: LinksStore?
     private var storedReadWarning: String?
     private let preferencesStore: LinkPreferencesStore
     private let storeRoot: URL?
-    private let revisions = LinksRevisionCoordinator()
+    private let revisions = DistributedRevisionCoordinator()
     private let revisionNetwork: () -> URLSession
     private var revisionBusyOwner: UUID?
     private var searchPreparation: Task<LinkSearch.Index, Error>?
@@ -40,6 +41,15 @@ final class LinksModel: ObservableObject {
         self.endpoint = endpoint
     }
     private let endpoint: URL
+
+    private var installation: DistributedRevisionConfirmation.Installation? {
+        saved.map { .init(revision: $0.revision, acquiredAt: $0.checkedAt) }
+    }
+
+    private func recordConfirmation(_ confirmation: DistributedRevisionConfirmation) {
+        revisionConfirmation = confirmation
+        confirmation.save(beside: store?.file)
+    }
 
     var visibleFavorites: [LinkItem] {
         (saved?.payload.categories ?? []).flatMap(\.buttons)
@@ -76,7 +86,13 @@ final class LinksModel: ObservableObject {
                                                    in: .userDomainMask, appropriateFor: nil, create: true)
             let opened = try LinksStore(root: base.appendingPathComponent("LinksAPI", isDirectory: true))
             store = opened
-            do { saved = try opened.load() }
+            do {
+                saved = try opened.load()
+                if let installation {
+                    revisionConfirmation = .load(beside: opened.file, installation: installation)
+                    updateAvailable = revisionConfirmation?.hasNewerRevision == true
+                }
+            }
             catch {
                 failed = true
                 storedReadWarning = "保存済みの一覧を読み込めませんでした。更新を試してください。"
@@ -96,6 +112,12 @@ final class LinksModel: ObservableObject {
             preferencesReady = true
             preferencesError = nil
         } catch {
+            if let recovered = try? preferencesStore.recoverReadableValues() {
+                preferences = recovered
+                preferencesReady = true
+                preferencesError = "読み取れた一覧設定を引き継ぎ、元の設定を端末に保全しました。"
+                return
+            }
             preferencesReady = false
             preferencesError = "一覧の設定を読み込めませんでした。保存済みの設定は変更していません。"
         }
@@ -118,6 +140,7 @@ final class LinksModel: ObservableObject {
         loadIfNeeded()
         guard ready else { throw LinksError.storage }
         let operation = generation
+        let inspected = installation
         let installed = saved?.revision
         return try await revisions.value(installed:installed,force:force) { [self] in
             guard operation == generation else { throw CancellationError() }
@@ -128,10 +151,19 @@ final class LinksModel: ObservableObject {
                 network.invalidateAndCancel()
                 if operation == generation, revisionBusyOwner == owner { revisionBusyOwner = nil; busy = false }
             }
-            let result = try await MappingService(baseURL:endpoint.deletingLastPathComponent(),network:network)
-                .checkRevision(installed:installed,path:"links-revision")
-            try Task.checkCancellation()
-            guard operation == generation else { throw CancellationError() }
+            let result: MappingRevisionResult
+            do {
+                result = try await MappingService(baseURL:endpoint.deletingLastPathComponent(),network:network)
+                    .checkRevision(installed:installed,path:"links-revision")
+                try Task.checkCancellation()
+                guard operation == generation, installation == inspected else { throw CancellationError() }
+            } catch {
+                guard !Task.isCancelled, !(error is CancellationError),
+                      operation == generation, installation == inspected else { throw CancellationError() }
+                if let inspected { recordConfirmation(.init(failed: inspected, previous: revisionConfirmation, at: Date())) }
+                throw error
+            }
+            if let inspected { recordConfirmation(.init(installation: inspected, result: result, at: Date())) }
             updateAvailable = result != .unchanged
             failed = storedReadWarning != nil
             message = storedReadWarning ?? (updateAvailable
@@ -143,14 +175,13 @@ final class LinksModel: ObservableObject {
 
     func download(token: String, revision: String, network: URLSession) async throws {
         guard let store else { throw LinksError.storage }
+        let operation = generation
         var request = URLRequest(url: endpoint)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, rawResponse) = try await network.data(for: request)
+        let (data, response) = try await BoundedHTTPResponse.read(request, using: network, maximum: LinksPayload.maximumBytes)
         try Task.checkCancellation()
-        guard let response = rawResponse as? HTTPURLResponse,
-              response.expectedContentLength <= LinksPayload.maximumBytes,
-              data.count <= LinksPayload.maximumBytes else { throw LinksError.unavailable }
+        guard operation == generation else { throw CancellationError() }
         if response.statusCode == 401 || response.statusCode == 403 { throw MappingError.authentication }
         guard response.statusCode == 200 else { throw LinksError.unavailable }
         guard let receivedRevision = response.value(forHTTPHeaderField: "X-Links-Revision"),
@@ -163,16 +194,21 @@ final class LinksModel: ObservableObject {
         revisions.reset()
         storedReadWarning = nil
         saved = replacement; updateAvailable = false; failed = false
+        if let installation { recordConfirmation(.init(adopted: installation, at: replacement.checkedAt)) }
         message = "一覧を更新しました。"
     }
 
     func report(_ error: Error) {
+        guard !(error is CancellationError) else { return }
         failed = true
         let description: String
-        switch error as? MappingError {
-        case .authentication: description = "認証を完了できませんでした。"
-        case .changedDuringDownload: description = "取得中に一覧が更新されました。もう一度お試しください。"
-        default: description = (error as? LinksError ?? .unavailable).localizedDescription
+        if let failure = (error as? BoundedHTTPResponse.Failure)?.errorDescription ??
+            (error as? MappingError)?.authenticationFailureDescription {
+            description = failure
+        } else if case MappingError.changedDuringDownload = error {
+            description = "取得中に一覧が更新されました。もう一度お試しください。"
+        } else {
+            description = (error as? LinksError ?? .unavailable).localizedDescription
         }
         let warning = storedReadWarning.map { $0 + "\n" } ?? ""
         message = warning + description + (saved == nil ? "" : " 保存済みの一覧を表示しています。")
@@ -184,6 +220,7 @@ final class LinksModel: ObservableObject {
         revisionBusyOwner = nil
         storedReadWarning = nil
         saved = nil; store = nil; ready = false; busy = false
+        revisionConfirmation = nil
         updateAvailable = false; message = nil; failed = false
     }
 
@@ -198,7 +235,7 @@ final class LinksModel: ObservableObject {
     func isFavorite(_ id: String) -> Bool { preferences.favoriteIDs.contains(id) }
     func isHidden(_ id: String) -> Bool { preferences.hiddenIDs.contains(id) }
     func color(for item: LinkItem) -> String {
-        guard let color = preferences.colorOverrides[item.id], LinksPayload.colors.contains(color) else { return item.color }
+        guard let color = preferences.colorOverrides[item.id], LinksPayload.colors.contains(color) else { return item.displayColor }
         return color
     }
 

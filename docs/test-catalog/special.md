@@ -1,7 +1,7 @@
 # 試験・返却PDF
 
 対応関係・宣言名・実行方法のSHA-256：
-`ca863de170d0fe3819a3367b427bc0a2256f2847b22201920a6cac98f2984ce7`
+`071ea46402968b09ea42c12805c7bc67dde8195ec05e342a20b2f6496f6337e7`
 
 環境：Linux Swift／Apple Native（PDFKit・VisionはApple限定）
 
@@ -28,6 +28,8 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 
 ## [tests/SpecialScheduleTests+Persistence.swift](../../tests/SpecialScheduleTests+Persistence.swift)
 
+- `testSpecialStoreRecoversOtherPDFWhenOneSavedPayloadIsUnreadable`
+- `testRemovingSelectedExamRollsBackOnFailureAndKeepsReturnAcrossRestart`
 - `testScopedReturnSubsetCannotReplaceFullReturnAfterRestart`
 - `testVariableExamScopeSurvivesStoreRestartAndRejectsPhantomScope`
 - `testInterruptedEmptySpecialDatabaseCanFinishInitializationWithoutLosingSources`
@@ -36,6 +38,7 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 - `testFreshStoreCollectsOrphansOnlyAfterValidMetadataAndUpgradesLegacyRecords`
 - `testIncompleteSpecialTimesDoNotReplacePreviousStoreResult`
 - `testAcquisitionFailureStatusKeepsGoodAnalysisUntilTheSameSourceIsConfirmed`
+- `testFirstAcquisitionFailuresReopenWithoutInventingASelectedPDF`
 - `testCancellingSpecialReanalysisKeepsOnlyTheSameOriginalRecoveryJob`
 - `testSelectedPDFAndFailurePersistWithoutReplacingPreviousAnalysis`
 - `testUnchangedSpecialPDFCheckPersistsWithoutReplacingAcquisitionOrAnalysis`
@@ -45,6 +48,8 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 
 ## [tests/SpecialScheduleTests.swift](../../tests/SpecialScheduleTests.swift)
 
+- `testStrictExamReviewKeepsBlankScopeThroughSQLiteAndRejectsLegacyMissingProof`
+- `testStrictExamMayParseWithoutProvingAnUnsampledStripIsEmpty`
 - `testStrictExamRequiresEachDateLabelToDescribeOneWholeDay`
 - `testPrintedExamWeekdayMustAgreeInStrictCertifiedAndRecovery`
 - `testSegmentedCellTopBordersDefineTheCompleteExamBody`
@@ -60,10 +65,13 @@ python3 -B -m unittest discover -s tests -p test_change_preview_actions.py -k sp
 - `testSpecialWholeNumericTokensRetainAdjacentAndWidthNormalizedHeadings`
 - `testTruncatedSpecialClockCannotReplaceSavedGoodAnalysis`
 - `testParsedMergedCellRetainsRawClockButItsRemainingFragmentUsesPeriodClock`
+- `testExplicitClockForSeparateExamCellsSurvivesStoreReload`
+- `testIndependentExamWithoutPrintedContinuousTimeUsesSeparatePeriods`
 - `testRepeatedLowerHeaderBandBelowMergedClassBorderUsesItsOwnRule`
 - `testSingleDayPeriodWordAndPartialSeparatorDoNotMoveTheBodyBoundary`
 - `testReturnColumnHeadingsAreExcludedWithoutChangingLessonFields`
 - `testMatchingPeriodWordsInsideTheClassTableAreRetained`
+- `testIndependentExamCellsUseOnlyExplicitClockThroughNativePDFKit`
 - `testReturnColumnHeadingSeparationThroughNativePDFKit`
 - `testStrict239RetainsEightCellLinesAndNonFixedSeventeenClassSet`
 - `testStrict239RetainsPDFPeriodOrderAndReturnDateOrder`
