@@ -1,7 +1,12 @@
+## iOS 26で学校全体の予約照合ボタンへの接触をUIKitが取消（2026-11-28）
+
+- `5f7c3c1`、[全体46111196966試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46111196966/job/140876075830)、iOS 26.5／SDK 27.2。`testSchoolCountdownReservesBothLaterPeriodsWhileCurrentPeriodIsDisplayed` は現在のカードが1枚であることと、製品の実保留一覧が期待する予約4件を返したことを確認した。06:51:57 UTCに検査用「学校全体の予約を照合」を1回タップした。UIKitへ開始は届いたが終了が `phase=4` の取消となり、ボタンの処理開始はなく「未照合」のまま。06:52:21に `ApplicationChecks+Notifications.swift:161` の15秒照合で失敗、ケース175.435秒。失敗PNG1枚（68603バイト）。検査ボタン側での正確な日時・対象の照合は未完了。
+- `学校全体の予約を照合|countdown-notice-reserve|phase=4` で#129・#155の旧0件と#125の実タブ接触の取消を照合した。今回は実の予約追加4回と期待識別子4件の読み戻しが成功しており、前回の[同ケース](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794608)は同じ製品コード、同じテスト、SDK、Runtimeで実照合まで通過している。元の操作と期限を維持し、全体終端後に失敗分を新しいRunnerで比較する。
+
 ## iOS 26の端末内復旧1項目で入力欄の照会後にXCTestの撮影が停止（2026-11-28）
 
 - `5f7c3c1`、[全体46111196966試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46111196966/job/140876075804)、iOS 26.5／SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。今回のRuntime準備と実アプリ起動は成功。「消去」を1回タップし、アプリが消去・編集開始・ソフトキーボード表示を記録した。05:36:05 UTCに入力欄のAX照会を開始した後の復帰は観測できず、05:55:43に `SimulatorIdentityTestCase.swift:58` のXCTest撮影がタイムアウトして失敗終了。ケース1351.692秒。先に発生した失敗の詳細はログに残らず、実文字入力・採用・再起動は未確認。予備の `simctl` は終了時のPNGを1枚（592301バイト）取得した。
-- `Timed out while requesting screenshot|manual-value|keyboard-did-show` でU20と前回のAppleカタログ停止を照合。今回は実キーボード表示後の入力欄照会に到達しており、U20の操作前撮影・外部カタログ失敗とは異なる。元の入力条件には手を加えず、残りのジョブが終了したら該当ケースを新しいRunnerで再検証する。
+- `Timed out while requesting screenshot|manual-value|keyboard-did-show` でU20、正式526と前回のAppleカタログ停止を照合。正式526では同じ消去後に空欄の最初の照会で停止。今回は空欄と未確認を読み、実キーボード表示後にエディターを実要素に結び付ける段階まで進んだ。U20の操作前撮影と外部カタログ失敗にも該当しない。元の入力条件には手を加えず、残りのジョブが終了したら該当ケースを新しいRunnerで再検証する。
 
 ## iOS 26の試験カウントダウンで削除と挿入の直後に入力欄が空と記録された（2026-11-28）
 
