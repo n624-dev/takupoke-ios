@@ -236,7 +236,12 @@ extension ApplicationChecks {
         XCTAssertEqual(previous, "設定期間の経過率")
         field.tap()
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: previous.count) + label)
-        XCTAssertEqual(field.value as? String, label)
+        let entered = expectation(
+            for: NSPredicate(format: "value == %@", label), evaluatedWith: field)
+        guard XCTWaiter.wait(for: [entered], timeout: 10) == .completed else {
+            XCTFail("The progress label field must show the complete edited text before saving. \(field.debugDescription)")
+            return
+        }
         tapToolbar("countdown-save", bar: settings)
         screen("カウントダウン")
 

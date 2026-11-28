@@ -1,3 +1,8 @@
+## iOS 26の試験カウントダウンで削除と挿入の直後に入力欄が空と記録された（2026-11-28）
+
+- `d0ab384`、[全体46099518301試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794585)、iOS 26.5／SDK 27.2。`testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel` は発表前の非表示と自動起点を確認し、ラベル欄の実タップ、キーボード表示、削除と入力のコマンドに到達した。03:42:39 UTC、`ApplicationChecks+Events.swift:239` の直後の `field.value` が空文字と記録され、ケース46.668秒で失敗。編集値の保存・再起動は未実行。失敗PNG1枚（127885バイト）。同じ[iOS 27通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794667)のケースは成功した。失敗直後の画面と編集イベントを照合し、入力の実体とAXへの反映を区別する。
+- `field-edit-changed|Fictional progress|typeText` でN163の年度欄と、同じ試験カウントダウンの起点未取得を照合。今回の失敗PNGに入力全文 `Fictional progress` とカーソルがあり、入力イベントも続いていた。画面に表示された文字と直後のAX照会が一致していなかった。年度欄で使用している10秒の照会に合わせ、同じ実TextFieldの `value` に入力全文が返るまで待つ。入力は一度の実タップと一度の置換を維持し、実保存・再起動後のカードでも同じ全文を確認する。
+
 ## iOS 26の端末内復旧1項目でAppleのカタログ取得が失敗（2026-11-28）
 
 - `d0ab384`、[全体46099518301試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794679)、iOS 26.5のbuild `23F77`／arm64、SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。03:48:48 UTCに `MobileAssetError.Download Code=47`、`tryAgainLater=true` を返し、`xcodebuild -downloadPlatform` は終了70。Simulatorの作成とXCTestに到達しておらず撮影できる端末はなかった。
