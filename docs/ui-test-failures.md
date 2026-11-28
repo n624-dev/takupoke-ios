@@ -2,6 +2,7 @@
 
 - `4e3154d`、[全体46061047443試行1の通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46061047443/job/140717110587)、iOS 26.5／SDK 27.2。22:44:13 UTC、`testSettingsAccountDataAndFileDetails` の `ApplicationChecks+Settings.swift:286` で `material-actions-section` だけを取得し、`material-file-section` がなかった。ケース280.185秒。試験発表の修正済みのケースは64.304秒で成功。全体は12件成功・3件失敗。両OSの通常Aは通過し、保存期間復旧と時間割変更通知がそれぞれ成功。ファイル詳細の表示欠落とAX取得の範囲は追加照合する。
 - `material-file-section|material-actions-section|UI_VISIBLE` でN183の詳細遷移と比較した。今回の試験時間割では、最初に「ファイル情報」を実画面で取得した。「操作」がAXに現れていないため画面全体のSwipeを送り、「操作」は見えたが前の「ファイル情報」がAXから外れた。未生成の見出しを探す場合に限り、実表示領域の高さの1/4だけドラッグし、少しずつ前の表示と重ねる。両方の実見出しのID・順序、操作の可視性、後続の画面検査は維持する。
+- `926325c` の[限定46086013096](https://github.com/n624-dev/takupoke-ios/actions/runs/46086013096/job/140795627834) はiOS 26.5／SDK 27.2で `testFileFailuresKeepResultsAndStayInTheirOwnDetails` と `testSetupCanBeSkippedAndOffersAllFiles` が成功した。選択した `file-details` はこの2ケースを指すため、見出し順序のケースは未実行。`tools/ui_test_manifest.py` の対応と完了ログを照合し、再実行では `testSettingsAccountDataAndFileDetails` を直接指定する。
 
 ## 最新のiOS 26週切替限定でXCTest開始前にジョブ上限（2026-11-27）
 
