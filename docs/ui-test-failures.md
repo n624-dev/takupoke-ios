@@ -1,3 +1,8 @@
+## iOS 26の端末内復旧1項目で入力欄の照会後にXCTestの撮影が停止（2026-11-28）
+
+- `5f7c3c1`、[全体46111196966試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46111196966/job/140876075804)、iOS 26.5／SDK 27.2、`testOneCorrectionRequiresUncheckedAcknowledgementAndSurvivesBackground`。今回のRuntime準備と実アプリ起動は成功。「消去」を1回タップし、アプリが消去・編集開始・ソフトキーボード表示を記録した。05:36:05 UTCに入力欄のAX照会を開始した後の復帰は観測できず、05:55:43に `SimulatorIdentityTestCase.swift:58` のXCTest撮影がタイムアウトして失敗終了。ケース1351.692秒。先に発生した失敗の詳細はログに残らず、実文字入力・採用・再起動は未確認。予備の `simctl` は終了時のPNGを1枚（592301バイト）取得した。
+- `Timed out while requesting screenshot|manual-value|keyboard-did-show` でU20と前回のAppleカタログ停止を照合。今回は実キーボード表示後の入力欄照会に到達しており、U20の操作前撮影・外部カタログ失敗とは異なる。元の入力条件には手を加えず、残りのジョブが終了したら該当ケースを新しいRunnerで再検証する。
+
 ## iOS 26の試験カウントダウンで削除と挿入の直後に入力欄が空と記録された（2026-11-28）
 
 - `d0ab384`、[全体46099518301試行1](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794585)、iOS 26.5／SDK 27.2。`testCountdownShowsProgressFromAnnouncementAndRestoresEditedLabel` は発表前の非表示と自動起点を確認し、ラベル欄の実タップ、キーボード表示、削除と入力のコマンドに到達した。03:42:39 UTC、`ApplicationChecks+Events.swift:239` の直後の `field.value` が空文字と記録され、ケース46.668秒で失敗。編集値の保存・再起動は未実行。失敗PNG1枚（127885バイト）。同じ[iOS 27通常B](https://github.com/n624-dev/takupoke-ios/actions/runs/46099518301/job/140839794667)のケースは成功した。失敗直後の画面と編集イベントを照合し、入力の実体とAXへの反映を区別する。
